@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>truex agents</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%2315181a'/%3E%3Cpath d='M12 5l1.6 4.4L18 11l-4.4 1.6L12 17l-1.6-4.4L6 11l4.4-1.6z' fill='%23fff'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f3f4f0;
+      --surface: #ffffff;
+      --surface-2: #f7f8f5;
+      --surface-3: #eef0ea;
+      --line: #e4e7df;
+      --line-strong: #d5d9cf;
+      --ink: #15181a;
+      --ink-2: #4a5049;
+      --ink-3: #858b82;
+      --accent: #2f6b3c;
+      --accent-2: #3f8a4f;
+      --accent-soft: #e6f0e4;
+      --accent-soft-2: #cfe0cb;
+      --accent-ink: #ffffff;
+      --warn: #b7791f;
+      --shadow-sm: 0 1px 2px rgba(20, 30, 20, .05);
+      --shadow-md: 0 1px 2px rgba(20, 30, 20, .04), 0 8px 24px -8px rgba(20, 30, 20, .12);
+      --shadow-lg: 0 2px 4px rgba(20, 30, 20, .04), 0 24px 48px -16px rgba(20, 30, 20, .22);
+      --radius: 16px;
+      --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+      --font-display: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+      --font-accent: "Instrument Serif", ui-serif, Georgia, serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+      --display-weight: 600; --display-track: -.035em;
+      --accent-style: italic; --accent-weight: 400; --accent-scale: 1.12;
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0d0f0e; --surface: #151816; --surface-2: #1a1d1b; --surface-3: #222623;
+        --line: #262a27; --line-strong: #333833; --ink: #eef1ec; --ink-2: #b4bab2; --ink-3: #7c837a;
+        --accent: #6fbf7f; --accent-2: #8fd49c; --accent-soft: #1d2b20; --accent-soft-2: #2c4431; --accent-ink: #0d140f;
+        --shadow-md: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -8px rgba(0,0,0,.5);
+        --shadow-lg: 0 2px 4px rgba(0,0,0,.3), 0 24px 48px -16px rgba(0,0,0,.7);
+        color-scheme: dark;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #0d0f0e; --surface: #151816; --surface-2: #1a1d1b; --surface-3: #222623;
+      --line: #262a27; --line-strong: #333833; --ink: #eef1ec; --ink-2: #b4bab2; --ink-3: #7c837a;
+      --accent: #6fbf7f; --accent-2: #8fd49c; --accent-soft: #1d2b20; --accent-soft-2: #2c4431; --accent-ink: #0d140f;
+      --shadow-md: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -8px rgba(0,0,0,.5);
+      --shadow-lg: 0 2px 4px rgba(0,0,0,.3), 0 24px 48px -16px rgba(0,0,0,.7);
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    html, body, #root { height: 100%; margin: 0; }
+    body {
+      background: var(--bg); color: var(--ink);
+      font: 14px/1.5 var(--font-sans);
+      -webkit-font-smoothing: antialiased; overflow: hidden;
+    }
+    button { font: inherit; color: inherit; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; }
+    }
+    #boot-error { position: fixed; inset: 16px; padding: 16px; border-radius: 12px; background: #2a0f0f; color: #ffd7d7; font: 12px/1.5 var(--font-mono); white-space: pre-wrap; overflow: auto; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js" crossorigin></script>
+  <script>
+    // Tiny loader: fetch app.tsx, strip types + JSX in the browser, run it. No bundler.
+    (async () => {
+      try {
+        const src = await fetch("app.tsx", { cache: "no-store" }).then(r => {
+          if (!r.ok) throw new Error("Could not load app.tsx (" + r.status + ")");
+          return r.text();
+        });
+        const { code } = Babel.transform(src, {
+          filename: "app.tsx",
+          presets: [["typescript", { isTSX: true, allExtensions: true }], ["react", { runtime: "classic" }]],
+        });
+        new Function("React", "ReactDOM", code)(React, ReactDOM);
+      } catch (err) {
+        const el = document.createElement("pre");
+        el.id = "boot-error";
+        el.textContent = String(err && err.stack || err) +
+          (location.protocol === "file:" ? "\n\nOpen this page through a local server, e.g. `python3 -m http.server` then http://localhost:8000" : "");
+        document.body.appendChild(el);
+      }
+    })();
+  </script>
+</body>
+</html>
