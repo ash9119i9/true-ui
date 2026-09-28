@@ -4,55 +4,94 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>truex agents</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%2315181a'/%3E%3Cpath d='M12 5l1.6 4.4L18 11l-4.4 1.6L12 17l-1.6-4.4L6 11l4.4-1.6z' fill='%23fff'/%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%231F2A30'/%3E%3Cpath d='M12 5l1.6 4.4L18 11l-4.4 1.6L12 17l-1.6-4.4L6 11l4.4-1.6z' fill='%23fff'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
+    /* Pastel Blue Brand System — light-mode-first.
+       Brand blues stay pastel and stop at #8FC5D6; contrast comes from graphite, never darker blue.
+       Pastel fills carry graphite content (no white on #BCDEE8 / #A8D3E0). */
     :root {
-      --bg: #f3f4f0;
-      --surface: #ffffff;
-      --surface-2: #f7f8f5;
-      --surface-3: #eef0ea;
-      --line: #e4e7df;
-      --line-strong: #d5d9cf;
-      --ink: #15181a;
-      --ink-2: #4a5049;
-      --ink-3: #858b82;
-      --accent: #2f6b3c;
-      --accent-2: #3f8a4f;
-      --accent-soft: #e6f0e4;
-      --accent-soft-2: #cfe0cb;
-      --accent-ink: #ffffff;
-      --warn: #b7791f;
-      --shadow-sm: 0 1px 2px rgba(20, 30, 20, .05);
-      --shadow-md: 0 1px 2px rgba(20, 30, 20, .04), 0 8px 24px -8px rgba(20, 30, 20, .12);
-      --shadow-lg: 0 2px 4px rgba(20, 30, 20, .04), 0 24px 48px -16px rgba(20, 30, 20, .22);
+      --brand-50: #F8FCFD; --brand-100: #F4FAFC; --brand-200: #EAF5F8; --brand-300: #D8EBF0;
+      --brand-400: #BCDEE8; --brand-500: #A8D3E0; --brand-600: #8FC5D6;
+
+      --bg: #FFFFFF;
+      --surface: #FFFFFF;
+      --surface-2: #FFFFFF;
+      --surface-3: #F6F9FA;     /* soft surface */
+      --line: #E3ECEF;
+      --line-strong: #D8E0E4;
+      --border-control: #D8E0E4;
+      --ink: #1F2A30;           /* graphite */
+      --ink-2: #5F6D73;         /* secondary */
+      --ink-3: #849198;         /* muted */
+      --ink-disabled: #B4BEC3;
+
+      --accent: #A8D3E0;        /* pastel action: buttons, active controls */
+      --accent-2: #8FC5D6;      /* strong: hover, dots, progress */
+      --accent-hover: #8FC5D6;
+      --accent-pressed: #8FC5D6;
+      --accent-soft: #EAF5F8;   /* ice: selected + secondary */
+      --accent-soft-2: #D8EBF0; /* mist border */
+      --signature: #BCDEE8;
+      --accent-fg: #4E6C76;     /* blue-tinted text/icons (system info text) */
+      --accent-text: #4E6C76;
+      --accent-ink: #1F2A30;    /* content on pastel fills */
+      --warn: #7D5D1D;
+
+      --success-bg: #E7F4ED; --success-text: #35624E;
+      --warning-bg: #FFF3D9; --warning-text: #7D5D1D;
+      --error-bg: #FBE7E7;   --error-text: #8D4545;
+      --info-bg: #EAF5F8;    --info-text: #4E6C76;
+      --neutral-bg: #F6F9FA; --neutral-text: #5F6D73;
+
+      --glow-1: rgb(188 222 232 / 60%);
+      --glow-2: rgb(234 245 248 / 90%);
+      --shadow-sm: 0 1px 2px rgb(31 42 48 / 5%);
+      --shadow-md: 0 1px 2px rgb(31 42 48 / 4%), 0 8px 24px -8px rgb(31 42 48 / 10%);
+      --shadow-lg: 0 2px 4px rgb(31 42 48 / 4%), 0 10px 35px rgb(31 42 48 / 8%);
       --radius: 16px;
-      --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
-      --font-display: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+
+      --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+      --font-display: "Figtree", ui-sans-serif, system-ui, sans-serif;
       --font-accent: "Instrument Serif", ui-serif, Georgia, serif;
       --font-mono: "JetBrains Mono", ui-monospace, monospace;
       --display-weight: 600; --display-track: -.035em;
       --accent-style: italic; --accent-weight: 400; --accent-scale: 1.12;
       color-scheme: light;
     }
+    /* Dark theme is not in the brand system (light-mode-first); derived from graphite with pastel accents. */
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
-        --bg: #0d0f0e; --surface: #151816; --surface-2: #1a1d1b; --surface-3: #222623;
-        --line: #262a27; --line-strong: #333833; --ink: #eef1ec; --ink-2: #b4bab2; --ink-3: #7c837a;
-        --accent: #6fbf7f; --accent-2: #8fd49c; --accent-soft: #1d2b20; --accent-soft-2: #2c4431; --accent-ink: #0d140f;
-        --shadow-md: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -8px rgba(0,0,0,.5);
-        --shadow-lg: 0 2px 4px rgba(0,0,0,.3), 0 24px 48px -16px rgba(0,0,0,.7);
+        --bg: #171717; --surface: #171717; --surface-2: #171717; --surface-3: #242424;
+        --line: #2A2A2A; --line-strong: #363636; --border-control: #404040;
+        --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F; --ink-disabled: #4E5C62;
+        --accent: #A8D3E0; --accent-2: #8FC5D6; --accent-hover: #BCDEE8; --accent-pressed: #BCDEE8;
+        --accent-soft: #1B2C33; --accent-soft-2: #2A4550; --accent-fg: #BCDEE8; --accent-text: #BCDEE8; --accent-ink: #1F2A30;
+        --warn: #E6C27A;
+        --success-bg: #16291F; --success-text: #A8D8BE; --warning-bg: #2E2512; --warning-text: #E6C27A;
+        --error-bg: #2F1A1A; --error-text: #EDB0B0; --info-bg: #1B2C33; --info-text: #BCDEE8;
+        --neutral-bg: #242424; --neutral-text: #8B999F;
+        --glow-1: rgb(143 197 214 / 14%); --glow-2: rgb(188 222 232 / 6%);
+        --shadow-md: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -8px rgb(0 0 0 / 50%);
+        --shadow-lg: 0 2px 4px rgb(0 0 0 / 30%), 0 24px 48px -16px rgb(0 0 0 / 70%);
         color-scheme: dark;
       }
     }
     :root[data-theme="dark"] {
-      --bg: #0d0f0e; --surface: #151816; --surface-2: #1a1d1b; --surface-3: #222623;
-      --line: #262a27; --line-strong: #333833; --ink: #eef1ec; --ink-2: #b4bab2; --ink-3: #7c837a;
-      --accent: #6fbf7f; --accent-2: #8fd49c; --accent-soft: #1d2b20; --accent-soft-2: #2c4431; --accent-ink: #0d140f;
-      --shadow-md: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -8px rgba(0,0,0,.5);
-      --shadow-lg: 0 2px 4px rgba(0,0,0,.3), 0 24px 48px -16px rgba(0,0,0,.7);
+      --bg: #171717; --surface: #171717; --surface-2: #171717; --surface-3: #242424;
+      --line: #2A2A2A; --line-strong: #363636; --border-control: #404040;
+      --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F; --ink-disabled: #4E5C62;
+      --accent: #A8D3E0; --accent-2: #8FC5D6; --accent-hover: #BCDEE8; --accent-pressed: #BCDEE8;
+      --accent-soft: #1B2C33; --accent-soft-2: #2A4550; --accent-fg: #BCDEE8; --accent-text: #BCDEE8; --accent-ink: #1F2A30;
+      --warn: #E6C27A;
+      --success-bg: #16291F; --success-text: #A8D8BE; --warning-bg: #2E2512; --warning-text: #E6C27A;
+      --error-bg: #2F1A1A; --error-text: #EDB0B0; --info-bg: #1B2C33; --info-text: #BCDEE8;
+      --neutral-bg: #242424; --neutral-text: #8B999F;
+      --glow-1: rgb(143 197 214 / 14%); --glow-2: rgb(188 222 232 / 6%);
+      --shadow-md: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -8px rgb(0 0 0 / 50%);
+      --shadow-lg: 0 2px 4px rgb(0 0 0 / 30%), 0 24px 48px -16px rgb(0 0 0 / 70%);
       color-scheme: dark;
     }
     * { box-sizing: border-box; }
@@ -63,7 +102,7 @@
       -webkit-font-smoothing: antialiased; overflow: hidden;
     }
     button { font: inherit; color: inherit; }
-    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+    :focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; border-radius: 8px; }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; }
     }
