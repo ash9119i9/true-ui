@@ -162,6 +162,8 @@ const PANEL_SIZE_DEFAULT: Record<"list" | "detail", PanelSize> = { list: "min", 
 // The chat keeps at least this much room; the sidebar gives way first, then the panel floats.
 const CHAT_MIN: Record<PanelSize, number> = { min: 480, max: 640 };
 const SIDEBAR_W = 268, GAP = 10;
+// Page frame. "main": sidebar, chat and panel are three cards. "design": tinted frame, flat sidebar, two cards.
+const LAYOUT: "main" | "design" = "main";
 const fmtMs = (ms: number) => {
   const s = Math.max(0, ms) / 1000;
   return s < 10 ? `${s.toFixed(1)}s` : s < 60 ? `${Math.round(s)}s` : `${Math.floor(s / 60)}m ${Math.round(s % 60)}s`;
@@ -199,6 +201,7 @@ const PATHS: Record<string, string> = {
   chevronL: "m15 6-6 6 6 6",
   upDown: "m7 15 5 5 5-5M7 9l5-5 5 5",
   x: "M18 6 6 18M6 6l12 12",
+  pulse: "M3 12h4l3-8 4 16 3-8h4",
   expand: "M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7",
   shrink: "M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7",
   spark: "M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z",
@@ -415,12 +418,28 @@ function ActivityPanel({ open, tab, setTab, running, progress, goal, goalSteps, 
     <aside ref={ref} className={"panel activity" + (open ? " is-open" : "") + (overlay ? " is-overlay" : "")}
       aria-hidden={!open} style={{ "--pw": width + "px" } as any}>
       <div className="panel-inner">
+        <div className="p-head">
+          <Icon name="pulse" size={15} />
+          <h2 className="p-title">Session activity</h2>
+          <button className="icon-btn ghost tab-size" onClick={onToggleWide} aria-pressed={wide} tabIndex={open ? 0 : -1}
+            aria-label={wide ? "Shrink panel" : "Expand panel"} title={wide ? "Shrink panel" : "Expand panel"}>
+            <Icon name={wide ? "shrink" : "expand"} size={14} />
+          </button>
+          <button className="icon-btn ghost tab-close" onClick={onClose} aria-label="Close panel" tabIndex={open ? 0 : -1}>
+            <Icon name="x" size={15} />
+          </button>
+        </div>
         <div className="tabs" role="tablist">
           {tabs.map(t => (
             <button key={t} role="tab" aria-selected={tab === t} className={"tab" + (tab === t ? " is-active" : "")}
               onClick={() => setTab(t)} tabIndex={open ? 0 : -1}>
               {t[0].toUpperCase() + t.slice(1)}
               {t === "goal" && goal?.status === "running" && <span className="tab-dot" aria-label="running" />}
+              {t === "plan" && planSteps.length > 0 && (
+                <span className="tab-count" aria-label={`${planSteps.filter(p => p.done).length} of ${planSteps.length} steps done`}>
+                  {planSteps.filter(p => p.done).length}/{planSteps.length}
+                </span>
+              )}
               {t === "agents" && helpers.length > 0 && (
                 <span className={"tab-count" + (runningHelpers ? " is-live" : "")}
                   aria-label={runningHelpers ? `${runningHelpers} running` : `${helpers.length} helpers`}>
@@ -429,13 +448,6 @@ function ActivityPanel({ open, tab, setTab, running, progress, goal, goalSteps, 
               )}
             </button>
           ))}
-          <button className="icon-btn ghost tab-size" onClick={onToggleWide} aria-pressed={wide} tabIndex={open ? 0 : -1}
-            aria-label={wide ? "Shrink panel" : "Expand panel"} title={wide ? "Shrink panel" : "Expand panel"}>
-            <Icon name={wide ? "shrink" : "expand"} size={14} />
-          </button>
-          <button className="icon-btn ghost tab-close" onClick={onClose} aria-label="Close panel" tabIndex={open ? 0 : -1}>
-            <Icon name="x" size={15} />
-          </button>
         </div>
 
         {tab === "activity" ? (
@@ -1229,6 +1241,9 @@ function MessageView({ m, agent, helpers = [], now = 0, lit = null, setLit = () 
         )}
         {helpers.length > 0 && <HelperCard helpers={helpers} now={now} lit={lit} setLit={setLit} onOpen={onOpenHelper} />}
         {m.text && <div className="answer">{m.text}{m.streaming && <span className="caret" />}</div>}
+        {!m.streaming && m.ms !== undefined && (
+          <div className="msg-foot">{fmtMs(m.ms)} · {fmtK(MAIN_TOKENS + helpers.reduce((n, h) => n + (h.status === "done" ? h.tokens : 0), 0))} tokens</div>
+        )}
       </div>
     </div>
   );
@@ -1307,6 +1322,7 @@ function AgentsTab({ helpers, now, openId, onOpen, lit, setLit }: {
                 <span className={"ag-span" + (h.status === "running" ? " is-running" : "")}
                   style={{ left: clamp((h.start - t0) / span * 100, 0, 100) + "%", width: clamp(helperElapsed(h, now) / span * 100, 0, 100) + "%" }} />
               </span>
+              <span className="ag-lane-ms mono">{fmtMs(helperElapsed(h, now))}</span>
             </div>
           ))}
           <div className="ag-axis"><span>0s</span><span>{fmtMs(span)}</span></div>
@@ -1903,7 +1919,7 @@ function App() {
   );
 
   return (
-    <div className="shell">
+    <div className={"shell layout-" + LAYOUT}>
       <Sidebar open={sidebarShown} activeId={activeConvo} nav={nav} setNav={setNav}
         onPick={c => { newChat(); setActiveConvo(c.id); send(c.title, false); }}
         onNew={newChat} onSearch={() => setPalette(true)} />
@@ -1997,6 +2013,10 @@ const CSS = `
 .activity.is-open { width: var(--pw, 360px); }
 .panel-inner { height: 100%; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
 .sidebar .panel-inner { width: 268px; padding: 14px 12px; gap: 6px; }
+/* LAYOUT = "design": the sidebar sits flat on a tinted frame; only the chat and the session panel are cards. */
+.layout-design { background: var(--surface-3); }
+.layout-design .sidebar .panel-inner { background: transparent; border-color: transparent; box-shadow: none; }
+.layout-design .side-link.is-active, .layout-design .convo.is-active { background: var(--surface); box-shadow: var(--shadow-sm); }
 .activity .panel-inner { position: relative; width: var(--pw, 360px); }
 /* Not enough room beside the chat: the panel floats over it as a drawer. */
 .activity.is-overlay.is-open { position: fixed; right: 10px; top: 10px; bottom: 10px; z-index: 30; }
@@ -2012,9 +2032,8 @@ const CSS = `
 .hcard-row:focus-visible { outline-offset: -2px; }
 .hcard-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hcard-row .mono { min-width: 40px; text-align: right; font-variant-numeric: tabular-nums; }
-.hcard-go { display: inline-flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 500; color: var(--accent-fg); opacity: 0; transition: opacity .15s; }
-.hcard-row:hover .hcard-go, .hcard-row:focus-visible .hcard-go, .hcard-row.is-lit .hcard-go { opacity: 1; }
-@media (hover: none) { .hcard-go { opacity: 1; } }
+.hcard-go { display: inline-flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 500; color: var(--accent-fg); }
+.msg-foot { margin-top: 10px; font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 
 .brand { display: flex; align-items: center; gap: 6px; padding: 4px 6px 12px; }
 .brand-mark { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; background: var(--ink); color: var(--bg); }
@@ -2260,13 +2279,14 @@ kbd { font: 500 11px var(--font-mono); color: var(--ink-3); background: var(--su
 .avatar { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: var(--bg); font-weight: 600; }
 
 /* activity */
-.tabs { display: flex; align-items: center; gap: 2px; padding: 8px 8px 0; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--line); }
-.tab { position: relative; display: inline-flex; align-items: center; flex-shrink: 0; white-space: nowrap; height: 38px; padding: 0 9px; border: 0; background: none; color: var(--ink-3); cursor: pointer; font-weight: 500; font-size: 13px; }
+.p-head { display: flex; align-items: center; gap: 6px; min-height: 48px; padding: 8px 8px 0 16px; color: var(--ink-2); }
+.p-title { flex: 1; min-width: 0; margin: 0 0 0 2px; font-size: 14px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tabs { display: flex; align-items: center; gap: 0; padding: 0 8px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--line); }
+.tab { position: relative; display: inline-flex; align-items: center; flex-shrink: 0; white-space: nowrap; height: 38px; padding: 0 8px; border: 0; background: none; color: var(--ink-3); cursor: pointer; font-weight: 500; font-size: 13px; }
 .tab:hover { color: var(--ink); }
 .tab.is-active { color: var(--ink); }
 .tab.is-active::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--accent); }
-.tab-size { margin-left: auto; margin-bottom: 4px; flex-shrink: 0; }
-.tab-close { margin-bottom: 4px; flex-shrink: 0; }
+.tab-size, .tab-close { flex-shrink: 0; }
 .activity-body { flex: 1; overflow: auto; padding: 16px; }
 .live-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .live:not(.is-running) .pulse { animation: none; background: var(--ink-3); }
@@ -2524,6 +2544,7 @@ button.status-pill:hover { border-color: var(--line-strong); }
   .stage { border-radius: 0; border: 0; }
   .sidebar.is-open { position: fixed; left: 0; top: 0; bottom: 0; z-index: 30; }
   .sidebar .panel-inner { border-radius: 0 16px 16px 0; box-shadow: var(--shadow-lg); }
+  .layout-design .sidebar .panel-inner { background: var(--surface-3); border-color: var(--line); box-shadow: var(--shadow-lg); }
   .activity.is-open { right: 0; top: 0; bottom: 0; width: min(var(--pw, 360px), 100vw); }
   .activity .panel-inner { width: min(var(--pw, 360px), 100vw); }
   .tab-size { display: none; }
@@ -2552,14 +2573,15 @@ button.status-pill:hover { border-color: var(--line-strong); }
 .ag-chip .spinner { width: 9px; height: 9px; }
 
 .ag-timeline { display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
-.ag-lane { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: center; gap: 10px; }
+.ag-lane { display: grid; grid-template-columns: 72px minmax(0, 1fr) 40px; align-items: center; gap: 10px; }
+.ag-lane-ms { font-size: 11.5px; color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
 .ag-lane-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--ink-2); }
 .ag-lane.is-lit .ag-lane-name { color: var(--ink); font-weight: 500; }
 .ag-track { position: relative; height: 8px; border-radius: 4px; background: var(--surface-3); overflow: hidden; }
 .ag-span { position: absolute; top: 0; bottom: 0; min-width: 4px; border-radius: 4px; background: var(--t); transition: width .25s linear; }
 .ag-span.is-running { animation: ag-pulse 1.4s ease-in-out infinite; }
 .ag-lane.is-lit .ag-track { box-shadow: 0 0 0 2px var(--ts); }
-.ag-axis { display: flex; justify-content: space-between; margin-left: 82px; font: 10.5px var(--font-mono); color: var(--ink-3); }
+.ag-axis { display: flex; justify-content: space-between; margin: 0 50px 0 82px; font: 10.5px var(--font-mono); color: var(--ink-3); }
 @keyframes ag-pulse { 50% { opacity: .55; } }
 
 .ag-rows { display: flex; flex-direction: column; gap: 8px; }

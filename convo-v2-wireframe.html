@@ -1,0 +1,385 @@
+<title>Convo v2 Wireframe</title>
+<style>
+/* Layout: annotated mock chat on the left, numbered notes on the right; field reference and open questions below. */
+:root {
+  --bg: #fbfbf9;
+  --surface: #ffffff;
+  --sunk: #f3f3ee;
+  --fg: #1b1c19;
+  --muted: #6f7268;
+  --subtle: #9a9d93;
+  --border: #e3e3dc;
+  --border-strong: #cfcfc6;
+  /* zone colors: what kind of information an element is */
+  --z-content: #3e5a35;
+  --z-content-soft: #eef3ea;
+  --z-live: #a8742f;
+  --z-live-soft: #fcf3e6;
+  --z-status: #3f6485;
+  --z-status-soft: #eaf1f7;
+  --z-diag: #74577a;
+  --z-diag-soft: #f4eef5;
+  --danger: #b0513a;
+  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #151613; --surface: #1d1e1a; --sunk: #232420; --fg: #e8e8e2; --muted: #a3a69b; --subtle: #7b7e74;
+    --border: #2f302b; --border-strong: #42443d;
+    --z-content: #9cc08c; --z-content-soft: #223020;
+    --z-live: #e0ac62; --z-live-soft: #33281a;
+    --z-status: #8db4d6; --z-status-soft: #1c2a36;
+    --z-diag: #c7a3cd; --z-diag-soft: #2c2230;
+    --danger: #e08a74; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #151613; --surface: #1d1e1a; --sunk: #232420; --fg: #e8e8e2; --muted: #a3a69b; --subtle: #7b7e74;
+  --border: #2f302b; --border-strong: #42443d;
+  --z-content: #9cc08c; --z-content-soft: #223020;
+  --z-live: #e0ac62; --z-live-soft: #33281a;
+  --z-status: #8db4d6; --z-status-soft: #1c2a36;
+  --z-diag: #c7a3cd; --z-diag-soft: #2c2230;
+  --danger: #e08a74; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 14px/1.55 var(--font-sans); padding-inline: 20px; padding-block: 32px 64px; }
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+h1 { font-size: 26px; letter-spacing: -0.01em; }
+h2 { font-size: 18px; }
+h3 { font-size: 14px; }
+p { margin: 0; }
+code, .mono { font-family: var(--font-mono); font-size: 12px; }
+.muted { color: var(--muted); }
+.eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+
+header { display: flex; flex-direction: column; gap: 10px; max-width: 70ch; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; }
+.sw { width: 12px; height: 12px; border-radius: 3px; border: 2px solid; }
+.sw.content { border-color: var(--z-content); background: var(--z-content-soft); }
+.sw.live { border-color: var(--z-live); background: var(--z-live-soft); }
+.sw.status { border-color: var(--z-status); background: var(--z-status-soft); }
+.sw.diag { border-color: var(--z-diag); background: var(--z-diag-soft); }
+
+/* main split */
+.board { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 900px) { .board { grid-template-columns: minmax(0, 1fr); } }
+
+/* the mock window */
+.window { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+.zone { position: relative; border: 1.5px dashed; border-radius: 8px; padding: 10px 12px; }
+.zone.content { border-color: var(--z-content); }
+.zone.live { border-color: var(--z-live); background: var(--z-live-soft); border-style: solid; }
+.zone.status { border-color: var(--z-status); }
+.zone.diag { border-color: var(--z-diag); }
+.pin { position: absolute; top: -10px; left: -10px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 700 11px/1 var(--font-sans); color: var(--surface); font-variant-numeric: tabular-nums; }
+.content > .pin { background: var(--z-content); }
+.live > .pin { background: var(--z-live); }
+.status > .pin { background: var(--z-status); }
+.diag > .pin { background: var(--z-diag); }
+
+.topbar { padding: 16px 16px 12px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.row.between { justify-content: space-between; }
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: var(--sunk); color: var(--muted); border: 1px solid var(--border); white-space: nowrap; }
+.chip.ok { color: var(--z-content); background: var(--z-content-soft); border-color: transparent; }
+.chip.warn { color: var(--z-live); background: var(--z-live-soft); border-color: transparent; }
+.chip.info { color: var(--z-status); background: var(--z-status-soft); border-color: transparent; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.title { font-weight: 600; font-size: 15px; }
+.bar { height: 6px; background: var(--sunk); border-radius: 999px; overflow: hidden; flex: 1; min-width: 80px; }
+.bar i { display: block; height: 100%; background: var(--z-status); border-radius: inherit; }
+
+.stream { padding: 20px 16px; display: flex; flex-direction: column; gap: 18px; }
+.bubble { align-self: flex-end; max-width: 80%; background: var(--sunk); border-radius: 12px 12px 4px 12px; padding: 8px 12px; }
+.meta { font-size: 11px; color: var(--subtle); display: flex; gap: 8px; flex-wrap: wrap; }
+.skel { height: 8px; border-radius: 4px; background: var(--border); }
+.skel + .skel { margin-top: 6px; }
+.w90 { width: 90%; } .w75 { width: 75%; } .w60 { width: 60%; } .w40 { width: 40%; }
+.fold { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.fold b { color: var(--fg); font-weight: 500; }
+.items { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.item { display: flex; align-items: center; gap: 8px; font-size: 12.5px; padding: 6px 8px; background: var(--sunk); border-radius: 6px; min-width: 0; }
+.item .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
+.helpers { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 8px; }
+.helper { border: 1px solid var(--border); border-radius: 8px; padding: 8px; font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
+.req { display: flex; flex-direction: column; gap: 10px; }
+.opts { display: flex; flex-direction: column; gap: 6px; }
+.opt { border: 1px solid var(--border-strong); background: var(--surface); border-radius: 8px; padding: 7px 10px; font-size: 13px; display: flex; justify-content: space-between; gap: 8px; }
+.opt.rec { border-color: var(--z-live); }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { font: inherit; font-size: 12.5px; padding: 5px 12px; border-radius: 7px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--fg); }
+.btn.primary { background: var(--fg); color: var(--surface); border-color: var(--fg); }
+.viz { height: 80px; border-radius: 8px; background: var(--sunk); display: flex; align-items: flex-end; gap: 6px; padding: 10px; margin-top: 10px; }
+.viz i { flex: 1; background: var(--border-strong); border-radius: 3px 3px 0 0; }
+.sugs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.receipt { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.audit { font-size: 12.5px; display: flex; flex-direction: column; gap: 4px; }
+
+.composer { border-top: 1px solid var(--border); padding: 14px 16px 16px; }
+.input { border: 1px solid var(--border-strong); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; background: var(--surface); }
+.input .ph { color: var(--subtle); }
+
+/* notes column */
+.notes { display: flex; flex-direction: column; gap: 14px; }
+.note { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; }
+.note .n { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 700 11px/1 var(--font-sans); color: var(--surface); margin-top: 1px; }
+.note.content .n { background: var(--z-content); }
+.note.live .n { background: var(--z-live); }
+.note.status .n { background: var(--z-status); }
+.note.diag .n { background: var(--z-diag); }
+.note p { color: var(--muted); font-size: 13px; }
+.note h3 { margin-bottom: 2px; }
+
+/* drawer */
+.drawer { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 760px) { .drawer { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.tl { display: flex; flex-direction: column; gap: 5px; }
+.tl-row { display: grid; grid-template-columns: 110px minmax(0, 1fr) 48px; gap: 8px; align-items: center; font-size: 12px; font-variant-numeric: tabular-nums; }
+.tl-row .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tl-track { position: relative; height: 10px; background: var(--sunk); border-radius: 3px; }
+.tl-track i { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: var(--z-diag); opacity: 0.75; }
+.tl-row .d { text-align: right; color: var(--muted); }
+.tok { display: flex; height: 12px; border-radius: 4px; overflow: hidden; background: var(--sunk); }
+.tok i { display: block; height: 100%; }
+.kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; text-align: right; }
+
+/* reference */
+section { display: flex; flex-direction: column; gap: 14px; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; background: var(--sunk); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { white-space: nowrap; }
+.tag { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; white-space: nowrap; }
+.tag.content { color: var(--z-content); background: var(--z-content-soft); }
+.tag.live { color: var(--z-live); background: var(--z-live-soft); }
+.tag.status { color: var(--z-status); background: var(--z-status-soft); }
+.tag.diag { color: var(--z-diag); background: var(--z-diag-soft); }
+.qs { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; max-width: 75ch; }
+.qs li::marker { color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Truex · Conversation v2</span>
+    <h1>What a conversation shows, and where it lives</h1>
+    <p class="muted">An annotated wireframe of everything the platform sends for a chat today, taken from <code>shared/contracts.ts</code> and the <code>Entry</code> types in <code>frontend/lib/chat.ts</code>. The color of each outline says what kind of information it is, which decides how prominent it should be.</p>
+    <div class="legend" aria-label="Zone legend">
+      <span><i class="sw content"></i>Content: always inline in the stream</span>
+      <span><i class="sw live"></i>Live request: blocks the turn, must stand out</span>
+      <span><i class="sw status"></i>Status: pinned chrome</span>
+      <span><i class="sw diag"></i>Diagnostics: collapsed by default</span>
+    </div>
+  </header>
+
+  <div class="board">
+    <!-- Mock chat window -->
+    <div class="window" role="img" aria-label="Wireframe of the conversation screen with numbered zones">
+      <div class="topbar">
+        <div class="zone status">
+          <span class="pin">1</span>
+          <div class="row between">
+            <div class="row"><span class="title">Q3 churn analysis</span><span class="chip">Research · Churn</span></div>
+            <div class="row"><span class="chip ok"><i class="dot"></i>Active</span><span class="chip">Analyst · gpt-5.2</span></div>
+          </div>
+        </div>
+        <div class="zone status">
+          <span class="pin">2</span>
+          <div class="row"><span class="chip info">Goal · active</span><span style="font-size:13px">Find the top 3 churn drivers for enterprise accounts</span></div>
+          <div class="row" style="margin-top:8px"><div class="bar"><i style="width:42%"></i></div><span class="meta">84k / 200k tokens · 6m 12s</span></div>
+        </div>
+      </div>
+
+      <div class="stream">
+        <div class="zone content" style="align-self:flex-end; max-width:85%">
+          <span class="pin">3</span>
+          <div class="bubble" style="max-width:100%">Pull last quarter's cancellations and compare them against support ticket volume.</div>
+          <div class="meta" style="justify-content:flex-end; margin-top:4px"><span>10:42</span><span>Delivered</span></div>
+        </div>
+
+        <div class="zone content">
+          <span class="pin">4</span>
+          <div class="fold">▸ <b>Thought for 8s</b> · reasoning summary</div>
+          <div class="items">
+            <div class="item">▣ <span class="mono">crm · list_cancellations</span><span class="chip ok">done</span></div>
+            <div class="item">&gt;_ <span class="mono">python analyze.py --quarter Q3</span><span class="chip ok">exit 0</span></div>
+            <div class="item">± <span class="mono">reports/churn.md  +48 −3</span><span class="chip">diff</span></div>
+          </div>
+        </div>
+
+        <div class="zone content">
+          <span class="pin">5</span>
+          <div class="fold"><b>2 helper agents</b> · started by this turn</div>
+          <div class="helpers">
+            <div class="helper"><b>researcher</b><span class="muted">Summarise ticket themes</span><span class="chip ok" style="align-self:flex-start">completed · 41s</span></div>
+            <div class="helper"><b>verifier</b><span class="muted">Check the join on account_id</span><span class="chip info" style="align-self:flex-start"><i class="dot"></i>running</span></div>
+          </div>
+        </div>
+
+        <div class="zone live">
+          <span class="pin">6</span>
+          <div class="req">
+            <div class="row between"><b style="font-size:13px">The agent wants to run a tool</b><span class="meta">Expires in 1:48</span></div>
+            <span class="mono">billing · export_invoices (write)</span>
+            <div class="btns"><button class="btn primary" type="button">Allow once</button><button class="btn" type="button">Allow for this chat</button><button class="btn" type="button">Decline</button></div>
+          </div>
+        </div>
+
+        <div class="zone live">
+          <span class="pin">7</span>
+          <div class="req">
+            <b style="font-size:13px">Which segment counts as enterprise?</b>
+            <div class="opts">
+              <div class="opt rec"><span>ARR over $50k</span><span class="chip warn">Recommended</span></div>
+              <div class="opt"><span>500+ seats</span></div>
+              <div class="opt"><span class="muted">Other…</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="zone content">
+          <span class="pin">8</span>
+          <div class="skel w90"></div><div class="skel w75"></div><div class="skel w60"></div>
+          <div class="viz" aria-hidden="true"><i style="height:70%"></i><i style="height:45%"></i><i style="height:90%"></i><i style="height:30%"></i><i style="height:55%"></i></div>
+          <div class="sugs"><span class="chip">Break down by region</span><span class="chip">Draft the exec summary</span></div>
+        </div>
+
+        <div class="zone diag">
+          <span class="pin">9</span>
+          <div class="receipt"><span>14.2s</span><span>TTFT 1.1s</span><span>12.4k in · 68% cached</span><span>1.9k out</span><span>+3.1k helpers</span><span style="color:var(--danger)">1 privacy finding</span><span>Details ▸</span></div>
+        </div>
+
+        <div class="zone content">
+          <span class="pin">10</span>
+          <div class="audit">
+            <span class="meta">Answered · 10:43</span>
+            <span>✓ Allowed for this chat · billing · export_invoices</span>
+            <span>“Which segment counts as enterprise?” → ARR over $50k</span>
+            <span class="muted">API key question · answer hidden</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="zone status">
+          <span class="pin">11</span>
+          <div class="input">
+            <span class="ph">Message, or / for commands. Sending while it works steers the turn.</span>
+            <div class="row between">
+              <div class="row"><span class="chip">Ask ▾</span><span class="chip">gpt-5.2 · high ▾</span></div>
+              <button class="btn" type="button">■ Stop</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="notes">
+      <div class="note status"><span class="n">1</span><div><h3>Session header</h3><p>Title, project, agent (name, model, provider, sandbox), status <code>active / orphaned / dead</code>. Orphaned and dead need a clear banner, not only a chip.</p></div></div>
+      <div class="note status"><span class="n">2</span><div><h3>Goal bar</h3><p>Objective, status (active, paused, blocked, usageLimited, budgetLimited, complete), tokens vs budget, time used. Show the larger of <code>tokensUsed</code> and <code>tokensObserved</code>. Opens the goal timeline. Also hosts the review step: accept, or reopen with feedback.</p></div></div>
+      <div class="note content"><span class="n">3</span><div><h3>User message</h3><p>Text and time, plus delivery (<code>pending / accepted / failed / unknown</code>) with retry on failed. Mark steer messages sent mid-turn. Slash commands render as a command card with running, succeeded or failed.</p></div></div>
+      <div class="note content"><span class="n">4</span><div><h3>Work: thinking and tools</h3><p>Reasoning streams live, then folds to "Thought for Ns". Tool rows by type: MCP call (server · tool), command (exit status, output), file change (diff), web search. Collapse to one line each; expand for detail.</p></div></div>
+      <div class="note content"><span class="n">5</span><div><h3>Helper agents</h3><p>One block per turn. Each helper shows nickname or role, task, status and duration, and opens a read-only transcript. Statuses: pendingInit, running, completed, errored, interrupted, shutdown.</p></div></div>
+      <div class="note live"><span class="n">6</span><div><h3>Tool approval</h3><p>From <code>PendingRequest</code>. Shows the action and a countdown from <code>expiresAt</code>. Choices map to allowed once, session, chat, always, or declined. Approval mode can skip it for read-only or all tools.</p></div></div>
+      <div class="note live"><span class="n">7</span><div><h3>Clarifying question</h3><p>Options with one recommended, a free-text "Other", and an optional note. Form fields come from <code>responseSchema</code>. Plan approval and secret questions always ask, whatever the mode.</p></div></div>
+      <div class="note content"><span class="n">8</span><div><h3>Response</h3><p>Streaming text that settles into the final message. Can contain inline visualizations. Suggested follow-ups sit under the last answer only.</p></div></div>
+      <div class="note diag"><span class="n">9</span><div><h3>Turn receipt</h3><p>One quiet line: duration, TTFT, tokens and cache hit, helper tokens, privacy findings. "Details" opens the observability drawer below.</p></div></div>
+      <div class="note content"><span class="n">10</span><div><h3>Q&amp;A audit record</h3><p>What was asked and answered in this turn, after it resolves. Outcome is answered, auto, expired or interrupted, and <code>autoMode</code> says which mode answered. Secret answers stay hidden.</p></div></div>
+      <div class="note status"><span class="n">11</span><div><h3>Composer</h3><p>Slash commands, approval mode picker (<code>ask / readOnly / auto</code>, flag-gated), model and effort settings. Turn state drives the button: send when idle, stop while running, disabled while interrupting.</p></div></div>
+    </div>
+  </div>
+
+  <!-- Observability drawer -->
+  <section>
+    <div>
+      <span class="eyebrow">Opened from the receipt (9)</span>
+      <h2>Observability drawer</h2>
+    </div>
+    <div class="drawer">
+      <div class="zone diag panel">
+        <span class="pin">12</span>
+        <h3>Step timeline</h3>
+        <p class="muted" style="font-size:12.5px">From <code>StepSpan[]</code>: plain-words label, which agent ran it, start offset, duration, status. Never raw arguments.</p>
+        <div class="tl">
+          <div class="tl-row"><span class="lbl">Thinking</span><span class="tl-track"><i style="left:0;width:12%"></i></span><span class="d">1.7s</span></div>
+          <div class="tl-row"><span class="lbl">Called crm tool</span><span class="tl-track"><i style="left:12%;width:18%"></i></span><span class="d">2.6s</span></div>
+          <div class="tl-row"><span class="lbl">researcher</span><span class="tl-track"><i style="left:30%;width:40%"></i></span><span class="d">5.7s</span></div>
+          <div class="tl-row"><span class="lbl">Ran a command</span><span class="tl-track"><i style="left:32%;width:20%"></i></span><span class="d">2.8s</span></div>
+          <div class="tl-row"><span class="lbl">Wrote answer</span><span class="tl-track"><i style="left:72%;width:28%"></i></span><span class="d">4.0s</span></div>
+        </div>
+      </div>
+      <div class="zone diag panel">
+        <span class="pin">13</span>
+        <h3>Tokens and context</h3>
+        <p class="muted" style="font-size:12.5px">From <code>TurnUsage</code> and <code>helperUsage</code>. Context fill is <code>contextUsedTokens / contextWindow</code>.</p>
+        <div class="tok" aria-hidden="true"><i style="width:48%;background:var(--z-status)"></i><i style="width:22%;background:var(--z-content)"></i><i style="width:8%;background:var(--z-diag)"></i><i style="width:6%;background:var(--z-live)"></i></div>
+        <dl class="kv">
+          <dt>Cached input</dt><dd>8,430</dd>
+          <dt>New input</dt><dd>3,970</dd>
+          <dt>Output</dt><dd>1,320</dd>
+          <dt>Reasoning</dt><dd>580</dd>
+          <dt>Context used</dt><dd>41% of 272k</dd>
+        </dl>
+      </div>
+      <div class="zone diag panel">
+        <span class="pin">14</span>
+        <h3>Rate limits</h3>
+        <p class="muted" style="font-size:12.5px">From <code>RateLimitView</code>: primary and secondary window, % used, reset time. Warn when <code>reached</code> is set.</p>
+        <dl class="kv"><dt>5-hour window</dt><dd>62% · resets 14:10</dd><dt>Weekly window</dt><dd>18% · resets Mon</dd></dl>
+      </div>
+      <div class="zone diag panel">
+        <span class="pin">15</span>
+        <h3>Privacy and context</h3>
+        <p class="muted" style="font-size:12.5px">From <code>PrivacyReport</code>: kind, source, count and a masked sample, never the value. <code>TurnContext</code> is a masked, live-only view of what the model was fed, split by section.</p>
+        <dl class="kv"><dt>email · tool output</dt><dd>2 · j***@a***.com</dd></dl>
+      </div>
+    </div>
+    <p class="muted" style="font-size:13px">Developer mode can add raw timings (<code>TurnTiming</code>: accept, TTFT, stream, max gap, delta rate, finalize) and the session rollup (<code>TraceSummary</code>: turns, avg and p95 latency, token totals, privacy count).</p>
+  </section>
+
+  <!-- Field reference -->
+  <section>
+    <h2>Field reference</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>#</th><th>Element</th><th>Zone</th><th>Source</th><th>Fields to show</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Session header</td><td><span class="tag status">Status</span></td><td><code>Session</code>, <code>AgentSummary</code>, <code>Project</code></td><td>title, projectId, agent name / model / provider / sandbox, status, archived</td></tr>
+          <tr><td>2</td><td>Goal bar and review</td><td><span class="tag status">Status</span></td><td><code>Goal</code>, <code>GoalReview</code>, <code>GoalHistoryEntry</code></td><td>objective, status, tokensUsed / tokensObserved, tokenBudget, timeUsedSeconds, decision, feedback, timeline kinds</td></tr>
+          <tr><td>3</td><td>User message</td><td><span class="tag content">Content</span></td><td><code>Message</code>, <code>CommandRecord</code></td><td>text, at, delivery, steer, command.method / state / result / error</td></tr>
+          <tr><td>4</td><td>Thinking and tools</td><td><span class="tag content">Content</span></td><td><code>thinking</code> and <code>item</code> entries</td><td>summary, raw, done; item type, status, server · tool, command output, diff</td></tr>
+          <tr><td>5</td><td>Helper agents</td><td><span class="tag content">Content</span></td><td><code>SubAgent</code>, <code>SubAgentTranscript</code></td><td>nickname, role, task, status, depth, lastMessage, startedAt, endedAt</td></tr>
+          <tr><td>6–7</td><td>Pending request</td><td><span class="tag live">Live</span></td><td><code>PendingRequest</code></td><td>method, detail, expiresAt, responseSchema</td></tr>
+          <tr><td>8</td><td>Response</td><td><span class="tag content">Content</span></td><td><code>message.delta / final</code></td><td>text, final, visualization parts, suggested questions</td></tr>
+          <tr><td>9</td><td>Turn receipt</td><td><span class="tag diag">Diagnostics</span></td><td><code>TurnTrace</code></td><td>totalMs, status, model, usage, helperUsage, privacy count</td></tr>
+          <tr><td>10</td><td>Q&amp;A audit record</td><td><span class="tag content">Content</span></td><td><code>ApprovalRecord</code></td><td>outcome, autoMode, items (toolApproval action + decision; question, answer, note, secret)</td></tr>
+          <tr><td>11</td><td>Composer</td><td><span class="tag status">Status</span></td><td><code>Session.settings</code>, <code>TurnState</code>, <code>ApprovalMode</code></td><td>model, effort, summary, serviceTier, personality, approvalMode, turn state</td></tr>
+          <tr><td>12–15</td><td>Observability drawer</td><td><span class="tag diag">Diagnostics</span></td><td><code>StepSpan</code>, <code>TurnUsage</code>, <code>RateLimitView</code>, <code>PrivacyReport</code>, <code>TurnContext</code></td><td>steps, token breakdown, context fill, limits, privacy findings, masked context</td></tr>
+          <tr><td>–</td><td>Side panels</td><td><span class="tag status">Status</span></td><td><code>plan.updated</code>, <code>diff.updated</code>, <code>mcp.status</code>, <code>error</code></td><td>plan steps, running diff, connected tools health, errors with a reference id</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Open questions for v2</h2>
+    <ol class="qs">
+      <li>Do plan steps and the running diff get a side panel, or live inline in the turn that changed them?</li>
+      <li>Should a pending request pin above the composer when it scrolls out of view, so the countdown is never missed?</li>
+      <li>Is the receipt visible to every user, or only in developer mode? Privacy findings may need to show for everyone.</li>
+      <li>How much of the tool detail (command output, diffs) should non-developer users see by default?</li>
+      <li>Where does the goal timeline open: a popover from the goal bar, or a tab in the drawer?</li>
+    </ol>
+  </section>
+</div>
