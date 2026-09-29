@@ -1,0 +1,651 @@
+<title>Session Panel v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@1,6..72,400..500&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one live prototype of the truex shell (sidebar · chat · session panel) with a width switcher, then the spec it encodes.
+   Tokens are the repo's own (index.html), trimmed to what this page uses. */
+:root {
+  --bg: #F6F9FA; --surface: #FFFFFF; --surface-3: #F6F9FA; --line: #E3ECEF; --line-strong: #D8E0E4;
+  --ink: #1F2A30; --ink-2: #5F6D73; --ink-3: #849198;
+  --accent: #3691CD; --accent-2: #2A7DB4; --accent-soft: #EAF5F8; --accent-fg: #2A72A3; --on-accent: #FFFFFF;
+  --success-bg: #E7F4ED; --success-text: #35624E; --warning-bg: #FFF3D9; --warning-text: #7D5D1D;
+  --error-bg: #FBE7E7; --error-text: #8D4545;
+  /* one hue per helper, reused in chat, panel, plan and charts */
+  --a-main: #849198; --a1: #3691CD; --a2: #3E9A78; --a3: #C08A2E;
+  --a1-soft: #E4F1FA; --a2-soft: #E3F3EC; --a3-soft: #FBF0DC;
+  --shadow-sm: 0 1px 2px rgb(31 42 48 / 5%);
+  --shadow-md: 0 1px 2px rgb(31 42 48 / 4%), 0 8px 24px -8px rgb(31 42 48 / 12%);
+  --radius: 16px;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-accent: "Newsreader", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111213; --surface: #171717; --surface-3: #222324; --line: #2A2A2A; --line-strong: #363636;
+  --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F;
+  --accent: #3691CD; --accent-2: #5AA8DC; --accent-soft: #14283A; --accent-fg: #BCDEE8; --on-accent: #FFFFFF;
+  --success-bg: #16291F; --success-text: #A8D8BE; --warning-bg: #2E2512; --warning-text: #E6C27A;
+  --error-bg: #2F1A1A; --error-text: #EDB0B0;
+  --a-main: #8B999F; --a1: #5AA8DC; --a2: #5DBB97; --a3: #D9A548;
+  --a1-soft: #16283A; --a2-soft: #152A22; --a3-soft: #2E2413;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%); --shadow-md: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -8px rgb(0 0 0 / 55%);
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #111213; --surface: #171717; --surface-3: #222324; --line: #2A2A2A; --line-strong: #363636;
+  --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F;
+  --accent: #3691CD; --accent-2: #5AA8DC; --accent-soft: #14283A; --accent-fg: #BCDEE8; --on-accent: #FFFFFF;
+  --success-bg: #16291F; --success-text: #A8D8BE; --warning-bg: #2E2512; --warning-text: #E6C27A;
+  --error-bg: #2F1A1A; --error-text: #EDB0B0;
+  --a-main: #8B999F; --a1: #5AA8DC; --a2: #5DBB97; --a3: #D9A548;
+  --a1-soft: #16283A; --a2-soft: #152A22; --a3-soft: #2E2413;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%); --shadow-md: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -8px rgb(0 0 0 / 55%);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-sans); font-size: 14px; line-height: 1.5; }
+.page { padding: 20px 16px 48px; max-width: 1480px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.mono { font-family: var(--font-mono); font-size: 12px; }
+.tnum { font-variant-numeric: tabular-nums; }
+.muted { color: var(--ink-3); }
+
+/* ---------- top bar */
+.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 14px; }
+.top h1 { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -.02em; text-wrap: balance; }
+.top h1 em { font-family: var(--font-accent); font-weight: 400; font-size: 1.06em; color: var(--accent-fg); }
+.top p { margin: 4px 0 0; color: var(--ink-2); max-width: 62ch; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.seg { display: inline-flex; padding: 3px; gap: 2px; background: var(--surface); border: 1px solid var(--line); border-radius: 11px; }
+.seg button { border: 0; background: none; padding: 6px 11px; border-radius: 8px; cursor: pointer; color: var(--ink-2); font-weight: 500; display: flex; gap: 6px; align-items: baseline; }
+.seg button span { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.seg button[aria-pressed="true"] span { color: var(--line-strong); }
+.readout { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); padding: 7px 10px; border: 1px dashed var(--line-strong); border-radius: 9px; font-variant-numeric: tabular-nums; }
+.check { display: flex; align-items: center; gap: 6px; color: var(--ink-2); cursor: pointer; }
+
+/* ---------- frame */
+.frame { position: relative; display: flex; gap: 8px; height: 780px; padding: 8px; background: var(--surface-3); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; }
+.side { flex: none; width: 232px; display: flex; flex-direction: column; gap: 4px; padding: 14px 12px; transition: width .3s cubic-bezier(.2,.8,.2,1), opacity .2s, padding .3s; overflow: hidden; white-space: nowrap; }
+.side.closed { width: 0; padding-inline: 0; opacity: 0; }
+.brand { font-weight: 700; font-size: 19px; letter-spacing: -.03em; padding: 2px 6px 14px; }
+.brand small { font-weight: 400; font-size: 13px; color: var(--ink-3); letter-spacing: 0; }
+.side .lbl { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); padding: 12px 6px 4px; }
+.side .item { padding: 7px 8px; border-radius: 9px; color: var(--ink-2); }
+.side .item.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+.side .item small { display: block; color: var(--ink-3); font-size: 11.5px; }
+
+.chat { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.chat-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+.chat-head b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.conn { display: flex; align-items: center; gap: 6px; color: var(--ink-3); font-size: 12.5px; white-space: nowrap; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success-text); flex: none; }
+.thread { flex: 1; overflow: auto; padding: 18px 22px; }
+.thread-in { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.thread p { margin: 0; color: var(--ink); max-width: 65ch; }
+.ask { border: 1px solid var(--line); border-left: 3px solid var(--line-strong); border-radius: 10px; padding: 10px 14px; background: var(--surface-3); }
+.ask b { font-weight: 600; }
+.ask small { display: block; color: var(--ink-3); margin-top: 4px; }
+.helpers { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.helpers-h { display: flex; justify-content: space-between; padding: 9px 14px; background: var(--surface-3); font-weight: 500; }
+.hrow { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 14px; border: 0; border-top: 1px solid var(--line); background: none; cursor: pointer; text-align: left; transition: background .15s; }
+.hrow:hover, .hrow.lit { background: var(--accent-soft); }
+.hrow .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hrow .m { color: var(--ink-3); font-size: 12.5px; white-space: nowrap; }
+.hrow .go { color: var(--accent-fg); font-size: 12.5px; font-weight: 500; white-space: nowrap; }
+.foot { font-size: 12px; color: var(--ink-3); }
+.composer { margin: 0 18px 16px; border: 1px solid var(--line); border-radius: 16px; padding: 12px 12px 8px 14px; box-shadow: var(--shadow-md); }
+.composer .ph { color: var(--ink-3); padding-bottom: 14px; }
+.composer .row { display: flex; gap: 10px; align-items: center; color: var(--ink-2); font-size: 13px; }
+.composer .send { margin-left: auto; width: 32px; height: 32px; border-radius: 10px; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
+
+/* ---------- session panel */
+.panel { position: relative; flex: none; width: var(--pw, 360px); display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); transition: width .32s cubic-bezier(.2,.8,.2,1); min-width: 0; }
+.panel.dragging { transition: none; }
+.panel.overlay { position: absolute; top: 8px; right: 8px; bottom: 8px; z-index: 5; box-shadow: var(--shadow-md), -24px 0 48px -24px rgb(0 0 0 / 25%); max-width: calc(100% - 16px); }
+.grip { position: absolute; left: -7px; top: 0; bottom: 0; width: 12px; cursor: col-resize; z-index: 2; display: grid; place-items: center; touch-action: none; }
+.grip::after { content: ""; width: 4px; height: 36px; border-radius: 4px; background: var(--line-strong); opacity: 0; transition: opacity .15s, background .15s; }
+.panel:hover .grip::after, .grip:focus-visible::after, .dragging .grip::after { opacity: 1; }
+.grip:hover::after, .dragging .grip::after { background: var(--accent); }
+.p-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px 0; min-height: 44px; }
+.p-head h2 { margin: 0; font-size: 14.5px; font-weight: 600; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p-head h2 .crumb { color: var(--ink-3); font-weight: 500; }
+.ibtn { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; border: 1px solid transparent; background: none; cursor: pointer; color: var(--ink-2); flex: none; }
+.ibtn:hover { background: var(--surface-3); border-color: var(--line); }
+.tabs { display: flex; gap: 2px; padding: 8px 10px 0; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.tabs button { border: 0; background: none; padding: 8px 9px 10px; cursor: pointer; color: var(--ink-3); font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; display: flex; gap: 6px; align-items: center; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+.count { font-size: 11px; font-family: var(--font-mono); padding: 0 5px; border-radius: 6px; background: var(--surface-3); color: var(--ink-2); }
+.p-body { flex: 1; overflow: auto; padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+.sec-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.sec-h h3 { margin: 0; font-size: 13px; font-weight: 600; }
+.sec-h span { font-size: 12px; color: var(--ink-3); }
+
+/* avatars + chips */
+.av { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; font-weight: 700; font-size: 12px; flex: none; color: var(--c); background: var(--cs); }
+.av.lg { width: 38px; height: 38px; border-radius: 11px; font-size: 16px; }
+.av.xs { width: 18px; height: 18px; border-radius: 6px; font-size: 10px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 500; padding: 1px 7px; border-radius: 6px; white-space: nowrap; }
+.chip.ok { background: var(--success-bg); color: var(--success-text); }
+.chip.warn { background: var(--warning-bg); color: var(--warning-text); }
+.chip.run { background: var(--accent-soft); color: var(--accent-fg); }
+.chip.idle { background: var(--surface-3); color: var(--ink-3); }
+
+/* agents list */
+.runs { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.lane { display: grid; grid-template-columns: 64px 1fr 38px; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); }
+.track { position: relative; height: 8px; background: var(--surface-3); border-radius: 4px; }
+.track i { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 4px; background: var(--c); }
+.axis { display: grid; grid-template-columns: 64px 1fr 38px; gap: 8px; font-size: 10.5px; color: var(--ink-3); font-family: var(--font-mono); }
+.axis div { position: relative; height: 12px; }
+.axis span { position: absolute; transform: translateX(-50%); }
+.axis span:first-child { transform: none; }
+.arow { display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left; padding: 11px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); cursor: pointer; transition: border-color .15s, background .15s; }
+.arow:hover, .arow.lit { border-color: var(--c); background: var(--cs); }
+.arow .body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.arow .l1 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.arow .l1 b { font-weight: 600; }
+.arow .l1 .role { color: var(--ink-2); }
+.arow .l2 { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.arow .l3 { font-size: 12.5px; color: var(--ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.arow .chev { color: var(--ink-3); align-self: center; }
+
+/* agent detail */
+.d-card { display: flex; flex-direction: column; gap: 12px; }
+.d-id { display: flex; gap: 12px; align-items: center; }
+.d-id b { font-size: 16px; font-weight: 650; letter-spacing: -.01em; }
+.d-id .sub { color: var(--ink-2); font-size: 13px; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 12px; }
+.stats > div { padding: 9px 11px; min-width: 0; }
+.stats > div + div { border-left: 1px solid var(--line); }
+.stats small { display: block; color: var(--ink-3); font-size: 11.5px; }
+.stats strong { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.banner { display: flex; gap: 8px; padding: 9px 11px; border-radius: 10px; background: var(--warning-bg); color: var(--warning-text); font-size: 12.5px; }
+.subtabs { display: flex; gap: 4px; padding: 3px; background: var(--surface-3); border-radius: 10px; align-self: flex-start; flex-wrap: wrap; }
+.subtabs button { border: 0; background: none; padding: 5px 11px; border-radius: 7px; cursor: pointer; color: var(--ink-2); font-weight: 500; }
+.subtabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+.doc { font-size: 13.5px; line-height: 1.6; }
+.doc h4 { margin: 14px 0 4px; font-size: 13.5px; font-weight: 650; }
+.doc h4:first-child { margin-top: 0; }
+.doc ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+.doc p { margin: 0 0 6px; }
+.doc table { border-collapse: collapse; width: 100%; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.doc th, .doc td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+.doc th { color: var(--ink-3); font-weight: 500; }
+.tablewrap { overflow-x: auto; }
+.quote { padding: 12px 14px; background: var(--surface-3); border-radius: 10px; font-size: 13px; color: var(--ink-2); white-space: pre-wrap; }
+.tx { display: flex; flex-direction: column; }
+.tx-row { display: grid; grid-template-columns: 40px 16px 1fr; gap: 8px; padding: 7px 0; font-size: 13px; }
+.tx-row .ts { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-3); padding-top: 1px; }
+.tx-row .pip { width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); margin-top: 6px; justify-self: center; }
+.tx-row.err .pip { background: var(--error-text); }
+.tx-row.tool .pip { background: var(--accent); }
+.tx-row .what { min-width: 0; }
+.tx-row code { font-family: var(--font-mono); font-size: 11.5px; background: var(--surface-3); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
+.tx-row.err .what small { color: var(--error-text); }
+.tx-row small { display: block; color: var(--ink-3); font-size: 12px; }
+.link-list { display: flex; flex-direction: column; gap: 8px; }
+.link-list button { display: flex; gap: 10px; align-items: center; width: 100%; text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: none; cursor: pointer; }
+.link-list button:hover { background: var(--surface-3); }
+.link-list small { display: block; color: var(--ink-3); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 6px 11px; border-radius: 9px; cursor: pointer; font-weight: 500; font-size: 13px; }
+.btn:hover { background: var(--surface-3); }
+
+/* plan */
+.progress { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+.progress i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.steps { display: flex; flex-direction: column; gap: 2px; }
+.step { display: grid; grid-template-columns: 20px 1fr; gap: 10px; padding: 9px 10px; border-radius: 10px; width: 100%; text-align: left; border: 0; background: none; cursor: pointer; }
+.step:hover { background: var(--surface-3); }
+.step.cur { background: var(--accent-soft); cursor: default; }
+.step .ic { width: 18px; height: 18px; margin-top: 1px; }
+.step .txt { min-width: 0; }
+.step .t { color: var(--ink); }
+.step.done .t { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.step.done.open .t { white-space: normal; }
+.step.cur .t { font-weight: 600; }
+.step .meta { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--ink-3); margin-top: 3px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.step .more { font-size: 12.5px; color: var(--ink-2); margin-top: 6px; }
+.step .open-agent { color: var(--accent-fg); font-weight: 500; }
+.spin { animation: spin 1.1s linear infinite; transform-origin: 50% 50%; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* insights */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.tile small { display: block; color: var(--ink-3); font-size: 12px; }
+.tile strong { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tile p { margin: 2px 0 0; font-size: 11.5px; color: var(--ink-3); }
+.stack { display: flex; height: 14px; border-radius: 4px; overflow: hidden; gap: 2px; }
+.stack i { display: block; background: var(--c); }
+.legend { display: flex; flex-direction: column; gap: 6px; }
+.lg-row { display: grid; grid-template-columns: 18px 1fr auto auto; align-items: center; gap: 8px; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.lg-row .n { color: var(--ink-2); }
+.lg-row .v { font-weight: 500; text-align: right; min-width: 52px; }
+.lg-row .p { color: var(--ink-3); text-align: right; min-width: 36px; }
+.hbar { display: grid; grid-template-columns: 70px 1fr 48px; gap: 8px; align-items: center; font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.hbar .track { height: 10px; }
+.hbar .v { text-align: right; }
+.note { font-size: 12px; color: var(--ink-3); padding: 8px 10px; border-radius: 9px; background: var(--surface-3); }
+.meter { height: 8px; border-radius: 4px; background: var(--surface-3); overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--ink-2); }
+.card { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+
+/* activity */
+.feed { display: flex; flex-direction: column; }
+.ev { display: grid; grid-template-columns: 46px 22px 1fr; gap: 6px; padding: 8px 0; font-size: 13px; border-bottom: 1px solid var(--line); }
+.ev:last-child { border-bottom: 0; }
+.ev .ts { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-3); padding-top: 2px; }
+.ev small { display: block; color: var(--ink-3); font-size: 12px; }
+
+.toast { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ink); color: var(--surface); padding: 8px 14px; border-radius: 10px; font-size: 12.5px; box-shadow: var(--shadow-md); z-index: 9; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: calc(100% - 32px); text-align: center; }
+.toast.show { opacity: 1; }
+
+/* ---------- spec */
+.spec { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.spec article { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.spec h3 { margin: 0; font-size: 15px; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.spec h3 span { font-family: var(--font-mono); font-size: 12px; font-weight: 500; color: var(--accent-fg); }
+.spec p, .spec li { color: var(--ink-2); font-size: 13.5px; }
+.spec p { margin: 0; }
+.spec ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.rules { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.rules section { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; min-width: 0; }
+.rules h2 { margin: 0 0 8px; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+.rules ol, .rules ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; color: var(--ink-2); font-size: 13.5px; max-width: 70ch; }
+.rules b { color: var(--ink); font-weight: 600; }
+
+@media (max-width: 900px) { .spec, .rules { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .frame { height: 720px; padding: 6px; }
+  .side { display: none; }
+  .thread { padding: 14px; }
+  .composer { margin: 0 10px 10px; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats > div:nth-child(3) { border-left: 0; }
+  .stats > div:nth-child(n+3) { border-top: 1px solid var(--line); }
+  .grip { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="page">
+  <header class="top">
+    <div>
+      <h1>Session panel, <em>re-sized</em></h1>
+      <p>Clickable prototype of the secondary sidebar. Open an agent or a plan step to see it widen. Drag the panel's left edge to set a custom width. Data is the fitness-plan conversation from the screenshots; per-agent numbers are examples.</p>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Panel width">
+        <button id="sz-compact" data-size="compact">Compact <span>360</span></button>
+        <button id="sz-detail" data-size="detail">Detail <span>560</span></button>
+        <button id="sz-wide" data-size="wide">Wide <span>720</span></button>
+      </div>
+      <label class="check" for="want-side"><input type="checkbox" id="want-side" checked> Left sidebar</label>
+      <span class="readout" id="readout">—</span>
+    </div>
+  </header>
+
+  <div class="frame" id="frame">
+    <nav class="side" id="side" aria-label="Workspace">
+      <div class="brand">truex <small>/ agents</small></div>
+      <div class="item">+ New conversation</div>
+      <div class="lbl">Projects</div>
+      <div class="item">Hi</div>
+      <div class="item">Hello</div>
+      <div class="lbl">Recent</div>
+      <div class="item on">Peak performance plan<small>ashok-agents · 6:23 AM</small></div>
+    </nav>
+
+    <main class="chat" id="chat">
+      <div class="chat-head">
+        <b>Peak performance plan</b>
+        <span class="conn"><span class="dot"></span>Connected · ashok-agents</span>
+      </div>
+      <div class="thread"><div class="thread-in">
+        <div class="ask"><b>Here's the plan: I'll spin up sub-agents to research training, nutrition, and recovery separately, then integrate everything into one unified weekly program for you. Approve to proceed?</b><small>Approved · You answered at 6:23 AM</small></div>
+        <p>Approved. Kicking off the sub-agents now for training, nutrition, and recovery research in parallel.</p>
+        <div class="helpers" id="helpers"></div>
+        <p>The recovery sub-agent couldn't access web search on its end. I have web search available directly, so I'll handle the citations for that section myself and let it proceed with the well-established content.</p>
+        <p>The training agent delivered solid, well-grounded content but flagged no web access for live citations. I'll handle sourcing myself and pull citations for nutrition in parallel.</p>
+        <div class="foot tnum">2m 10s · 188k tokens · No personal data detected</div>
+      </div></div>
+      <div class="composer">
+        <div class="ph">Ask a question or type / for commands</div>
+        <div class="row"><span>◎ Goal</span><span>✦ Tools</span><span><span class="dot" style="display:inline-block"></span> qlik</span><span class="send" aria-hidden="true">↑</span></div>
+      </div>
+    </main>
+
+    <aside class="panel" id="panel" aria-label="Session activity">
+      <div class="grip" id="grip" role="separator" aria-orientation="vertical" aria-label="Resize panel" tabindex="0"></div>
+      <div class="p-head" id="phead"></div>
+      <div class="tabs" id="tabs" role="tablist"></div>
+      <div class="p-body" id="pbody"></div>
+    </aside>
+
+    <div class="toast" id="toast" role="status"></div>
+  </div>
+
+  <section class="spec" aria-label="Width modes">
+    <article>
+      <h3>Compact <span>360px</span></h3>
+      <p>Default. Scanning lists: activity feed, agent roster, plan, insights.</p>
+      <ul><li>Agent rows show name + short role, never the raw prompt.</li><li>Status as an icon, so step text gets the full width.</li></ul>
+    </article>
+    <article>
+      <h3>Detail <span>560px</span></h3>
+      <p>Opens automatically when one agent or plan step is opened. Back or Esc returns to compact.</p>
+      <ul><li>Output reads at a real line length (about 60 characters).</li><li>Tables in agent output fit without sideways scroll.</li></ul>
+    </article>
+    <article>
+      <h3>Custom <span>320–720px</span></h3>
+      <p>Drag the left edge. Width is remembered separately for list and detail modes. Double-click the edge to reset.</p>
+      <ul><li>Arrow keys on the focused edge resize in 20px steps.</li></ul>
+    </article>
+  </section>
+
+  <div class="rules">
+    <section>
+      <h2>Layout rules</h2>
+      <ol>
+        <li><b>Chat never drops below 640px.</b> The thread is 740px max, so 640 keeps messages readable.</li>
+        <li>If opening detail would break that, <b>the left sidebar collapses</b> and comes back when detail closes.</li>
+        <li>If the chat is still too narrow (small laptops, phones), <b>the panel floats over the chat</b> as a drawer instead of squeezing it.</li>
+        <li>Chat and panel are linked: <b>clicking a helper row</b> in chat opens that agent, and hovering an agent in the panel lights its row in chat.</li>
+      </ol>
+    </section>
+    <section>
+      <h2>Open for re-ideation</h2>
+      <ul>
+        <li>Should Detail replace the tab bar (current) or keep tabs visible above the breadcrumb?</li>
+        <li>Role labels: generated by the orchestrator at spawn time, or parsed from the task text?</li>
+        <li>Is 720px Wide worth keeping as a preset, or is drag enough?</li>
+        <li>Does Insights need per-agent cost in dollars, or tokens only?</li>
+        <li>Should the Plan step auto-open its agent while that agent is still running?</li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+  const AGENTS = [
+    { id: "pauli", name: "Pauli", role: "Training", c: "--a1", cs: "--a1-soft", dur: 32, tokens: 38.2, tools: 6, model: "Sonnet 5.5",
+      warn: "No web access. Used established guidelines instead of live citations.",
+      task: "Research and design an evidence-based strength + conditioning training program for a beginner training 3–4 days/week whose goal is general peak physical performance. Include weekly split, sets/reps/RPE, progression rules, and warm-up. Cite sources where possible.",
+      preview: "Full-body split, 3–4 days/week. Squat, hinge, push, pull, single-leg, carry. Progress load when all sets hit the top of the rep range at RPE 7 or lower.",
+      output: `<h4>Weekly split</h4>
+<div class="tablewrap"><table><tr><th>Day</th><th>Focus</th><th>Main lifts</th></tr>
+<tr><td>Mon</td><td>Full body A</td><td>Goblet squat, DB row, push-up</td></tr>
+<tr><td>Wed</td><td>Full body B</td><td>RDL, overhead press, split squat</td></tr>
+<tr><td>Fri</td><td>Full body A</td><td>Goblet squat, DB row, push-up</td></tr>
+<tr><td>Sat</td><td>Conditioning</td><td>8–10 rounds easy intervals</td></tr></table></div>
+<h4>Prescription</h4>
+<ul><li>Push (overhead press, dumbbell or barbell): 3 × 8–10, RPE 6–7, rest 90s</li>
+<li>Single-leg (split squat or step-up): 2–3 × 8–10/side</li>
+<li>Conditioning: 8–10 rounds of 30s easy / 60s walk, building to 12 rounds</li></ul>
+<h4>Progression</h4>
+<p>Add 2.5–5% load once every set reaches the top of the rep range at RPE 7 or lower. Deload every 5th week by cutting sets in half.</p>` },
+    { id: "herschel", name: "Herschel", role: "Nutrition", c: "--a2", cs: "--a2-soft", dur: 33, tokens: 41.6, tools: 9, model: "Sonnet 5.5",
+      task: "Research and design an evidence-based nutrition plan to support general peak physical performance and health for a beginner-level exerciser. Cover macros, meal timing, whole-food sources, and hydration.",
+      preview: "Maintenance calories for general health. Protein 1.6–2.2 g/kg, spread over 3–4 meals. Carbs around training; hydration by urine color.",
+      output: `<h4>Energy</h4><p><b>Maintenance calories</b> are appropriate if the goal is general health and performance. Track body weight weekly and adjust by 150–200 kcal if it drifts more than 1% in two weeks.</p>
+<h4>Macros</h4>
+<div class="tablewrap"><table><tr><th>Nutrient</th><th>Target</th><th>Why</th></tr>
+<tr><td>Protein</td><td>1.6–2.2 g/kg/day</td><td>Muscle repair, satiety</td></tr>
+<tr><td>Carbohydrate</td><td>3–5 g/kg/day</td><td>Training fuel</td></tr>
+<tr><td>Fat</td><td>0.8–1.0 g/kg/day</td><td>Hormones, fat-soluble vitamins</td></tr></table></div>
+<h4>Timing and hydration</h4>
+<ul><li>20–40 g protein per meal, 3–4 meals</li><li>Carb-rich meal 2–3 h before training</li><li>Aim for pale-yellow urine; add 500 ml per hour of training</li></ul>` },
+    { id: "hubble", name: "Hubble", role: "Recovery", c: "--a3", cs: "--a3-soft", dur: 10, tokens: 24.2, tools: 2, model: "Haiku 4.5",
+      warn: "No web access. Main agent added citations afterwards.",
+      task: "Research and design an evidence-based recovery protocol to support general peak physical performance for a beginner-level exerciser. Cover sleep, active recovery, mobility, and stress management.",
+      preview: "7–9 h sleep with a fixed wake time. 1–2 rest days. 3 short mobility sessions per week. Daily breathing practice; watch for over-training signs.",
+      output: `<h4>Sleep</h4><p>7–9 hours on 5–6 nights a week, with a consistent wake time. Limit caffeine after 2 PM and alcohol within 3 hours of bed.</p>
+<h4>Active recovery</h4><ul><li>1–2 full rest days per week</li><li>3 short mobility sessions/week (10–15 min)</li><li>Easy walking on rest days</li></ul>
+<h4>Warning signs</h4><p>Persistent fatigue, declining performance, elevated resting heart rate, soreness beyond 72 hours. If 2+ signs persist, cut volume 30–50% for a week.</p>` },
+  ];
+  const TX = {
+    pauli: [["0:00","","Received task from main agent"],["0:02","tool","Called <code>web_search</code> “beginner strength program frequency meta-analysis”"],["0:03","err","Tool call refused<small>web_search is not enabled for sub-agents</small>"],["0:04","","Switched to established guidelines (ACSM, NSCA)"],["0:19","","Drafted weekly split and prescription"],["0:28","","Checked volume against beginner limits"],["0:32","","Returned output · 640 words"]],
+    herschel: [["0:00","","Received task from main agent"],["0:02","tool","Called <code>web_search</code> “ISSN protein position stand”"],["0:06","tool","Read 4 sources"],["0:21","","Calculated macro ranges per kg"],["0:30","","Wrote timing and hydration guidance"],["0:33","","Returned output · 710 words"]],
+    hubble: [["0:00","","Received task from main agent"],["0:01","tool","Called <code>web_search</code> “sleep duration athletic performance”"],["0:01","err","Tool call refused<small>web_search is not enabled for sub-agents</small>"],["0:08","","Wrote protocol from established guidance"],["0:10","","Returned output · 380 words"]],
+  };
+  const PLAN = [
+    { t: "Research evidence-based training program design (beginner, 3–4 days/week, strength + conditioning)", s: "done", a: "pauli", dur: "0:32" },
+    { t: "Research evidence-based nutrition plan (macros, meal timing, whole-food sources, hydration)", s: "done", a: "herschel", dur: "0:33" },
+    { t: "Research evidence-based recovery protocol (sleep, active recovery, mobility, stress management)", s: "done", a: "hubble", dur: "0:10" },
+    { t: "Integrate all three into one cohesive weekly plan with progression guidance", s: "cur", a: "main", dur: "1:12" },
+    { t: "Deliver plan to you and offer downloadable document", s: "todo", a: "main" },
+  ];
+  const TABS = [["activity","Activity"],["agents","Agents",3],["goal","Goal"],["plan","Plan","3/5"],["insights","Insights"]];
+  const SIZES = { compact: 360, detail: 560, wide: 720 };
+  const MIN_CHAT = 640, SIDE_W = 232, MIN_P = 320, MAX_P = 720;
+
+  const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
+  const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+  const st = { tab: "agents", detail: null, sub: "output", openStep: -1, widths: load("sp-widths", { list: 360, detail: 560 }), wantSide: true, lit: null };
+  const $ = id => document.getElementById(id);
+  const byId = id => AGENTS.find(a => a.id === id);
+  const avStyle = a => a === "main" ? `--c:var(--a-main);--cs:var(--surface-3)` : `--c:var(${a.c});--cs:var(${a.cs})`;
+  const av = (a, cls = "") => a === "main" ? `<span class="av ${cls}" style="${avStyle(a)}">M</span>` : `<span class="av ${cls}" style="${avStyle(a)}">${a.name[0]}</span>`;
+  const mmss = s => `0:${String(s).padStart(2, "0")}`;
+  const ICON = {
+    done: `<svg class="ic" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="8" fill="var(--success-bg)" stroke="var(--success-text)" stroke-width="1.2"/><path d="M5.5 9.2l2.2 2.2 4.6-4.8" stroke="var(--success-text)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    cur: `<svg class="ic spin" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="var(--line-strong)" stroke-width="2"/><path d="M9 2a7 7 0 0 1 7 7" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg>`,
+    todo: `<svg class="ic" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7.5" stroke="var(--line-strong)" stroke-width="1.4" stroke-dasharray="2.5 2.5"/></svg>`,
+  };
+  const chev = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>`;
+
+  /* ---------- chat helpers card */
+  function renderHelpers() {
+    $("helpers").innerHTML = `<div class="helpers-h"><span>3 helpers · 3 done</span><span class="tnum muted">0:33</span></div>` +
+      AGENTS.map(a => `<button class="hrow${st.lit === a.id ? " lit" : ""}" data-open="${a.id}">${av(a, "xs")}<span class="t"><b>${a.name}</b> · ${a.role}</span><span class="m tnum">${mmss(a.dur)}</span><span class="go">Open ›</span></button>`).join("");
+  }
+
+  /* ---------- panel */
+  function renderHead() {
+    if (st.detail) {
+      const a = byId(st.detail);
+      $("phead").innerHTML = `<button class="ibtn" data-back aria-label="Back to agents"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button><h2><span class="crumb">Agents /</span> ${a.name}</h2><button class="ibtn" data-cycle="-1" aria-label="Previous agent">‹</button><button class="ibtn" data-cycle="1" aria-label="Next agent">›</button>`;
+    } else {
+      $("phead").innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><h2>Session activity</h2><button class="ibtn" aria-label="Close panel">✕</button>`;
+    }
+    // tabs stay visible in every mode; the detail view lives under Agents
+    const active = st.detail ? "agents" : st.tab;
+    $("tabs").innerHTML = TABS.map(([id, l, c]) => `<button role="tab" id="tab-${id}" aria-selected="${active === id}" data-tab="${id}">${l}${c ? `<span class="count">${c}</span>` : ""}</button>`).join("");
+  }
+
+  function viewAgents() {
+    const max = 33;
+    return `<div class="sec-h"><h3>3 helpers · 3 done</h3><span class="tnum">ran in parallel · 0:33</span></div>
+    <div class="runs">
+      ${AGENTS.map(a => `<div class="lane"><span>${a.name}</span><div class="track" style="--c:var(${a.c})"><i style="width:${a.dur / max * 100}%"></i></div><span class="tnum">${mmss(a.dur)}</span></div>`).join("")}
+      <div class="axis"><span></span><div><span style="left:0">0s</span><span style="left:${15 / max * 100}%">15s</span><span style="left:${30 / max * 100}%">30s</span></div><span></span></div>
+    </div>
+    ${AGENTS.map(a => `<button class="arow${st.lit === a.id ? " lit" : ""}" data-open="${a.id}" data-hover="${a.id}" style="${avStyle(a)}">
+      ${av(a)}
+      <span class="body">
+        <span class="l1"><b>${a.name}</b><span class="role">· ${a.role}</span><span class="chip ok">Finished</span>${a.warn ? `<span class="chip warn">⚠ No web access</span>` : ""}</span>
+        <span class="l2">${mmss(a.dur)} · ${a.tokens}k tokens · ${a.tools} tool calls · ${a.model}</span>
+        <span class="l3">${a.preview}</span>
+      </span><span class="chev">${chev}</span></button>`).join("")}`;
+  }
+
+  function viewDetail() {
+    const a = byId(st.detail);
+    const subs = [["output","Output"],["task","Task"],["transcript","Transcript"],["used","Used in"]];
+    let body = "";
+    if (st.sub === "output") body = `<div class="doc">${a.output}</div><div class="actions"><button class="btn" data-copy>Copy output</button><button class="btn">Re-run</button><button class="btn">Insert into chat</button></div>`;
+    if (st.sub === "task") body = `<div class="quote">${a.task}</div><p class="muted" style="margin:0;font-size:12.5px">Sent by the main agent at 6:23:14 AM. Tools allowed: read_docs, web_search (refused for sub-agents).</p>`;
+    if (st.sub === "transcript") body = `<div class="tx">${TX[a.id].map(([ts, k, w]) => `<div class="tx-row ${k}"><span class="ts">${ts}</span><span class="pip"></span><span class="what">${w}</span></div>`).join("")}</div>`;
+    if (st.sub === "used") {
+      const step = PLAN.findIndex(p => p.a === a.id);
+      body = `<div class="link-list">
+        <button data-goplan="${step}">${ICON.done}<span><b>Plan step ${step + 1}</b><small>${PLAN[step].t}</small></span></button>
+        <button data-goplan="3">${ICON.cur}<span><b>Plan step 4 · In progress</b><small>Integrated into the weekly plan</small></span></button>
+        <button><span class="av xs" style="${avStyle("main")}">M</span><span><b>Final reply</b><small>“${a.role}” section of the answer at 6:25 AM</small></span></button></div>`;
+    }
+    return `<div class="d-card">
+      <div class="d-id">${av(a, "lg")}<div><b>${a.name}</b><div class="sub">${a.role} research · <span class="chip ok">Finished</span></div></div></div>
+      <div class="stats"><div><small>Duration</small><strong>${mmss(a.dur)}</strong></div><div><small>Tokens</small><strong>${a.tokens}k</strong></div><div><small>Tool calls</small><strong>${a.tools}</strong></div><div><small>Model</small><strong>${a.model}</strong></div></div>
+      ${a.warn ? `<div class="banner"><span>⚠</span><span>${a.warn}</span></div>` : ""}
+    </div>
+    <div class="subtabs" role="tablist">${subs.map(([id, l]) => `<button role="tab" aria-selected="${st.sub === id}" data-sub="${id}">${l}</button>`).join("")}</div>
+    ${body}`;
+  }
+
+  function viewPlan() {
+    return `<div class="sec-h"><h3>Plan</h3><span class="tnum">3 of 5 done</span></div>
+    <div class="progress"><i style="width:60%"></i></div>
+    <div class="steps">${PLAN.map((p, i) => {
+      const a = p.a === "main" ? "main" : byId(p.a);
+      const who = p.a === "main" ? "Main agent" : a.name;
+      const open = st.openStep === i;
+      const meta = p.s === "done" ? `${av(a, "xs")}<span>${who} · ${p.dur}</span>` : p.s === "cur" ? `${av(a, "xs")}<span>${who} · running ${p.dur}</span>` : `<span>Pending</span>`;
+      return `<button class="step ${p.s}${open ? " open" : ""}" data-step="${i}" aria-expanded="${p.s === "done" ? open : true}">${ICON[p.s]}<span class="txt"><span class="t">${p.t}</span><span class="meta">${meta}</span>${open && p.s === "done" ? `<span class="more">Output: ${a.preview} <span class="open-agent" data-open="${a.id}">Open ${a.name} ›</span></span>` : ""}</span></button>`;
+    }).join("")}</div>`;
+  }
+
+  function viewInsights() {
+    const parts = [["Main agent","main",94.0],...AGENTS.map(a => [a.name, a, a.tokens])];
+    const total = parts.reduce((s, p) => s + p[2], 0);
+    const times = [["Main","main",130],...AGENTS.map(a => [a.name, a, a.dur])];
+    const col = a => a === "main" ? "var(--a-main)" : `var(${a.c})`;
+    return `<div class="tiles">
+      <div class="tile"><small>Average time</small><strong>1m 7s</strong></div>
+      <div class="tile"><small>Slowest</small><strong>2m 10s</strong></div>
+      <div class="tile"><small>Tokens</small><strong>198k</strong><p>104k from helpers</p></div>
+      <div class="tile"><small>Cached</small><strong>0%</strong><p>First turn, nothing to reuse yet</p></div>
+    </div>
+    <div class="card">
+      <div class="sec-h"><h3>Tokens by agent</h3><span class="tnum">${total.toFixed(0)}k total</span></div>
+      <div class="stack">${parts.map(p => `<i style="--c:${col(p[1])};width:${p[2] / total * 100}%"></i>`).join("")}</div>
+      <div class="legend">${parts.map(p => `<div class="lg-row">${p[1] === "main" ? `<span class="av xs" style="${avStyle("main")}">M</span>` : av(p[1], "xs")}<span class="n">${p[0]}</span><span class="v">${p[2].toFixed(1)}k</span><span class="p">${Math.round(p[2] / total * 100)}%</span></div>`).join("")}</div>
+    </div>
+    <div class="card">
+      <div class="sec-h"><h3>Time by agent</h3><span>helpers ran in parallel</span></div>
+      ${times.map(t => `<div class="hbar"><span>${t[0]}</span><div class="track" style="--c:${col(t[1])}"><i style="width:${t[2] / 130 * 100}%"></i></div><span class="v">${t[2] >= 60 ? `${Math.floor(t[2] / 60)}m ${t[2] % 60}s` : `${t[2]}s`}</span></div>`).join("")}
+    </div>
+    <div class="card">
+      <div class="sec-h"><h3>Main agent context</h3><span class="tnum">26k of 258k · 10%</span></div>
+      <div class="meter"><i style="width:10%"></i></div>
+      <div class="note">Helpers run in their own context windows, so their 104k tokens don't fill this one. The 188k on the last reply counts every model call, helpers included.</div>
+    </div>
+    <div class="tiles"><div class="tile"><small>Personal data</small><strong style="font-size:15px">None detected</strong></div><div class="tile"><small>Responses</small><strong>2</strong><p>Charts appear after 3</p></div></div>`;
+  }
+
+  function viewActivity() {
+    const ev = [
+      ["6:23:10", "main", "You approved the plan"],
+      ["6:23:14", "main", "Started 3 helpers", "Pauli, Herschel, Hubble"],
+      ["6:23:15", byId("hubble"), "Hubble hit a blocked tool", "web_search is not enabled for sub-agents"],
+      ["6:23:24", byId("hubble"), "Hubble finished · 0:10"],
+      ["6:23:46", byId("pauli"), "Pauli finished · 0:32", "Flagged: no web access"],
+      ["6:23:47", byId("herschel"), "Herschel finished · 0:33"],
+      ["6:23:48", "main", "Main agent pulling citations", "web_search · 5 sources"],
+      ["6:25:20", "main", "Integrating plan · step 4 of 5"],
+    ];
+    return `<div class="sec-h"><h3>Timeline</h3><span>8 events</span></div><div class="feed">${ev.map(([t, a, w, s]) =>
+      `<div class="ev"${a !== "main" ? ` data-hover="${a.id}"` : ""}><span class="ts">${t}</span>${a === "main" ? `<span class="av xs" style="${avStyle("main")}">M</span>` : av(a, "xs")}<span>${w}${s ? `<small>${s}</small>` : ""}</span></div>`).join("")}</div>`;
+  }
+
+  function viewGoal() {
+    return `<div class="sec-h"><h3>Goal</h3><span>none set</span></div><div class="note">This conversation isn't running as a goal. Use Goal in the composer to give the agent a budget and let it work until done.</div>`;
+  }
+
+  function renderBody() {
+    const v = st.detail ? viewDetail() : { agents: viewAgents, plan: viewPlan, insights: viewInsights, activity: viewActivity, goal: viewGoal }[st.tab]();
+    $("pbody").innerHTML = v;
+    $("pbody").scrollTop = 0;
+  }
+
+  function render() { renderHead(); renderBody(); renderHelpers(); layout(); }
+
+  /* ---------- width logic */
+  let lastCollapse = false;
+  function layout() {
+    const frame = $("frame"), panel = $("panel"), side = $("side");
+    const fw = frame.clientWidth - 16;
+    const phone = matchMedia("(max-width: 640px)").matches;
+    let pw = st.detail ? st.widths.detail : st.widths.list;
+    let sideOpen = st.wantSide && !phone;
+    let autoCollapsed = false;
+    if (sideOpen && fw - SIDE_W - 16 - pw < MIN_CHAT) { sideOpen = false; autoCollapsed = true; }
+    const overlay = fw - pw - 8 < MIN_CHAT;
+    side.classList.toggle("closed", !sideOpen);
+    panel.classList.toggle("overlay", overlay);
+    pw = Math.min(pw, fw);
+    panel.style.setProperty("--pw", pw + "px");
+    const chatW = overlay ? fw - (sideOpen ? SIDE_W + 8 : 0) : fw - pw - 8 - (sideOpen ? SIDE_W + 8 : 0);
+    $("readout").textContent = `panel ${pw}px · chat ${Math.round(chatW)}px${overlay ? " · drawer" : ""}`;
+    const cur = Object.entries(SIZES).find(([, v]) => v === (st.detail ? st.widths.detail : st.widths.list));
+    document.querySelectorAll("[data-size]").forEach(b => b.setAttribute("aria-pressed", String(!!cur && cur[0] === b.dataset.size)));
+    if (autoCollapsed && !lastCollapse) toast("Sidebar collapsed to keep chat at 640px or wider");
+    if (!autoCollapsed && lastCollapse && sideOpen) toast("Sidebar restored");
+    if (overlay && !phone && !lastOverlay) toast("Not enough room. Panel floats over chat.");
+    lastCollapse = autoCollapsed; lastOverlay = overlay;
+  }
+  let lastOverlay = false;
+
+  let tt;
+  function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("show"), 2200); }
+
+  function setWidth(px) { const k = st.detail ? "detail" : "list"; st.widths[k] = Math.max(MIN_P, Math.min(MAX_P, Math.round(px))); save("sp-widths", st.widths); layout(); }
+
+  function openAgent(id, sub = "output") { st.detail = id; st.sub = sub; st.lit = null; render(); }
+  function back() { st.detail = null; st.tab = "agents"; render(); }
+
+  /* ---------- events */
+  document.addEventListener("click", e => {
+    const t = e.target.closest("[data-open],[data-tab],[data-sub],[data-back],[data-step],[data-size],[data-cycle],[data-goplan],[data-copy]");
+    if (!t) return;
+    if (t.dataset.open) { e.stopPropagation(); return openAgent(t.dataset.open); }
+    if (t.dataset.tab) { st.detail = null; st.tab = t.dataset.tab; return render(); }
+    if (t.dataset.sub) { st.sub = t.dataset.sub; return renderBody(); }
+    if (t.hasAttribute("data-back")) return back();
+    if (t.dataset.cycle) { const i = AGENTS.findIndex(a => a.id === st.detail); return openAgent(AGENTS[(i + +t.dataset.cycle + 3) % 3].id, st.sub); }
+    if (t.dataset.goplan) { st.detail = null; st.tab = "plan"; st.openStep = +t.dataset.goplan; return render(); }
+    if (t.dataset.step) { const i = +t.dataset.step; if (PLAN[i].s !== "done") return; st.openStep = st.openStep === i ? -1 : i; return renderBody(); }
+    if (t.hasAttribute("data-copy")) {
+      const txt = $("pbody").querySelector(".doc").innerText;
+      try { navigator.clipboard.writeText(txt).then(() => toast("Output copied"), () => toast("Copy blocked here. Select the text instead.")); } catch { toast("Copy blocked here. Select the text instead."); }
+      return;
+    }
+    if (t.dataset.size) {
+      // a preset resizes whatever view is showing; it never switches tabs or opens an agent
+      st.widths[st.detail ? "detail" : "list"] = SIZES[t.dataset.size];
+      save("sp-widths", st.widths); return layout();
+    }
+  });
+
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && st.detail) back(); });
+  $("want-side").addEventListener("change", e => { st.wantSide = e.target.checked; layout(); });
+
+  // hover link: panel ↔ chat
+  const lite = id => { if (st.lit === id) return; st.lit = id; document.querySelectorAll("[data-open]").forEach(el => el.classList.toggle("lit", el.dataset.open === id && !!id)); };
+  $("frame").addEventListener("mouseover", e => { const h = e.target.closest("[data-hover],.hrow"); lite(h ? (h.dataset.hover || h.dataset.open) : null); });
+
+  // drag + keyboard resize
+  const grip = $("grip"), panel = $("panel");
+  grip.addEventListener("pointerdown", e => {
+    grip.setPointerCapture(e.pointerId); panel.classList.add("dragging");
+    const right = panel.getBoundingClientRect().right;
+    const move = ev => setWidth(right - ev.clientX);
+    const up = () => { panel.classList.remove("dragging"); grip.removeEventListener("pointermove", move); grip.removeEventListener("pointerup", up); };
+    grip.addEventListener("pointermove", move); grip.addEventListener("pointerup", up);
+  });
+  grip.addEventListener("dblclick", () => setWidth(st.detail ? 560 : 360));
+  grip.addEventListener("keydown", e => {
+    const w = st.detail ? st.widths.detail : st.widths.list;
+    if (e.key === "ArrowLeft") { e.preventDefault(); setWidth(w + 20); }
+    if (e.key === "ArrowRight") { e.preventDefault(); setWidth(w - 20); }
+  });
+  addEventListener("resize", layout);
+
+  render();
+})();
+</script>

@@ -4,10 +4,10 @@ const { useState, useEffect, useRef, useCallback, useMemo } = React;
 /* ---------------------------------------------------------------- types */
 
 type PanelId = "sidebar" | "activity";
-type Tab = "activity" | "agents" | "goal" | "plan";
+type Tab = "activity" | "agents" | "goal" | "plan" | "insights";
 type Role = "user" | "agent";
 interface Step { label: string; done: boolean }
-interface Message { id: number; role: Role; text: string; steps?: Step[]; streaming?: boolean; goal?: string }
+interface Message { id: number; role: Role; text: string; steps?: Step[]; streaming?: boolean; goal?: string; ms?: number }
 type GoalStatus = "running" | "paused" | "done" | "ended";
 interface Goal { aid: number; text: string; budget: string; status: GoalStatus; started: number }
 interface Conversation { id: number; title: string; time: string; group: "Today" | "Earlier" }
@@ -118,6 +118,57 @@ const RECENT_ACTIVITY = [
   { icon: "table", title: "Customer feedback analysis", meta: "Analyzed spreadsheet", time: "Yesterday" },
 ];
 
+// Helpers: sub-agents the assistant starts for part of a run. The demo spawns
+// these three when a run reaches its second step (the delegated one).
+type HelperStatus = "running" | "done" | "stopped";
+interface Helper {
+  id: string; aid: number; name: string; role: string; task: string; tone: number; model: string;
+  output: { h: string; items: string[] }[];
+  log: [number, "" | "tool" | "err", string, string?][];  // [fraction of run, kind, what, detail]
+  tokens: number; tools: number; ms: number; warn?: string; warnLabel?: string;
+  status: HelperStatus; start: number; end?: number;
+}
+type HelperTemplate = Omit<Helper, "id" | "aid" | "status" | "start" | "end">;
+const HELPER_TEMPLATES: HelperTemplate[] = [
+  { name: "Atlas", role: "Docs", tone: 0, model: "Sonnet 5.5", ms: 2600, tokens: 18400, tools: 4,
+    task: "Read the three onboarding documents in the workspace (Engineering handbook, Team directory, Release process) and pull out what a new hire needs in their first month: access, people, rituals and deadlines.",
+    output: [
+      { h: "Week 1 · Access and context", items: ["Laptop, SSO and GitHub on day one; VPN by day two", "Intro calls with the manager, a buddy and the three team leads", "Product walkthrough in the demo workspace"] },
+      { h: "Rituals to join", items: ["Daily stand-up at 9:30", "Weekly planning on Monday", "Release retro every other Thursday"] },
+      { h: "Deadlines", items: ["Security training within 7 days", "First scoped project picked by day 14"] }],
+    log: [[0, "", "Received task from main agent"], [.12, "tool", "Read Engineering handbook.pdf"], [.3, "tool", "Read Team directory.xlsx"], [.5, "tool", "Read Release process.md"], [.85, "", "Grouped findings by week"], [1, "", "Returned output · 420 words"]] },
+  { name: "Birch", role: "Access", tone: 1, model: "Sonnet 5.5", ms: 3400, tokens: 12900, tools: 3,
+    warn: "No admin access. Listed approvers from the handbook instead of checking live permissions.", warnLabel: "Limited access",
+    task: "List every tool and permission a new hire needs on day one, and who approves each one.",
+    output: [
+      { h: "Day one", items: ["Google Workspace · IT, automatic", "GitHub org · Engineering manager", "Linear and Slack · Team lead"] },
+      { h: "First week", items: ["Production read access · Platform on-call", "Qlik dashboards · Data team"] }],
+    log: [[0, "", "Received task from main agent"], [.15, "tool", "Called admin.list_permissions"], [.2, "err", "Tool call refused", "This helper has no admin scope"], [.35, "tool", "Read Engineering handbook.pdf, section 4"], [.9, "", "Matched each tool to an approver"], [1, "", "Returned output · 180 words"]] },
+  { name: "Cedar", role: "Shadowing", tone: 2, model: "Haiku 4.5", ms: 1900, tokens: 9600, tools: 2,
+    task: "Pick two upcoming customer calls and the next release a new hire could shadow in week 2.",
+    output: [
+      { h: "Customer calls", items: ["Tue · Acme renewal check-in (45 min)", "Thu · Globex onboarding kickoff (30 min)"] },
+      { h: "Release", items: ["v4.12 release train: cut Wednesday, ship Friday"] }],
+    log: [[0, "", "Received task from main agent"], [.2, "tool", "Searched the team calendar for customer calls"], [.55, "tool", "Read Release process.md"], [1, "", "Returned output · 120 words"]] },
+];
+const HELPER_STATUS: Record<HelperStatus, string> = { running: "Running", done: "Finished", stopped: "Stopped" };
+const DELEGATED_STEP = 1;     // the run step the helpers work on
+const MAIN_TOKENS = 8200;     // example main-agent tokens per response
+const CONTEXT_WINDOW = 258_000;
+// Session panel has two fixed sizes. The list opens compact, a helper's detail opens wide.
+type PanelSize = "min" | "max";
+const PANEL_W: Record<PanelSize, number> = { min: 360, max: 560 };
+const PANEL_SIZE_DEFAULT: Record<"list" | "detail", PanelSize> = { list: "min", detail: "max" };
+// The chat keeps at least this much room; the sidebar gives way first, then the panel floats.
+const CHAT_MIN: Record<PanelSize, number> = { min: 480, max: 640 };
+const SIDEBAR_W = 268, GAP = 10;
+const fmtMs = (ms: number) => {
+  const s = Math.max(0, ms) / 1000;
+  return s < 10 ? `${s.toFixed(1)}s` : s < 60 ? `${Math.round(s)}s` : `${Math.floor(s / 60)}m ${Math.round(s % 60)}s`;
+};
+const fmtK = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(Math.round(n));
+const helperElapsed = (h: Helper, now: number) => Math.max(0, (h.end ?? now) - h.start);
+
 /* ---------------------------------------------------------------- icons */
 
 const PATHS: Record<string, string> = {
@@ -144,8 +195,12 @@ const PATHS: Record<string, string> = {
   moon: "M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z",
   share: "M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13",
   chevron: "m6 9 6 6 6-6",
+  chevronR: "m9 6 6 6-6 6",
+  chevronL: "m15 6-6 6 6 6",
   upDown: "m7 15 5 5 5-5M7 9l5-5 5 5",
   x: "M18 6 6 18M6 6l12 12",
+  expand: "M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7",
+  shrink: "M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7",
   spark: "M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z",
   stop: "M6 6h12v12H6z",
   target: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",
@@ -342,14 +397,23 @@ function Sidebar({ open, activeId, nav, setNav, onPick, onNew, onSearch }: {
 
 /* ---------------------------------------------------------------- activity panel */
 
-function ActivityPanel({ open, tab, setTab, running, progress, goal, goalSteps, onPause, onResume, onEndGoal, onStartGoal, onClose }: {
+function ActivityPanel({ open, tab, setTab, running, progress, goal, goalSteps, onPause, onResume, onEndGoal, onStartGoal, onClose,
+  width, overlay, wide, onToggleWide,
+  helpers, now, openHelper, setOpenHelper, lit, setLit, messages, planSteps, planHelpers, onOpenHelper }: {
   open: boolean; tab: Tab; setTab: (t: Tab) => void; running: boolean; progress: number;
   goal: Goal | null; goalSteps: Step[];
   onPause: () => void; onResume: () => void; onEndGoal: () => void; onStartGoal: () => void; onClose: () => void;
+  width: number; overlay: boolean; wide: boolean; onToggleWide: () => void;
+  helpers: Helper[]; now: number; openHelper: string | null; setOpenHelper: (id: string | null) => void;
+  lit: string | null; setLit: (id: string | null) => void;
+  messages: Message[]; planSteps: Step[]; planHelpers: Helper[]; onOpenHelper: (id: string) => void;
 }) {
-  const tabs: Tab[] = ["activity", "agents", "goal", "plan"];
+  const tabs: Tab[] = ["activity", "agents", "goal", "plan", "insights"];
+  const ref = useRef<HTMLElement>(null);
+  const runningHelpers = helpers.filter(h => h.status === "running").length;
   return (
-    <aside className={"panel activity" + (open ? " is-open" : "")} aria-hidden={!open}>
+    <aside ref={ref} className={"panel activity" + (open ? " is-open" : "") + (overlay ? " is-overlay" : "")}
+      aria-hidden={!open} style={{ "--pw": width + "px" } as any}>
       <div className="panel-inner">
         <div className="tabs" role="tablist">
           {tabs.map(t => (
@@ -357,8 +421,18 @@ function ActivityPanel({ open, tab, setTab, running, progress, goal, goalSteps, 
               onClick={() => setTab(t)} tabIndex={open ? 0 : -1}>
               {t[0].toUpperCase() + t.slice(1)}
               {t === "goal" && goal?.status === "running" && <span className="tab-dot" aria-label="running" />}
+              {t === "agents" && helpers.length > 0 && (
+                <span className={"tab-count" + (runningHelpers ? " is-live" : "")}
+                  aria-label={runningHelpers ? `${runningHelpers} running` : `${helpers.length} helpers`}>
+                  {runningHelpers || helpers.length}
+                </span>
+              )}
             </button>
           ))}
+          <button className="icon-btn ghost tab-size" onClick={onToggleWide} aria-pressed={wide} tabIndex={open ? 0 : -1}
+            aria-label={wide ? "Shrink panel" : "Expand panel"} title={wide ? "Shrink panel" : "Expand panel"}>
+            <Icon name={wide ? "shrink" : "expand"} size={14} />
+          </button>
           <button className="icon-btn ghost tab-close" onClick={onClose} aria-label="Close panel" tabIndex={open ? 0 : -1}>
             <Icon name="x" size={15} />
           </button>
@@ -406,10 +480,10 @@ function ActivityPanel({ open, tab, setTab, running, progress, goal, goalSteps, 
           <GoalView goal={goal} steps={goalSteps} progress={progress}
             onPause={onPause} onResume={onResume} onEnd={onEndGoal} onStart={onStartGoal} />
         ) : (
-          <div className="empty-tab">
-            <span className="tile lg"><Icon name={tab === "agents" ? "bot" : "chart"} size={20} /></span>
-            <div className="strong">No {tab} yet</div>
-            <div className="muted sm">They'll appear here once a conversation sets them.</div>
+          <div className="activity-body" key={tab}>
+            {tab === "agents" && <AgentsTab helpers={helpers} now={now} openId={openHelper} onOpen={setOpenHelper} lit={lit} setLit={setLit} />}
+            {tab === "plan" && <PlanTab steps={planSteps} running={running} helpers={planHelpers} onOpenHelper={onOpenHelper} />}
+            {tab === "insights" && <InsightsTab messages={messages} helpers={helpers} now={now} />}
           </div>
         )}
       </div>
@@ -998,6 +1072,33 @@ function AgentDialog({ open, agents, editing, onClose, onCreate, onSave, onRemov
 }
 
 // Every agent as a portrait card: the badge's identity (tint, robot, handle) without the lanyard hardware.
+// Red map pin pushed into a polaroid: marks the agent that's in the current chat.
+function Pushpin() {
+  const id = "pp" + React.useId().replace(/[^a-zA-Z0-9]/g, "");
+  return (
+    <svg className="pol-pin" width="30" height="40" viewBox="0 0 30 40" aria-hidden="true">
+      <defs>
+        <radialGradient id={id} cx=".35" cy=".3" r=".75">
+          <stop offset="0" stopColor="#FF8A80" /><stop offset=".45" stopColor="#E5322D" /><stop offset="1" stopColor="#9E1712" />
+        </radialGradient>
+      </defs>
+      <ellipse cx="17" cy="37" rx="5" ry="2" fill="rgb(31 42 48 / 22%)" />
+      <path d="M15 22v14" stroke="#8A969D" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="15" cy="13" r="11" fill={`url(#${id})`} />
+      <ellipse cx="11" cy="9" rx="3.5" ry="2.4" fill="#fff" fillOpacity=".7" transform="rotate(-30 11 9)" />
+    </svg>
+  );
+}
+
+// Fixed tilts per slot, so the board looks hand-pinned but doesn't reshuffle between renders.
+const TILTS = [-4, 3, -2.5, 4.5, -3.5, 2, -1.5, 3.5];
+// Caption text on the frame colour: white on strong frames, graphite on pastels.
+const inkOn = (hex: string) => {
+  const n = parseInt(hex.slice(1), 16), c = (s: number) => ((n >> s) & 255) / 255;
+  return .2126 * c(16) + .7152 * c(8) + .0722 * c(0) < .45 ? "#FFFFFF" : "#1F2A30";
+};
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
 function AgentsView({ agents, current, onEdit, onChat, onNew }: {
   agents: Agent[]; current: Agent; onEdit: (a: Agent) => void; onChat: (a: Agent) => void; onNew: () => void;
 }) {
@@ -1007,24 +1108,26 @@ function AgentsView({ agents, current, onEdit, onChat, onNew }: {
   const shown = agents.filter(a => (kind === "all" || (kind === "builtin") === !!a.builtin)
     && `${a.name} ${a.handle || a.id} ${a.desc}`.toLowerCase().includes(needle));
   const yours = agents.filter(a => !a.builtin).length;
+  const kinds = [["all", "All"], ["yours", "Yours"], ["builtin", "Built-in"]] as const;
   return (
     <div className="roster">
-      <div className="roster-head">
-        <div>
-          <div className="eyebrow flush">Agents</div>
-          <h1>The <em>team</em></h1>
-          <p className="muted">{agents.length} specialists · {yours} built by you</p>
-        </div>
-        <button className="btn-solid lg" onClick={onNew}><Icon name="plus" size={15} stroke={2} /> New agent</button>
+      <div className="bp-top">
+        <span className="bp-brand">truex / agents</span>
+        <button className="bp-arrow" onClick={onNew} aria-label="New agent">
+          <svg width="34" height="12" viewBox="0 0 34 12" aria-hidden="true"><path d="M1 6h31M27 1l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
       </div>
+      <h1 className="bp-title"><span className="bp-hi">Meet the team:</span> truex style</h1>
+      <p className="bp-sub muted">{agents.length} specialists · {yours} built by you</p>
+
       <div className="roster-tools">
         <label className="roster-search">
           <Icon name="search" size={15} />
           <input className="input" value={q} placeholder="Search by name, handle or purpose" aria-label="Search agents" onChange={e => setQ(e.target.value)} />
         </label>
-        <div className="seg" role="radiogroup" aria-label="Filter agents">
-          {([["all", "All"], ["yours", "Yours"], ["builtin", "Built-in"]] as const).map(([id, label]) => (
-            <button key={id} role="radio" aria-checked={kind === id} className={"seg-btn" + (kind === id ? " is-active" : "")}
+        <div className="bp-pills" role="radiogroup" aria-label="Filter agents">
+          {kinds.map(([id, label]) => (
+            <button key={id} role="radio" aria-checked={kind === id} className={"bp-pill" + (kind === id ? " is-active" : "")}
               onClick={() => setKind(id)}>{label}</button>
           ))}
         </div>
@@ -1037,48 +1140,68 @@ function AgentsView({ agents, current, onEdit, onChat, onNew }: {
           <button className="btn-soft" onClick={() => setQ("")}>Clear search</button>
         </div>
       ) : (
-        <ul className="acards">
-          {shown.map((a, i) => {
-            const t = tintOf(a.tint), live = a.id === current.id;
-            return (
-              <li key={a.id} className="acard" style={{ "--tint": t.bg, "--dot": t.dot, "--i": i } as any}>
-                <button className="acard-portrait" onClick={() => onEdit(a)} aria-label={`Edit ${a.name}`}>
-                  <span className="acard-slot" aria-hidden="true" />
-                  <span className="acard-robot"><Robot look={a.look ?? 2} size={132} /></span>
-                  {live && <span className="acard-flag live"><span className="pulse" aria-hidden="true" />In chat</span>}
-                  {a.builtin && <span className="acard-flag"><Icon name="lock" size={11} />Built-in</span>}
-                  <span className="acard-hint" aria-hidden="true"><Icon name="pencil" size={13} />Edit</span>
+        <div className="bp-board">
+          <ul className="polaroids">
+            {shown.map((a, i) => {
+              const t = tintOf(a.tint), live = a.id === current.id;
+              return (
+                <li key={a.id} className="pol-card" style={{ "--tint": t.bg, "--frame": t.dot, "--cap": inkOn(t.dot), "--tilt": `${TILTS[i % TILTS.length]}deg`, "--i": i } as any}>
+                  <div className="pol-stack">
+                  {a.builtin && <span className="pol-note" aria-hidden="true"><Icon name="lock" size={11} />built-in</span>}
+                  <div className="polaroid">
+                    {live && <Pushpin />}
+                    <button className="pol-photo" onClick={() => onEdit(a)} aria-label={`Edit ${a.name}`}>
+                      <span className="pol-robot"><Robot look={a.look ?? 2} size={128} /></span>
+                      <span className="pol-hint" aria-hidden="true"><Icon name="pencil" size={13} />Edit</span>
+                    </button>
+                    <div className="pol-caption">{a.name}</div>
+                  </div>
+                  </div>
+                  <div className="pol-info">
+                    <div className="pol-handle">
+                      @{a.handle || a.id}
+                      {live && <span className="pol-live"><span className="pulse" aria-hidden="true" />in chat</span>}
+                      {a.builtin && <span className="sr-only"> · built-in</span>}
+                    </div>
+                    <p className="pol-desc">{a.desc}</p>
+                    <div className="pol-foot">
+                      <span className="pol-meta">{modelOf(a.model).short} · {(a.reasoning || "Default").toLowerCase()}</span>
+                      <button className="btn-soft" onClick={() => onChat(a)} disabled={live}>{live ? "Chatting" : "Chat"}</button>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+            {kind !== "builtin" && !needle && (
+              <li className="pol-card is-new" style={{ "--tilt": `${TILTS[shown.length % TILTS.length]}deg`, "--i": shown.length } as any}>
+                <button className="polaroid pol-new" onClick={onNew}>
+                  <span className="pol-photo-empty"><span className="acard-plus"><Icon name="plus" size={18} stroke={1.75} /></span></span>
+                  <span className="pol-caption">New agent</span>
                 </button>
-                <div className="acard-body">
-                  <div className="acard-name">{a.name}</div>
-                  <div className="acard-handle">@{a.handle || a.id}</div>
-                  <p className="acard-desc">{a.desc}</p>
-                </div>
-                <div className="acard-foot">
-                  <span className="acard-meta">{modelOf(a.model).short} · {(a.reasoning || "Default").toLowerCase()}</span>
-                  <button className="btn-soft" onClick={() => onChat(a)} disabled={live}>{live ? "Chatting" : "Chat"}</button>
-                </div>
+                <span className="bp-doodle" aria-hidden="true">
+                  build your own
+                  <svg width="46" height="30" viewBox="0 0 46 30"><path d="M4 4c4 16 18 22 36 16M34 14l6 6-8 3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </span>
               </li>
-            );
-          })}
-          {kind !== "builtin" && !needle && (
-            <li className="acard is-new" style={{ "--i": shown.length } as any}>
-              <button className="acard-new" onClick={onNew}>
-                <span className="acard-plus"><Icon name="plus" size={18} stroke={1.75} /></span>
-                <span className="strong">New agent</span>
-                <span className="muted sm">Give a specialist its own name, look and instructions</span>
-              </button>
-            </li>
-          )}
-        </ul>
+            )}
+          </ul>
+        </div>
       )}
+
+      <div className="bp-foot">
+        <div className="bp-tags"><span className="bp-tag">The team</span><span className="bp-tag">{kinds.find(k => k[0] === kind)![1]}</span></div>
+        <span className="bp-tag" aria-label={`${shown.length} of ${agents.length} agents shown`}>{pad2(shown.length)}/{pad2(agents.length)}</span>
+      </div>
     </div>
   );
 }
 
 /* ---------------------------------------------------------------- chat */
 
-function MessageView({ m, agent }: { m: Message; agent: Agent }) {
+function MessageView({ m, agent, helpers = [], now = 0, lit = null, setLit = () => {}, onOpenHelper = () => {} }: {
+  m: Message; agent: Agent; helpers?: Helper[]; now?: number; lit?: string | null;
+  setLit?: (id: string | null) => void; onOpenHelper?: (id: string) => void;
+}) {
   if (m.role === "user") return (
     <div className="msg user">
       <div className="bubble-wrap">
@@ -1104,8 +1227,382 @@ function MessageView({ m, agent }: { m: Message; agent: Agent }) {
             ))}
           </ul>
         )}
+        {helpers.length > 0 && <HelperCard helpers={helpers} now={now} lit={lit} setLit={setLit} onOpen={onOpenHelper} />}
         {m.text && <div className="answer">{m.text}{m.streaming && <span className="caret" />}</div>}
       </div>
+    </div>
+  );
+}
+
+// The helpers one run started, inline in the chat. Each row opens that helper in the session panel.
+function HelperCard({ helpers, now, lit, setLit, onOpen }: {
+  helpers: Helper[]; now: number; lit: string | null; setLit: (id: string | null) => void; onOpen: (id: string) => void;
+}) {
+  const running = helpers.filter(h => h.status === "running").length;
+  const t0 = Math.min(...helpers.map(h => h.start));
+  const span = Math.max(...helpers.map(h => h.end ?? now)) - t0;
+  return (
+    <div className="hcard">
+      <div className="hcard-head">
+        <span>{helpers.length} helpers · {running ? `${running} running` : `${helpers.length - running} done`}</span>
+        <span className="mono sm muted">{fmtMs(span)}</span>
+      </div>
+      {helpers.map(h => (
+        <button key={h.id} className={"hcard-row tone-" + h.tone + (lit === h.id ? " is-lit" : "")} onClick={() => onOpen(h.id)}
+          onMouseEnter={() => setLit(h.id)} onMouseLeave={() => setLit(null)} onFocus={() => setLit(h.id)} onBlur={() => setLit(null)}>
+          <HelperAvatar h={h} size="xs" />
+          <span className="grow hcard-name"><span className="strong">{h.name}</span><span className="muted"> · {h.role}</span></span>
+          {h.status === "running" ? <span className="spinner" aria-label="running" /> : <span className="muted sm">{HELPER_STATUS[h.status]}</span>}
+          <span className="mono sm muted">{fmtMs(helperElapsed(h, now))}</span>
+          <span className="hcard-go">Open<Icon name="chevronR" size={13} /></span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function HelperAvatar({ h, size = "" }: { h: Pick<Helper, "name" | "tone">; size?: "" | "xs" | "lg" }) {
+  return <span className={"h-av tone-" + h.tone + (size ? " " + size : "")} aria-hidden="true">{h.name[0]}</span>;
+}
+
+// Session panel "Agents" tab: every helper in the session, a timeline of the latest run, and a per-helper detail view.
+function AgStatusChip({ h }: { h: Helper }) {
+  return (
+    <span className={"ag-chip is-" + h.status}>
+      {h.status === "running" && <span className="spinner" aria-hidden="true" />}{HELPER_STATUS[h.status]}
+    </span>
+  );
+}
+
+function AgentsTab({ helpers, now, openId, onOpen, lit, setLit }: {
+  helpers: Helper[]; now: number; openId: string | null; onOpen: (id: string | null) => void;
+  lit: string | null; setLit: (id: string | null) => void;
+}) {
+  const open = openId ? helpers.find(h => h.id === openId) : undefined;
+  if (open) return <HelperDetail h={open} all={helpers} now={now} onOpen={onOpen} />;
+  if (!helpers.length) return (
+    <div className="empty-tab">
+      <span className="tile lg"><Icon name="bot" size={20} /></span>
+      <div className="strong">No helpers yet</div>
+      <div className="muted sm">When the assistant hands part of a task to a helper, it shows up here.</div>
+    </div>
+  );
+  const count = (s: HelperStatus) => helpers.filter(h => h.status === s).length;
+  const parts = [helpers.length + (helpers.length === 1 ? " helper" : " helpers")];
+  if (count("running")) parts.push(count("running") + " running");
+  if (count("done")) parts.push(count("done") + " done");
+  if (count("stopped")) parts.push(count("stopped") + " stopped");
+  const run = helpers.filter(h => h.aid === helpers[helpers.length - 1].aid);
+  const t0 = Math.min(...run.map(h => h.start));
+  const span = Math.max(1, Math.max(...run.map(h => h.end ?? now)) - t0);
+  return (
+    <div className="ag-list">
+      <div className="ag-summary"><span className="strong">{parts.join(" · ")}</span><span className="mono sm muted">{fmtMs(span)}</span></div>
+      {run.length >= 2 && (
+        <div className="ag-timeline" aria-hidden="true">
+          {run.map(h => (
+            <div key={h.id} className={"ag-lane tone-" + h.tone + (lit === h.id ? " is-lit" : "")}>
+              <span className="ag-lane-name">{h.name}</span>
+              <span className="ag-track">
+                <span className={"ag-span" + (h.status === "running" ? " is-running" : "")}
+                  style={{ left: clamp((h.start - t0) / span * 100, 0, 100) + "%", width: clamp(helperElapsed(h, now) / span * 100, 0, 100) + "%" }} />
+              </span>
+            </div>
+          ))}
+          <div className="ag-axis"><span>0s</span><span>{fmtMs(span)}</span></div>
+        </div>
+      )}
+      <div className="ag-rows">
+        {helpers.map(h => {
+          const done = h.status !== "running";
+          const preview = h.output[0]?.items[0];
+          return (
+            <button key={h.id} id={"helper-row-" + h.id} className={"ag-row tone-" + h.tone + (lit === h.id ? " is-lit" : "")} onClick={() => onOpen(h.id)}
+              onMouseEnter={() => setLit(h.id)} onMouseLeave={() => setLit(null)} onFocus={() => setLit(h.id)} onBlur={() => setLit(null)}>
+              <HelperAvatar h={h} />
+              <span className="ag-row-body">
+                <span className="ag-row-top">
+                  <span className="ag-row-name"><span className="strong">{h.name}</span><span className="muted"> · {h.role}</span></span>
+                  <AgStatusChip h={h} />
+                  {h.warnLabel && <span className="ag-chip is-warn">⚠ {h.warnLabel}</span>}
+                </span>
+                <span className="ag-row-meta mono muted">
+                  {fmtMs(helperElapsed(h, now))}{h.status === "done" ? " · " + fmtK(h.tokens) + " tokens · " + h.tools + (h.tools === 1 ? " tool call" : " tool calls") : done ? "" : " · working…"}
+                </span>
+                {preview && <span className="ag-row-preview">{preview}</span>}
+              </span>
+              <span className="ag-row-go"><Icon name="chevronR" size={15} /></span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function HelperDetail({ h, all, now, onOpen }: { h: Helper; all: Helper[]; now: number; onOpen: (id: string | null) => void }) {
+  const [tab, setTab] = useState<"output" | "task" | "transcript">("output");
+  const [copied, setCopied] = useState(false);
+  const backRef = useRef<HTMLButtonElement | null>(null);
+  const copyTimer = useRef<number | undefined>(undefined);
+  useEffect(() => { setTab("output"); setCopied(false); }, [h.id]);
+  useEffect(() => { backRef.current?.focus({ preventScroll: true }); return () => window.clearTimeout(copyTimer.current); }, []);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented || document.querySelector(".scrim")) return;
+      onOpen(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onOpen]);
+
+  const idx = Math.max(0, all.findIndex(x => x.id === h.id));
+  const step = (d: number) => onOpen(all[(idx + d + all.length) % all.length].id);
+  const elapsed = helperElapsed(h, now);
+  const running = h.status === "running";
+  const finished = h.status === "done";
+  const entries = finished ? h.log : h.log.filter(e => e[0] * h.ms <= elapsed);
+  const outputText = () => h.output.map(s => s.h + "\n" + s.items.map(i => "- " + i).join("\n")).join("\n\n");
+  const copy = () => {
+    const ok = () => { setCopied(true); window.clearTimeout(copyTimer.current); copyTimer.current = window.setTimeout(() => setCopied(false), 1500); };
+    try { navigator.clipboard.writeText(outputText()).then(ok).catch(() => {}); } catch { /* clipboard unavailable */ }
+  };
+  const TABS: [typeof tab, string][] = [["output", "Output"], ["task", "Task"], ["transcript", "Transcript"]];
+
+  return (
+    <div className={"ag-detail tone-" + h.tone}>
+      <div className="ag-nav">
+        <button ref={backRef} className="btn-ghost ag-back" onClick={() => onOpen(null)}><Icon name="chevronL" size={14} />All helpers</button>
+        {all.length > 1 && (
+          <div className="ag-pager">
+            <button className="icon-btn ghost" onClick={() => step(-1)} aria-label="Previous helper"><Icon name="chevronL" size={15} /></button>
+            <span className="mono sm muted">{idx + 1} of {all.length}</span>
+            <button className="icon-btn ghost" onClick={() => step(1)} aria-label="Next helper"><Icon name="chevronR" size={15} /></button>
+          </div>
+        )}
+      </div>
+
+      <div className="ag-ident">
+        <HelperAvatar h={h} size="lg" />
+        <div className="ag-ident-text"><div className="ag-ident-name">{h.name}</div><div className="muted sm">{h.role} research · {h.model}</div></div>
+      </div>
+
+      <dl className="ag-stats">
+        <div><dt>Status</dt><dd><AgStatusChip h={h} /></dd></div>
+        <div><dt>Duration</dt><dd>{fmtMs(elapsed)}</dd></div>
+        <div><dt>Tokens</dt><dd>{running ? "—" : fmtK(h.tokens)}</dd></div>
+        <div><dt>Tool calls</dt><dd>{running ? "—" : h.tools}</dd></div>
+      </dl>
+
+      {h.warn && <div className="ag-warn" role="note"><span aria-hidden="true">⚠</span><span>{h.warn}</span></div>}
+
+      <div className="ag-seg-tabs" role="tablist" aria-label="Helper details">
+        {TABS.map(([id, label]) => (
+          <button key={id} role="tab" id={"ag-tab-" + id} aria-selected={tab === id} aria-controls="ag-tabpanel"
+            className={"ag-seg-tab" + (tab === id ? " is-active" : "")} onClick={() => setTab(id)}>{label}</button>
+        ))}
+      </div>
+
+      <div className="ag-panel" role="tabpanel" id="ag-tabpanel" aria-labelledby={"ag-tab-" + tab}>
+        {tab === "output" && (running
+          ? <p className="muted">Working… output appears when this helper finishes.</p>
+          : <>
+              {h.status === "stopped" && <p className="muted sm">Stopped before finishing. Partial output:</p>}
+              {h.output.map((s, i) => (
+                <section key={i} className="ag-out">
+                  <h4>{s.h}</h4>
+                  <ul>{s.items.map((it, j) => <li key={j}>{it}</li>)}</ul>
+                </section>
+              ))}
+              {h.output.length > 0 && (
+                <div className="ag-actions">
+                  <button className="btn-soft" onClick={copy}><Icon name={copied ? "check" : "doc"} size={14} />{copied ? "Copied" : "Copy output"}</button>
+                  <span className="ag-live" aria-live="polite">{copied ? "Output copied" : ""}</span>
+                </div>
+              )}
+            </>)}
+        {tab === "task" && (
+          <>
+            <div className="ag-task">{h.task}</div>
+            <p className="muted sm">Sent by the main agent · {h.model}</p>
+          </>
+        )}
+        {tab === "transcript" && (
+          <ol className="ag-log">
+            {entries.map(([f, kind, what, detail], i) => (
+              <li key={i} className={"ag-log-row" + (kind ? " is-" + kind : "")}>
+                <span className="ag-log-time mono">{fmtMs(f * h.ms)}</span>
+                <span className="ag-log-dot" aria-hidden="true" />
+                <span className="ag-log-text">{what}{detail && <span className="ag-log-detail">{detail}</span>}</span>
+              </li>
+            ))}
+            {running && entries.length < h.log.length && (
+              <li className="ag-log-row is-pending">
+                <span className="ag-log-time mono">{fmtMs(elapsed)}</span>
+                <span className="spinner" aria-hidden="true" />
+                <span className="ag-log-text muted">Working…</span>
+              </li>
+            )}
+          </ol>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---- Plan tab: the latest run's steps, status stacked under each label ----
+function PlanTab({ steps, running, helpers, onOpenHelper }: { steps: Step[]; running: boolean; helpers: Helper[]; onOpenHelper: (id: string) => void }) {
+  if (!steps.length) return (
+    <div className="empty-tab">
+      <span className="tile lg"><Icon name="target" size={20} /></span>
+      <div className="strong">No plan yet</div>
+      <div className="muted sm">When the assistant breaks a request into steps, they appear here.</div>
+    </div>
+  );
+  const done = steps.filter(s => s.done).length;
+  const pct = Math.round((done / steps.length) * 100);
+  const current = running ? steps.findIndex(s => !s.done) : -1;
+  return (
+    <div className="pl">
+      <div className="pl-head"><span className="pl-title">Plan</span><span className="muted sm">{done} of {steps.length} done</span></div>
+      <div className="bar" role="progressbar" aria-label="Plan progress" aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={done}><span style={{ width: pct + "%" }} /></div>
+      <ol className="pl-list">
+        {steps.map((s, i) => {
+          const isCur = i === current;
+          const state = s.done ? "pl-done" : isCur ? "pl-current" : "pl-pending";
+          const delegated = i === DELEGATED_STEP && helpers.length > 0;
+          return (
+            <li key={i} className={"pl-item " + state} aria-current={isCur ? "step" : undefined}>
+              <span className="pl-mark" aria-hidden="true">
+                <span className="step-mark">{s.done ? <Icon name="check" size={11} stroke={2.5} /> : isCur ? <span className="spinner" /> : <span className="cp-dot" />}</span>
+              </span>
+              <div className="pl-body">
+                <div className="pl-label">{s.label}</div>
+                <div className="pl-status">
+                  <span>{s.done ? "Done" : isCur ? "In progress" : "Pending"}</span>
+                  {delegated && <span className="pl-helpers">
+                    <span className="pl-avs">{helpers.map(h => <button key={h.id} type="button" className="pl-av-btn" aria-label={"Open " + h.name} onClick={() => onOpenHelper(h.id)}><HelperAvatar h={h} size="xs" /></button>)}</span>
+                    <span>{helpers.length} {helpers.length === 1 ? "helper" : "helpers"}</span>
+                  </span>}
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+// ---- Insights tab: timing and token usage across completed responses ----
+const inShortK = (n: number) => n >= 10000 ? Math.round(n / 1000) + "k" : fmtK(n);
+const inPct = (v: number, total: number) => {
+  if (!total || !v) return "0%";
+  const p = (v / total) * 100;
+  return p < 1 ? "<1%" : Math.round(p) + "%";
+};
+
+function InsightsTab({ messages, helpers, now }: { messages: Message[]; helpers: Helper[]; now: number }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const responses = messages.filter(m => m.role === "agent" && m.ms !== undefined);
+  if (!responses.length) return (
+    <div className="empty-tab">
+      <span className="tile lg"><Icon name="chart" size={20} /></span>
+      <div className="strong">No insights yet</div>
+      <div className="muted sm">Timing and usage for each response will appear here.</div>
+    </div>
+  );
+
+  const ids = new Set(responses.map(m => m.id));
+  // Helper tokens only count once the helper has finished, and only for runs that completed.
+  const counted = helpers.filter(h => h.status === "done" && ids.has(h.aid));
+  const mainTokens = MAIN_TOKENS * responses.length;
+  const helperTokens = counted.reduce((a, h) => a + h.tokens, 0);
+  const totalTokens = mainTokens + helperTokens;
+  const times = responses.map(m => m.ms as number);
+  const mainMs = times.reduce((a, b) => a + b, 0);
+  const avgMs = mainMs / times.length;
+  const slowMs = Math.max(...times);
+  const finished = helpers.filter(h => h.status === "done").length;
+
+  const toneCls = (t: number) => "tone-" + (((t % 3) + 3) % 3);
+  const segs = [{ key: "main", name: "Main agent", cls: "tone-main", v: mainTokens }]
+    .concat(counted.filter(h => h.tokens > 0).map(h => ({ key: h.id, name: h.name, cls: toneCls(h.tone), v: h.tokens })));
+  const timeRows = [{ key: "main", name: "Main agent", cls: "tone-main", v: mainMs }]
+    .concat(helpers.map(h => ({ key: h.id, name: h.name, cls: toneCls(h.tone), v: helperElapsed(h, now) })));
+  const timeMax = Math.max(1, ...timeRows.map(r => r.v));
+
+  // Tooltip placement: keep it inside the card by anchoring edge segments to their side.
+  let tip = null as null | { name: string; v: number; style: Record<string, string>; };
+  if (hover !== null && segs[hover]) {
+    const start = segs.slice(0, hover).reduce((a, s) => a + s.v, 0) / totalTokens * 100;
+    const end = start + segs[hover].v / totalTokens * 100;
+    const mid = (start + end) / 2;
+    const style = mid < 25 ? { left: start + "%" } : mid > 75 ? { right: (100 - end) + "%" } : { left: mid + "%", transform: "translateX(-50%)" };
+    tip = { name: segs[hover].name, v: segs[hover].v, style };
+  }
+
+  const ctxPct = (mainTokens / CONTEXT_WINDOW) * 100;
+  const ctxLevel = ctxPct >= 90 ? " is-crit" : ctxPct >= 75 ? " is-warn" : "";
+
+  return (
+    <div className="in">
+      <div className="in-kpis">
+        <div className="in-kpi"><div className="in-kpi-label">Average time</div><div className="in-kpi-value">{fmtMs(avgMs)}</div><div className="in-kpi-sub">{responses.length} {responses.length === 1 ? "response" : "responses"}</div></div>
+        <div className="in-kpi"><div className="in-kpi-label">Slowest</div><div className="in-kpi-value">{fmtMs(slowMs)}</div></div>
+        <div className="in-kpi"><div className="in-kpi-label">Tokens</div><div className="in-kpi-value">{fmtK(totalTokens)}</div>{helperTokens > 0 && <div className="in-kpi-sub">{fmtK(helperTokens)} from helpers</div>}</div>
+        <div className="in-kpi"><div className="in-kpi-label">Helpers</div><div className="in-kpi-value">{helpers.length}</div>{helpers.length > 0 && <div className="in-kpi-sub">{finished} finished</div>}</div>
+      </div>
+
+      <section className="in-card" aria-labelledby="in-tokens-h">
+        <div className="in-card-head"><h3 id="in-tokens-h" className="in-card-title">Tokens by agent</h3><span className="in-num muted sm">{fmtK(totalTokens)} total</span></div>
+        <div className="in-stack-wrap">
+          <div className="in-stack" role="list" aria-label="Token share by agent">
+            {segs.map((s, i) => (
+              <span key={s.key} role="listitem" tabIndex={0} className={"in-seg " + s.cls + (hover === i ? " is-hover" : "")} style={{ flexGrow: s.v, flexBasis: 0 }}
+                aria-label={s.name + ": " + fmtK(s.v) + " tokens, " + inPct(s.v, totalTokens)}
+                onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} onFocus={() => setHover(i)} onBlur={() => setHover(null)} />
+            ))}
+          </div>
+          {tip && <div className="in-tip" style={tip.style} aria-hidden="true"><span className="in-tip-name">{tip.name}</span><span className="in-num">{fmtK(tip.v)} · {inPct(tip.v, totalTokens)}</span></div>}
+        </div>
+        <table className="in-legend">
+          <caption className="in-sr">Tokens by agent</caption>
+          <thead className="in-sr"><tr><th scope="col">Color</th><th scope="col">Agent</th><th scope="col">Tokens</th><th scope="col">Share</th></tr></thead>
+          <tbody>
+            {segs.map(s => (
+              <tr key={s.key}>
+                <td className="in-sw-cell"><span className={"in-sw " + s.cls} aria-hidden="true" /></td>
+                <td className="in-leg-name">{s.name}</td>
+                <td className="in-num">{fmtK(s.v)}</td>
+                <td className="in-num muted">{inPct(s.v, totalTokens)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      <section className="in-card" aria-labelledby="in-time-h">
+        <div className="in-card-head"><h3 id="in-time-h" className="in-card-title">Time by agent</h3></div>
+        <ul className="in-rows">
+          {timeRows.map(r => (
+            <li key={r.key} className="in-row">
+              <span className="in-row-name">{r.name}</span>
+              <span className="in-row-track" aria-hidden="true"><span className={"in-row-bar " + r.cls} style={{ width: Math.max(1, (r.v / timeMax) * 100) + "%" }} /></span>
+              <span className="in-num in-row-val">{fmtMs(r.v)}</span>
+            </li>
+          ))}
+        </ul>
+        {helpers.length > 0 && <p className="in-caption muted sm">Helpers run in parallel, so their times overlap.</p>}
+      </section>
+
+      <section className="in-card" aria-labelledby="in-ctx-h">
+        <div className="in-card-head"><h3 id="in-ctx-h" className="in-card-title">Main agent context</h3><span className="in-num muted sm">{inShortK(mainTokens)} of {inShortK(CONTEXT_WINDOW)} · {inPct(mainTokens, CONTEXT_WINDOW)}</span></div>
+        <div className={"in-meter" + ctxLevel} role="meter" aria-label="Main agent context used" aria-valuemin={0} aria-valuemax={CONTEXT_WINDOW} aria-valuenow={mainTokens} aria-valuetext={inShortK(mainTokens) + " of " + inShortK(CONTEXT_WINDOW) + " tokens"}>
+          <span style={{ width: Math.min(100, ctxPct) + "%" }} />
+        </div>
+        <p className="in-note">Only the main agent's context is shown.{helperTokens > 0 ? " Helpers use their own context windows, so their tokens don't fill this one." : ""}</p>
+      </section>
     </div>
   );
 }
@@ -1178,6 +1675,30 @@ const GOAL_REPLY = "Goal complete. I split it into five checkpoints, pulled 9 so
 
 const REPLY = "Here's a first pass. I pulled the three onboarding docs in the workspace and grouped the plan into weeks: week 1 is access and context (tools, team intros, product walkthrough), week 2 shadows two customer calls and the release process, weeks 3–4 hand over one scoped project with a check-in at day 21. Want me to turn this into a checklist the new hire can tick through?";
 
+// A clock for live timers; it only ticks while something is running.
+function useNow(active: boolean) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!active) return;
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(id);
+  }, [active]);
+  return now;
+}
+
+// What gives way when the session panel is wide: first the sidebar, then the
+// panel floats over the chat. Under 900px the panel is always a drawer.
+function fitPanel(vw: number, want: number, chatMin: number, sidebarOpen: boolean, panelOpen: boolean) {
+  const width = Math.min(want, vw - 2 * GAP);
+  if (vw <= 720) return { width, sidebar: !panelOpen, overlay: false };  // phone: one drawer at a time
+  if (!panelOpen || vw <= 900) return { width, sidebar: true, overlay: false };
+  const chat = vw - 2 * GAP - width - GAP;
+  if (!sidebarOpen || chat - SIDEBAR_W - GAP >= chatMin) return { width, sidebar: true, overlay: !sidebarOpen && chat < chatMin };
+  if (chat >= chatMin) return { width, sidebar: false, overlay: false };
+  return { width, sidebar: false, overlay: true };
+}
+
 function App() {
   const [theme, toggleTheme] = useTheme();
   const [type, setType] = useTypePreset();
@@ -1198,9 +1719,15 @@ function App() {
   const [goalMode, setGoalMode] = useState(false);
   const [budget, setBudget] = useState("none");
   const [goal, setGoal] = useState<Goal | null>(null);
+  const [helpers, setHelpers] = useState<Helper[]>([]);
+  const [openHelper, setOpenHelper] = useState<string | null>(null);  // helper shown in the Agents tab's detail view
+  const [lit, setLit] = useState<string | null>(null);                // helper hovered in chat or panel
+  const [sizes, setSizes] = useState(PANEL_SIZE_DEFAULT);  // min or max, per mode; resets on reload
+  const [vw, setVw] = useState(() => innerWidth);
+  const now = useNow(helpers.some(h => h.status === "running"));
   const timers = useRef<number[]>([]);
   // The in-flight simulated run, kept so a paused goal can resume where it stopped.
-  const run = useRef<{ aid: number; reply: string; n: number; step: number; word: number } | null>(null);
+  const run = useRef<{ aid: number; reply: string; n: number; step: number; word: number; started: number; spawned?: boolean } | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -1216,6 +1743,7 @@ function App() {
   const newChat = useCallback(() => {
     clearTimers(); run.current = null;
     setBusy(false); setMessages([]); setActiveConvo(null); setDraft(""); setGoal(null); setGoalMode(false);
+    setHelpers([]); setOpenHelper(null); setLit(null);
     setNav("home"); focusInput();
   }, []);
 
@@ -1227,6 +1755,11 @@ function App() {
     const fromStep = r.step, fromWord = r.word;
     let t = 0;
     for (let i = fromStep; i < n - 1; i++) {
+      // The delegated step waits for its helpers; a resumed run doesn't start them twice.
+      if (i === DELEGATED_STEP && !r.spawned) {
+        later(t, () => { r.spawned = true; spawnHelpers(aid); });
+        t += Math.max(...HELPER_TEMPLATES.map((h, k) => k * 150 + h.ms)) + 200;
+      }
       t += 700;
       later(t, () => {
         patch(aid, m => ({ ...m, steps: m.steps!.map((s, j) => j <= i ? { ...s, done: true } : s) }));
@@ -1241,11 +1774,22 @@ function App() {
       });
     }
     later(t + (words.length - fromWord) * 28 + 60, () => {
-      patch(aid, m => ({ ...m, streaming: false, steps: m.steps!.map(s => ({ ...s, done: true })) }));
+      patch(aid, m => ({ ...m, streaming: false, ms: Date.now() - r.started, steps: m.steps!.map(s => ({ ...s, done: true })) }));
       setBusy(false); setProgress(100); run.current = null;
       setGoal(g => g && g.aid === aid && g.status === "running" ? { ...g, status: "done" } : g);
     });
   };
+
+  const spawnHelpers = (aid: number) => {
+    const t0 = Date.now();
+    const spawned: Helper[] = HELPER_TEMPLATES.map((tp, k) => ({ ...tp, id: `${aid}-${k}`, aid, status: "running", start: t0 + k * 150 }));
+    setHelpers(hs => [...hs, ...spawned]);
+    spawned.forEach((h, k) => later(k * 150 + h.ms, () =>
+      setHelpers(hs => hs.map(x => x.id === h.id && x.status === "running" ? { ...x, status: "done", end: Date.now() } : x))));
+  };
+  // Pausing or stopping a run stops its helpers where they are.
+  const stopHelpers = () => setHelpers(hs => hs.some(h => h.status === "running")
+    ? hs.map(h => h.status === "running" ? { ...h, status: "stopped", end: Date.now() } : h) : hs);
 
   const send = (text: string, asGoal: boolean) => {
     const aid = Date.now() + 1;
@@ -1255,7 +1799,7 @@ function App() {
       { id: aid - 1, role: "user", text, goal: asGoal ? (budget === "none" ? "Goal" : `Goal · ${budgetOf(budget).label}`) : undefined },
       { id: aid, role: "agent", text: "", steps: labels.map(label => ({ label, done: false })), streaming: true }]);
     setBusy(true); setProgress(4);
-    run.current = { aid, reply: asGoal ? GOAL_REPLY : REPLY, n: labels.length, step: 0, word: 0 };
+    run.current = { aid, reply: asGoal ? GOAL_REPLY : REPLY, n: labels.length, step: 0, word: 0, started: Date.now() };
     if (asGoal) {
       setGoal({ aid, text, budget, status: "running", started: Date.now() });
       setGoalMode(false); setTab("goal");
@@ -1268,7 +1812,7 @@ function App() {
   };
 
   const pauseGoal = () => {
-    clearTimers(); setBusy(false);
+    clearTimers(); setBusy(false); stopHelpers();
     if (run.current) patch(run.current.aid, m => ({ ...m, streaming: false }));
     setGoal(g => g && { ...g, status: "paused" });
   };
@@ -1279,14 +1823,14 @@ function App() {
     simulate();
   };
   const endGoal = () => {
-    clearTimers(); setBusy(false);
+    clearTimers(); setBusy(false); stopHelpers();
     if (run.current) patch(run.current.aid, m => ({ ...m, streaming: false, text: m.text || "Goal ended before completion." }));
     run.current = null;
     setGoal(g => g && { ...g, status: "ended" });
   };
   const stop = () => {
     if (goal?.status === "running") return pauseGoal();
-    clearTimers(); setBusy(false); run.current = null;
+    clearTimers(); setBusy(false); stopHelpers(); run.current = null;
     setMessages(ms => ms.map(m => m.streaming ? { ...m, streaming: false, text: m.text || "Stopped." } : m));
   };
   const startGoal = (prompt = "") => {
@@ -1299,13 +1843,40 @@ function App() {
 
   useHotkeys({
     "mod+k": () => setPalette(p => !p),
-    "mod+b": () => toggle("sidebar"),
+    "mod+b": () => toggleSidebar(),
     "mod+.": () => toggle("activity"),
     "mod+j": newChat,
   });
 
+  useEffect(() => {
+    const onResize = () => setVw(innerWidth);
+    addEventListener("resize", onResize);
+    return () => removeEventListener("resize", onResize);
+  }, []);
+  // Detail mode (one helper open) asks for more room; each mode keeps its own width.
+  const detail = tab === "agents" && helpers.some(h => h.id === openHelper);
+  const mode = detail ? "detail" : "list";
+  const size = sizes[mode];
+  const fit = fitPanel(vw, PANEL_W[size], CHAT_MIN[size], panels.sidebar, panels.activity);
+  const toggleWide = () => { setSizes(s => ({ ...s, [mode]: s[mode] === "max" ? "min" : "max" })); };
+  const openHelperDetail = (id: string) => { setTab("agents"); setOpenHelper(id); setPanels(p => ({ ...p, activity: true })); };
+  const sidebarShown = panels.sidebar && fit.sidebar;
+  const sidebarFits = (s: PanelSize) => fitPanel(vw, PANEL_W[s], CHAT_MIN[s], true, panels.activity).sidebar;
+  const toggleSidebar = () => {
+    if (sidebarShown) return toggle("sidebar");
+    // Opening the sidebar wins: a wide panel shrinks, and if even that doesn't fit, the panel closes.
+    if (panels.activity && !sidebarFits(size)) {
+      if (size === "max" && sidebarFits("min")) setSizes(s => ({ ...s, [mode]: "min" }));
+      else setPanels(p => ({ ...p, activity: false }));
+    }
+    setPanels(p => ({ ...p, sidebar: true }));
+  };
+  const pickTab = (t: Tab) => { setTab(t); setOpenHelper(null); };
+  const latest = [...messages].reverse().find(m => m.role === "agent");
+  const latestHelpers = latest ? helpers.filter(h => h.aid === latest.id) : [];
+
   const dockItems: DockItem[] = [
-    { id: "sidebar", label: "Sidebar", icon: "sidebar", kbd: "⌘B", active: panels.sidebar, onClick: () => toggle("sidebar") },
+    { id: "sidebar", label: "Sidebar", icon: "sidebar", kbd: "⌘B", active: sidebarShown, onClick: toggleSidebar },
     { id: "search", label: "Search", icon: "search", kbd: "⌘K", onClick: () => setPalette(true) },
     { id: "new", label: "New chat", icon: "plus", kbd: "⌘J", onClick: newChat },
     { id: "agent", label: "Agent", icon: "bot", active: pop === "agent", onClick: () => setPop(p => p === "agent" ? null : "agent") },
@@ -1333,14 +1904,14 @@ function App() {
 
   return (
     <div className="shell">
-      <Sidebar open={panels.sidebar} activeId={activeConvo} nav={nav} setNav={setNav}
+      <Sidebar open={sidebarShown} activeId={activeConvo} nav={nav} setNav={setNav}
         onPick={c => { newChat(); setActiveConvo(c.id); send(c.title, false); }}
         onNew={newChat} onSearch={() => setPalette(true)} />
 
       <main className="stage">
         <header className="topbar">
           <div className="crumb">
-            {!panels.sidebar && <span className="brand-word sm">truex</span>}
+            {!sidebarShown && <span className="brand-word sm">truex</span>}
             {title && <><span className="muted">/</span><span className="crumb-title">{title}</span></>}
           </div>
           <button className="status-pill" onClick={() => editAgent(agent)} title={`Edit ${agent.name}`}>
@@ -1369,7 +1940,10 @@ function App() {
               <div className="hero-composer">{composer}</div>
             </div>
           ) : (
-            <div className="thread">{messages.map(m => <MessageView key={m.id} m={m} agent={agent} />)}</div>
+            <div className="thread">{messages.map(m => (
+              <MessageView key={m.id} m={m} agent={agent} helpers={m.role === "agent" ? helpers.filter(h => h.aid === m.id) : []}
+                now={now} lit={lit} setLit={setLit} onOpenHelper={openHelperDetail} />
+            ))}</div>
           )}
         </div>
 
@@ -1396,9 +1970,12 @@ function App() {
         </div>
       </main>
 
-      <ActivityPanel open={panels.activity} tab={tab} setTab={setTab} running={busy} progress={progress}
+      <ActivityPanel open={panels.activity} tab={tab} setTab={pickTab} running={busy} progress={progress}
         goal={goal} goalSteps={goalSteps} onPause={pauseGoal} onResume={resumeGoal} onEndGoal={endGoal}
-        onStartGoal={() => startGoal()} onClose={() => toggle("activity")} />
+        onStartGoal={() => startGoal()} onClose={() => toggle("activity")}
+        width={fit.width} overlay={fit.overlay} wide={size === "max"} onToggleWide={toggleWide}
+        helpers={helpers} now={now} openHelper={openHelper} setOpenHelper={setOpenHelper} lit={lit} setLit={setLit}
+        messages={messages} planSteps={latest?.steps || []} planHelpers={latestHelpers} onOpenHelper={openHelperDetail} />
       <AgentDialog open={creating || !!editing} agents={agents} editing={editing} onClose={closeDialog}
         onCreate={a => setAgents(list => [...list, a])}
         onSave={a => { setAgents(list => list.map(x => x.id === a.id ? a : x)); setAgent(c => c.id === a.id ? a : c); }}
@@ -1417,10 +1994,27 @@ const CSS = `
 .panel { flex: none; width: 0; opacity: 0; overflow: hidden; transition: width .32s cubic-bezier(.2,.8,.2,1), opacity .2s; }
 .panel.is-open { opacity: 1; }
 .sidebar.is-open { width: 268px; }
-.activity.is-open { width: 340px; }
+.activity.is-open { width: var(--pw, 360px); }
 .panel-inner { height: 100%; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
 .sidebar .panel-inner { width: 268px; padding: 14px 12px; gap: 6px; }
-.activity .panel-inner { width: 340px; }
+.activity .panel-inner { position: relative; width: var(--pw, 360px); }
+/* Not enough room beside the chat: the panel floats over it as a drawer. */
+.activity.is-overlay.is-open { position: fixed; right: 10px; top: 10px; bottom: 10px; z-index: 30; }
+.activity.is-overlay .panel-inner { box-shadow: var(--shadow-lg); }
+.tab-count { display: inline-grid; flex-shrink: 0; place-items: center; min-width: 18px; height: 18px; margin-left: 6px; padding: 0 5px; border-radius: 999px; background: var(--surface-3); color: var(--ink-2); font: 600 10.5px var(--font-mono); vertical-align: 1px; }
+.tab-count.is-live { background: var(--accent-soft); color: var(--accent-fg); }
+
+/* helpers in the chat */
+.hcard { margin: 0 0 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
+.hcard-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 12px; background: var(--surface-3); font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.hcard-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 12px; border: 0; border-top: 1px solid var(--line); background: none; text-align: left; font-size: 13px; cursor: pointer; transition: background .15s; }
+.hcard-row:hover, .hcard-row.is-lit { background: var(--ts, var(--surface-3)); }
+.hcard-row:focus-visible { outline-offset: -2px; }
+.hcard-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hcard-row .mono { min-width: 40px; text-align: right; font-variant-numeric: tabular-nums; }
+.hcard-go { display: inline-flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 500; color: var(--accent-fg); opacity: 0; transition: opacity .15s; }
+.hcard-row:hover .hcard-go, .hcard-row:focus-visible .hcard-go, .hcard-row.is-lit .hcard-go { opacity: 1; }
+@media (hover: none) { .hcard-go { opacity: 1; } }
 
 .brand { display: flex; align-items: center; gap: 6px; padding: 4px 6px 12px; }
 .brand-mark { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; background: var(--ink); color: var(--bg); }
@@ -1666,12 +2260,13 @@ kbd { font: 500 11px var(--font-mono); color: var(--ink-3); background: var(--su
 .avatar { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: var(--bg); font-weight: 600; }
 
 /* activity */
-.tabs { display: flex; align-items: center; gap: 2px; padding: 8px 8px 0; border-bottom: 1px solid var(--line); }
-.tab { position: relative; height: 38px; padding: 0 10px; border: 0; background: none; color: var(--ink-3); cursor: pointer; font-weight: 500; font-size: 13px; }
+.tabs { display: flex; align-items: center; gap: 2px; padding: 8px 8px 0; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--line); }
+.tab { position: relative; display: inline-flex; align-items: center; flex-shrink: 0; white-space: nowrap; height: 38px; padding: 0 9px; border: 0; background: none; color: var(--ink-3); cursor: pointer; font-weight: 500; font-size: 13px; }
 .tab:hover { color: var(--ink); }
 .tab.is-active { color: var(--ink); }
 .tab.is-active::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--accent); }
-.tab-close { margin-left: auto; margin-bottom: 4px; }
+.tab-size { margin-left: auto; margin-bottom: 4px; flex-shrink: 0; }
+.tab-close { margin-bottom: 4px; flex-shrink: 0; }
 .activity-body { flex: 1; overflow: auto; padding: 16px; }
 .live-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .live:not(.is-running) .pulse { animation: none; background: var(--ink-3); }
@@ -1828,72 +2423,90 @@ button.status-pill:hover { border-color: var(--line-strong); }
 @media (hover: none) { .menu-edit { opacity: 1; } }
 .menu-plus.solid { border-style: solid; }
 
-/* agents roster: portrait cards */
-.roster { max-width: 1080px; margin: 0 auto; padding: 36px 24px 120px; animation: rise .3s ease-out; }
-.roster-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px; }
-.eyebrow.flush { padding: 0 0 8px; }
-.roster-head h1 { margin: 0 0 6px; font: var(--display-weight) clamp(30px, 3.6vw, 40px)/1.05 var(--font-display); letter-spacing: var(--display-track); }
-.roster-head h1 em { font-family: var(--font-accent); font-style: var(--accent-style); font-weight: var(--accent-weight); font-size: calc(var(--accent-scale) * 1em); color: var(--accent-fg); }
-.roster-head p { margin: 0; font-size: 13.5px; }
-.roster-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 28px 0 22px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+/* agents roster: a pinboard of polaroids */
+.roster { --font-hand: "Caveat", "Segoe Print", cursive; max-width: 1080px; margin: 0 auto; padding: 36px 24px 120px; animation: rise .3s ease-out; }
+.bp-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.bp-brand { font: 700 13px var(--font-display); letter-spacing: .08em; text-transform: uppercase; color: var(--ink); }
+.bp-arrow { display: grid; place-items: center; width: 64px; height: 32px; border: 1.5px solid var(--ink); border-radius: 999px; background: none; color: var(--ink); cursor: pointer; transition: background .15s, color .15s; }
+.bp-arrow:hover { background: var(--ink); color: var(--bg); }
+.bp-title { margin: 36px auto 8px; max-width: 16ch; text-align: center; font: 700 clamp(32px, 5vw, 56px)/1.02 var(--font-display); letter-spacing: -.04em; color: var(--ink); text-wrap: balance; }
+.bp-hi { color: var(--accent); }
+.bp-sub { margin: 0; text-align: center; font-size: 13.5px; }
+.roster-tools { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin: 24px 0 28px; }
 .roster-search { position: relative; flex: 1; min-width: 200px; max-width: 360px; }
 .roster-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
-.roster-search .input { padding-left: 36px; }
+.roster-search .input { padding-left: 36px; border-radius: 999px; }
 .seg { display: inline-flex; padding: 3px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-3); }
 .seg-btn { height: 32px; padding: 0 12px; border: 0; border-radius: 8px; background: none; color: var(--ink-2); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
 .seg-btn.is-active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+.bp-pills { display: flex; gap: 6px; }
+.bp-pill, .bp-tag { display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border: 1.5px solid var(--ink); border-radius: 999px; background: none; color: var(--ink);
+  font: 600 12.5px var(--font-sans); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.bp-pill { cursor: pointer; transition: background .15s, color .15s; }
+.bp-pill:hover { background: var(--surface-3); }
+.bp-pill.is-active { background: var(--ink); color: var(--bg); }
 
-.acards { display: grid; grid-template-columns: repeat(auto-fill, minmax(236px, 1fr)); gap: 20px; margin: 0; padding: 0; list-style: none; }
-.acard { position: relative; display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); overflow: hidden;
-  box-shadow: 0 1px 2px rgb(31 42 48 / 4%); transition: transform .25s cubic-bezier(.2, .8, .3, 1), box-shadow .25s, border-color .25s;
+/* the calendar-like board the cards are pinned to */
+.bp-board { position: relative; padding: 40px 28px 48px; border: 1px solid var(--line); border-radius: 18px;
+  background: linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 100% 120px, linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / calc(100% / 7) 100%, var(--surface-3); }
+.polaroids { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 44px 32px; margin: 0; padding: 0; list-style: none; }
+.pol-card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 14px; min-width: 0;
   animation: rise .4s cubic-bezier(.2, .8, .3, 1) backwards; animation-delay: calc(var(--i) * 45ms); }
-.acard:not(.is-new):hover { transform: translateY(-3px); border-color: var(--line-strong);
-  box-shadow: 0 2px 4px rgb(31 42 48 / 5%), 0 22px 44px -22px color-mix(in srgb, var(--dot) 70%, rgb(31 42 48 / 60%)); }
-.acard-portrait { position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 5 / 4; padding: 0; border: 0; cursor: pointer; overflow: hidden;
-  background: radial-gradient(120% 90% at 50% 30%, rgb(255 255 255 / 85%) 0, transparent 60%), var(--tint); }
-/* a faint halo behind the robot, and the badge's punched slot as a quiet nod to the lanyard */
-.acard-portrait::before { content: ""; position: absolute; left: 50%; top: 50%; width: 62%; aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -46%);
-  background: radial-gradient(circle, color-mix(in srgb, var(--dot) 38%, transparent) 0, transparent 70%); opacity: .7; transition: opacity .3s, transform .4s; }
-.acard-slot { position: absolute; top: 12px; left: 50%; width: 34px; height: 6px; margin-left: -17px; border-radius: 3px;
-  background: rgb(31 42 48 / 12%); box-shadow: inset 0 1px 2px rgb(31 42 48 / 30%), 0 1px 0 rgb(255 255 255 / 70%); }
-.acard-robot { position: relative; display: block; transition: transform .45s cubic-bezier(.34, 1.56, .64, 1); }
-.acard:hover .acard-robot { transform: translateY(-6px) rotate(-2deg); }
-.acard:hover .acard-portrait::before { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
-.acard-portrait:focus-visible { outline: 2px solid var(--accent-2); outline-offset: -4px; border-radius: 20px 20px 0 0; }
-.acard-flag { position: absolute; top: 12px; left: 12px; display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 999px;
-  background: rgb(255 255 255 / 72%); backdrop-filter: blur(6px); color: #4E5C62; font: 500 10.5px var(--font-mono); letter-spacing: .05em; text-transform: uppercase; }
-.acard-flag.live { left: auto; right: 12px; color: #1F2A30; }
-.acard-flag.live .pulse { width: 6px; height: 6px; background: #5FA37F; }
-.acard-flag + .acard-flag:not(.live) { top: 40px; }
-.acard-hint { position: absolute; bottom: 12px; left: 50%; display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 999px;
+.pol-stack { position: relative; width: 100%; max-width: 236px; }
+.polaroid { position: relative; width: 100%; max-width: 236px; padding: 12px 12px 0; border: 0; border-radius: 4px; background: var(--frame, var(--surface));
+  transform: rotate(var(--tilt)); transition: transform .3s cubic-bezier(.2, .8, .3, 1), box-shadow .3s;
+  box-shadow: 0 1px 2px rgb(31 42 48 / 14%), 0 14px 28px -14px rgb(31 42 48 / 40%); }
+.pol-card:hover .polaroid, .pol-card:focus-within .polaroid { transform: rotate(0deg) translateY(-6px) scale(1.02); box-shadow: 0 2px 4px rgb(31 42 48 / 12%), 0 26px 44px -18px rgb(31 42 48 / 45%); }
+.pol-card:hover, .pol-card:focus-within { z-index: 2; }
+.pol-photo { position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 1; padding: 0; border: 0; border-radius: 2px; cursor: pointer; overflow: hidden;
+  background: radial-gradient(110% 80% at 50% 30%, rgb(255 255 255 / 85%) 0, transparent 62%), var(--tint); }
+.pol-photo:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; border-radius: 2px; }
+.pol-robot { display: block; transition: transform .45s cubic-bezier(.34, 1.56, .64, 1); }
+.pol-card:hover .pol-robot { transform: translateY(-6px) rotate(-3deg); }
+.pol-hint { position: absolute; bottom: 10px; left: 50%; display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 999px;
   background: rgb(31 42 48 / 82%); color: #fff; font-size: 12px; font-weight: 500; opacity: 0; transform: translate(-50%, 6px); transition: opacity .2s, transform .2s; }
-.acard-portrait:hover .acard-hint, .acard-portrait:focus-visible .acard-hint { opacity: 1; transform: translate(-50%, 0); }
-.acard-body { flex: 1; padding: 16px 18px 12px; }
-.acard-name { font: 600 18px/1.2 var(--font-display); letter-spacing: -.02em; color: var(--ink); overflow-wrap: anywhere; }
-.acard-handle { margin-top: 3px; font: 500 11px var(--font-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--ink-3); overflow-wrap: anywhere; }
-.acard-desc { margin: 10px 0 0; font-size: 13px; line-height: 1.45; color: var(--ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.acard-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px 12px 18px; border-top: 1px dashed var(--line); }
-.acard-meta { min-width: 0; font: 11px var(--font-mono); color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.acard-foot .btn-soft:disabled { opacity: .55; cursor: default; background: none; }
-.acard.is-new { border-style: dashed; border-color: var(--line-strong); background: none; box-shadow: none; }
-.acard-new { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 320px; padding: 24px; border: 0; background: none;
-  color: var(--ink-2); font: inherit; text-align: center; cursor: pointer; border-radius: inherit; transition: background .2s; }
-.acard-new:hover { background: var(--surface-3); }
-.acard-new .muted { max-width: 22ch; }
-.acard-plus { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 6px; border-radius: 14px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); transition: transform .25s; }
-.acard-new:hover .acard-plus { transform: rotate(90deg); }
-@media (hover: none) { .acard-hint { display: none; } }
-@media (prefers-reduced-motion: reduce) { .acard, .acard-robot, .acard-portrait::before { animation: none; transition: none; } }
+.pol-photo:hover .pol-hint, .pol-photo:focus-visible .pol-hint { opacity: 1; transform: translate(-50%, 0); }
+.pol-caption { display: block; padding: 8px 4px 12px; font: 700 26px/1.05 var(--font-hand); color: var(--cap, var(--ink)); text-align: center; transform: rotate(-2deg); overflow-wrap: anywhere; }
+.pol-pin { position: absolute; top: -22px; left: 50%; margin-left: -15px; z-index: 3; filter: drop-shadow(0 2px 2px rgb(31 42 48 / 25%)); }
+/* sticky note peeking out from behind built-in agents */
+.pol-note { position: absolute; top: -30px; right: -14px; display: flex; align-items: flex-start; justify-content: center; gap: 4px; width: 92px; height: 70px; padding-top: 5px;
+  background: #FCE9A0; color: #7D5D1D; font: 700 16px var(--font-hand); transform: rotate(8deg); box-shadow: 0 6px 12px -8px rgb(31 42 48 / 40%); }
+.pol-note svg { margin-top: 3px; }
+.pol-info { width: 100%; max-width: 236px; }
+.pol-handle { display: flex; align-items: center; gap: 8px; font: 500 11px var(--font-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--ink-3); overflow-wrap: anywhere; }
+.pol-live { display: inline-flex; align-items: center; gap: 5px; color: var(--success-text); }
+.pol-live .pulse { width: 6px; height: 6px; background: #5FA37F; }
+.pol-desc { margin: 6px 0 8px; font-size: 13px; line-height: 1.45; color: var(--ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pol-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pol-meta { min-width: 0; font: 11px var(--font-mono); color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pol-foot .btn-soft:disabled { opacity: .55; cursor: default; background: none; }
+.pol-new { display: block; background: var(--surface); border: 2px dashed var(--line-strong); box-shadow: none; cursor: pointer; font: inherit; color: var(--ink-2); }
+.pol-new:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.pol-photo-empty { display: grid; place-items: center; width: 100%; aspect-ratio: 1; border-radius: 2px; background: var(--surface-3); }
+.acard-plus { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); transition: transform .25s; }
+.pol-new:hover .acard-plus { transform: rotate(90deg); }
+.bp-doodle { display: inline-flex; align-items: flex-end; gap: 4px; font: 700 20px/1 var(--font-hand); color: var(--ink-2); transform: rotate(-4deg); }
+.bp-doodle svg { transform: scaleY(-1); }
+.bp-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 28px; }
+.bp-tags { display: flex; }
+.bp-tags .bp-tag + .bp-tag { margin-left: -1.5px; }
+@media (hover: none) { .pol-hint { display: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .pol-card, .pol-robot { animation: none; transition: none; }
+  .pol-card:hover .polaroid, .pol-card:focus-within .polaroid { transform: rotate(var(--tilt)); }
+  .pol-card:hover .pol-robot { transform: none; }
+}
 @media (max-width: 520px) {
   .roster { padding: 24px 16px 120px; }
-  .acards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-  .acard-robot svg { width: 96px; height: 96px; }
-  .acard-body { padding: 12px 12px 8px; }
-  .acard-name { font-size: 15px; }
-  .acard-desc { display: none; }
-  .acard-foot { padding: 8px 8px 8px 12px; }
-  .acard-meta { display: none; }
-  .acard-new { min-height: 220px; }
+  .bp-title { margin-top: 24px; }
+  .bp-board { padding: 28px 14px 32px; }
+  .polaroids { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px 14px; }
+  .polaroid { padding: 7px 7px 0; transform: rotate(calc(var(--tilt) / 2)); }
+  .pol-robot svg { width: 88px; height: 88px; }
+  .pol-caption { font-size: 19px; padding: 6px 2px 8px; }
+  .pol-note { top: -24px; width: 64px; height: 50px; right: -6px; font-size: 13px; }
+  .pol-desc, .pol-meta, .bp-doodle { display: none; }
+  .pol-foot { justify-content: flex-end; }
 }
 
 @media (max-width: 760px) {
@@ -1911,12 +2524,190 @@ button.status-pill:hover { border-color: var(--line-strong); }
   .stage { border-radius: 0; border: 0; }
   .sidebar.is-open { position: fixed; left: 0; top: 0; bottom: 0; z-index: 30; }
   .sidebar .panel-inner { border-radius: 0 16px 16px 0; box-shadow: var(--shadow-lg); }
-  .activity.is-open { right: 0; top: 0; bottom: 0; width: min(340px, 100vw); }
+  .activity.is-open { right: 0; top: 0; bottom: 0; width: min(var(--pw, 360px), 100vw); }
+  .activity .panel-inner { width: min(var(--pw, 360px), 100vw); }
+  .tab-size { display: none; }
     .bottom { padding: 0 16px 12px; }
   .topbar { padding: 0 8px 0 16px; }
   .crumb { display: none; }
   .topbar { grid-template-columns: auto 1fr auto; }
   .status-pill { grid-column: 1; }
+}
+
+/* ---------- session panel: agents tab */
+/* Helper avatar (tone classes set --t / --ts) */
+.h-av { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: var(--ts); color: var(--t); font-weight: 700; font-size: 12px; line-height: 1; }
+.h-av.xs { width: 18px; height: 18px; border-radius: 6px; font-size: 10px; }
+.h-av.lg { width: 38px; height: 38px; border-radius: 11px; font-size: 16px; }
+
+/* Agents tab: list */
+.ag-list { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.ag-summary { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: 13px; min-width: 0; }
+.ag-summary > span { min-width: 0; }
+.ag-chip { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; white-space: nowrap; flex: none; }
+.ag-chip.is-running { background: var(--accent-soft); color: var(--accent-fg); }
+.ag-chip.is-done { background: var(--success-bg); color: var(--success-text); }
+.ag-chip.is-stopped { background: var(--surface-3); color: var(--ink-3); }
+.ag-chip.is-warn { background: var(--warning-bg); color: var(--warning-text); }
+.ag-chip .spinner { width: 9px; height: 9px; }
+
+.ag-timeline { display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+.ag-lane { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: center; gap: 10px; }
+.ag-lane-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--ink-2); }
+.ag-lane.is-lit .ag-lane-name { color: var(--ink); font-weight: 500; }
+.ag-track { position: relative; height: 8px; border-radius: 4px; background: var(--surface-3); overflow: hidden; }
+.ag-span { position: absolute; top: 0; bottom: 0; min-width: 4px; border-radius: 4px; background: var(--t); transition: width .25s linear; }
+.ag-span.is-running { animation: ag-pulse 1.4s ease-in-out infinite; }
+.ag-lane.is-lit .ag-track { box-shadow: 0 0 0 2px var(--ts); }
+.ag-axis { display: flex; justify-content: space-between; margin-left: 82px; font: 10.5px var(--font-mono); color: var(--ink-3); }
+@keyframes ag-pulse { 50% { opacity: .55; } }
+
+.ag-rows { display: flex; flex-direction: column; gap: 8px; }
+.ag-row { display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-align: left; font: inherit; cursor: pointer; transition: border-color .15s, background .15s; }
+.ag-row:hover, .ag-row:focus-visible, .ag-row.is-lit { border-color: var(--t); background: var(--ts); }
+.ag-row:focus-visible { outline: 2px solid var(--t); outline-offset: 2px; }
+.ag-row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.ag-row-top { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; font-size: 13.5px; }
+.ag-row-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 2px; }
+.ag-row-meta { font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.ag-row-preview { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 12.5px; line-height: 1.45; color: var(--ink-2); max-width: 64ch; }
+.ag-row-go { flex: none; align-self: center; color: var(--ink-3); display: grid; }
+.ag-row:hover .ag-row-go, .ag-row.is-lit .ag-row-go { color: var(--t); }
+
+/* Agents tab: detail */
+.ag-detail { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.ag-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -4px -4px 0; }
+.ag-back { padding: 0 8px 0 4px; gap: 2px; color: var(--ink-2); }
+.ag-back:focus-visible, .ag-pager .icon-btn:focus-visible, .ag-seg-tab:focus-visible, .ag-actions .btn-soft:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ag-pager { display: flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums; }
+.ag-pager .mono { min-width: 44px; text-align: center; }
+.ag-ident { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.ag-ident-text { min-width: 0; }
+.ag-ident-name { font-size: 15.5px; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.ag-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 1px; margin: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--line); overflow: hidden; }
+.ag-stats > div { min-width: 0; padding: 10px 12px; background: var(--surface); display: flex; flex-direction: column; gap: 4px; }
+.ag-stats dt { font: 500 10.5px var(--font-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--ink-3); }
+.ag-stats dd { margin: 0; font-size: 13.5px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+.ag-warn { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; background: var(--warning-bg); color: var(--warning-text); font-size: 13px; line-height: 1.45; }
+.ag-warn > span:last-child { min-width: 0; }
+
+.ag-seg-tabs { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--surface-3); align-self: flex-start; max-width: 100%; }
+.ag-seg-tab { height: 28px; padding: 0 12px; border: 0; border-radius: 8px; background: none; color: var(--ink-3); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background .15s, color .15s; }
+.ag-seg-tab:hover { color: var(--ink); }
+.ag-seg-tab.is-active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+
+.ag-panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; max-width: 68ch; font-size: 13.5px; line-height: 1.5; color: var(--ink-2); }
+.ag-panel p { margin: 0; }
+.ag-out h4 { margin: 0 0 4px; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.ag-out ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
+.ag-actions { display: flex; align-items: center; gap: 8px; }
+.ag-live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.ag-task { padding: 12px 14px; border-radius: 10px; background: var(--surface-3); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.ag-log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.ag-log-row { position: relative; display: grid; grid-template-columns: 44px 10px minmax(0, 1fr); align-items: start; gap: 10px; padding: 6px 0; }
+.ag-log-row::before { content: ""; position: absolute; left: 58px; top: 0; bottom: 0; width: 1px; background: var(--line); }
+.ag-log-row:first-child::before { top: 12px; }
+.ag-log-row:last-child::before { bottom: calc(100% - 12px); }
+.ag-log-time { font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; text-align: right; padding-top: 1px; }
+.ag-log-dot { position: relative; z-index: 1; width: 8px; height: 8px; margin: 5px 1px 0; border-radius: 50%; background: var(--ink-3); box-shadow: 0 0 0 2px var(--surface); }
+.ag-log-row.is-tool .ag-log-dot { background: var(--accent); }
+.ag-log-row.is-err .ag-log-dot { background: var(--error-text); }
+.ag-log-row.is-pending .spinner { position: relative; z-index: 1; margin: 4px 0 0; background: var(--surface); }
+.ag-log-text { min-width: 0; color: var(--ink); overflow-wrap: anywhere; }
+.ag-log-detail { display: block; font-size: 12px; color: var(--ink-3); }
+.ag-log-row.is-err .ag-log-detail { color: var(--error-text); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ag-span.is-running { animation: none; }
+  .ag-span, .ag-row, .ag-seg-tab { transition: none; }
+}
+
+/* ---------- session panel: helper tones, plan, insights */
+/* ---- Helper tones (validated: dataviz validate_palette.js, --pairs all, both modes) ---- */
+:root { --tone-0: #2872b8; --tone-0-soft: #eef5fc; --tone-1: #0f7a55; --tone-1-soft: #e6f5ee; --tone-2: #b84a1b; --tone-2-soft: #fcece4; --tone-main: #6b6b6b; --tone-main-soft: #f0f0f0; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --tone-0: #3691cd; --tone-0-soft: #0f1f2c; --tone-1: #199e70; --tone-1-soft: #0e211a; --tone-2: #d95926; --tone-2-soft: #24120a; --tone-main: #8f8f8f; --tone-main-soft: #262626; } }
+:root[data-theme="dark"] { --tone-0: #3691cd; --tone-0-soft: #0f1f2c; --tone-1: #199e70; --tone-1-soft: #0e211a; --tone-2: #d95926; --tone-2-soft: #24120a; --tone-main: #8f8f8f; --tone-main-soft: #262626; }
+.tone-0 { --t: var(--tone-0); --ts: var(--tone-0-soft); }
+.tone-1 { --t: var(--tone-1); --ts: var(--tone-1-soft); }
+.tone-2 { --t: var(--tone-2); --ts: var(--tone-2-soft); }
+.tone-main { --t: var(--tone-main); --ts: var(--tone-main-soft); }
+
+/* ---- Plan tab ---- */
+.pl { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.pl-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.pl-title { font-size: 14px; font-weight: 600; color: var(--ink); }
+.pl-head .muted { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pl-list { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.pl-item { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; align-items: start; padding: 8px; border-radius: 8px; font-size: 13px; line-height: 20px; color: var(--ink-2); }
+.pl-item.pl-current { background: var(--accent-soft); color: var(--ink); }
+.pl-item.pl-current .pl-label { font-weight: 600; }
+.pl-mark { display: grid; place-items: center; width: 18px; height: 20px; }
+.pl-done .step-mark { background: var(--accent-soft); }
+.pl-current .step-mark { background: var(--surface); }
+.pl-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pl-label { min-width: 0; overflow-wrap: anywhere; }
+.pl-status { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; font-size: 12px; line-height: 18px; color: var(--ink-3); }
+.pl-helpers { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.pl-avs { display: inline-flex; align-items: center; gap: 2px; }
+.pl-av-btn { display: inline-grid; place-items: center; padding: 2px; margin: 0; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; line-height: 0; }
+.pl-av-btn:hover { background: var(--surface-3); }
+.pl-av-btn:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 1px; }
+
+/* ---- Insights tab ---- */
+.in { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.in-num { font-variant-numeric: tabular-nums; }
+.in-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.in-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+.in-kpi { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.in-kpi-label { font-size: 12px; color: var(--ink-3); }
+.in-kpi-value { font-size: 20px; font-weight: 600; line-height: 1.25; color: var(--ink); font-variant-numeric: tabular-nums; }
+.in-kpi-sub { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; min-width: 0; overflow-wrap: anywhere; }
+.in-card { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.in-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.in-card-title { margin: 0; font-size: 13px; font-weight: 600; color: var(--ink); }
+.in-card-head .muted { white-space: nowrap; }
+
+.in-stack-wrap { position: relative; }
+.in-stack { display: flex; gap: 2px; height: 14px; }
+.in-seg { min-width: 2px; height: 100%; background: var(--t); outline: none; cursor: default; }
+.in-seg:first-child { border-radius: 4px 0 0 4px; }
+.in-seg:last-child { border-radius: 0 4px 4px 0; }
+.in-seg:only-child { border-radius: 4px; }
+.in-stack:hover .in-seg:not(.is-hover) { opacity: .55; }
+.in-seg:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.in-tip { position: absolute; bottom: calc(100% + 6px); z-index: 2; display: flex; flex-direction: column; gap: 1px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow-md); font-size: 12px; line-height: 16px; color: var(--ink-2); white-space: nowrap; pointer-events: none; }
+.in-tip-name { font-weight: 600; color: var(--ink); }
+
+.in-legend { width: 100%; border-collapse: collapse; font-size: 12px; color: var(--ink-2); table-layout: auto; }
+.in-legend td { padding: 4px 0; border-top: 1px solid var(--line); vertical-align: middle; }
+.in-legend tr:first-child td { border-top: 0; }
+.in-legend td + td { padding-left: 8px; }
+.in-legend .in-num { text-align: right; white-space: nowrap; }
+.in-sw-cell { width: 10px; }
+.in-sw { display: block; width: 10px; height: 10px; border-radius: 3px; background: var(--t); }
+.in-leg-name { width: 100%; color: var(--ink); overflow-wrap: anywhere; }
+
+.in-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.in-row { display: grid; grid-template-columns: minmax(56px, 32%) minmax(0, 1fr) auto; align-items: center; gap: 8px; font-size: 12px; }
+.in-row-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
+.in-row-track { display: block; min-width: 0; height: 10px; }
+.in-row-bar { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--t); transition: width .4s ease; }
+.in-row-val { min-width: 40px; text-align: right; color: var(--ink); }
+.in-caption { margin: 0; }
+
+.in-meter { height: 8px; border-radius: 4px; background: var(--accent-soft); overflow: hidden; }
+.in-meter span { display: block; height: 100%; min-width: 2px; border-radius: 4px; background: var(--accent-2); transition: width .4s ease; }
+.in-meter.is-warn { background: var(--warning-bg); }
+.in-meter.is-warn span { background: var(--warning-text); }
+.in-meter.is-crit { background: var(--error-bg); }
+.in-meter.is-crit span { background: var(--error-text); }
+.in-note { margin: 0; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); font-size: 12px; line-height: 1.45; color: var(--ink-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .in-row-bar, .in-meter span { transition: none; }
 }
 `;
 
