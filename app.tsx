@@ -14,15 +14,16 @@ interface Conversation { id: number; title: string; time: string; group: "Today"
 interface Agent {
   id: string; name: string; desc: string; hue: string;
   handle?: string; look?: number; tint?: string; model?: string; reasoning?: string; instructions?: string;
+  builtin?: boolean;  // ships with the workspace: instructions, model and reasoning are editable; name, look and removal are not
 }
 
 /* ---------------------------------------------------------------- data */
 
 const AGENTS: Agent[] = [
-  { id: "qlik", name: "Qlik Analyst", desc: "Dashboards, metrics, BI queries", hue: "#8FC5D6" },
-  { id: "research", name: "Researcher", desc: "Web research with citations", hue: "#A9D5BE" },
-  { id: "writer", name: "Writer", desc: "Docs, release notes, briefs", hue: "#EBCB8B" },
-  { id: "ops", name: "Ops", desc: "Runbooks, tickets, on-call", hue: "#C4BDE3" },
+  { id: "qlik", handle: "qlik", name: "Qlik Analyst", desc: "Dashboards, metrics, BI queries", hue: "#BCDEE8", look: 3, tint: "ice", builtin: true },
+  { id: "research", handle: "research", name: "Researcher", desc: "Web research with citations", hue: "#A9D5BE", look: 4, tint: "mint", builtin: true },
+  { id: "writer", handle: "writer", name: "Writer", desc: "Docs, release notes, briefs", hue: "#EBCB8B", look: 1, tint: "butter", builtin: true },
+  { id: "ops", handle: "ops", name: "Ops", desc: "Runbooks, tickets, on-call", hue: "#C4BDE3", look: 6, tint: "lilac", builtin: true },
 ];
 
 const CONVERSATIONS: Conversation[] = [
@@ -44,21 +45,21 @@ const budgetOf = (id: string) => BUDGETS.find(b => b.id === id) || BUDGETS[0];
 // Agent looks: shaded vector robots drawn in SVG (Robot). Tints are the badge backgrounds; `dot` doubles as the agent hue.
 interface Look { name: string; body: string; visor: string; glow: string; face: "line" | "eyes" | "happy"; acc?: string; accColor?: string }
 const LOOKS: Look[] = [
-  { name: "Graphite", body: "#3A4750", visor: "#1F2A30", glow: "#8FC5D6", face: "line" },
-  { name: "Antenna", body: "#F4F7F8", visor: "#2B3F6B", glow: "#A8D3E0", face: "eyes", acc: "antenna" },
-  { name: "Navy", body: "#2E4470", visor: "#16213A", glow: "#A8D3E0", face: "line" },
-  { name: "Listener", body: "#D5DDE1", visor: "#2B3F6B", glow: "#BCDEE8", face: "happy", acc: "headphones", accColor: "#8FC5D6" },
+  { name: "Graphite", body: "#3A4750", visor: "#1F2A30", glow: "#BCDEE8", face: "line" },
+  { name: "Antenna", body: "#F4F7F8", visor: "#2B3F6B", glow: "#BCDEE8", face: "eyes", acc: "antenna" },
+  { name: "Navy", body: "#2E4470", visor: "#16213A", glow: "#BCDEE8", face: "line" },
+  { name: "Listener", body: "#D5DDE1", visor: "#2B3F6B", glow: "#BCDEE8", face: "happy", acc: "headphones", accColor: "#3691CD" },
   { name: "Scout", body: "#D8C3A0", visor: "#3A4750", glow: "#EBCB8B", face: "line", acc: "cap", accColor: "#E07B6E" },
-  { name: "Chef", body: "#F4F7F8", visor: "#2B3F6B", glow: "#A8D3E0", face: "eyes", acc: "chef" },
+  { name: "Chef", body: "#F4F7F8", visor: "#2B3F6B", glow: "#BCDEE8", face: "eyes", acc: "chef" },
   { name: "Builder", body: "#F4F7F8", visor: "#3A4750", glow: "#EBCB8B", face: "eyes", acc: "hardhat", accColor: "#F2C94C" },
   { name: "Scarf", body: "#3A4750", visor: "#1F2A30", glow: "#F0B999", face: "happy", acc: "scarf", accColor: "#E07B6E" },
   { name: "Mint", body: "#BFE3CF", visor: "#1F2A30", glow: "#A9D5BE", face: "eyes", acc: "antenna" },
   { name: "Lilac", body: "#CFC8EC", visor: "#2B3F6B", glow: "#C4BDE3", face: "happy", acc: "bow", accColor: "#F0A3B5" },
   { name: "Peach", body: "#F5C7A8", visor: "#3A4750", glow: "#F0B999", face: "line", acc: "headphones", accColor: "#3A4750" },
-  { name: "Captain", body: "#2E4470", visor: "#16213A", glow: "#A8D3E0", face: "eyes", acc: "cap", accColor: "#8FC5D6" },
+  { name: "Captain", body: "#2E4470", visor: "#16213A", glow: "#BCDEE8", face: "eyes", acc: "cap", accColor: "#3691CD" },
 ];
 const TINTS = [
-  { id: "ice", label: "Ice", bg: "#EAF5F8", dot: "#8FC5D6" },
+  { id: "ice", label: "Ice", bg: "#EAF5F8", dot: "#3691CD" },
   { id: "mint", label: "Mint", bg: "#E7F4ED", dot: "#A9D5BE" },
   { id: "butter", label: "Butter", bg: "#FFF3D9", dot: "#EBCB8B" },
   { id: "peach", label: "Peach", bg: "#FBE9DD", dot: "#F0B999" },
@@ -73,6 +74,11 @@ const MODELS = [
 const REASONING = ["Default", "Low", "Medium", "High"];
 const tintOf = (id?: string) => TINTS.find(t => t.id === id) || TINTS[0];
 const modelOf = (id?: string) => MODELS.find(m => m.id === id) || MODELS[0];
+// The editable fields of an agent, with defaults filled in, so a draft can be compared against what's saved.
+const agentFields = (a: Agent) => ({
+  name: a.name, desc: a.desc, instructions: a.instructions || "", look: a.look ?? 2,
+  tint: a.tint || "ice", model: a.model || "default", reasoning: a.reasoning || "Default",
+});
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 20);
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 // Mix a hex colour toward white (amt > 0) or black (amt < 0); used for the robots' shading.
@@ -146,6 +152,9 @@ const PATHS: Record<string, string> = {
   plug: "M12 22v-5M9 8V2M15 8V2M18 8v5a6 6 0 0 1-12 0V8z",
   pause: "M8 5v14M16 5v14",
   play: "M7 4v16l13-8z",
+  pencil: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z",
+  lock: "M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4",
+  grid: "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z",
   logout: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",
 };
 
@@ -272,10 +281,10 @@ function DockButton({ item, mx }: { item: DockItem; mx: number | null }) {
 
 /* ---------------------------------------------------------------- sidebar */
 
-function Sidebar({ open, activeId, onPick, onNew, onSearch }: {
-  open: boolean; activeId: number | null; onPick: (c: Conversation) => void; onNew: () => void; onSearch: () => void;
+function Sidebar({ open, activeId, nav, setNav, onPick, onNew, onSearch }: {
+  open: boolean; activeId: number | null; nav: string; setNav: (id: string) => void;
+  onPick: (c: Conversation) => void; onNew: () => void; onSearch: () => void;
 }) {
-  const [nav, setNav] = useState("home");
   const groups = ["Today", "Earlier"] as const;
   return (
     <aside className={"panel sidebar" + (open ? " is-open" : "")} aria-hidden={!open}>
@@ -476,21 +485,32 @@ function Popover({ open, onClose, children, className = "" }: {
   return <div ref={ref} className={"popover " + className} role="dialog">{children}</div>;
 }
 
-function AgentMenu({ agents, current, onPick, onNew }: { agents: Agent[]; current: Agent; onPick: (a: Agent) => void; onNew: () => void }) {
+function AgentMenu({ agents, current, onPick, onNew, onEdit, onAll }: {
+  agents: Agent[]; current: Agent; onPick: (a: Agent) => void; onNew: () => void; onEdit: (a: Agent) => void; onAll: () => void;
+}) {
   return (
     <div className="menu">
       <div className="eyebrow pad">Choose agent</div>
       {agents.map(a => (
-        <button key={a.id} className={"menu-item" + (a.id === current.id ? " is-active" : "")} onClick={() => onPick(a)}>
-          <span className="agent-dot" style={{ background: a.hue }} />
-          <span className="grow">
-            <span className="strong block">{a.name}</span>
-            <span className="muted sm">{a.desc}</span>
-          </span>
-          {a.id === current.id && <Icon name="check" size={15} />}
-        </button>
+        <div key={a.id} className="menu-row">
+          <button className={"menu-item" + (a.id === current.id ? " is-active" : "")} onClick={() => onPick(a)}>
+            <span className="agent-dot" style={{ background: a.hue }} />
+            <span className="grow">
+              <span className="strong block">{a.name}</span>
+              <span className="muted sm">{a.desc}</span>
+            </span>
+            {a.id === current.id && <Icon name="check" size={15} />}
+          </button>
+          <button className="icon-btn ghost menu-edit" aria-label={`Edit ${a.name}`} title="Edit" onClick={() => onEdit(a)}>
+            <Icon name="pencil" size={14} />
+          </button>
+        </div>
       ))}
       <div className="menu-sep" />
+      <button className="menu-item" onClick={onAll}>
+        <span className="menu-plus solid"><Icon name="grid" size={12} /></span>
+        <span className="grow strong">All agents</span>
+      </button>
       <button className="menu-item" onClick={onNew}>
         <span className="menu-plus"><Icon name="plus" size={13} stroke={2} /></span>
         <span className="grow strong">New agent</span>
@@ -741,32 +761,50 @@ function Clip() {
   );
 }
 
-// Lanyard ID badge. Drag to swing it; it springs back on release.
-function Badge({ name, handle, look, tint, model, fresh = false }: {
-  name: string; handle: string; look: number; tint: string; model: string; fresh?: boolean;
+// Lanyard ID badge. Drag it and the strap stays pinned at the top: the lanyard pivots around its anchor
+// and the strap stretches (with rubber-band resistance) so the grabbed point follows the pointer. Springs back on release.
+function Badge({ name, handle, look, tint, model, tag, shine = 0 }: {
+  name: string; handle: string; look: number; tint: string; model: string; tag?: string; shine?: number;
 }) {
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
   const origin = useRef<{ x: number; y: number } | null>(null);
+  // Resting strap length and the grabbed point's distance below the anchor, measured when a drag starts.
+  const rest = useRef({ len: 92, r: 200 });
+  const strapRef = useRef<HTMLSpanElement>(null);
   const end = () => { origin.current = null; setDrag(null); };
-  const style = drag ? {
-    transform: `translate(${clamp(drag.x * .4, -90, 90)}px, ${clamp(drag.y * .35, -12, 48)}px) rotate(${clamp(-drag.x * .09, -24, 24)}deg)`,
-  } : undefined;
+
+  let swing: any, stretch: any;
+  if (drag) {
+    const { len, r } = rest.current;
+    const dy = drag.y > 0 ? 220 * Math.tanh(drag.y / 280) : -len * .25 * Math.tanh(-drag.y / 90);
+    const dx = 260 * Math.tanh(drag.x / 320);
+    const reach = Math.hypot(dx, r + dy);
+    const h = Math.max(len * .75, len + reach - r);
+    swing = { transform: `rotate(${-Math.atan2(dx, r + dy) * 180 / Math.PI}deg)` };
+    stretch = { height: h, width: clamp(24 * Math.sqrt(len / h), 16, 24) };
+  }
   return (
     <div className="lanyard-anchor">
-      <div className={"lanyard" + (drag ? " is-drag" : "")} style={style} aria-hidden="true"
-        onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); origin.current = { x: e.clientX, y: e.clientY }; setDrag({ x: 0, y: 0 }); }}
+      <div className={"lanyard" + (drag ? " is-drag" : "")} style={swing} aria-hidden="true"
+        onPointerDown={e => {
+          const el = e.currentTarget;
+          el.setPointerCapture(e.pointerId);
+          rest.current = { len: strapRef.current?.offsetHeight || 92, r: Math.max(40, e.clientY - el.getBoundingClientRect().top) };
+          origin.current = { x: e.clientX, y: e.clientY }; setDrag({ x: 0, y: 0 });
+        }}
         onPointerMove={e => { const o = origin.current; if (o) setDrag({ x: e.clientX - o.x, y: e.clientY - o.y }); }}
         onPointerUp={end} onPointerCancel={end}>
         <div className="lanyard-sway">
-          <span className="strap" style={{ "--strap": tintOf(tint).dot } as any} />
+          <span ref={strapRef} className="strap" style={{ "--strap": tintOf(tint).dot, ...stretch } as any} />
           <Clip />
           <div className="badge">
             <span className="badge-slot" />
+            {shine > 0 && <span key={shine} className="badge-shine" />}
             <span className="badge-brand">truex</span>
             <div className="badge-top" style={{ background: tintOf(tint).bg }}><Robot look={look} size={150} /></div>
             <div className="badge-body">
               <div className={"badge-name" + (name.trim() ? "" : " is-empty")}>{name.trim() || "Unnamed"}</div>
-              <div className="badge-handle">@{handle || "handle"}{fresh && " · new specialist"}</div>
+              <div className="badge-handle">@{handle || "handle"}{tag && ` · ${tag}`}</div>
             </div>
             <div className="badge-foot"><span>every capability</span><span>{modelOf(model).short}</span></div>
           </div>
@@ -776,7 +814,7 @@ function Badge({ name, handle, look, tint, model, fresh = false }: {
   );
 }
 
-const CONFETTI_COLORS = ["#8FC5D6", "#A8D3E0", "#A9D5BE", "#EBCB8B", "#F0B999", "#C4BDE3", "#F2C94C"];
+const CONFETTI_COLORS = ["#3691CD", "#BCDEE8", "#A9D5BE", "#EBCB8B", "#F0B999", "#C4BDE3", "#F2C94C"];
 
 function Confetti() {
   const bits = useMemo(() => Array.from({ length: 56 }, (_, i) => {
@@ -792,35 +830,47 @@ function Confetti() {
   return <div className="confetti" aria-hidden="true">{bits.map((s, i) => <i key={i} style={s} />)}</div>;
 }
 
-function NewAgentDialog({ open, agents, onClose, onCreate, onSayHi }: {
-  open: boolean; agents: Agent[]; onClose: () => void; onCreate: (a: Agent) => void; onSayHi: (a: Agent) => void;
+// Create and edit share one dialog. Editing keeps the handle fixed so existing mentions keep working;
+// built-ins only expose instructions, model and reasoning.
+function AgentDialog({ open, agents, editing, onClose, onCreate, onSave, onRemove, onSayHi }: {
+  open: boolean; agents: Agent[]; editing: Agent | null; onClose: () => void;
+  onCreate: (a: Agent) => void; onSave: (a: Agent) => void; onRemove: (a: Agent) => void; onSayHi: (a: Agent) => void;
 }) {
-  const [name, setName] = useState("");
-  const [purpose, setPurpose] = useState("");
-  const [instructions, setInstructions] = useState("");
-  const [look, setLook] = useState(2);
-  const [tint, setTint] = useState("ice");
-  const [model, setModel] = useState("default");
-  const [reasoning, setReasoning] = useState("Default");
+  const [f, setF] = useState(() => agentFields({ id: "", name: "", desc: "", hue: "" }));
+  const [base, setBase] = useState(f);
   const [created, setCreated] = useState<Agent | null>(null);
+  const [shine, setShine] = useState(0);
+  const [saved, setSaved] = useState(false);
+  const [confirm, setConfirm] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
+  const instrRef = useRef<HTMLTextAreaElement>(null);
+  const set = (k: string, v: any) => { setF(x => ({ ...x, [k]: v })); setSaved(false); };
 
   useEffect(() => {
     if (!open) return;
-    setName(""); setPurpose(""); setInstructions(""); setLook(2); setTint("ice");
-    setModel("default"); setReasoning("Default"); setCreated(null);
-    setTimeout(() => nameRef.current?.focus(), 30);
-  }, [open]);
+    const init = agentFields(editing || { id: "", name: "", desc: "", hue: "" });
+    setF(init); setBase(init); setCreated(null); setShine(0); setSaved(false); setConfirm(false);
+    setTimeout(() => (editing?.builtin ? instrRef : nameRef).current?.focus(), 30);
+  }, [open, editing]);
   if (!open) return null;
 
-  const handle = slug(name);
-  const taken = !!handle && agents.some(a => (a.handle || a.id) === handle);
-  const valid = !!handle && !taken;
-  const create = () => {
+  const locked = !!editing?.builtin;
+  const handle = editing ? (editing.handle || editing.id) : slug(f.name);
+  const taken = !editing && !!handle && agents.some(a => (a.handle || a.id) === handle);
+  const dirty = JSON.stringify(f) !== JSON.stringify(base);
+  const valid = editing ? dirty && !!f.name.trim() : !!handle && !taken;
+
+  const submit = () => {
     if (!valid) return;
+    if (editing) {
+      const next = { ...f, name: f.name.trim(), desc: f.desc.trim() || editing.desc, instructions: f.instructions.trim() };
+      onSave({ ...editing, ...next, hue: tintOf(next.tint).dot });
+      setF(next); setBase(next); setShine(n => n + 1); setSaved(true);
+      return;
+    }
     const a: Agent = {
-      id: "agent-" + Date.now(), handle, name: name.trim(), desc: purpose.trim() || "New specialist",
-      hue: tintOf(tint).dot, look, tint, model, reasoning, instructions: instructions.trim(),
+      id: "agent-" + Date.now(), handle, name: f.name.trim(), desc: f.desc.trim() || "New specialist",
+      hue: tintOf(f.tint).dot, look: f.look, tint: f.tint, model: f.model, reasoning: f.reasoning, instructions: f.instructions.trim(),
     };
     onCreate(a); setCreated(a);
   };
@@ -832,7 +882,7 @@ function NewAgentDialog({ open, agents, onClose, onCreate, onSayHi }: {
       <button className="icon-btn ghost dialog-x" onClick={onClose} aria-label="Close"><Icon name="x" size={15} /></button>
       <Confetti />
       <div className="celebrate-stage">
-        <Badge name={created.name} handle={created.handle!} look={created.look!} tint={created.tint!} model={created.model!} fresh />
+        <Badge name={created.name} handle={created.handle!} look={created.look!} tint={created.tint!} model={created.model!} tag="new specialist" />
       </div>
       <div className="nad-done-copy celebrate-copy">
         <h2 id="nad-title">{created.name} is on the team</h2>
@@ -845,86 +895,183 @@ function NewAgentDialog({ open, agents, onClose, onCreate, onSayHi }: {
     </div>
   );
 
+  const lockHint = <span className="field-hint lock"><Icon name="lock" size={11} /> built-in</span>;
   return (
     <div className="scrim center" onMouseDown={onClose} onKeyDown={e => { if (e.key === "Escape") onClose(); }}>
       <div className="agent-dialog" role="dialog" aria-modal="true"
         aria-labelledby="nad-title" onMouseDown={e => e.stopPropagation()}>
         <button className="icon-btn ghost dialog-x" onClick={onClose} aria-label="Close"><Icon name="x" size={15} /></button>
 
-        <form className="nad-form" onSubmit={e => { e.preventDefault(); create(); }}>
-              <div className="nad-head">
-                <h2 id="nad-title">New agent</h2>
-                <p>A persistent specialist with its own identity and chat, granted every capability. Mention it in groups by its handle.</p>
-              </div>
+        <form className="nad-form" onSubmit={e => { e.preventDefault(); submit(); }}>
+          <div className="nad-head">
+            <h2 id="nad-title">{editing ? `Edit ${base.name || editing.name}` : "New agent"}</h2>
+            <p>{locked ? "A built-in specialist. Tune its instructions, model and reasoning; its name and look stay fixed."
+              : editing ? `Changes apply from its next turn. The handle stays @${handle} so existing mentions keep working.`
+              : "A persistent specialist with its own identity and chat, granted every capability. Mention it in groups by its handle."}</p>
+          </div>
 
-              <label className="field">
-                <span className="field-label">Name
-                  {handle && <span className={"field-hint" + (taken ? " is-bad" : "")}>{taken ? `@${handle} is taken` : `@${handle}`}</span>}
-                </span>
-                <input ref={nameRef} className="input" value={name} maxLength={40} placeholder="Research Scout"
-                  aria-invalid={taken} onChange={e => setName(e.target.value)} />
-              </label>
-              <label className="field">
-                <span className="field-label">Purpose</span>
-                <input className="input" value={purpose} maxLength={80} placeholder="What this specialist owns" onChange={e => setPurpose(e.target.value)} />
-              </label>
-              <label className="field">
-                <span className="field-label">Instructions</span>
-                <textarea className="input" value={instructions} rows={3} placeholder="Standing instructions injected into every one of its turns"
-                  onChange={e => setInstructions(e.target.value)} />
-              </label>
+          <label className="field">
+            <span className="field-label">Name
+              {locked ? lockHint : handle && (
+                <span className={"field-hint" + (taken ? " is-bad" : "")}>{taken ? `@${handle} is taken` : editing ? `@${handle} · fixed` : `@${handle}`}</span>
+              )}
+            </span>
+            <input ref={nameRef} className="input" value={f.name} maxLength={40} placeholder="Research Scout" disabled={locked}
+              aria-invalid={taken || (!!editing && !f.name.trim())} onChange={e => set("name", e.target.value)} />
+          </label>
+          <label className="field">
+            <span className="field-label">Purpose{locked && lockHint}</span>
+            <input className="input" value={f.desc} maxLength={80} placeholder="What this specialist owns" disabled={locked}
+              onChange={e => set("desc", e.target.value)} />
+          </label>
+          <label className="field">
+            <span className="field-label">Instructions</span>
+            <textarea ref={instrRef} className="input" value={f.instructions} rows={3} placeholder="Standing instructions injected into every one of its turns"
+              onChange={e => set("instructions", e.target.value)} />
+          </label>
 
-              <div className="field">
-                <span className="field-label" id="nad-look">Look</span>
-                <div className="look-grid" role="radiogroup" aria-labelledby="nad-look">
-                  {LOOKS.map((l, i) => (
-                    <button key={l.name} type="button" role="radio" aria-checked={look === i} aria-label={l.name} title={l.name}
-                      className={"look" + (look === i ? " is-active" : "")} style={{ background: tintOf(tint).bg }} onClick={() => setLook(i)}>
-                      <Robot look={i} size={40} />
-                    </button>
-                  ))}
-                </div>
-                <div className="tint-row" role="radiogroup" aria-label="Tint">
-                  <span className="field-label">Tint</span>
-                  {TINTS.map(t => (
-                    <button key={t.id} type="button" role="radio" aria-checked={tint === t.id} aria-label={t.label} title={t.label}
-                      className={"tint" + (tint === t.id ? " is-active" : "")} style={{ background: t.bg }} onClick={() => setTint(t.id)} />
-                  ))}
-                </div>
-              </div>
-
-              <div className="field-row">
-                <label className="field">
-                  <span className="field-label">Model</span>
-                  <span className="select full">
-                    <select value={model} onChange={e => setModel(e.target.value)}>
-                      {MODELS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-                    </select>
-                    <Icon name="chevron" size={14} />
-                  </span>
-                </label>
-                <label className="field">
-                  <span className="field-label">Reasoning</span>
-                  <span className="select full">
-                    <select value={reasoning} onChange={e => setReasoning(e.target.value)}>
-                      {REASONING.map(r => <option key={r}>{r}</option>)}
-                    </select>
-                    <Icon name="chevron" size={14} />
-                  </span>
-                </label>
-              </div>
-
-              <div className="nad-actions">
-                <button type="button" className="btn-soft lg" onClick={onClose}>Cancel</button>
-                <button type="submit" className="btn-solid lg" disabled={!valid}>Create agent</button>
-              </div>
-            </form>
-
-            <div className="nad-stage">
-              <Badge name={name} handle={handle} look={look} tint={tint} model={model} />
-              <span className="nad-stage-note">live preview · drag it around</span>
+          <div className="field">
+            <span className="field-label" id="nad-look">Look{locked && lockHint}</span>
+            <div className="look-grid" role="radiogroup" aria-labelledby="nad-look">
+              {LOOKS.map((l, i) => (
+                <button key={l.name} type="button" role="radio" aria-checked={f.look === i} aria-label={l.name} title={l.name} disabled={locked}
+                  className={"look" + (f.look === i ? " is-active" : "")} style={{ background: tintOf(f.tint).bg }} onClick={() => set("look", i)}>
+                  <Robot look={i} size={40} />
+                </button>
+              ))}
             </div>
+            <div className="tint-row" role="radiogroup" aria-label="Tint">
+              <span className="field-label">Tint</span>
+              {TINTS.map(t => (
+                <button key={t.id} type="button" role="radio" aria-checked={f.tint === t.id} aria-label={t.label} title={t.label} disabled={locked}
+                  className={"tint" + (f.tint === t.id ? " is-active" : "")} style={{ background: t.bg }} onClick={() => set("tint", t.id)} />
+              ))}
+            </div>
+          </div>
+
+          <div className="field-row">
+            <label className="field">
+              <span className="field-label">Model</span>
+              <span className="select full">
+                <select value={f.model} onChange={e => set("model", e.target.value)}>
+                  {MODELS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+                </select>
+                <Icon name="chevron" size={14} />
+              </span>
+            </label>
+            <label className="field">
+              <span className="field-label">Reasoning</span>
+              <span className="select full">
+                <select value={f.reasoning} onChange={e => set("reasoning", e.target.value)}>
+                  {REASONING.map(r => <option key={r}>{r}</option>)}
+                </select>
+                <Icon name="chevron" size={14} />
+              </span>
+            </label>
+          </div>
+
+          <div className="nad-actions">
+            {editing && !locked && (confirm ? (
+              <span className="remove-confirm" role="group" aria-label="Confirm removal">
+                <span>Remove {base.name}?</span>
+                <button type="button" className="btn-danger" onClick={() => onRemove(editing)} autoFocus>Remove</button>
+                <button type="button" className="btn-ghost" onClick={() => setConfirm(false)}>Keep</button>
+              </span>
+            ) : (
+              <button type="button" className="btn-ghost danger" onClick={() => setConfirm(true)}>Remove agent</button>
+            ))}
+            <span className="grow" />
+            <button type="button" className="btn-soft lg" onClick={onClose}>{editing && !dirty ? "Close" : "Cancel"}</button>
+            <button type="submit" className="btn-solid lg" disabled={!valid}>
+              {!editing ? "Create agent" : saved && !dirty ? <><Icon name="check" size={15} stroke={2} /> Saved</> : "Save changes"}
+            </button>
+          </div>
+        </form>
+
+        <div className="nad-stage">
+          <Badge name={f.name} handle={handle} look={f.look} tint={f.tint} model={f.model} tag={locked ? "built-in" : undefined} shine={shine} />
+          <span className="nad-stage-note" aria-live="polite">{saved && !dirty ? "saved" : editing && dirty ? "unsaved changes · drag it around" : "live preview · drag it around"}</span>
+        </div>
       </div>
+    </div>
+  );
+}
+
+// Every agent as a portrait card: the badge's identity (tint, robot, handle) without the lanyard hardware.
+function AgentsView({ agents, current, onEdit, onChat, onNew }: {
+  agents: Agent[]; current: Agent; onEdit: (a: Agent) => void; onChat: (a: Agent) => void; onNew: () => void;
+}) {
+  const [q, setQ] = useState("");
+  const [kind, setKind] = useState<"all" | "yours" | "builtin">("all");
+  const needle = q.trim().toLowerCase();
+  const shown = agents.filter(a => (kind === "all" || (kind === "builtin") === !!a.builtin)
+    && `${a.name} ${a.handle || a.id} ${a.desc}`.toLowerCase().includes(needle));
+  const yours = agents.filter(a => !a.builtin).length;
+  return (
+    <div className="roster">
+      <div className="roster-head">
+        <div>
+          <div className="eyebrow flush">Agents</div>
+          <h1>The <em>team</em></h1>
+          <p className="muted">{agents.length} specialists · {yours} built by you</p>
+        </div>
+        <button className="btn-solid lg" onClick={onNew}><Icon name="plus" size={15} stroke={2} /> New agent</button>
+      </div>
+      <div className="roster-tools">
+        <label className="roster-search">
+          <Icon name="search" size={15} />
+          <input className="input" value={q} placeholder="Search by name, handle or purpose" aria-label="Search agents" onChange={e => setQ(e.target.value)} />
+        </label>
+        <div className="seg" role="radiogroup" aria-label="Filter agents">
+          {([["all", "All"], ["yours", "Yours"], ["builtin", "Built-in"]] as const).map(([id, label]) => (
+            <button key={id} role="radio" aria-checked={kind === id} className={"seg-btn" + (kind === id ? " is-active" : "")}
+              onClick={() => setKind(id)}>{label}</button>
+          ))}
+        </div>
+      </div>
+
+      {needle && shown.length === 0 ? (
+        <div className="empty-tab">
+          <span className="tile lg"><Icon name="search" size={20} /></span>
+          <div className="strong">No agents match "{q.trim()}"</div>
+          <button className="btn-soft" onClick={() => setQ("")}>Clear search</button>
+        </div>
+      ) : (
+        <ul className="acards">
+          {shown.map((a, i) => {
+            const t = tintOf(a.tint), live = a.id === current.id;
+            return (
+              <li key={a.id} className="acard" style={{ "--tint": t.bg, "--dot": t.dot, "--i": i } as any}>
+                <button className="acard-portrait" onClick={() => onEdit(a)} aria-label={`Edit ${a.name}`}>
+                  <span className="acard-slot" aria-hidden="true" />
+                  <span className="acard-robot"><Robot look={a.look ?? 2} size={132} /></span>
+                  {live && <span className="acard-flag live"><span className="pulse" aria-hidden="true" />In chat</span>}
+                  {a.builtin && <span className="acard-flag"><Icon name="lock" size={11} />Built-in</span>}
+                  <span className="acard-hint" aria-hidden="true"><Icon name="pencil" size={13} />Edit</span>
+                </button>
+                <div className="acard-body">
+                  <div className="acard-name">{a.name}</div>
+                  <div className="acard-handle">@{a.handle || a.id}</div>
+                  <p className="acard-desc">{a.desc}</p>
+                </div>
+                <div className="acard-foot">
+                  <span className="acard-meta">{modelOf(a.model).short} · {(a.reasoning || "Default").toLowerCase()}</span>
+                  <button className="btn-soft" onClick={() => onChat(a)} disabled={live}>{live ? "Chatting" : "Chat"}</button>
+                </div>
+              </li>
+            );
+          })}
+          {kind !== "builtin" && !needle && (
+            <li className="acard is-new" style={{ "--i": shown.length } as any}>
+              <button className="acard-new" onClick={onNew}>
+                <span className="acard-plus"><Icon name="plus" size={18} stroke={1.75} /></span>
+                <span className="strong">New agent</span>
+                <span className="muted sm">Give a specialist its own name, look and instructions</span>
+              </button>
+            </li>
+          )}
+        </ul>
+      )}
     </div>
   );
 }
@@ -1015,16 +1162,8 @@ function Composer({ agent, busy, value, setValue, onSend, onStop, onAgentClick, 
             <Icon name="upDown" size={13} />
           </label>
         )}
-        <span className="bar-sep" aria-hidden="true" />
-        <button className="icon-btn ghost" aria-label="Attach file"><Icon name="paperclip" size={16} /></button>
-        <button className="icon-btn ghost" aria-label="Web search"><Icon name="globe" size={16} /></button>
-        <button className="text-btn"><Icon name="spark" size={15} />Tools</button>
-        <button className="chip" onClick={onAgentClick}>
-          <span className="agent-dot" style={{ background: agent.hue }} />{agent.name}<Icon name="chevron" size={13} />
-        </button>
         <span className="grow" />
         {!goalMode && <span className="hint muted sm">⏎ send · ⇧⏎ newline</span>}
-        <button className="icon-btn ghost" aria-label="Voice input"><Icon name="mic" size={16} /></button>
         {busy
           ? <button className="send is-stop" onClick={onStop} aria-label="Stop"><Icon name="stop" size={12} stroke={3} /></button>
           : <button className="send" onClick={submit} disabled={!value.trim()} aria-label={goalMode ? "Start goal" : "Send"}><Icon name="arrowUp" size={17} stroke={2.25} /></button>}
@@ -1049,6 +1188,8 @@ function App() {
   const [agents, setAgents] = useState<Agent[]>(AGENTS);
   const [agent, setAgent] = useState<Agent>(AGENTS[0]);
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<Agent | null>(null);
+  const [nav, setNav] = useState("home");
   const [messages, setMessages] = useState<Message[]>([]);
   const [activeConvo, setActiveConvo] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
@@ -1075,7 +1216,7 @@ function App() {
   const newChat = useCallback(() => {
     clearTimers(); run.current = null;
     setBusy(false); setMessages([]); setActiveConvo(null); setDraft(""); setGoal(null); setGoalMode(false);
-    focusInput();
+    setNav("home"); focusInput();
   }, []);
 
   const simulate = () => {
@@ -1172,8 +1313,12 @@ function App() {
     { id: "user", label: "Account", icon: "user", active: pop === "user", onClick: () => setPop(p => p === "user" ? null : "user") },
   ];
 
-  const title = activeConvo ? CONVERSATIONS.find(c => c.id === activeConvo)!.title : messages.length ? "New conversation" : "";
-  const empty = messages.length === 0;
+  const roster = nav === "agents";
+  const editAgent = (a: Agent) => { setPop(null); setCreating(false); setEditing(a); };
+  const newAgent = () => { setPop(null); setEditing(null); setCreating(true); };
+  const closeDialog = () => { setCreating(false); setEditing(null); };
+  const title = roster ? "Agents" : activeConvo ? CONVERSATIONS.find(c => c.id === activeConvo)!.title : messages.length ? "New conversation" : "";
+  const empty = messages.length === 0 && !roster;
   const hour = new Date().getHours();
   const greeting = hour < 5 ? "Working late" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const goalSteps = goal ? messages.find(m => m.id === goal.aid)?.steps || [] : [];
@@ -1188,7 +1333,7 @@ function App() {
 
   return (
     <div className="shell">
-      <Sidebar open={panels.sidebar} activeId={activeConvo}
+      <Sidebar open={panels.sidebar} activeId={activeConvo} nav={nav} setNav={setNav}
         onPick={c => { newChat(); setActiveConvo(c.id); send(c.title, false); }}
         onNew={newChat} onSearch={() => setPalette(true)} />
 
@@ -1198,12 +1343,12 @@ function App() {
             {!panels.sidebar && <span className="brand-word sm">truex</span>}
             {title && <><span className="muted">/</span><span className="crumb-title">{title}</span></>}
           </div>
-          <div className="status-pill">
+          <button className="status-pill" onClick={() => editAgent(agent)} title={`Edit ${agent.name}`}>
             <span className={"pulse" + (busy ? "" : " idle")} aria-hidden="true" />
             <span>{agent.name}</span>
             <span className="muted">·</span>
             <span className="muted">{busy ? (goal?.status === "running" ? "working on goal" : "working") : "ready"}</span>
-          </div>
+          </button>
           <div className="top-actions">
             <button className="icon-btn" aria-label="Toggle theme" onClick={toggleTheme}><Icon name={theme === "dark" ? "sun" : "moon"} size={16} /></button>
             <button className="icon-btn" aria-label="Share"><Icon name="share" size={16} /></button>
@@ -1211,7 +1356,10 @@ function App() {
         </header>
 
         <div className="scroll" ref={scrollRef}>
-          {empty ? (
+          {roster ? (
+            <AgentsView agents={agents} current={agent} onEdit={editAgent} onNew={newAgent}
+              onChat={a => { setAgent(a); setNav("home"); focusInput(); }} />
+          ) : empty ? (
             <div className="hero">
               <div className="hero-greet">
                 <span className="agent-dot" style={{ background: agent.hue }} />
@@ -1226,7 +1374,7 @@ function App() {
         </div>
 
         <div className="bottom">
-          {!empty && goalLive && (
+          {!empty && !roster && goalLive && (
             <button className="goal-strip" onClick={openGoalTab}>
               <Icon name="target" size={14} />
               <span className="goal-strip-text">{goal!.text}</span>
@@ -1234,12 +1382,12 @@ function App() {
               <span className={"goal-status s-" + goal!.status}><span className="pulse" aria-hidden="true" />{GOAL_STATUS[goal!.status]}</span>
             </button>
           )}
-          {!empty && composer}
+          {!empty && !roster && composer}
           <div className="dock-wrap">
             <FloatingDock items={dockItems} groups={[3, 5]} />
             <Popover open={pop === "agent"} onClose={() => setPop(null)} className="pop-agent">
               <AgentMenu agents={agents} current={agent} onPick={a => { setAgent(a); setPop(null); }}
-                onNew={() => { setPop(null); setCreating(true); }} />
+                onNew={newAgent} onEdit={editAgent} onAll={() => { setPop(null); setNav("agents"); }} />
             </Popover>
             <Popover open={pop === "user"} onClose={() => setPop(null)} className="pop-user">
               <UserMenu theme={theme} onTheme={toggleTheme} type={type} onType={setType} />
@@ -1251,8 +1399,10 @@ function App() {
       <ActivityPanel open={panels.activity} tab={tab} setTab={setTab} running={busy} progress={progress}
         goal={goal} goalSteps={goalSteps} onPause={pauseGoal} onResume={resumeGoal} onEndGoal={endGoal}
         onStartGoal={() => startGoal()} onClose={() => toggle("activity")} />
-      <NewAgentDialog open={creating} agents={agents} onClose={() => setCreating(false)}
+      <AgentDialog open={creating || !!editing} agents={agents} editing={editing} onClose={closeDialog}
         onCreate={a => setAgents(list => [...list, a])}
+        onSave={a => { setAgents(list => list.map(x => x.id === a.id ? a : x)); setAgent(c => c.id === a.id ? a : c); }}
+        onRemove={a => { setAgents(list => list.filter(x => x.id !== a.id)); setAgent(c => c.id === a.id ? AGENTS[0] : c); closeDialog(); }}
         onSayHi={a => { setCreating(false); newChat(); setAgent(a); const t = `@${a.handle} hi, `; setDraft(t); focusInput(t); }} />
       <CommandPalette open={palette} onClose={() => setPalette(false)}
         onRun={t => { setPalette(false); const c = CONVERSATIONS.find(x => x.title === t)!; newChat(); setActiveConvo(c.id); send(t, false); }} />
@@ -1355,7 +1505,7 @@ kbd { font: 500 11px var(--font-mono); color: var(--ink-3); background: var(--su
 .chip:hover { border-color: var(--line-strong); }
 .agent-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
 .hint { margin-right: 6px; }
-.send { display: grid; place-items: center; width: 34px; height: 34px; margin-left: 4px; border: 0; border-radius: 11px; background: var(--accent); color: var(--accent-ink); cursor: pointer; transition: opacity .15s, transform .12s; }
+.send { display: grid; place-items: center; width: 34px; height: 34px; margin-left: 4px; border: 0; border-radius: 11px; background: var(--accent); color: var(--on-accent); cursor: pointer; transition: opacity .15s, transform .12s; }
 .send:disabled { opacity: .35; cursor: default; }
 .send:not(:disabled):active { transform: scale(.94); }
 .send.is-stop { background: var(--ink); color: var(--bg); }
@@ -1481,7 +1631,7 @@ kbd { font: 500 11px var(--font-mono); color: var(--ink-3); background: var(--su
 .cp-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--line-strong); }
 .goal-actions { display: flex; gap: 8px; margin-top: 18px; }
 .btn-solid, .btn-soft, .btn-ghost { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 9px; font-size: 13px; font-weight: 500; cursor: pointer; }
-.btn-solid { border: 0; background: var(--accent); color: var(--accent-ink); }
+.btn-solid { border: 0; background: var(--accent); color: var(--on-accent); }
 .btn-soft { border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
 .btn-soft:hover { background: var(--surface-3); }
 .btn-ghost { border: 0; background: none; color: var(--ink-3); }
@@ -1497,7 +1647,7 @@ kbd { font: 500 11px var(--font-mono); color: var(--ink-3); background: var(--su
 .dock-btn { position: relative; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); background: var(--surface-3); color: var(--ink-2); cursor: pointer; padding: 0;
   transition: width .14s ease-out, height .14s ease-out, background .15s, color .15s; }
 .dock-btn:hover { color: var(--ink); }
-.dock-btn.is-active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.dock-btn.is-active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .dock-icon { display: grid; place-items: center; transition: transform .14s ease-out; }
 .dock-pip { position: absolute; bottom: -6px; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
 .dock-badge { position: absolute; top: 1px; right: 1px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent-2); border: 2px solid var(--surface); animation: pulse 1.6s infinite; }
@@ -1594,9 +1744,9 @@ textarea.input { height: auto; min-height: 84px; padding: 10px 12px; resize: ver
 .field-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 12px; }
 .select.full { display: flex; margin-left: 0; }
 .select.full select { width: 100%; height: 40px; padding: 0 32px 0 12px; border-color: var(--border-control); border-radius: 10px; font-size: 14px; }
-.nad-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }
+.nad-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; padding-top: 4px; }
 .btn-solid.lg, .btn-soft.lg { height: 38px; padding: 0 16px; font-size: 14px; }
-.btn-solid:hover:not(:disabled) { background: var(--accent-2); }
+.btn-solid:hover:not(:disabled) { background: var(--accent-hover); }
 .btn-solid:disabled { opacity: .45; cursor: not-allowed; }
 
 .nad-stage { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-height: 540px; padding: 16px; background: var(--surface-3); border-left: 1px solid var(--line); overflow: hidden; }
@@ -1611,6 +1761,8 @@ textarea.input { height: auto; min-height: 84px; padding: 10px 12px; resize: ver
   background:
     repeating-linear-gradient(0deg, rgb(255 255 255 / 0) 0 2px, rgb(255 255 255 / 16%) 2px 3px),
     linear-gradient(90deg, color-mix(in srgb, var(--strap) 70%, #1F2A30) 0%, var(--strap) 22%, color-mix(in srgb, var(--strap) 65%, #fff) 50%, var(--strap) 78%, color-mix(in srgb, var(--strap) 70%, #1F2A30) 100%); }
+.lanyard .strap { transition: height .7s cubic-bezier(.34, 1.56, .64, 1), width .7s cubic-bezier(.34, 1.56, .64, 1); }
+.lanyard.is-drag .strap { transition: none; }
 .strap::before, .strap::after { content: ""; position: absolute; top: 0; bottom: 0; border-left: 1px dashed rgb(255 255 255 / 65%); }
 .strap::before { left: 3.5px; }
 .strap::after { right: 3.5px; }
@@ -1627,7 +1779,7 @@ textarea.input { height: auto; min-height: 84px; padding: 10px 12px; resize: ver
 .badge-body { padding: 14px 18px 12px; }
 .badge-name { font: 700 24px/1.15 var(--font-display); letter-spacing: -.03em; overflow-wrap: anywhere; }
 .badge-name.is-empty { color: #A3AFB5; }
-.badge-handle { margin-top: 4px; font: 500 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: #4E6C76; overflow-wrap: anywhere; }
+.badge-handle { margin-top: 4px; font: 500 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--accent-fg); overflow-wrap: anywhere; }
 .badge-foot { display: flex; justify-content: space-between; gap: 12px; padding: 10px 18px 14px; border-top: 1px dashed #E3ECEF; font: 11px var(--font-mono); white-space: nowrap; color: #5F6D73; }
 
 .nad-stage.done { min-height: 480px; justify-content: flex-end; border-left: 0; border-bottom: 1px solid var(--line); }
@@ -1655,6 +1807,95 @@ textarea.input { height: auto; min-height: 84px; padding: 10px 12px; resize: ver
   45% { opacity: 1; transform: translate(var(--x), var(--y)) rotate(calc(var(--r) * .5)) scale(1); }
   100% { opacity: 0; transform: translate(calc(var(--x) * 1.15), calc(var(--y) + 170px)) rotate(var(--r)) scale(1); }
 }
+/* edit mode */
+.badge-shine { position: absolute; inset: 0; z-index: 2; pointer-events: none; transform: translateX(-120%);
+  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 80%) 50%, transparent 65%); animation: shine .9s ease-out forwards; }
+@keyframes shine { to { transform: translateX(120%); } }
+.field-hint.lock { display: inline-flex; align-items: center; gap: 4px; color: var(--ink-3); }
+.input:disabled { background: var(--surface-3); color: var(--ink-2); cursor: not-allowed; }
+.look:disabled, .tint:disabled { cursor: not-allowed; }
+.look:disabled:hover { transform: none; }
+.look:disabled:not(.is-active), .tint:disabled:not(.is-active) { opacity: .4; }
+.btn-ghost.danger { padding: 0 4px; color: var(--error-text); }
+.btn-danger { display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border: 0; border-radius: 9px; background: var(--error-bg); color: var(--error-text); font-size: 13px; font-weight: 500; cursor: pointer; }
+.remove-confirm { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+button.status-pill { font: inherit; font-size: 13px; font-weight: 500; color: var(--ink); cursor: pointer; transition: border-color .15s; }
+button.status-pill:hover { border-color: var(--line-strong); }
+.menu-row { position: relative; }
+.menu-row .menu-item { padding-right: 40px; }
+.menu-edit { position: absolute; top: 50%; right: 4px; transform: translateY(-50%); opacity: 0; transition: opacity .12s; }
+.menu-row:hover .menu-edit, .menu-edit:focus-visible { opacity: 1; }
+@media (hover: none) { .menu-edit { opacity: 1; } }
+.menu-plus.solid { border-style: solid; }
+
+/* agents roster: portrait cards */
+.roster { max-width: 1080px; margin: 0 auto; padding: 36px 24px 120px; animation: rise .3s ease-out; }
+.roster-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px; }
+.eyebrow.flush { padding: 0 0 8px; }
+.roster-head h1 { margin: 0 0 6px; font: var(--display-weight) clamp(30px, 3.6vw, 40px)/1.05 var(--font-display); letter-spacing: var(--display-track); }
+.roster-head h1 em { font-family: var(--font-accent); font-style: var(--accent-style); font-weight: var(--accent-weight); font-size: calc(var(--accent-scale) * 1em); color: var(--accent-fg); }
+.roster-head p { margin: 0; font-size: 13.5px; }
+.roster-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 28px 0 22px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+.roster-search { position: relative; flex: 1; min-width: 200px; max-width: 360px; }
+.roster-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
+.roster-search .input { padding-left: 36px; }
+.seg { display: inline-flex; padding: 3px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-3); }
+.seg-btn { height: 32px; padding: 0 12px; border: 0; border-radius: 8px; background: none; color: var(--ink-2); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.seg-btn.is-active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+
+.acards { display: grid; grid-template-columns: repeat(auto-fill, minmax(236px, 1fr)); gap: 20px; margin: 0; padding: 0; list-style: none; }
+.acard { position: relative; display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); overflow: hidden;
+  box-shadow: 0 1px 2px rgb(31 42 48 / 4%); transition: transform .25s cubic-bezier(.2, .8, .3, 1), box-shadow .25s, border-color .25s;
+  animation: rise .4s cubic-bezier(.2, .8, .3, 1) backwards; animation-delay: calc(var(--i) * 45ms); }
+.acard:not(.is-new):hover { transform: translateY(-3px); border-color: var(--line-strong);
+  box-shadow: 0 2px 4px rgb(31 42 48 / 5%), 0 22px 44px -22px color-mix(in srgb, var(--dot) 70%, rgb(31 42 48 / 60%)); }
+.acard-portrait { position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 5 / 4; padding: 0; border: 0; cursor: pointer; overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 30%, rgb(255 255 255 / 85%) 0, transparent 60%), var(--tint); }
+/* a faint halo behind the robot, and the badge's punched slot as a quiet nod to the lanyard */
+.acard-portrait::before { content: ""; position: absolute; left: 50%; top: 50%; width: 62%; aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -46%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--dot) 38%, transparent) 0, transparent 70%); opacity: .7; transition: opacity .3s, transform .4s; }
+.acard-slot { position: absolute; top: 12px; left: 50%; width: 34px; height: 6px; margin-left: -17px; border-radius: 3px;
+  background: rgb(31 42 48 / 12%); box-shadow: inset 0 1px 2px rgb(31 42 48 / 30%), 0 1px 0 rgb(255 255 255 / 70%); }
+.acard-robot { position: relative; display: block; transition: transform .45s cubic-bezier(.34, 1.56, .64, 1); }
+.acard:hover .acard-robot { transform: translateY(-6px) rotate(-2deg); }
+.acard:hover .acard-portrait::before { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+.acard-portrait:focus-visible { outline: 2px solid var(--accent-2); outline-offset: -4px; border-radius: 20px 20px 0 0; }
+.acard-flag { position: absolute; top: 12px; left: 12px; display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 999px;
+  background: rgb(255 255 255 / 72%); backdrop-filter: blur(6px); color: #4E5C62; font: 500 10.5px var(--font-mono); letter-spacing: .05em; text-transform: uppercase; }
+.acard-flag.live { left: auto; right: 12px; color: #1F2A30; }
+.acard-flag.live .pulse { width: 6px; height: 6px; background: #5FA37F; }
+.acard-flag + .acard-flag:not(.live) { top: 40px; }
+.acard-hint { position: absolute; bottom: 12px; left: 50%; display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 999px;
+  background: rgb(31 42 48 / 82%); color: #fff; font-size: 12px; font-weight: 500; opacity: 0; transform: translate(-50%, 6px); transition: opacity .2s, transform .2s; }
+.acard-portrait:hover .acard-hint, .acard-portrait:focus-visible .acard-hint { opacity: 1; transform: translate(-50%, 0); }
+.acard-body { flex: 1; padding: 16px 18px 12px; }
+.acard-name { font: 600 18px/1.2 var(--font-display); letter-spacing: -.02em; color: var(--ink); overflow-wrap: anywhere; }
+.acard-handle { margin-top: 3px; font: 500 11px var(--font-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--ink-3); overflow-wrap: anywhere; }
+.acard-desc { margin: 10px 0 0; font-size: 13px; line-height: 1.45; color: var(--ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.acard-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px 12px 18px; border-top: 1px dashed var(--line); }
+.acard-meta { min-width: 0; font: 11px var(--font-mono); color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.acard-foot .btn-soft:disabled { opacity: .55; cursor: default; background: none; }
+.acard.is-new { border-style: dashed; border-color: var(--line-strong); background: none; box-shadow: none; }
+.acard-new { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 320px; padding: 24px; border: 0; background: none;
+  color: var(--ink-2); font: inherit; text-align: center; cursor: pointer; border-radius: inherit; transition: background .2s; }
+.acard-new:hover { background: var(--surface-3); }
+.acard-new .muted { max-width: 22ch; }
+.acard-plus { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 6px; border-radius: 14px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); transition: transform .25s; }
+.acard-new:hover .acard-plus { transform: rotate(90deg); }
+@media (hover: none) { .acard-hint { display: none; } }
+@media (prefers-reduced-motion: reduce) { .acard, .acard-robot, .acard-portrait::before { animation: none; transition: none; } }
+@media (max-width: 520px) {
+  .roster { padding: 24px 16px 120px; }
+  .acards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .acard-robot svg { width: 96px; height: 96px; }
+  .acard-body { padding: 12px 12px 8px; }
+  .acard-name { font-size: 15px; }
+  .acard-desc { display: none; }
+  .acard-foot { padding: 8px 8px 8px 12px; }
+  .acard-meta { display: none; }
+  .acard-new { min-height: 220px; }
+}
+
 @media (max-width: 760px) {
   .agent-dialog { grid-template-columns: minmax(0, 1fr); overflow: auto; }
   .nad-form { overflow: visible; padding: 20px 16px; }
