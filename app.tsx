@@ -88,8 +88,8 @@ const GOAL_STATUS: Record<GoalStatus, string> = { running: "Working", paused: "P
 
 // Type presets. Fonts load on demand, so only the active preset is fetched.
 const TYPE_PRESETS = [
-  { id: "editorial", name: "Editorial", note: "Figtree + Instrument Serif", sample: '"Instrument Serif", serif',
-    href: "family=Figtree:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500" },
+  { id: "editorial", name: "Editorial", note: "Figtree + Newsreader", sample: '"Newsreader", serif',
+    href: "family=Figtree:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,6..72,400..500&family=JetBrains+Mono:wght@400;500" },
   { id: "grotesk", name: "Grotesk", note: "Bricolage + Hanken", sample: '"Bricolage Grotesque", sans-serif',
     href: "family=Bricolage+Grotesque:opsz,wght@12..96,400..700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500" },
   { id: "literary", name: "Literary", note: "Newsreader + Inter Tight", sample: '"Newsreader", serif',
@@ -825,30 +825,33 @@ function NewAgentDialog({ open, agents, onClose, onCreate, onSayHi }: {
     onCreate(a); setCreated(a);
   };
 
+  // Success: no card. The badge drops from the top of the viewport over a dark scrim.
+  if (created) return (
+    <div className="scrim celebrate" role="dialog" aria-modal="true" aria-labelledby="nad-title"
+      onKeyDown={e => { if (e.key === "Escape") onClose(); }}>
+      <button className="icon-btn ghost dialog-x" onClick={onClose} aria-label="Close"><Icon name="x" size={15} /></button>
+      <Confetti />
+      <div className="celebrate-stage">
+        <Badge name={created.name} handle={created.handle!} look={created.look!} tint={created.tint!} model={created.model!} fresh />
+      </div>
+      <div className="nad-done-copy celebrate-copy">
+        <h2 id="nad-title">{created.name} is on the team</h2>
+        <p>Mention <code>@{created.handle}</code> anywhere to wake it. Drag the badge around while you're here.</p>
+        <div className="nad-actions">
+          <button className="btn-solid lg" onClick={() => onSayHi(created)} autoFocus>Say hi to {created.name}</button>
+          <button className="btn-soft lg" onClick={onClose}>Done</button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="scrim center" onMouseDown={onClose} onKeyDown={e => { if (e.key === "Escape") onClose(); }}>
-      <div className={"agent-dialog" + (created ? " is-done" : "")} role="dialog" aria-modal="true"
+      <div className="agent-dialog" role="dialog" aria-modal="true"
         aria-labelledby="nad-title" onMouseDown={e => e.stopPropagation()}>
         <button className="icon-btn ghost dialog-x" onClick={onClose} aria-label="Close"><Icon name="x" size={15} /></button>
 
-        {created ? (
-          <>
-            <div className="nad-stage done">
-              <Confetti />
-              <Badge name={created.name} handle={created.handle!} look={created.look!} tint={created.tint!} model={created.model!} fresh />
-            </div>
-            <div className="nad-done-copy">
-              <h2 id="nad-title">{created.name} is on the team</h2>
-              <p>Mention <code>@{created.handle}</code> anywhere to wake it. Drag the badge around while you're here.</p>
-              <div className="nad-actions">
-                <button className="btn-solid lg" onClick={() => onSayHi(created)} autoFocus>Say hi to {created.name}</button>
-                <button className="btn-soft lg" onClick={onClose}>Done</button>
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            <form className="nad-form" onSubmit={e => { e.preventDefault(); create(); }}>
+        <form className="nad-form" onSubmit={e => { e.preventDefault(); create(); }}>
               <div className="nad-head">
                 <h2 id="nad-title">New agent</h2>
                 <p>A persistent specialist with its own identity and chat, granted every capability. Mention it in groups by its handle.</p>
@@ -921,8 +924,6 @@ function NewAgentDialog({ open, agents, onClose, onCreate, onSayHi }: {
               <Badge name={name} handle={handle} look={look} tint={tint} model={model} />
               <span className="nad-stage-note">live preview · drag it around</span>
             </div>
-          </>
-        )}
       </div>
     </div>
   );
@@ -1363,9 +1364,9 @@ kbd { font: 500 11px var(--font-mono); color: var(--ink-3); background: var(--su
 :root[data-type="editorial"] {
   --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Figtree", ui-sans-serif, system-ui, sans-serif;
-  --font-accent: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-accent: "Newsreader", ui-serif, Georgia, serif;
   --display-weight: 600; --display-track: -.035em;
-  --accent-style: italic; --accent-weight: 400; --accent-scale: 1.12;
+  --accent-style: italic; --accent-weight: 400; --accent-scale: 1.04;
 }
 :root[data-type="grotesk"] {
   --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
@@ -1569,7 +1570,6 @@ kbd { font: 500 11px var(--font-mono); color: var(--ink-3); background: var(--su
 .agent-avatar.robot { overflow: hidden; }
 .scrim.center { align-items: center; padding: 16px; }
 .agent-dialog { position: relative; min-width: 0; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); width: 100%; max-width: 920px; max-height: calc(100dvh - 32px); background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow-lg); overflow: hidden; animation: rise .18s ease-out; }
-.agent-dialog.is-done { grid-template-columns: 1fr; max-width: 540px; overflow: auto; }
 .dialog-x { position: absolute; top: 12px; right: 12px; z-index: 3; }
 .nad-form { display: flex; flex-direction: column; gap: 16px; padding: 24px 24px 20px; overflow: auto; }
 .nad-head h2 { margin: 0 0 4px; font: var(--display-weight) 20px/1.2 var(--font-display); letter-spacing: -.02em; }
@@ -1617,10 +1617,9 @@ textarea.input { height: auto; min-height: 84px; padding: 10px 12px; resize: ver
 .clip { display: block; position: relative; z-index: 2; margin-top: -6px; filter: drop-shadow(0 2px 2px rgb(31 42 48 / 22%)); }
 .badge { position: relative; width: 256px; margin-top: -16px; border-radius: 18px; background: #FFFFFF; color: #1F2A30; overflow: hidden;
   box-shadow: 0 1px 1px rgb(31 42 48 / 8%), 0 4px 10px -2px rgb(31 42 48 / 12%), 0 26px 50px -16px rgb(31 42 48 / 42%); }
-/* laminate: hairline edge plus a faint diagonal sheen */
+/* laminate: hairline edge */
 .badge::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 70%), inset 0 0 0 1.5px rgb(31 42 48 / 6%);
-  background: linear-gradient(115deg, transparent 40%, rgb(255 255 255 / 28%) 50%, transparent 60%); }
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 70%), inset 0 0 0 1.5px rgb(31 42 48 / 6%); }
 .badge-slot { position: absolute; top: 12px; left: 50%; z-index: 1; width: 40px; height: 8px; margin-left: -20px; border-radius: 4px;
   background: rgb(31 42 48 / 16%); box-shadow: inset 0 1px 2px rgb(31 42 48 / 40%), 0 1px 0 rgb(255 255 255 / 75%); }
 .badge-brand { position: absolute; z-index: 1; top: 10px; left: 16px; font: 800 12px var(--font-display); letter-spacing: -.03em; color: rgb(31 42 48 / 55%); }
@@ -1637,6 +1636,18 @@ textarea.input { height: auto; min-height: 84px; padding: 10px 12px; resize: ver
 .nad-done-copy p { margin: 0 auto 18px; max-width: 38ch; color: var(--ink-2); }
 .nad-done-copy code { padding: 1px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-3); color: var(--ink); font: 500 13px var(--font-mono); }
 .nad-done-copy .nad-actions { justify-content: center; }
+.scrim.celebrate { flex-direction: column; align-items: stretch; justify-content: flex-end; padding: 0; overflow: hidden; background: rgb(12 15 17 / 78%); backdrop-filter: blur(6px); animation: fade .25s; }
+.scrim.celebrate .dialog-x { position: fixed; top: 16px; right: 16px; color: #F4F7F8; }
+.scrim.celebrate .confetti { position: fixed; top: 42%; }
+.celebrate-stage { position: absolute; inset: 0; pointer-events: none; }
+.celebrate-stage .lanyard-anchor { top: 0; animation: drop .9s cubic-bezier(.34, 1.56, .64, 1); }
+.celebrate-stage .strap { height: clamp(24px, 16vh, 180px); }
+@keyframes drop { from { transform: translateY(-110%); } }
+.celebrate-copy { position: relative; z-index: 3; padding: 0 16px max(40px, 6vh); color: #F4F7F8; animation: rise .4s .35s ease-out backwards; }
+.celebrate-copy h2 { font-size: 32px; }
+.celebrate-copy p { color: rgb(244 247 248 / 72%); }
+.celebrate-copy code { border-color: rgb(255 255 255 / 16%); background: rgb(255 255 255 / 8%); color: #F4F7F8; }
+@media (max-height: 720px) { .celebrate-stage .strap { height: 20px; } .celebrate-copy h2 { font-size: 26px; } }
 .confetti { position: absolute; left: 50%; top: 60%; width: 0; height: 0; pointer-events: none; z-index: 2; }
 .confetti i { position: absolute; left: 0; top: 0; width: var(--w); height: var(--h); background: var(--c); opacity: 0; animation: burst var(--t) cubic-bezier(.2, .7, .35, 1) var(--d) forwards; }
 @keyframes burst {
