@@ -1,0 +1,977 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCP Cartridge Shelf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@600;700&display=swap">
+<style>
+/* MCP tools, "cartridge shelf" direction. Sibling of the agent pinboard, different world:
+   every MCP server is a game cartridge with a hand-written label and tool stickers.
+   Click one and it plugs into the console at the top, which opens its tools and agent patching.
+   Tokens are the repo's own (index.html); agent tints are copied from app.tsx. */
+:root {
+  --bg: #F6F9FA; --surface: #FFFFFF; --surface-3: #F6F9FA; --line: #E3ECEF; --line-strong: #D8E0E4;
+  --ink: #1F2A30; --ink-2: #5F6D73; --ink-3: #849198;
+  --accent: #3691CD; --accent-2: #2A7DB4; --accent-soft: #EAF5F8; --accent-fg: #2A72A3; --on-accent: #FFFFFF;
+  --success-bg: #E7F4ED; --success-text: #35624E; --ok: #3FA66F;
+  --warning-bg: #FFF3D9; --warning-text: #7D5D1D; --warn: #E0A93A;
+  --error-bg: #FBE7E7; --error-text: #8D4545; --err: #D0605A;
+  /* cartridge world */
+  --shelf: #EEF3F5; --shelf-dot: rgb(54 145 205 / 12%);
+  --shell: #DCE3E7; --shell-hi: #EEF2F4; --shell-lo: #BFCBD1; --shell-edge: #A9B7BE;
+  --console: #243038; --console-2: #2D3A43; --console-ink: #EEF4F6; --console-ink-2: #A9B8BF; --console-line: #3A4852;
+  --gold-1: #F5D98B; --gold-2: #C99A3A;
+  --tape: #F4E7B8; --tape-ink: #6B5418;
+  --shadow-sm: 0 1px 2px rgb(31 42 48 / 5%);
+  --shadow-lg: 0 24px 60px -20px rgb(31 42 48 / 35%), 0 2px 6px rgb(31 42 48 / 6%);
+  --shadow-cart: 0 1px 0 var(--shell-edge), 0 3px 0 var(--shell-lo), 0 16px 26px -14px rgb(31 42 48 / 40%);
+  --shadow-lift: 0 1px 0 var(--shell-edge), 0 3px 0 var(--shell-lo), 0 26px 36px -16px rgb(31 42 48 / 48%);
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-hand: "Caveat", "Segoe Print", cursive;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111213; --surface: #171717; --surface-3: #222324; --line: #2A2A2A; --line-strong: #363636;
+  --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F;
+  --accent: #3691CD; --accent-2: #5AA8DC; --accent-soft: #14283A; --accent-fg: #BCDEE8; --on-accent: #FFFFFF;
+  --success-bg: #16291F; --success-text: #A8D8BE; --ok: #56C28A;
+  --warning-bg: #2E2512; --warning-text: #E6C27A; --warn: #E6B452;
+  --error-bg: #2F1A1A; --error-text: #EDB0B0; --err: #E27A74;
+  --shelf: #161718; --shelf-dot: rgb(188 222 232 / 7%);
+  --shell: #30383D; --shell-hi: #3B454B; --shell-lo: #20262A; --shell-edge: #1A1F22;
+  --console: #0C0F11; --console-2: #161B1E; --console-ink: #EEF4F6; --console-ink-2: #97A6AD; --console-line: #283138;
+  --gold-1: #D9BD6E; --gold-2: #8E6B25;
+  --tape: #D9C98E; --tape-ink: #4E3D0F;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%);
+  --shadow-lg: 0 24px 60px -20px rgb(0 0 0 / 70%), 0 2px 6px rgb(0 0 0 / 40%);
+  --shadow-cart: 0 1px 0 var(--shell-edge), 0 3px 0 #111416, 0 16px 26px -14px rgb(0 0 0 / 80%);
+  --shadow-lift: 0 1px 0 var(--shell-edge), 0 3px 0 #111416, 0 26px 36px -16px rgb(0 0 0 / 85%);
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #111213; --surface: #171717; --surface-3: #222324; --line: #2A2A2A; --line-strong: #363636;
+  --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F;
+  --accent: #3691CD; --accent-2: #5AA8DC; --accent-soft: #14283A; --accent-fg: #BCDEE8; --on-accent: #FFFFFF;
+  --success-bg: #16291F; --success-text: #A8D8BE; --ok: #56C28A;
+  --warning-bg: #2E2512; --warning-text: #E6C27A; --warn: #E6B452;
+  --error-bg: #2F1A1A; --error-text: #EDB0B0; --err: #E27A74;
+  --shelf: #161718; --shelf-dot: rgb(188 222 232 / 7%);
+  --shell: #30383D; --shell-hi: #3B454B; --shell-lo: #20262A; --shell-edge: #1A1F22;
+  --console: #0C0F11; --console-2: #161B1E; --console-ink: #EEF4F6; --console-ink-2: #97A6AD; --console-line: #283138;
+  --gold-1: #D9BD6E; --gold-2: #8E6B25;
+  --tape: #D9C98E; --tape-ink: #4E3D0F;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%);
+  --shadow-lg: 0 24px 60px -20px rgb(0 0 0 / 70%), 0 2px 6px rgb(0 0 0 / 40%);
+  --shadow-cart: 0 1px 0 var(--shell-edge), 0 3px 0 #111416, 0 16px 26px -14px rgb(0 0 0 / 80%);
+  --shadow-lift: 0 1px 0 var(--shell-edge), 0 3px 0 #111416, 0 26px 36px -16px rgb(0 0 0 / 85%);
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--font-sans); -webkit-font-smoothing: antialiased; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 8px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.page { max-width: 1180px; margin: 0 auto; padding: 24px 16px 64px; }
+
+/* ---------- header (same frame as the agent board) */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { font: 12px var(--font-mono); color: var(--ink-3); letter-spacing: .02em; }
+.top-actions { display: flex; gap: 8px; }
+.icon-btn { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--surface); cursor: pointer; color: var(--ink-2); }
+.icon-btn:hover { color: var(--ink); border-color: var(--ink-3); }
+.btn-primary { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 0; border-radius: 10px; background: var(--accent); color: var(--on-accent); font-weight: 600; cursor: pointer; }
+.btn-primary:hover { background: var(--accent-2); }
+.btn-soft { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); font-weight: 600; font-size: 13px; cursor: pointer; }
+.btn-soft:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-fg); }
+
+.hero { margin: 28px 0 22px; }
+.hero h1 { margin: 0; font-size: clamp(30px, 5vw, 48px); line-height: 1.05; font-weight: 800; letter-spacing: -.035em; text-wrap: balance; }
+.hero h1 .script { font-family: var(--font-hand); font-weight: 700; font-size: 1.3em; color: var(--accent); letter-spacing: 0; display: inline-block; transform: rotate(-4deg) translateY(2px); margin: 0 .04em; }
+.hero p { margin: 10px 0 0; color: var(--ink-2); font-size: 15px; max-width: 62ch; }
+
+.tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; }
+.search { position: relative; flex: 1 1 260px; max-width: 380px; }
+.search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-3); }
+.search input { width: 100%; height: 38px; padding: 0 12px 0 36px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--surface); outline: none; }
+.search input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.search input::placeholder { color: var(--ink-3); }
+.pills { display: inline-flex; flex-wrap: wrap; padding: 3px; gap: 2px; border-radius: 11px; background: var(--surface-3); border: 1px solid var(--line); }
+.pill { height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-2); font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.pill[aria-checked="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); font-weight: 600; }
+.pill .n { font: 11px var(--font-mono); color: var(--ink-3); }
+
+/* ---------- console: the plugged-in cartridge opens here */
+.console { position: relative; border-radius: 26px; background: var(--console); color: var(--console-ink); padding: 0 20px 20px; margin-bottom: 22px; box-shadow: 0 20px 40px -24px rgb(16 24 32 / 60%); }
+.console-top { display: flex; align-items: center; gap: 14px; padding: 14px 0 12px; }
+.slot { flex: 1; height: 12px; border-radius: 999px; background: #05080A; box-shadow: inset 0 2px 3px rgb(0 0 0 / 70%), 0 1px 0 rgb(255 255 255 / 6%); position: relative; }
+.power { display: inline-flex; align-items: center; gap: 7px; font: 500 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--console-ink-2); white-space: nowrap; }
+.power i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 10px var(--ok); }
+.power i.warn { background: var(--warn); box-shadow: 0 0 10px var(--warn); }
+.power i.err { background: var(--err); box-shadow: 0 0 10px var(--err); }
+.screen { display: grid; grid-template-columns: 200px minmax(0, 1fr) 250px; gap: 20px; background: var(--console-2); border-radius: 18px; padding: 18px; border: 1px solid var(--console-line); animation: boot .45s cubic-bezier(.2,.9,.3,1.15) both; }
+@keyframes boot { from { opacity: 0; transform: translateY(-10px) scale(.985); } }
+.screen .mini { align-self: start; }
+.screen h2 { margin: 0; font: 700 34px/1 var(--font-hand); color: var(--console-ink); }
+.screen .sub { font: 11.5px var(--font-mono); color: var(--console-ink-2); margin-top: 4px; overflow-wrap: anywhere; }
+.col-h { display: flex; justify-content: space-between; gap: 8px; font: 500 10.5px var(--font-mono); letter-spacing: .07em; text-transform: uppercase; color: var(--console-ink-2); margin: 0 0 8px; }
+.banner { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 9px 12px; border-radius: 10px; margin-bottom: 10px; font-size: 13px; }
+.banner.warn { background: var(--warning-bg); color: var(--warning-text); }
+.banner.err { background: var(--error-bg); color: var(--error-text); }
+.banner button { height: 26px; padding: 0 10px; border-radius: 7px; border: 0; background: rgb(255 255 255 / 55%); color: inherit; font-weight: 600; font-size: 12px; cursor: pointer; }
+
+.tool-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.tool { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--console-line); }
+.tool:first-child { border-top: 0; }
+.sig { font: 12.5px var(--font-mono); overflow-wrap: anywhere; }
+.sig .args { color: var(--console-ink-2); }
+.tool-desc { font-size: 12.5px; color: var(--console-ink-2); }
+.ask { height: 24px; padding: 0 9px; border-radius: 999px; border: 1px solid var(--console-line); background: transparent; color: var(--console-ink-2); font-size: 11.5px; cursor: pointer; white-space: nowrap; }
+.ask[aria-pressed="true"] { background: var(--tape); border-color: transparent; color: var(--tape-ink); font-weight: 600; }
+.ask:disabled { opacity: .35; cursor: not-allowed; }
+.switch { width: 38px; height: 22px; border-radius: 999px; border: 0; padding: 0; background: var(--console-line); position: relative; cursor: pointer; transition: background .15s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .18s cubic-bezier(.2,.9,.3,1.3); }
+.switch[aria-pressed="true"] { background: var(--k); }
+.switch[aria-pressed="true"]::after { transform: translateX(16px); }
+.switch:disabled { opacity: .4; cursor: not-allowed; }
+
+.crew { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.crew button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 12px; border: 1px solid var(--console-line); background: transparent; cursor: pointer; text-align: left; color: var(--console-ink); }
+.crew button[aria-pressed="true"] { background: rgb(255 255 255 / 6%); border-color: var(--t); }
+.crew .nm { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; }
+.crew .hd { display: block; font: 11px var(--font-mono); color: var(--console-ink-2); font-weight: 400; }
+.crew .plug { font: 700 18px/1 var(--font-hand); color: var(--console-ink-2); }
+.crew button[aria-pressed="true"] .plug { color: var(--t); }
+.facts { margin: 14px 0 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 10px; font-size: 12px; }
+.facts dt { color: var(--console-ink-2); }
+.facts dd { margin: 0; font: 11.5px var(--font-mono); overflow-wrap: anywhere; }
+.eject { margin-top: 14px; height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--console-line); background: transparent; color: var(--console-ink-2); font-weight: 600; font-size: 12.5px; cursor: pointer; }
+.eject:hover { color: var(--console-ink); border-color: var(--console-ink-2); }
+.idle { padding: 26px 18px; text-align: center; border-radius: 18px; border: 1px dashed var(--console-line); color: var(--console-ink-2); font: 700 24px var(--font-hand); }
+
+/* ---------- shelf of cartridges */
+.shelf { position: relative; border-radius: 22px; border: 1px solid var(--line); padding: 36px 28px 30px; background-color: var(--shelf);
+  background-image: radial-gradient(var(--shelf-dot) 1.4px, transparent 1.6px); background-size: 18px 18px; }
+.carts { list-style: none; margin: 0; padding: 0; display: grid; gap: 40px 28px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.item { display: flex; flex-direction: column; gap: 12px; animation: drop .5s cubic-bezier(.2,.9,.3,1.2) both; animation-delay: calc(var(--i) * 55ms); }
+@keyframes drop { from { opacity: 0; transform: translateY(-12px); } }
+
+.cart { position: relative; width: 100%; border: 0; padding: 22px 12px 0; cursor: pointer; text-align: left; color: #1F2A30;
+  background: linear-gradient(180deg, var(--shell-hi), var(--shell) 40%, var(--shell));
+  border-radius: 14px 14px 8px 8px; box-shadow: var(--shadow-cart); transition: transform .22s cubic-bezier(.2,.9,.3,1.3), box-shadow .2s;
+  /* classic cut corner, top right */
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%); }
+.cart:hover { transform: translateY(-6px) rotate(-1deg); box-shadow: var(--shadow-lift); }
+.cart[aria-pressed="true"] { transform: translateY(-14px); opacity: .55; }
+/* grip ridges */
+.cart::before { content: ""; position: absolute; left: 14px; right: 34px; top: 8px; height: 8px;
+  background: repeating-linear-gradient(90deg, var(--shell-lo) 0 2px, transparent 2px 7px); border-radius: 2px; opacity: .9; }
+.label { position: relative; border-radius: 9px; background: var(--tint); padding: 12px 12px 10px; min-height: 148px; display: flex; flex-direction: column; gap: 6px;
+  box-shadow: inset 0 0 0 1px rgb(31 42 48 / 10%), 0 1px 0 rgb(255 255 255 / 40%); overflow: hidden; }
+.label::after { content: ""; position: absolute; inset: 0; background: radial-gradient(120% 80% at 20% 0%, rgb(255 255 255 / 55%), transparent 55%); pointer-events: none; }
+.label-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.glyph { width: 40px; height: 40px; border-radius: 11px; background: rgb(255 255 255 / 70%); display: grid; place-items: center; color: #1F2A30; box-shadow: 0 1px 0 rgb(31 42 48 / 12%); }
+.ver { font: 500 10px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: rgb(31 42 48 / 62%); padding-top: 2px; }
+.label .name { font: 700 30px/1 var(--font-hand); color: #1F2A30; transform: rotate(-2deg); transform-origin: left; overflow-wrap: anywhere; margin-top: 4px; }
+.stickers { display: flex; flex-wrap: wrap; gap: 4px; margin-top: auto; position: relative; z-index: 1; }
+.stk { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border-radius: 999px; background: #fff; color: #1F2A30; font: 600 10.5px var(--font-mono); box-shadow: 0 1px 0 rgb(31 42 48 / 14%); }
+.stk i { width: 7px; height: 7px; border-radius: 50%; background: var(--k); }
+.stk.off { background: rgb(255 255 255 / 45%); color: rgb(31 42 48 / 55%); }
+.contacts { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 2px 8px; }
+.teeth { flex: 1; height: 10px; border-radius: 2px; background: repeating-linear-gradient(90deg, var(--gold-1) 0 5px, var(--gold-2) 5px 6px, transparent 6px 9px); opacity: .95; }
+.led { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent); flex: none; }
+.led.warn { background: var(--warn); box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 25%, transparent); }
+.led.err { background: var(--err); box-shadow: 0 0 0 3px color-mix(in srgb, var(--err) 25%, transparent); }
+/* masking tape note for servers that need attention */
+.tape { position: absolute; right: -8px; top: 52px; z-index: 2; padding: 3px 14px 4px; background: var(--tape); color: var(--tape-ink); font: 700 19px/1 var(--font-hand);
+  transform: rotate(8deg); box-shadow: 0 2px 4px rgb(31 42 48 / 15%); opacity: .96;
+  clip-path: polygon(3% 0, 97% 4%, 100% 50%, 96% 100%, 2% 96%, 0 50%); }
+.cart.down .label { filter: grayscale(.7); }
+
+.under { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 2px; }
+.crew-dots { display: flex; align-items: center; }
+.crew-dots .dot { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--shelf); background: var(--t); display: grid; place-items: center; font: 700 9.5px var(--font-sans); color: #1F2A30; }
+.crew-dots .dot + .dot { margin-left: -7px; }
+.crew-dots .none { font: 700 18px var(--font-hand); color: var(--ink-3); }
+.meta { font: 11px var(--font-mono); color: var(--ink-3); white-space: nowrap; }
+
+.item.is-new .cart { background: transparent; box-shadow: none; clip-path: none; border: 2px dashed var(--line-strong); border-radius: 14px; padding: 12px; display: grid; place-items: center; min-height: 228px; gap: 8px; text-align: center; color: var(--ink-2); }
+.item.is-new .cart::before { display: none; }
+.item.is-new .cart:hover { border-color: var(--accent); transform: none; }
+.plus { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: var(--on-accent); margin: 0 auto 8px; }
+.item.is-new .cart b { display: block; font: 700 26px var(--font-hand); color: var(--ink); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 14px; font: 12px var(--font-mono); color: var(--ink-3); align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 8px; height: 8px; border-radius: 50%; background: var(--k); }
+.empty { grid-column: 1 / -1; padding: 40px 16px; text-align: center; color: var(--ink-2); font: 700 24px var(--font-hand); }
+
+/* ---------- new / edit MCP server dialog. Same frame as AgentDialog in app.tsx; the lanyard badge becomes a live cartridge. */
+[hidden] { display: none !important; }
+html.has-modal { overflow: hidden; }
+.scrim { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: color-mix(in srgb, var(--ink) 18%, transparent); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); animation: fade .12s; }
+@keyframes fade { from { opacity: 0; } }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+.mcp-dialog { position: relative; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); width: 100%; max-width: 920px; max-height: calc(100dvh - 32px);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow-lg); overflow: hidden; animation: rise .18s ease-out; }
+.icon-btn.ghost { border-color: transparent; background: transparent; }
+.icon-btn.ghost:hover { background: var(--surface-3); }
+.dialog-x { position: absolute; top: 12px; right: 12px; z-index: 3; }
+.nm-form { display: flex; flex-direction: column; gap: 16px; padding: 24px 24px 20px; overflow: auto; min-width: 0; }
+.nm-fields { display: flex; flex-direction: column; gap: 16px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.nm-head h2 { margin: 0 40px 4px 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.nm-head p { margin: 0; color: var(--ink-2); font-size: 13.5px; max-width: 52ch; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.field-label { font-size: 12.5px; font-weight: 500; color: var(--ink-2); }
+.field-hint { font: 12px var(--font-mono); color: var(--accent-fg); text-align: right; overflow-wrap: anywhere; }
+.field-hint.is-bad { color: var(--error-text); }
+.field-hint.muted { color: var(--ink-3); }
+.input { width: 100%; height: 40px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--ink); font: inherit; font-size: 14px; transition: border-color .15s, box-shadow .15s; }
+.input.mono { font: 13px var(--font-mono); }
+.input::placeholder { color: var(--ink-3); }
+.input:focus { outline: none; border-color: var(--accent-2); box-shadow: 0 0 0 3px var(--accent-soft); }
+.input[aria-invalid="true"] { border-color: var(--error-text); }
+.input:disabled { background: var(--surface-3); color: var(--ink-2); }
+.seg { display: grid; grid-template-columns: 1fr 1fr; padding: 3px; gap: 2px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-3); }
+.seg-btn { height: 32px; padding: 0 12px; border: 0; border-radius: 8px; background: none; color: var(--ink-2); font-size: 13px; font-weight: 500; cursor: pointer; }
+.seg-btn[aria-checked="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); font-weight: 600; }
+.select { position: relative; display: flex; }
+.select select { appearance: none; -webkit-appearance: none; width: 100%; height: 40px; padding: 0 32px 0 12px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--ink); font-size: 14px; cursor: pointer; }
+.select select:focus { outline: none; border-color: var(--accent-2); box-shadow: 0 0 0 3px var(--accent-soft); }
+.select svg { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
+.nm-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 12px; }
+/* icon picker: same role as the agent "Look" grid */
+.icon-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.icon-opt { display: grid; place-items: center; aspect-ratio: 1; padding: 0; border: 1.5px solid transparent; border-radius: 12px; color: #1F2A30; cursor: pointer; transition: transform .12s, border-color .15s, background .25s; }
+.icon-opt:hover { transform: translateY(-1px); }
+.icon-opt[aria-checked="true"] { border-color: var(--ink); }
+.tint-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 6px; }
+.tint-row .field-label { margin-right: 4px; }
+.tint { width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 1px solid var(--line-strong); cursor: pointer; }
+.tint[aria-checked="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
+.nm-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; padding-top: 4px; }
+.nm-actions .grow { flex: 1; }
+.btn-solid { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 0; border-radius: 10px; background: var(--accent); color: var(--on-accent); font-weight: 600; cursor: pointer; }
+.btn-solid:hover:not(:disabled) { background: var(--accent-2); }
+.btn-solid:disabled { opacity: .45; cursor: not-allowed; }
+.btn-solid.lg, .btn-soft.lg { height: 38px; padding: 0 16px; font-size: 14px; }
+.btn-ghost { height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--ink-2); font-size: 13px; font-weight: 500; cursor: pointer; }
+.btn-ghost:hover { color: var(--ink); }
+.btn-ghost.danger { padding: 0 4px; color: var(--error-text); }
+.btn-danger { display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border: 0; border-radius: 9px; background: var(--error-bg); color: var(--error-text); font-size: 13px; font-weight: 500; cursor: pointer; }
+.remove-confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+
+/* preview stage: the live cartridge hovers over a console slot */
+.nm-stage { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 12px; min-height: 540px; padding: 16px; background: var(--surface-3); border-left: 1px solid var(--line); overflow: hidden; }
+.pv-drag { position: relative; z-index: 1; width: 220px; transition: transform .7s cubic-bezier(.34, 1.56, .64, 1); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.pv-drag.is-drag { transition: none; cursor: grabbing; }
+.pv-bob { animation: bob 6s ease-in-out infinite; }
+.pv-drag.is-drag .pv-bob { animation-play-state: paused; }
+@keyframes bob { 0%, 100% { transform: translateY(0) rotate(-1.4deg); } 50% { transform: translateY(-4px) rotate(1.4deg); } }
+/* preview and celebrate cartridges are art, not buttons */
+.cart.art, .cart.art:hover { cursor: inherit; transform: none; box-shadow: var(--shadow-cart); }
+.cart.art.click { animation: click-in .42s cubic-bezier(.3, .7, .4, 1); }
+@keyframes click-in { 45% { transform: translateY(10px); } }
+.label .name.is-empty { color: rgb(31 42 48 / 38%); }
+.stk.hint { height: auto; min-height: 20px; padding: 2px 8px; line-height: 1.3; }
+.led.off { background: var(--shell-lo); box-shadow: none; }
+.pv-shine { position: absolute; inset: 0; z-index: 2; pointer-events: none; transform: translateX(-120%);
+  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 80%) 50%, transparent 65%); animation: shine .9s ease-out forwards; }
+@keyframes shine { to { transform: translateX(120%); } }
+.stk.pop { animation: pop .32s cubic-bezier(.34, 1.56, .64, 1) backwards; }
+@keyframes pop { from { opacity: 0; transform: scale(.6); } }
+.pv-console { width: min(280px, 100%); display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 18px 18px 8px 8px; background: var(--console); box-shadow: 0 14px 26px -18px rgb(16 24 32 / 70%); }
+.pv-console .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--console-line); flex: none; }
+.pv-console .dot.on { background: var(--ok); box-shadow: 0 0 10px var(--ok); }
+.nm-note { font: 12px var(--font-mono); color: var(--ink-3); min-height: 18px; }
+.field-note { font-size: 12px; color: var(--ink-3); }
+
+/* success: the cartridge drops into a big console over a dark scrim */
+.scrim.celebrate { flex-direction: column; align-items: stretch; justify-content: flex-end; padding: 0; overflow: hidden; background: rgb(12 15 17 / 78%); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: fade .25s; }
+.scrim.celebrate .dialog-x { position: fixed; top: 16px; right: 16px; color: #F4F7F8; }
+.scrim.celebrate .dialog-x:hover { background: rgb(255 255 255 / 10%); }
+.cel-rig { --drop: -110vh; position: relative; flex: 1; min-height: 240px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; pointer-events: none; }
+/* everything above the slot line; the cartridge's lower third sinks below it and is clipped */
+.cel-mouth { position: absolute; left: 0; right: 0; top: 0; bottom: 78px; z-index: 1; overflow: hidden; display: flex; align-items: flex-end; justify-content: center; }
+.cel-sink { width: 220px; transform: translateY(64px); }
+.cel-drop { animation: cel-drop .9s cubic-bezier(.34, 1.56, .64, 1) both; }
+@keyframes cel-drop { from { transform: translateY(var(--drop)); } }
+.cel-console { position: relative; width: min(560px, calc(100% - 32px)); height: 92px; border-radius: 28px 28px 14px 14px; background: var(--console);
+  border: 1px solid var(--console-line); box-shadow: 0 30px 60px -30px rgb(0 0 0 / 80%); }
+.cel-console .slot { position: absolute; top: 8px; left: 50%; width: 264px; margin-left: -132px; }
+.cel-power { position: absolute; left: 20px; bottom: 16px; display: inline-flex; align-items: center; gap: 8px; font: 500 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--console-ink-2); }
+.cel-power i { width: 9px; height: 9px; border-radius: 50%; background: var(--console-line); animation: led-on .3s .85s forwards; }
+@keyframes led-on { to { background: var(--ok); box-shadow: 0 0 12px 2px var(--ok); } }
+.cel-vents { position: absolute; right: 20px; bottom: 18px; width: 70px; height: 10px; background: repeating-linear-gradient(90deg, var(--console-line) 0 3px, transparent 3px 8px); border-radius: 2px; }
+.cel-copy { position: relative; z-index: 3; padding: 20px 16px max(40px, 6vh); text-align: center; color: #F4F7F8; animation: rise .4s .35s ease-out backwards; }
+.cel-copy h2 { margin: 0 0 6px; font-size: 32px; font-weight: 800; letter-spacing: -.03em; line-height: 1.15; overflow-wrap: anywhere; }
+.cel-copy p { margin: 0 auto 18px; max-width: 42ch; color: rgb(244 247 248 / 72%); }
+.cel-copy code { padding: 1px 6px; border: 1px solid rgb(255 255 255 / 16%); border-radius: 6px; background: rgb(255 255 255 / 8%); color: #F4F7F8; font: 500 13px var(--font-mono); }
+.cel-copy .nm-actions { justify-content: center; }
+.cel-copy .btn-soft { background: transparent; color: #F4F7F8; border-color: rgb(255 255 255 / 24%); }
+.cel-copy .btn-soft:hover { border-color: #F4F7F8; color: #F4F7F8; }
+@media (max-height: 720px) { .cel-copy h2 { font-size: 26px; } .cel-rig { --drop: -70vh; } .cel-copy { padding-top: 14px; } }
+.confetti { position: fixed; left: 50%; top: 42%; width: 0; height: 0; pointer-events: none; z-index: 2; }
+.confetti i { position: absolute; left: 0; top: 0; width: var(--w); height: var(--h); background: var(--c); opacity: 0; animation: burst var(--t) cubic-bezier(.2, .7, .35, 1) var(--d) forwards; }
+/* gold sparks: four-point stars */
+.confetti i.spark { clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); }
+@keyframes burst {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(.5); }
+  45% { opacity: 1; transform: translate(var(--x), var(--y)) rotate(calc(var(--r) * .5)) scale(1); }
+  100% { opacity: 0; transform: translate(calc(var(--x) * 1.15), calc(var(--y) + 170px)) rotate(var(--r)) scale(1); }
+}
+.mini-actions { display: flex; gap: 8px; margin-top: 14px; }
+.mini-actions .eject { margin-top: 0; }
+
+.spec { margin-top: 36px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--ink-2); max-width: 78ch; }
+.spec h2 { margin: 0 0 8px; font-size: 16px; color: var(--ink); }
+.spec li { margin: 4px 0; }
+.spec code { font: 12px var(--font-mono); background: var(--surface-3); padding: 1px 5px; border-radius: 5px; border: 1px solid var(--line); }
+
+.toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); transform: translate(-50%, 20px); opacity: 0; padding: 10px 14px; border-radius: 10px; background: #1F2A30; color: #fff; font-weight: 500; transition: .2s ease; z-index: 10; pointer-events: none; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 900px) {
+  .screen { grid-template-columns: minmax(0, 1fr); }
+  .screen .mini { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+}
+@media (max-width: 560px) {
+  .shelf { padding: 26px 14px 22px; }
+  .carts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px 14px; }
+  .label { min-height: 128px; padding: 10px; }
+  .label .name { font-size: 24px; }
+  .tape { font-size: 16px; top: 46px; }
+  .meta { display: none; }
+  .console { padding: 0 12px 12px; }
+  .screen { padding: 14px; }
+  .tool { grid-template-columns: minmax(0, 1fr) auto; }
+  .tool .ask { grid-column: 1; justify-self: start; }
+  .tool .switch { grid-row: 1; grid-column: 2; }
+}
+@media (max-width: 760px) {
+  .mcp-dialog { grid-template-columns: minmax(0, 1fr); overflow: auto; }
+  .nm-form { overflow: visible; }
+  .nm-stage { order: -1; min-height: 340px; border-left: 0; border-bottom: 1px solid var(--line); }
+  .icon-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .nm-row { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .item, .screen { animation: none; } .cart, .switch::after { transition: none; }
+  .pv-bob, .cel-drop, .pv-shine, .confetti, .cart.art.click, .stk.pop { animation: none; }
+  .confetti { display: none; }
+  .cel-power i { animation-delay: 0s; }
+  .pv-drag { transition: none; }
+}
+</style>
+</head>
+<body>
+<main class="page">
+  <div class="top">
+    <span class="brand">truex / tools</span>
+    <div class="top-actions">
+      <button class="icon-btn" id="theme" aria-label="Toggle theme">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <button class="btn-primary" data-new>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Add server
+      </button>
+    </div>
+  </div>
+
+  <header class="hero">
+    <h1>Tools the team can <span class="script">plug in</span></h1>
+    <p id="sub"></p>
+  </header>
+
+  <section class="console" id="console" aria-label="Plugged-in server" aria-live="polite"></section>
+
+  <div class="tools">
+    <label class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" placeholder="Search servers or tools, e.g. create_issue" aria-label="Search servers or tools">
+    </label>
+    <div class="pills" role="radiogroup" aria-label="Filter servers" id="pills"></div>
+  </div>
+
+  <section class="shelf" aria-label="MCP servers">
+    <ul class="carts" id="carts"></ul>
+  </section>
+  <div class="legend" aria-hidden="true">
+    <span><i style="--k:var(--accent)"></i>reads</span>
+    <span><i style="--k:var(--warn)"></i>makes changes</span>
+    <span><i style="--k:var(--err)"></i>deletes or merges</span>
+  </div>
+
+  <section class="spec">
+    <h2>Porting into app.tsx</h2>
+    <ul>
+      <li>New <code>ToolsView</code>, sibling of <code>AgentsView</code>. It keeps the same header, search and pills. The pinboard becomes the cartridge shelf.</li>
+      <li>Label colors reuse the agent tints (<code>ice</code>, <code>mint</code>, <code>butter</code>, <code>lilac</code>, <code>peach</code>) through <code>tintOf()</code>. Label text stays <code>#1F2A30</code> in both themes, like the polaroids.</li>
+      <li>Clicking a cartridge plugs it into the console. The console holds the tool switches, "Ask first", and agent patching, which writes <code>agent.tools[serverId]</code>.</li>
+      <li>Masking tape shows only when a server needs attention: sign-in expired or failed to start. Healthy cartridges stay clean.</li>
+      <li>Sticker colors: blue reads, amber makes changes, red deletes or merges. Destructive tools ship off with "Ask first" on.</li>
+      <li>New <code>McpDialog</code> mirrors <code>AgentDialog</code>: same scrim, two-column grid, label/hint rows, dirty and <code>valid</code> rules, inline remove confirm and celebrate scrim. The handle becomes <code>mcp:{slug}</code> and stays fixed when editing.</li>
+      <li>The live cartridge (shared <code>face()</code> markup) replaces <code>Badge</code> and the lanyard: same drag physics and spring, a bob instead of a sway, and a console slot instead of the strap. Celebrate drops it into a big console slot with the same <code>Confetti</code> plus gold sparks.</li>
+      <li>Connect runs tool discovery before celebrating. "New tools start" and "Ask first for" set each discovered tool's <code>on</code> and <code>ask</code>; the console's Edit button opens the dialog in edit mode.</li>
+    </ul>
+  </section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+<div id="nm-root"></div>
+
+<script>
+const AGENTS = [
+  { id: "qlik", name: "Qlik Analyst", handle: "qlik", t: "#BCDEE8" },
+  { id: "research", name: "Researcher", handle: "research", t: "#A9D5BE" },
+  { id: "writer", name: "Writer", handle: "writer", t: "#EBCB8B" },
+  { id: "ops", name: "Ops", handle: "ops", t: "#C4BDE3" },
+];
+const TINT = { ice: "#BCDEE8", mint: "#A9D5BE", butter: "#EBCB8B", lilac: "#C4BDE3", peach: "#F0B999", rose: "#F0C2CD" };
+const KIND = { read: "var(--accent)", write: "var(--warn)", danger: "var(--err)" };
+const GLYPH = {
+  branch: '<circle cx="6" cy="5" r="2.2"/><circle cx="6" cy="19" r="2.2"/><circle cx="18" cy="8" r="2.2"/><path d="M6 7.2v9.6M18 10.2c0 4-6 3-11 6.6"/>',
+  lines: '<circle cx="12" cy="12" r="9"/><path d="M5 14l5 5M4 10l10 10M6 6l12 12M10 4l10 10"/>',
+  db: '<ellipse cx="12" cy="6" rx="7" ry="2.8"/><path d="M5 6v12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8V6M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8"/>',
+  hash: '<path d="M9 4 7 20M17 4l-2 16M4 9h16M3.5 15h16"/>',
+  folder: '<path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z"/>',
+  bug: '<path d="M12 3 21.5 19.5h-19z"/><path d="M12 10v4.5M12 17.2v.3"/>',
+  plug: '<path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/>',
+  doc: '<path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',
+  card: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>',
+  calendar: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/>',
+  cloud: '<path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6.1 10.5 3.75 3.75 0 0 0 7 18z"/>',
+  pen: '<path d="M4 20l1.2-4.4L15.5 5.3a2 2 0 0 1 2.8 0l.4.4a2 2 0 0 1 0 2.8L8.4 18.8z"/><path d="M13.5 7.3l3.2 3.2"/>',
+};
+// accessible names for the icon picker, in picker order
+const GLYPH_LABEL = { plug: "Plug", doc: "Document", branch: "Branch", lines: "Lines", db: "Database", hash: "Hash",
+  folder: "Folder", bug: "Warning", card: "Payment card", calendar: "Calendar", cloud: "Cloud", pen: "Pen" };
+// Example data. kind: read | write | danger; last flag = tool on.
+const SERVERS = [
+  { id: "github", name: "GitHub", tint: "ice", glyph: "branch", transport: "http", src: "https://api.githubcopilot.com/mcp", status: "ok", version: "1.4.0", calls: 184, last: "2 min ago",
+    agents: ["writer", "ops"], tools: [
+    ["search_issues", "query, repo?", "Find issues and PRs", "read", 1],
+    ["get_pull_request", "repo, number", "Read a PR with diff and checks", "read", 1],
+    ["list_commits", "repo, branch?", "Commit history", "read", 1],
+    ["create_issue", "repo, title, body", "Open a new issue", "write", 1],
+    ["add_comment", "repo, number, body", "Comment on an issue or PR", "write", 1],
+    ["create_branch", "repo, name", "Create a branch", "write", 0],
+    ["merge_pull_request", "repo, number", "Merge a PR into its base", "danger", 0],
+  ]},
+  { id: "linear", name: "Linear", tint: "lilac", glyph: "lines", transport: "http", src: "https://mcp.linear.app/mcp", status: "ok", version: "2.0.1", calls: 62, last: "14 min ago",
+    agents: ["ops"], tools: [
+    ["list_issues", "team?, state?", "Issues for a team or person", "read", 1],
+    ["get_issue", "id", "One issue with comments", "read", 1],
+    ["create_issue", "team, title", "File a new issue", "write", 1],
+    ["update_issue", "id, state?", "Change state or owner", "write", 1],
+  ]},
+  { id: "warehouse", name: "Warehouse", tint: "mint", glyph: "db", transport: "stdio", src: "npx @truex/mcp-postgres --readonly", status: "ok", version: "0.9.2", calls: 1210, last: "just now",
+    agents: ["qlik", "research"], tools: [
+    ["list_tables", "schema?", "Tables and row counts", "read", 1],
+    ["describe_table", "table", "Columns, types and keys", "read", 1],
+    ["query", "sql, limit?", "Run a read-only SELECT", "read", 1],
+  ]},
+  { id: "slack", name: "Slack", tint: "butter", glyph: "hash", transport: "http", src: "https://mcp.slack.com/mcp", status: "warn", version: "1.1.0", calls: 9, last: "3 days ago",
+    agents: ["writer"], tape: "sign in again", note: "Sign-in expired on Sep 26. Writer can't post until you reconnect.", tools: [
+    ["search_messages", "query, channel?", "Search message history", "read", 1],
+    ["list_channels", "", "Channels you're in", "read", 1],
+    ["post_message", "channel, text", "Post as you", "write", 1],
+  ]},
+  { id: "files", name: "Files", tint: "peach", glyph: "folder", transport: "stdio", src: "npx @modelcontextprotocol/server-filesystem ~/truex", status: "err", version: "—", calls: 0, last: "never",
+    agents: [], tape: "won't start", note: "Process exited with code 1: ENOENT ~/truex. Check the folder path.", tools: [
+    ["read_file", "path", "Read a file", "read", 1],
+    ["list_directory", "path", "List a folder", "read", 1],
+    ["write_file", "path, content", "Create or overwrite a file", "write", 0],
+    ["delete_file", "path", "Delete a file", "danger", 0],
+  ]},
+  { id: "sentry", name: "Sentry", tint: "rose", glyph: "bug", transport: "http", src: "https://mcp.sentry.dev/mcp", status: "ok", version: "0.18.0", calls: 37, last: "1 h ago",
+    agents: ["ops", "research"], tools: [
+    ["list_issues", "project, query?", "Open errors by frequency", "read", 1],
+    ["get_event", "id", "Stack trace and breadcrumbs", "read", 1],
+    ["resolve_issue", "id", "Mark an error resolved", "write", 0],
+  ]},
+].map(s => ({ ...s, tools: s.tools.map(([name, args, desc, kind, on]) => ({ name, args, desc, kind, on: !!on, ask: kind !== "read" })) }));
+
+const STATUS = { ok: "Connected", warn: "Needs sign-in", err: "Failed to start" };
+const FILTERS = [["all", "All"], ["on", "Plugged in"], ["attn", "Needs attention"]];
+let filter = "all", query = "", plugged = "github";
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const initials = n => n.split(" ").map(w => w[0]).join("").slice(0, 2);
+const agentOf = id => AGENTS.find(a => a.id === id);
+const icon = (g, size = 22) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${GLYPH[g] || GLYPH.plug}</svg>`;
+let toastT;
+const toast = msg => { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 1800); };
+
+// pop: stickers land one by one (used while a new server is being read)
+function stickers(s, pop) {
+  const by = k => s.tools.filter(t => t.kind === k);
+  let n = 0;
+  const out = ["read", "write", "danger"].map(k => {
+    const all = by(k); if (!all.length) return "";
+    const on = all.filter(t => t.on).length;
+    const word = { read: "read", write: "write", danger: "delete" }[k];
+    const anim = pop ? `;animation-delay:${250 + n++ * 90}ms` : "";
+    return `<span class="stk ${on ? "" : "off"}${pop ? " pop" : ""}" style="--k:${KIND[k]}${anim}"><i></i>${on}/${all.length} ${word}</span>`;
+  }).join("");
+  return out || `<span class="stk off">no tools yet</span>`;
+}
+
+// Cartridge face (label, tape, contacts). Shared by the shelf, the dialog preview and the celebrate drop.
+// o.ver / o.stickers / o.led override the defaults for drafts that aren't connected yet.
+function face(s, o = {}) {
+  const named = s.name.trim();
+  return `<div class="label" style="--tint:${TINT[s.tint]}">
+      <div class="label-top"><span class="glyph">${icon(s.glyph)}</span><span class="ver">${esc(o.ver || `${s.transport} · v${s.version}`)}</span></div>
+      <div class="name${named ? "" : " is-empty"}">${esc(named || "Unnamed")}</div>
+      <div class="stickers">${o.stickers ?? stickers(s)}</div>
+    </div>
+    ${s.status !== "ok" && s.tape ? `<span class="tape" aria-hidden="true">${esc(s.tape)}</span>` : ""}
+    <div class="contacts"><span class="teeth" aria-hidden="true"></span><span class="led ${o.led ?? (s.status === "ok" ? "" : s.status)}" aria-hidden="true"></span></div>`;
+}
+
+function cartridge(s, i) {
+  const down = s.status === "err";
+  const dots = s.agents.length
+    ? s.agents.map(id => { const a = agentOf(id); return `<span class="dot" style="--t:${a.t}" title="${esc(a.name)}">${initials(a.name)}</span>`; }).join("")
+    : `<span class="none">nobody yet</span>`;
+  return `<li class="item" style="--i:${i}">
+    <button class="cart ${down ? "down" : ""}" aria-pressed="${plugged === s.id}" data-plug="${s.id}" aria-label="${plugged === s.id ? "Unplug" : "Plug in"} ${esc(s.name)}, ${STATUS[s.status]}">
+      ${face(s)}
+    </button>
+    <div class="under"><div class="crew-dots">${dots}</div><span class="meta">${s.calls.toLocaleString()} calls · 7d</span></div>
+  </li>`;
+}
+
+function renderConsole() {
+  const s = SERVERS.find(x => x.id === plugged);
+  const top = st => `<div class="console-top"><span class="slot" aria-hidden="true"></span><span class="power"><i class="${st || ""}"></i>${s ? esc(STATUS[s.status]) : "Slot empty"}</span></div>`;
+  if (!s) { $("console").innerHTML = top("err") + `<div class="idle">Pick a cartridge below to see its tools</div>`; return; }
+  const down = s.status === "err";
+  const on = s.tools.filter(t => t.on).length;
+  const rows = s.tools.map((t, i) => `<li class="tool">
+      <div style="min-width:0"><div class="sig">${esc(t.name)}<span class="args">(${esc(t.args)})</span></div><div class="tool-desc">${esc(t.desc)}</div></div>
+      <button class="ask" aria-pressed="${t.ask}" data-ask="${i}" ${!t.on || down ? "disabled" : ""}>${t.ask ? "Ask first" : "Runs freely"}</button>
+      <button class="switch" style="--k:${KIND[t.kind]}" aria-pressed="${t.on}" data-tool="${i}" aria-label="${esc(t.name)}" ${down ? "disabled" : ""}></button>
+    </li>`).join("") || `<li class="tool"><div class="tool-desc">The server hasn't listed any tools yet.</div></li>`;
+  const crew = AGENTS.map(a => `<li><button aria-pressed="${s.agents.includes(a.id)}" data-crew="${a.id}" style="--t:${a.t}">
+      <span class="crew-dots"><span class="dot" style="--t:${a.t};border-color:var(--console-2)">${initials(a.name)}</span></span>
+      <span class="nm">${esc(a.name)}<span class="hd">@${a.handle}</span></span>
+      <span class="plug">${s.agents.includes(a.id) ? "plugged" : "+ add"}</span></button></li>`).join("");
+  $("console").innerHTML = top(s.status === "ok" ? "" : s.status) + `
+    <div class="screen" key="${s.id}">
+      <div class="mini">
+        <h2>${esc(s.name)}</h2>
+        <div class="sub">${on} of ${s.tools.length} tools on</div>
+        <dl class="facts">
+          <dt>Transport</dt><dd>${s.transport}</dd>
+          <dt>${s.transport === "stdio" ? "Command" : "URL"}</dt><dd>${esc(s.src)}</dd>
+          <dt>Last call</dt><dd>${esc(s.last)}</dd>
+        </dl>
+        <div class="mini-actions"><button class="eject" data-eject>Eject</button><button class="eject" data-edit>Edit</button></div>
+      </div>
+      <div style="min-width:0">
+        ${s.note ? `<div class="banner ${s.status}"><span>${esc(s.note)}</span><button data-fix>${s.status === "warn" ? "Reconnect" : "Retry"}</button></div>` : ""}
+        <p class="col-h"><span>Tools</span><span>${on}/${s.tools.length} on</span></p>
+        <ul class="tool-list">${rows}</ul>
+      </div>
+      <div style="min-width:0">
+        <p class="col-h"><span>Who can use it</span><span>${s.agents.length}</span></p>
+        <ul class="crew">${crew}</ul>
+      </div>
+    </div>`;
+}
+
+function render(reboot) {
+  const attn = SERVERS.filter(s => s.status !== "ok").length;
+  const tools = SERVERS.reduce((n, s) => n + s.tools.filter(t => t.on).length, 0);
+  $("sub").textContent = `${SERVERS.length} servers, ${tools} tools switched on${attn ? `, ${attn} need${attn === 1 ? "s" : ""} a look` : ""}. Plug one in to choose its tools and who can use them.`;
+  const counts = { all: SERVERS.length, on: SERVERS.filter(s => s.status === "ok").length, attn };
+  $("pills").innerHTML = FILTERS.map(([id, label]) => `<button class="pill" role="radio" aria-checked="${filter === id}" data-f="${id}">${label}<span class="n">${counts[id]}</span></button>`).join("");
+  const q = query.toLowerCase();
+  const list = SERVERS.filter(s =>
+    (filter === "all" || (filter === "on" ? s.status === "ok" : s.status !== "ok")) &&
+    (!q || s.name.toLowerCase().includes(q) || s.tools.some(t => t.name.includes(q) || t.desc.toLowerCase().includes(q))));
+  $("carts").innerHTML = (list.length ? list.map(cartridge).join("") : `<li class="empty">${query ? `No cartridge has a tool called "${esc(query)}"` : "Nothing on this shelf"}</li>`) +
+    `<li class="item is-new" style="--i:${list.length}"><button class="cart" data-new><span><span class="plus"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><b>New cartridge</b>Connect any MCP server</span></button></li>`;
+  if (reboot !== false) renderConsole();
+}
+
+const current = () => SERVERS.find(s => s.id === plugged);
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-plug],[data-tool],[data-ask],[data-crew],[data-eject],[data-edit],[data-fix],[data-f],[data-new]");
+  if (!b || b.closest("#nm-root")) return;
+  const s = current();
+  if (b.dataset.plug) { plugged = plugged === b.dataset.plug ? null : b.dataset.plug; render(); if (plugged) $("console").scrollIntoView({ behavior: "smooth", block: "nearest" }); return; }
+  if (b.dataset.f) { filter = b.dataset.f; render(false); return; }
+  if (b.hasAttribute("data-new")) { openDialog(null, b); return; }
+  if (b.hasAttribute("data-edit")) { openDialog(s, b); return; }
+  if (b.hasAttribute("data-eject")) { toast(`${s.name} ejected`); plugged = null; render(); return; }
+  if (b.hasAttribute("data-fix")) { toast(s.status === "warn" ? `Opening ${s.name} sign-in…` : `Restarting ${s.name}…`); return; }
+  if (b.dataset.tool) { const t = s.tools[b.dataset.tool]; t.on = !t.on; toast(`${t.name} ${t.on ? "on" : "off"}`); }
+  if (b.dataset.ask) { const t = s.tools[b.dataset.ask]; t.ask = !t.ask; toast(t.ask ? `${t.name} will ask before running` : `${t.name} runs without asking`); }
+  if (b.dataset.crew) { const id = b.dataset.crew, had = s.agents.includes(id);
+    s.agents = AGENTS.map(a => a.id).filter(x => x === id ? !had : s.agents.includes(x));
+    toast(`${agentOf(id).name} ${had ? "unplugged from" : "can now use"} ${s.name}`); }
+  // keep focus on the control that changed after the console re-renders
+  const sel = b.dataset.tool ? `[data-tool="${b.dataset.tool}"]` : b.dataset.ask ? `[data-ask="${b.dataset.ask}"]` : b.dataset.crew ? `[data-crew="${b.dataset.crew}"]` : null;
+  render(false); renderConsoleKeep(sel);
+});
+function renderConsoleKeep(sel) {
+  renderConsole();
+  const scr = $("console").querySelector(".screen"); if (scr) scr.style.animation = "none";
+  if (sel) $("console").querySelector(sel)?.focus();
+}
+$("q").addEventListener("input", e => { query = e.target.value.trim(); render(false); });
+/* ---------- New / edit MCP server dialog. Mirrors AgentDialog in app.tsx: same scrim, grid, validation and celebrate,
+   with a live cartridge in place of the lanyard badge. State lives in `dlg`; null means closed. */
+// Example tool lists "discovered" on connect. kind: read | write | danger.
+const PRESETS = {
+  notion: [["search", "query", "Search pages and databases", "read"], ["fetch_page", "id", "Read a page as markdown", "read"],
+    ["create_page", "parent, title, content", "Add a page", "write"], ["update_page", "id, props", "Edit properties or content", "write"],
+    ["delete_block", "id", "Delete a block", "danger"]],
+  figma: [["get_file", "key", "File tree and frames", "read"], ["get_node", "key, id", "One node with styles", "read"],
+    ["get_comments", "key", "Comments on a file", "read"], ["post_comment", "key, message", "Comment on a file", "write"]],
+  jira: [["search_issues", "jql", "Find issues with JQL", "read"], ["get_issue", "key", "One issue with comments", "read"],
+    ["create_issue", "project, summary", "File a new issue", "write"], ["transition_issue", "key, status", "Move an issue along", "write"],
+    ["delete_issue", "key", "Delete an issue", "danger"]],
+  stripe: [["list_customers", "email?", "Find customers", "read"], ["get_payment", "id", "One payment with status", "read"],
+    ["create_invoice", "customer, items", "Draft an invoice", "write"], ["create_refund", "payment, amount?", "Refund a payment", "danger"]],
+};
+const GENERIC = [["list_resources", "", "What the server exposes", "read"], ["get_resource", "id", "Read one resource", "read"],
+  ["run_action", "name, input", "Run a server action", "write"]];
+const CONFETTI_COLORS = ["#3691CD", "#BCDEE8", "#A9D5BE", "#EBCB8B", "#F0B999", "#C4BDE3", "#F2C94C"];
+const SVG = (d, size = 15, w = 1.8) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const X_ICON = SVG('<path d="M6 6l12 12M18 6 6 18"/>'), CHECK = SVG('<path d="M5 12.5 10 17 19 7"/>', 15, 2), CHEVRON = SVG('<path d="m6 9 6 6 6-6"/>', 14);
+const slugOf = n => n.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20);
+const cap = s => s[0].toUpperCase() + s.slice(1);
+const opts = (list, cur) => list.map(([v, l]) => `<option value="${v}"${v === cur ? " selected" : ""}>${l}</option>`).join("");
+let dlg = null, connectT = null;
+
+function fieldsOf(s) {
+  if (!s) {
+    const keys = Object.keys(TINT);
+    const tint = keys.find(t => !SERVERS.some(x => x.tint === t)) || keys[SERVERS.length % keys.length];
+    return { name: "", conn: "remote", src: "", auth: "none", key: "", glyph: "plug", tint, start: "reads", ask: "changes" };
+  }
+  return { name: s.name, conn: s.transport === "stdio" ? "local" : "remote", src: s.src, auth: s.auth || (s.transport === "http" ? "oauth" : "none"),
+    key: "", glyph: s.glyph, tint: s.tint, start: s.start || "reads", ask: s.askFor || "changes" };
+}
+
+// Every open starts clean: fields, base, created, shine, saved, confirm.
+function openDialog(editing, opener) {
+  clearTimeout(connectT);
+  const f = fieldsOf(editing);
+  dlg = { editing, f, base: { ...f }, created: null, shine: 0, saved: false, confirm: false, connecting: false, found: null, face: "", confetti: "", opener };
+  document.documentElement.classList.add("has-modal");
+  document.querySelector("main").inert = true;
+  drawForm();
+  setTimeout(() => $("nm-name")?.focus(), 30);
+}
+
+// focus: element or function resolved after the page is interactive again. Default: back to the opener.
+function closeDialog(focus) {
+  if (!dlg) return;
+  clearTimeout(connectT);
+  const { opener, editing, created } = dlg;
+  dlg = null;
+  $("nm-root").innerHTML = "";
+  document.documentElement.classList.remove("has-modal");
+  document.querySelector("main").inert = false;
+  let el = typeof focus === "function" ? focus() : focus;
+  if (!el && created) el = document.querySelector(`[data-plug="${created.id}"]`);
+  if (!el && opener?.isConnected) el = opener;
+  if (!el && editing && SERVERS.includes(editing)) el = $("console").querySelector("[data-edit]");
+  (el || document.querySelector(".top [data-new]")).focus();
+}
+
+function derive() {
+  const { f, editing, base } = dlg;
+  const slug = editing ? editing.id : slugOf(f.name);
+  const taken = !editing && !!slug && SERVERS.some(s => s.id === slug);
+  const src = f.src.trim();
+  const srcBad = f.conn === "remote" && !!src && !src.startsWith("https://");
+  const srcOk = !srcBad && (f.conn === "remote" ? src.length > 8 && !/\s/.test(src) : !!src);
+  const dirty = JSON.stringify(f) !== JSON.stringify(base);
+  const valid = editing ? dirty && !!f.name.trim() && srcOk : !!slug && !taken && srcOk;
+  return { slug, taken, srcBad, dirty, valid };
+}
+
+function drawForm() {
+  const { f, editing } = dlg;
+  const field = (id, label, hint, control) => `<div class="field">
+      <div class="field-row"><label class="field-label" for="${id}">${label}</label>${hint}</div>${control}</div>`;
+  $("nm-root").innerHTML = `<div class="scrim" data-scrim>
+    <div class="mcp-dialog" id="nm-dialog" role="dialog" aria-modal="true" aria-labelledby="nm-title" tabindex="-1">
+      <button type="button" class="icon-btn ghost dialog-x" id="nm-x" data-close aria-label="Close">${X_ICON}</button>
+      <form class="nm-form" id="nm-form" novalidate>
+        <div class="nm-head"><h2 id="nm-title"></h2><p id="nm-lede"></p></div>
+        <fieldset class="nm-fields" id="nm-fields">
+          <legend class="sr-only">Server details</legend>
+          ${field("nm-name", "Name", `<span class="field-hint" id="nm-name-hint"></span>`,
+            `<input class="input" id="nm-name" maxlength="40" placeholder="Notion" autocomplete="off" aria-describedby="nm-name-hint" value="${esc(f.name)}">`)}
+          <div class="field">
+            <div class="field-row"><span class="field-label" id="nm-conn-label">Connection</span><span class="field-hint" id="nm-src-hint"></span></div>
+            <div class="seg" role="radiogroup" aria-labelledby="nm-conn-label">
+              ${[["remote", "Remote URL"], ["local", "Local command"]].map(([v, l]) =>
+                `<button type="button" class="seg-btn" role="radio" id="nm-conn-${v}" data-conn="${v}" aria-checked="${f.conn === v}" aria-label="${l}" title="${l}">${l}</button>`).join("")}
+            </div>
+            <input class="input" id="nm-src" autocomplete="off" spellcheck="false" aria-describedby="nm-src-hint" value="${esc(f.src)}">
+          </div>
+          ${field("nm-auth", "Sign-in", "", `<span class="select"><select id="nm-auth">${opts([["none", "None"], ["oauth", "Sign in with OAuth"], ["key", "API key"]], f.auth)}</select>${CHEVRON}</span>`)}
+          <div id="nm-key-field"${f.auth === "key" ? "" : " hidden"}>
+            ${field("nm-key", "API key", `<span class="field-hint muted" id="nm-key-hint">Stored in your keychain. Agents never see it.</span>`,
+              `<input class="input mono" type="password" id="nm-key" autocomplete="off" aria-describedby="nm-key-hint" placeholder="${editing ? "Leave blank to keep the current key" : "sk-…"}">`)}
+          </div>
+          <div class="field">
+            <span class="field-label" id="nm-icon-label">Icon</span>
+            <div class="icon-grid" role="radiogroup" aria-labelledby="nm-icon-label">
+              ${Object.keys(GLYPH_LABEL).map(g => `<button type="button" class="icon-opt" role="radio" id="nm-icon-${g}" data-glyph="${g}" aria-checked="${f.glyph === g}"
+                aria-label="${GLYPH_LABEL[g]}" title="${GLYPH_LABEL[g]}" style="background:${TINT[f.tint]}">${icon(g, 24)}</button>`).join("")}
+            </div>
+            <div class="tint-row" role="radiogroup" aria-label="Tint">
+              <span class="field-label" aria-hidden="true">Tint</span>
+              ${Object.entries(TINT).map(([t, c]) => `<button type="button" class="tint" role="radio" id="nm-tint-${t}" data-tint="${t}" aria-checked="${f.tint === t}"
+                aria-label="${cap(t)}" title="${cap(t)}" style="background:${c}"></button>`).join("")}
+            </div>
+          </div>
+          <div class="nm-row">
+            ${field("nm-start", "New tools start", "", `<span class="select"><select id="nm-start">${opts([["reads", "Reads on, changes off"], ["off", "Everything off"], ["on", "Everything on"]], f.start)}</select>${CHEVRON}</span>`)}
+            ${field("nm-ask", "Ask first for", "", `<span class="select"><select id="nm-ask">${opts([["changes", "Changes and deletes"], ["deletes", "Deletes only"], ["never", "Never"]], f.ask)}</select>${CHEVRON}</span>`)}
+          </div>
+        </fieldset>
+        <div class="nm-actions">
+          ${editing ? `<span id="nm-danger"></span>` : ""}
+          <span class="grow"></span>
+          <button type="button" class="btn-soft lg" id="nm-cancel" data-close></button>
+          <button type="submit" class="btn-solid lg" id="nm-submit"></button>
+        </div>
+      </form>
+      <div class="nm-stage">
+        <div class="pv-drag" id="nm-drag" aria-hidden="true"><div class="pv-bob"><div class="cart art" id="nm-cart"></div></div></div>
+        <div class="pv-console" aria-hidden="true"><span class="dot" id="nm-pv-led"></span><span class="slot"></span><span class="dot"></span></div>
+        <span class="nm-note" id="nm-note" aria-live="polite"></span>
+      </div>
+    </div></div>`;
+  drawDanger(); syncConn(); bindDrag(); update();
+}
+
+// Everything that depends on the fields, refreshed in place so typing never loses focus.
+function update() {
+  if (!dlg || dlg.created) return;
+  const { f, editing, base, saved, connecting } = dlg, d = derive();
+  $("nm-title").textContent = editing ? `Edit ${base.name}` : "New MCP server";
+  $("nm-lede").textContent = editing ? `Changes apply from the next tool call. The id stays mcp:${d.slug} so existing patches keep working.`
+    : "A connection your agents can call tools through. Nothing is switched on for anyone until you choose.";
+  const symbolsOnly = !editing && !d.slug && !!f.name.trim();
+  const nh = $("nm-name-hint");
+  nh.textContent = symbolsOnly ? "needs a letter or number" : !d.slug ? "" : d.taken ? `mcp:${d.slug} is taken` : editing ? `mcp:${d.slug} · fixed` : `mcp:${d.slug}`;
+  nh.classList.toggle("is-bad", d.taken || symbolsOnly);
+  $("nm-name").setAttribute("aria-invalid", d.taken || symbolsOnly || (!!editing && !f.name.trim()));
+  const sh = $("nm-src-hint");
+  sh.textContent = d.srcBad ? "needs https://" : f.conn === "local" ? "runs on this machine" : "";
+  sh.className = "field-hint" + (d.srcBad ? " is-bad" : " muted");
+  $("nm-src").setAttribute("aria-invalid", d.srcBad);
+  const sub = $("nm-submit");
+  sub.disabled = connecting || !d.valid;
+  sub.innerHTML = !editing ? (connecting ? "Connecting…" : "Connect server") : saved && !d.dirty ? `${CHECK} Saved` : "Save changes";
+  $("nm-cancel").textContent = editing && !d.dirty ? "Close" : "Cancel";
+  const note = connecting ? "reading tools…" : saved && !d.dirty ? "saved" : editing && d.dirty ? "unsaved changes · drag it around" : "live preview · drag it around";
+  if ($("nm-note").textContent !== note) $("nm-note").textContent = note;
+  drawPreview();
+}
+
+// The live cartridge. Rebuilt only when its markup changes, so the shine and sticker pops can finish.
+function drawPreview() {
+  const { f, editing, found } = dlg;
+  const s = { name: f.name, tint: f.tint, glyph: f.glyph, transport: f.conn === "local" ? "stdio" : "http",
+    version: editing?.version, status: editing ? editing.status : "ok", tape: editing?.tape, tools: editing ? editing.tools : found || [] };
+  const html = face(s, editing ? {} : {
+    ver: `${s.transport} · new`, led: found ? "" : "off",
+    stickers: found ? stickers(s, true) : `<span class="stk off hint">tools appear after connecting</span>`,
+  });
+  if (dlg.face !== html) { $("nm-cart").innerHTML = html; dlg.face = html; }
+  $("nm-pv-led").classList.toggle("on", !!found || editing?.status === "ok");
+}
+
+function drawDanger() {
+  const el = $("nm-danger"); if (!el) return;
+  el.innerHTML = dlg.confirm
+    ? `<span class="remove-confirm" role="group" aria-label="Confirm removal"><span>Remove ${esc(dlg.base.name)}?</span>
+        <button type="button" class="btn-danger" id="nm-remove-yes" data-yes>Remove</button>
+        <button type="button" class="btn-ghost" id="nm-remove-no" data-keep>Keep</button></span>`
+    : `<button type="button" class="btn-ghost danger" id="nm-remove" data-remove>Remove server</button>`;
+}
+
+function syncConn() {
+  const local = dlg.f.conn === "local", src = $("nm-src");
+  src.placeholder = local ? "npx @notionhq/notion-mcp-server" : "https://mcp.notion.com/mcp";
+  src.setAttribute("aria-label", local ? "Command" : "Server URL");
+  src.classList.toggle("mono", local);
+}
+function syncRadios() {
+  const { f } = dlg, root = $("nm-root");
+  root.querySelectorAll("[data-conn]").forEach(b => b.setAttribute("aria-checked", b.dataset.conn === f.conn));
+  root.querySelectorAll("[data-glyph]").forEach(b => { b.setAttribute("aria-checked", b.dataset.glyph === f.glyph); b.style.background = TINT[f.tint]; });
+  root.querySelectorAll("[data-tint]").forEach(b => b.setAttribute("aria-checked", b.dataset.tint === f.tint));
+}
+// Any edit clears "saved"; reverting to the saved values makes the form clean again.
+function set(k, v) { dlg.f = { ...dlg.f, [k]: v }; dlg.saved = false; update(); }
+
+// Lanyard-style drag: rubber-banded follow, spring back on release. A hard pull down "clicks" it into the slot.
+function bindDrag() {
+  const el = $("nm-drag");
+  let o = null, pull = 0;
+  const end = () => {
+    if (!o) return;
+    o = null; el.classList.remove("is-drag"); el.style.transform = "";
+    if (pull > 120) { const c = $("nm-cart"); c.classList.remove("click"); void c.offsetWidth; c.classList.add("click"); setTimeout(() => c.classList.remove("click"), 450); }
+  };
+  el.addEventListener("pointerdown", e => { el.setPointerCapture(e.pointerId); o = { x: e.clientX, y: e.clientY }; pull = 0; el.classList.add("is-drag"); });
+  el.addEventListener("pointermove", e => {
+    if (!o) return;
+    const x = e.clientX - o.x, y = e.clientY - o.y;
+    const dx = 240 * Math.tanh(x / 300), dy = y > 0 ? 160 * Math.tanh(y / 240) : -60 * Math.tanh(-y / 90);
+    pull = y; el.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx * .06}deg)`;
+  });
+  el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+}
+
+// Example discovery: a preset when the name matches one, else a generic list. Then the dialog's defaults apply.
+function discover(slug, f) {
+  const key = Object.keys(PRESETS).find(k => slug.includes(k));
+  return (PRESETS[key] || GENERIC).map(([name, args, desc, kind]) => ({ name, args, desc, kind,
+    on: f.start === "on" || (f.start === "reads" && kind === "read"),
+    ask: f.ask === "changes" ? kind !== "read" : f.ask === "deletes" && kind === "danger" }));
+}
+
+function submit() {
+  if (!dlg || dlg.connecting) return;
+  const d = derive();
+  if (!d.valid) return;
+  const { f, editing } = dlg;
+  if (editing) {
+    const next = { ...f, name: f.name.trim(), src: f.src.trim(), key: "" };
+    Object.assign(editing, { name: next.name, transport: next.conn === "local" ? "stdio" : "http", src: next.src, auth: next.auth,
+      glyph: next.glyph, tint: next.tint, start: next.start, askFor: next.ask });
+    dlg.f = next; dlg.base = { ...next }; dlg.shine++; dlg.saved = true;
+    $("nm-name").value = next.name; $("nm-src").value = next.src; $("nm-key").value = "";
+    render(); update();
+    const lab = $("nm-cart").querySelector(".label");
+    lab.querySelector(".pv-shine")?.remove();
+    lab.insertAdjacentHTML("beforeend", `<span class="pv-shine" aria-hidden="true"></span>`);
+    $("nm-cancel").focus(); // the submit just went disabled
+    return;
+  }
+  // Create: "connect", let the stickers land, then celebrate.
+  dlg.connecting = true; $("nm-fields").disabled = true; update(); $("nm-dialog").focus();
+  connectT = setTimeout(() => {
+    if (!dlg) return;
+    dlg.found = discover(d.slug, f); update();
+    connectT = setTimeout(() => finish(d.slug), 1150);
+  }, 250);
+}
+
+function finish(slug) {
+  if (!dlg) return;
+  const { f } = dlg;
+  const s = { id: slug, name: f.name.trim(), tint: f.tint, glyph: f.glyph, transport: f.conn === "local" ? "stdio" : "http", src: f.src.trim(),
+    auth: f.auth, start: f.start, askFor: f.ask, status: "ok", version: "1.0.0", calls: 0, last: "never", agents: [], tools: dlg.found };
+  SERVERS.push(s); render(false);
+  dlg.created = s; dlg.confetti = confettiHTML(); // generated once per open
+  drawCelebrate();
+}
+
+// Same burst as Confetti in app.tsx, plus a handful of gold sparks.
+function confettiHTML() {
+  const r = Math.random, px = n => `${Math.round(n)}px`;
+  const bits = Array.from({ length: 56 }, (_, i) => {
+    const a = r() * Math.PI * 2, dist = 110 + r() * 220, dot = i % 3 === 0;
+    return `<i style="--x:${px(Math.cos(a) * dist)};--y:${px(Math.sin(a) * dist * .75 - 70)};--r:${Math.round(r() * 720 - 360)}deg;--c:${CONFETTI_COLORS[i % CONFETTI_COLORS.length]};` +
+      `--w:${dot ? "7px" : px(5 + r() * 4)};--h:${dot ? "7px" : px(3 + r() * 9)};--d:${Math.round(r() * 140)}ms;--t:${1500 + Math.round(r() * 900)}ms;border-radius:${dot ? "50%" : "2px"}"></i>`;
+  });
+  for (let i = 0; i < 8; i++) {
+    const a = r() * Math.PI * 2, dist = 70 + r() * 160, size = px(10 + r() * 5);
+    bits.push(`<i class="spark" style="--x:${px(Math.cos(a) * dist)};--y:${px(Math.sin(a) * dist * .75 - 90)};--r:${Math.round(r() * 180)}deg;--c:${i % 2 ? "#F2C94C" : "#F5D98B"};` +
+      `--w:${size};--h:${size};--d:${60 + Math.round(r() * 220)}ms;--t:${1300 + Math.round(r() * 600)}ms"></i>`);
+  }
+  return bits.join("");
+}
+
+// Success: no card. The cartridge drops into a big console over a dark scrim.
+function drawCelebrate() {
+  const s = dlg.created;
+  $("nm-root").innerHTML = `<div class="scrim celebrate" role="dialog" aria-modal="true" aria-labelledby="nm-title">
+    <button type="button" class="icon-btn ghost dialog-x" id="nm-x" data-close aria-label="Close">${X_ICON}</button>
+    <div class="confetti" aria-hidden="true">${dlg.confetti}</div>
+    <div class="cel-rig" aria-hidden="true">
+      <div class="cel-mouth"><div class="cel-sink"><div class="cel-drop"><div class="cart art">${face(s)}</div></div></div></div>
+      <div class="cel-console"><span class="slot"></span><span class="cel-power"><i></i>Plugged in</span><span class="cel-vents"></span></div>
+    </div>
+    <div class="cel-copy">
+      <h2 id="nm-title">${esc(s.name)} is plugged in</h2>
+      <p>Found ${s.tools.length} tools. Pick who can use them. <code>mcp:${esc(s.id)}</code> works in any agent's settings.</p>
+      <div class="nm-actions">
+        <button type="button" class="btn-solid lg" id="nm-choose" data-choose>Choose tools</button>
+        <button type="button" class="btn-soft lg" id="nm-done" data-close>Done</button>
+      </div>
+    </div></div>`;
+  $("nm-choose").focus();
+}
+
+const root = $("nm-root");
+root.addEventListener("submit", e => { e.preventDefault(); submit(); });
+// Scrim mousedown closes the form view only; the celebrate scrim has no data-scrim.
+root.addEventListener("mousedown", e => { if (dlg && e.target.hasAttribute("data-scrim")) closeDialog(); });
+root.addEventListener("input", e => {
+  const k = { "nm-name": "name", "nm-src": "src", "nm-key": "key", "nm-auth": "auth", "nm-start": "start", "nm-ask": "ask" }[e.target.id];
+  if (!dlg || !k) return;
+  if (k === "auth") { $("nm-key-field").hidden = e.target.value !== "key"; if (e.target.value !== "key") { $("nm-key").value = ""; dlg.f.key = ""; } }
+  set(k, e.target.value);
+});
+root.addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!dlg || !b) return;
+  if (b.hasAttribute("data-close")) { closeDialog(); return; }
+  if (b.dataset.conn) { set("conn", b.dataset.conn); syncRadios(); syncConn(); return; }
+  if (b.dataset.glyph) { set("glyph", b.dataset.glyph); syncRadios(); return; }
+  if (b.dataset.tint) { set("tint", b.dataset.tint); syncRadios(); return; }
+  if (b.hasAttribute("data-remove")) { dlg.confirm = true; drawDanger(); $("nm-remove-yes").focus(); return; }
+  if (b.hasAttribute("data-keep")) { dlg.confirm = false; drawDanger(); $("nm-remove").focus(); return; }
+  if (b.hasAttribute("data-yes")) {
+    const s = dlg.editing;
+    SERVERS.splice(SERVERS.indexOf(s), 1);
+    if (plugged === s.id) plugged = null;
+    render(); closeDialog(() => document.querySelector(".top [data-new]")); toast(`${s.name} removed`);
+    return;
+  }
+  if (b.hasAttribute("data-choose")) {
+    plugged = dlg.created.id; render();
+    closeDialog(() => $("console").querySelector("[data-tool]"));
+    $("console").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+});
+// Esc closes every view, confirm-remove included. Arrow keys move within radio groups.
+document.addEventListener("keydown", e => {
+  if (!dlg) return;
+  if (e.key === "Escape") { e.preventDefault(); closeDialog(); return; }
+  const r = e.target.closest?.('[role="radio"]');
+  if (!r || !/^Arrow(Left|Right|Up|Down)$/.test(e.key)) return;
+  const all = [...r.closest('[role="radiogroup"]').querySelectorAll('[role="radio"]')];
+  const next = all[(all.indexOf(r) + (/Left|Up/.test(e.key) ? -1 : 1) + all.length) % all.length];
+  e.preventDefault(); next.click(); next.focus();
+});
+$("theme").addEventListener("click", () => {
+  const r = document.documentElement;
+  const dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  r.dataset.theme = dark ? "light" : "dark";
+});
+render();
+</script>
+</body>
+</html>

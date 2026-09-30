@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Team Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,6..72,400..500&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@600;700&display=swap">
+<style>
+/* Agent team list, "pinned board" direction.
+   Reference: pinned photo cards on grid paper, joined by a string, with a script accent in the headline.
+   Tokens are the repo's own (index.html); agent data, tints and robots are copied from app.tsx. */
+:root {
+  --bg: #F6F9FA; --surface: #FFFFFF; --surface-3: #F6F9FA; --line: #E3ECEF; --line-strong: #D8E0E4;
+  --ink: #1F2A30; --ink-2: #5F6D73; --ink-3: #849198;
+  --accent: #3691CD; --accent-2: #2A7DB4; --accent-soft: #EAF5F8; --accent-fg: #2A72A3; --on-accent: #FFFFFF;
+  --success-bg: #E7F4ED; --success-text: #35624E;
+  --board: #FFFFFF; --grid: rgb(54 145 205 / 9%); --grid-major: rgb(54 145 205 / 16%);
+  --string: #1F2A30; --doodle: #3691CD;
+  --shadow-sm: 0 1px 2px rgb(31 42 48 / 5%);
+  --shadow-card: 0 1px 2px rgb(31 42 48 / 6%), 0 14px 28px -12px rgb(31 42 48 / 28%);
+  --shadow-lift: 0 2px 4px rgb(31 42 48 / 6%), 0 22px 40px -14px rgb(31 42 48 / 36%);
+  --radius: 16px;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-accent: "Newsreader", ui-serif, Georgia, serif;
+  --font-hand: "Caveat", "Segoe Print", cursive;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111213; --surface: #171717; --surface-3: #222324; --line: #2A2A2A; --line-strong: #363636;
+  --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F;
+  --accent: #3691CD; --accent-2: #5AA8DC; --accent-soft: #14283A; --accent-fg: #BCDEE8; --on-accent: #FFFFFF;
+  --success-bg: #16291F; --success-text: #A8D8BE;
+  --board: #161718; --grid: rgb(188 222 232 / 5%); --grid-major: rgb(188 222 232 / 9%);
+  --string: #B7C3C8; --doodle: #5AA8DC;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 35%), 0 14px 28px -12px rgb(0 0 0 / 70%);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 35%), 0 22px 40px -14px rgb(0 0 0 / 80%);
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #111213; --surface: #171717; --surface-3: #222324; --line: #2A2A2A; --line-strong: #363636;
+  --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F;
+  --accent: #3691CD; --accent-2: #5AA8DC; --accent-soft: #14283A; --accent-fg: #BCDEE8; --on-accent: #FFFFFF;
+  --success-bg: #16291F; --success-text: #A8D8BE;
+  --board: #161718; --grid: rgb(188 222 232 / 5%); --grid-major: rgb(188 222 232 / 9%);
+  --string: #B7C3C8; --doodle: #5AA8DC;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 35%), 0 14px 28px -12px rgb(0 0 0 / 70%);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 35%), 0 22px 40px -14px rgb(0 0 0 / 80%);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-sans); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.page { max-width: 1180px; margin: 0 auto; padding: 24px 16px 56px; }
+
+/* ---------- header */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); letter-spacing: .02em; }
+.top-actions { display: flex; gap: 8px; }
+.icon-btn { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 10px;
+  border: 1px solid var(--line-strong); background: var(--surface); cursor: pointer; color: var(--ink-2); }
+.icon-btn:hover { color: var(--ink); border-color: var(--ink-3); }
+.btn-primary { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 0; border-radius: 10px;
+  background: var(--accent); color: var(--on-accent); font-weight: 600; cursor: pointer; }
+.btn-primary:hover { background: var(--accent-2); }
+
+.hero { margin: 28px 0 22px; }
+.hero h1 { margin: 0; font-size: clamp(30px, 5vw, 48px); line-height: 1.05; font-weight: 800; letter-spacing: -.035em; text-wrap: balance; }
+.hero h1 .script { font-family: var(--font-hand); font-weight: 700; font-size: 1.3em; color: var(--accent); letter-spacing: 0;
+  display: inline-block; transform: rotate(-4deg) translateY(2px); margin: 0 .04em; }
+.hero p { margin: 10px 0 0; color: var(--ink-2); font-size: 15px; }
+
+/* ---------- tools */
+.tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; }
+.search { position: relative; flex: 1 1 260px; max-width: 380px; }
+.search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-3); }
+.search input { width: 100%; height: 38px; padding: 0 12px 0 36px; border-radius: 10px; border: 1px solid var(--line-strong);
+  background: var(--surface); outline: none; }
+.search input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.search input::placeholder { color: var(--ink-3); }
+.pills { display: inline-flex; padding: 3px; gap: 2px; border-radius: 11px; background: var(--surface-3); border: 1px solid var(--line); }
+.pill { height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-2); font-weight: 500; cursor: pointer; }
+.pill[aria-checked="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); font-weight: 600; }
+
+/* ---------- board: grid paper, cards, strings */
+.board { position: relative; border-radius: 22px; border: 1px solid var(--line); padding: 48px 28px 36px; overflow: hidden;
+  background-color: var(--board);
+  background-image:
+    linear-gradient(var(--grid-major) 1px, transparent 1px), linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
+    linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px; background-position: -1px -1px; }
+.team { list-style: none; margin: 0; padding: 0; display: grid; gap: 56px 32px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); position: relative; z-index: 1; }
+
+.card { position: relative; transform: rotate(var(--tilt)); transform-origin: 50% 0;
+  animation: pin-in .5s cubic-bezier(.2,.9,.3,1.2) both; animation-delay: calc(var(--i) * 60ms); }
+@keyframes pin-in { from { opacity: 0; transform: translateY(-14px) rotate(calc(var(--tilt) * 2)); } }
+/* anchor for the pin + string; the overlay reads its position */
+.pin-anchor { position: absolute; left: 50%; top: 4px; width: 1px; height: 1px; }
+
+.frame { background: var(--frame); border-radius: 18px; padding: 10px 10px 0; box-shadow: var(--shadow-card);
+  transition: box-shadow .2s ease; }
+.card:hover .frame { box-shadow: var(--shadow-lift); }
+.photo { position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 5 / 4; border: 0; padding: 0; border-radius: 11px;
+  background: radial-gradient(120% 90% at 30% 20%, rgb(255 255 255 / 70%), transparent 60%), var(--tint); cursor: pointer; overflow: hidden; }
+.photo::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px rgb(31 42 48 / 8%); pointer-events: none; }
+.photo svg.robot { width: 62%; height: auto; transition: transform .3s cubic-bezier(.2,.9,.3,1.2); }
+.card:hover .photo svg.robot { transform: translateY(-4px) scale(1.04); }
+.edit-hint { position: absolute; right: 8px; bottom: 8px; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px;
+  background: rgb(255 255 255 / 92%); color: #1F2A30; font-size: 12px; font-weight: 600; opacity: 0; transform: translateY(4px); transition: .15s ease; }
+.photo:hover .edit-hint, .photo:focus-visible .edit-hint { opacity: 1; transform: none; }
+.lock { position: absolute; left: 8px; bottom: 8px; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px;
+  background: rgb(255 255 255 / 80%); color: #5F6D73; font-size: 11px; font-weight: 600; }
+/* same caption as app.tsx .pol-caption: Caveat 700, slight counter-tilt */
+.caption { padding: 8px 4px 12px; text-align: center; color: var(--cap); font: 700 26px/1.05 var(--font-hand); transform: rotate(-2deg); overflow-wrap: anywhere; }
+
+.info { padding: 12px 4px 0; transform: rotate(calc(var(--tilt) * -1)); transform-origin: 50% 0; }
+.handle { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); }
+.live { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; background: var(--success-bg); color: var(--success-text);
+  font-family: var(--font-sans); font-size: 11px; font-weight: 600; }
+.pulse { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+.desc { margin: 4px 0 10px; color: var(--ink-2); }
+.foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.meta { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+.btn-soft { height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); font-weight: 600; cursor: pointer; }
+.btn-soft:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-fg); }
+.btn-soft:disabled { color: var(--ink-3); cursor: default; background: var(--surface-3); }
+
+/* new-agent slot: dashed empty frame + hand-drawn note */
+.card.is-new .frame { background: transparent; box-shadow: none; border: 2px dashed var(--line-strong); padding: 10px; cursor: pointer; width: 100%; display: block; text-align: center; }
+.card.is-new .frame:hover { border-color: var(--accent); }
+.card.is-new .photo-empty { display: grid; place-items: center; aspect-ratio: 5 / 4; border-radius: 11px; background: var(--surface-3); }
+.plus { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: var(--on-accent); }
+.card.is-new .caption { color: var(--ink-2); padding-bottom: 4px; }
+.note { display: flex; align-items: flex-start; gap: 4px; margin: 8px 0 0 12px; font-family: var(--font-hand); font-size: 22px; color: var(--doodle); transform: rotate(-3deg); white-space: nowrap; }
+
+/* per-row string drapes over the photos (never reaches card text); pins sit above it */
+.strings, .pins { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.strings { z-index: 2; } .pins { z-index: 3; }
+.strings path.string { fill: none; stroke: var(--string); stroke-width: 1.6; stroke-linecap: round; opacity: .85; }
+
+.doodle { position: absolute; color: var(--doodle); pointer-events: none; z-index: 0; opacity: .8; }
+.doodle.bolt { right: 18px; top: 12px; }
+.doodle.squig { left: 14px; bottom: 10px; }
+
+.empty { display: grid; justify-items: center; gap: 10px; padding: 56px 16px; color: var(--ink-2); position: relative; z-index: 1; }
+.empty strong { color: var(--ink); }
+
+.board-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); }
+.tag { padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
+
+/* ---------- spec */
+.spec { margin-top: 36px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--ink-2); max-width: 78ch; }
+.spec h2 { margin: 0 0 8px; font-size: 16px; color: var(--ink); }
+.spec li { margin: 4px 0; }
+.spec code { font-family: var(--font-mono); font-size: 12px; background: var(--surface-3); padding: 1px 5px; border-radius: 5px; border: 1px solid var(--line); }
+
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translate(-50%, 20px); opacity: 0; padding: 10px 14px; border-radius: 10px;
+  background: #1F2A30; color: #fff; font-weight: 500; box-shadow: var(--shadow-lift); transition: .2s ease; z-index: 10; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 560px) {
+  .board { padding: 40px 14px 28px; }
+  .team { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 44px 14px; }
+  .caption { font-size: 19px; padding: 6px 2px 8px; }
+  .foot { flex-direction: column; align-items: stretch; }
+  .meta { display: none; }
+  .doodle { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .card, .pulse { animation: none; } .photo svg.robot { transition: none; } }
+</style>
+</head>
+<body>
+<main class="page">
+  <div class="top">
+    <span class="brand">truex / agents</span>
+    <div class="top-actions">
+      <button class="icon-btn" id="theme" aria-label="Toggle theme">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <button class="btn-primary" data-new>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        New agent
+      </button>
+    </div>
+  </div>
+
+  <header class="hero">
+    <h1>What the <span class="script">team</span> can help with</h1>
+    <p id="sub"></p>
+  </header>
+
+  <div class="tools">
+    <label class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" placeholder="Search by name, handle or purpose" aria-label="Search agents">
+    </label>
+    <div class="pills" role="radiogroup" aria-label="Filter agents" id="pills"></div>
+  </div>
+
+  <section class="board" id="board" aria-label="Agent team">
+    <svg class="doodle bolt" width="54" height="64" viewBox="0 0 54 64" aria-hidden="true"><path d="M30 2 10 34h16l-6 28 26-38H30z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M4 18l6 3M46 44l6 2M40 8l4-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <svg class="doodle squig" width="90" height="30" viewBox="0 0 90 30" aria-hidden="true"><path d="M2 20c8-14 14-14 20 0s12 14 20 0 14-14 20 0 12 14 26-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <svg class="strings" id="strings" aria-hidden="true"></svg>
+    <ul class="team" id="team"></ul>
+    <svg class="pins" id="pins" aria-hidden="true"></svg>
+  </section>
+  <div class="board-foot"><span class="tag" id="filter-tag">All</span><span class="tag" id="count"></span></div>
+
+  <section class="spec">
+    <h2>Porting into app.tsx</h2>
+    <ul>
+      <li>Replaces the <code>.polaroids</code> list inside <code>AgentsView</code>; header, search and filter pills keep their current behaviour.</li>
+      <li>Frame colour is the agent tint's <code>dot</code>, photo background is the tint's <code>bg</code>, caption ink comes from the existing <code>inkOn()</code>.</li>
+      <li>Every card gets a blue pin; the agent in the current chat gets the red pin and the "in chat" badge (replaces today's pin-only marker).</li>
+      <li>String and pins are two absolutely positioned SVGs: both over the list, pins above the string. A small <code>TeamStrings</code> component reads each <code>.pin-anchor</code> with <code>getBoundingClientRect</code> in a <code>useLayoutEffect</code>, re-run by a <code>ResizeObserver</code> on the board and after <code>document.fonts.ready</code>.</li>
+      <li>Tilts reuse <code>TILTS</code>; the info block counter-rotates so text reads straight.</li>
+      <li>Hover never moves the card (only shadow and robot), so the pins stay put without re-measuring.</li>
+    </ul>
+  </section>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ---- data, copied from app.tsx (plus two custom agents to show "Yours") */
+const AGENTS = [
+  { id: "qlik", handle: "qlik", name: "Qlik Analyst", desc: "Dashboards, metrics, BI queries", look: 3, tint: "ice", builtin: true, model: "opus", reasoning: "High" },
+  { id: "research", handle: "research", name: "Researcher", desc: "Web research with citations", look: 4, tint: "mint", builtin: true },
+  { id: "writer", handle: "writer", name: "Writer", desc: "Docs, release notes, briefs", look: 1, tint: "butter", builtin: true, model: "sonnet" },
+  { id: "ops", handle: "ops", name: "Ops", desc: "Runbooks, tickets, on-call", look: 6, tint: "lilac", builtin: true },
+  { id: "agent-1", handle: "designer", name: "Designer", desc: "UI reviews, specs, copy tweaks", look: 9, tint: "peach", model: "sonnet", reasoning: "Medium" },
+  { id: "agent-2", handle: "support", name: "Support", desc: "Triage inbox, draft replies", look: 5, tint: "ice", model: "haiku", reasoning: "Low" },
+];
+const LOOKS = [
+  { body: "#3A4750", visor: "#1F2A30", glow: "#BCDEE8", face: "line" },
+  { body: "#F4F7F8", visor: "#2B3F6B", glow: "#BCDEE8", face: "eyes", acc: "antenna" },
+  { body: "#2E4470", visor: "#16213A", glow: "#BCDEE8", face: "line" },
+  { body: "#D5DDE1", visor: "#2B3F6B", glow: "#BCDEE8", face: "happy", acc: "headphones", accColor: "#3691CD" },
+  { body: "#D8C3A0", visor: "#3A4750", glow: "#EBCB8B", face: "line", acc: "cap", accColor: "#E07B6E" },
+  { body: "#F4F7F8", visor: "#2B3F6B", glow: "#BCDEE8", face: "eyes", acc: "chef" },
+  { body: "#F4F7F8", visor: "#3A4750", glow: "#EBCB8B", face: "eyes", acc: "hardhat", accColor: "#F2C94C" },
+  { body: "#3A4750", visor: "#1F2A30", glow: "#F0B999", face: "happy", acc: "scarf", accColor: "#E07B6E" },
+  { body: "#BFE3CF", visor: "#1F2A30", glow: "#A9D5BE", face: "eyes", acc: "antenna" },
+  { body: "#CFC8EC", visor: "#2B3F6B", glow: "#C4BDE3", face: "happy", acc: "bow", accColor: "#F0A3B5" },
+];
+const TINTS = [
+  { id: "ice", bg: "#EAF5F8", dot: "#3691CD" }, { id: "mint", bg: "#E7F4ED", dot: "#A9D5BE" },
+  { id: "butter", bg: "#FFF3D9", dot: "#EBCB8B" }, { id: "peach", bg: "#FBE9DD", dot: "#F0B999" },
+  { id: "lilac", bg: "#EFEDF8", dot: "#C4BDE3" },
+];
+const MODELS = { default: "default model", opus: "opus 5.5", sonnet: "sonnet 5.5", haiku: "haiku 4.5" };
+const TILTS = [-4, 3, -2.5, 4.5, -3.5, 2, -1.5, 3.5];
+const tintOf = id => TINTS.find(t => t.id === id) || TINTS[0];
+const tone = (hex, amt) => {
+  const n = parseInt(hex.slice(1), 16), t = amt < 0 ? 0 : 255, k = Math.abs(amt);
+  const ch = sh => Math.round(((n >> sh) & 255) + (t - ((n >> sh) & 255)) * k).toString(16).padStart(2, "0");
+  return "#" + ch(16) + ch(8) + ch(0);
+};
+const inkOn = hex => {
+  const n = parseInt(hex.slice(1), 16), c = s => ((n >> s) & 255) / 255;
+  return .2126 * c(16) + .7152 * c(8) + .0722 * c(0) < .45 ? "#FFFFFF" : "#1F2A30";
+};
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pad2 = n => String(n).padStart(2, "0");
+
+/* ---- Robot, a string port of app.tsx's <Robot> */
+let uid = 0;
+function robot(look) {
+  const L = LOOKS[look] || LOOKS[0], id = "rb" + (++uid), u = n => `url(#${id}-${n})`;
+  const edge = tone(L.body, -.45), acc = L.accColor || L.body, accEdge = tone(acc, -.4);
+  const limb = `fill="${u("limb")}" stroke="${edge}" stroke-width="1.5"`;
+  const accL = (fill = u("acc")) => `fill="${fill}" stroke="${accEdge}" stroke-width="1.4" stroke-linejoin="round"`;
+  const face = { line: `<rect x="51" y="50" width="22" height="5.6" rx="2.8" fill="${L.glow}"/>`,
+    eyes: `<circle cx="52" cy="53" r="4.1" fill="${L.glow}"/><circle cx="72" cy="53" r="4.1" fill="${L.glow}"/>`,
+    happy: `<path d="M47 55.5q5-6.2 10 0M67 55.5q5-6.2 10 0" fill="none" stroke="${L.glow}" stroke-width="3.2" stroke-linecap="round"/>` }[L.face];
+  const accs = {
+    antenna: `<path d="M60 23V10" stroke="${edge}" stroke-width="3" stroke-linecap="round"/><rect x="54.5" y="20" width="11" height="4.5" rx="2.25" fill="${tone(L.body, -.2)}" stroke="${edge}" stroke-width="1.2"/><circle cx="60" cy="8.5" r="9" fill="${L.glow}" opacity=".28"/><circle cx="60" cy="8.5" r="5.2" fill="${L.glow}" stroke="${tone(L.glow, -.4)}" stroke-width="1.2"/><circle cx="58.3" cy="6.8" r="1.6" fill="#fff" opacity=".85"/>`,
+    cap: `<path d="M80 33.5c10-1 21 0 27 3 2 1.2 1 4-1.5 4-8 0-17-1-26-2.5z" ${accL(tone(acc, -.1))}/><path d="M26 38C26 10 94 10 94 38c-10-3-58-3-68 0z" ${accL()}/><path d="M60 15v21" stroke="${accEdge}" stroke-opacity=".45" stroke-width="1.2"/><path d="M36 28c5-7 12-10 19-11" fill="none" stroke="#fff" stroke-opacity=".4" stroke-width="2.2" stroke-linecap="round"/><circle cx="60" cy="14.5" r="2.6" fill="${tone(acc, -.15)}" stroke="${accEdge}" stroke-width="1"/>`,
+    hardhat: `<path d="M26 33C26 4 94 4 94 33z" ${accL()}/><rect x="55" y="7.5" width="10" height="25" rx="4" fill="${tone(acc, .3)}" stroke="${accEdge}" stroke-width="1.2"/><rect x="17" y="30" width="86" height="7" rx="3.5" ${accL(tone(acc, -.08))}/><path d="M34 24c3-7 9-11 16-13" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="2.2" stroke-linecap="round"/>`,
+    chef: `<g fill="${u("chef")}"><circle cx="44" cy="18" r="10.5"/><circle cx="76" cy="18" r="10.5"/><circle cx="60" cy="13" r="12.5"/></g><path d="M41 11c2-2 5-3 8-3M56 5c2-1 5-1.4 7-1" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/><rect x="36" y="18" width="48" height="15" rx="5" fill="${u("chef")}" stroke="#B9C4CA" stroke-width="1.2"/><path d="M48 21v9M60 21v9M72 21v9" stroke="#B9C4CA" stroke-opacity=".7" stroke-width="1" stroke-linecap="round"/>`,
+    headphones: `<path d="M22 54C22 10 98 10 98 54" fill="none" stroke="${tone(acc, -.4)}" stroke-width="7" stroke-linecap="round"/><path d="M22 54C22 10 98 10 98 54" fill="none" stroke="${tone(acc, .25)}" stroke-opacity=".6" stroke-width="2" stroke-linecap="round"/><rect x="13" y="43" width="17" height="27" rx="7.5" ${accL()}/><rect x="90" y="43" width="17" height="27" rx="7.5" ${accL()}/><path d="M17 49v10M94 49v10" stroke="#fff" stroke-opacity=".45" stroke-width="2" stroke-linecap="round"/>`,
+    bow: `<path d="M78 20l-11-7c-2-1.2-4 .4-4 2.6v9c0 2.2 2.2 3.4 4 2.4z" ${accL()}/><path d="M78 20l11-7c2-1.2 4 .4 4 2.6v9c0 2.2-2.2 3.4-4 2.4z" ${accL()}/><circle cx="78" cy="20" r="3.6" ${accL(tone(acc, -.12))}/><path d="M66.5 16.5l3 1.8M89.5 16.5l-3 1.8" stroke="#fff" stroke-opacity=".5" stroke-width="1.6" stroke-linecap="round"/>`,
+  };
+  const scarf = L.acc === "scarf" ? `<path d="M72 79l3.5 21c.4 2.2 3.2 2.8 4.6 1.1L87 93l-5.5-15z" ${accL()}/><path d="M77 97l1.2 4M81 95.5l1.6 3.6" stroke="${accEdge}" stroke-width="1.2" stroke-linecap="round"/><path d="M25 71c20 8.5 50 8.5 70 0v9c-20 8.5-50 8.5-70 0z" ${accL()}/><path d="M31 75c16 5.5 42 5.5 58 0" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1.6" stroke-linecap="round"/>` : "";
+  return `<svg class="robot" viewBox="0 0 120 120" aria-hidden="true">
+<defs>
+<linearGradient id="${id}-body" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${tone(L.body, .38)}"/><stop offset=".55" stop-color="${L.body}"/><stop offset="1" stop-color="${tone(L.body, -.3)}"/></linearGradient>
+<linearGradient id="${id}-limb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${tone(L.body, -.06)}"/><stop offset="1" stop-color="${tone(L.body, -.34)}"/></linearGradient>
+<radialGradient id="${id}-sheen" cx=".3" cy=".2" r=".6"><stop offset="0" stop-color="#fff" stop-opacity=".6"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="${id}-visor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${tone(L.visor, .24)}"/><stop offset="1" stop-color="${tone(L.visor, -.38)}"/></linearGradient>
+<radialGradient id="${id}-screen" cx=".5" cy=".55" r=".6"><stop offset="0" stop-color="${L.glow}" stop-opacity=".3"/><stop offset="1" stop-color="${L.glow}" stop-opacity="0"/></radialGradient>
+<linearGradient id="${id}-acc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${tone(acc, .32)}"/><stop offset="1" stop-color="${tone(acc, -.22)}"/></linearGradient>
+<linearGradient id="${id}-chef" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#D6DEE2"/></linearGradient>
+<radialGradient id="${id}-shadow"><stop offset="0" stop-color="#101820" stop-opacity=".3"/><stop offset="1" stop-color="#101820" stop-opacity="0"/></radialGradient>
+<filter id="${id}-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<ellipse cx="60" cy="109" rx="36" ry="6.5" fill="${u("shadow")}"/>
+<rect x="13" y="50" width="20" height="38" rx="9" ${limb}/><rect x="37" y="82" width="19" height="25" rx="8.5" ${limb}/><rect x="64" y="82" width="19" height="25" rx="8.5" ${limb}/>
+<path d="M41 101.5h11M68 101.5h11" stroke="#fff" stroke-opacity=".18" stroke-width="2" stroke-linecap="round"/>
+<rect x="24" y="22" width="72" height="72" rx="31" fill="${u("body")}" stroke="${edge}" stroke-width="1.5"/>
+<rect x="24" y="22" width="72" height="72" rx="31" fill="${u("sheen")}"/>
+<path d="M90 46c3.6 10 3.4 24-2 34" fill="none" stroke="#fff" stroke-opacity=".24" stroke-width="3" stroke-linecap="round"/>
+${L.acc !== "scarf" ? `<circle cx="73" cy="81" r="2.2" fill="${L.glow}" filter="${u("glow")}"/>` : ""}${scarf}
+<rect x="35" y="36" width="54" height="33" rx="15" fill="${tone(L.visor, -.55)}"/>
+<rect x="37.5" y="38.5" width="49" height="28" rx="12.5" fill="${u("visor")}"/>
+<rect x="37.5" y="38.5" width="49" height="28" rx="12.5" fill="${u("screen")}"/>
+<g filter="${u("glow")}">${face}</g>
+${L.face === "eyes" ? `<circle cx="53.4" cy="51.6" r="1.2" fill="#fff"/><circle cx="73.4" cy="51.6" r="1.2" fill="#fff"/>` : ""}
+<path d="M43.5 45c3-2.8 8-3.8 13-3.6" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="2.6" stroke-linecap="round"/>
+<circle cx="80.5" cy="61" r="1.5" fill="#fff" fill-opacity=".35"/>
+${accs[L.acc] || ""}
+</svg>`;
+}
+
+/* ---- state + render */
+const state = { q: "", kind: "all", current: "qlik" };
+const KINDS = [["all", "All"], ["yours", "Yours"], ["builtin", "Built-in"]];
+const $ = id => document.getElementById(id);
+const pencil = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>`;
+const lock = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
+
+function render() {
+  const needle = state.q.trim().toLowerCase();
+  const shown = AGENTS.filter(a => (state.kind === "all" || (state.kind === "builtin") === !!a.builtin)
+    && `${a.name} ${a.handle} ${a.desc}`.toLowerCase().includes(needle));
+  const yours = AGENTS.filter(a => !a.builtin).length;
+  $("sub").textContent = `${AGENTS.length} specialists · ${yours} built by you. Pin one to the chat, or build your own.`;
+  $("pills").innerHTML = KINDS.map(([id, label]) =>
+    `<button class="pill" role="radio" aria-checked="${state.kind === id}" data-kind="${id}">${label}</button>`).join("");
+  $("filter-tag").textContent = KINDS.find(k => k[0] === state.kind)[1];
+  $("count").textContent = `${pad2(shown.length)}/${pad2(AGENTS.length)}`;
+  $("count").setAttribute("aria-label", `${shown.length} of ${AGENTS.length} agents shown`);
+
+  if (needle && !shown.length) {
+    $("team").innerHTML = `<li class="empty"><strong>No agents match "${esc(state.q.trim())}"</strong><button class="btn-soft" data-clear>Clear search</button></li>`;
+    drawStrings(); return;
+  }
+  const cards = shown.map((a, i) => {
+    const t = tintOf(a.tint), live = a.id === state.current;
+    return `<li class="card" data-id="${a.id}" data-live="${live}" style="--tint:${t.bg};--frame:${t.dot};--cap:${inkOn(t.dot)};--tilt:${TILTS[i % TILTS.length]}deg;--i:${i}">
+      <span class="pin-anchor"></span>
+      <div class="frame">
+        <button class="photo" data-edit="${a.id}" aria-label="Edit ${esc(a.name)}">
+          ${a.builtin ? `<span class="lock" aria-hidden="true">${lock}built-in</span>` : ""}
+          ${robot(a.look)}
+          <span class="edit-hint" aria-hidden="true">${pencil}Edit</span>
+        </button>
+        <div class="caption">${esc(a.name)}</div>
+      </div>
+      <div class="info">
+        <div class="handle">@${esc(a.handle)}${live ? `<span class="live"><span class="pulse" aria-hidden="true"></span>in chat</span>` : ""}${a.builtin ? `<span class="sr-only"> · built-in</span>` : ""}</div>
+        <p class="desc">${esc(a.desc)}</p>
+        <div class="foot">
+          <span class="meta">${MODELS[a.model || "default"]} · ${(a.reasoning || "Default").toLowerCase()}</span>
+          <button class="btn-soft" data-chat="${a.id}" ${live ? "disabled" : ""}>${live ? "Chatting" : "Chat"}</button>
+        </div>
+      </div>
+    </li>`;
+  });
+  if (state.kind !== "builtin" && !needle) {
+    cards.push(`<li class="card is-new" style="--tilt:${TILTS[shown.length % TILTS.length]}deg;--i:${shown.length}">
+      <button class="frame" data-new>
+        <span class="photo-empty"><span class="plus"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></span>
+        <span class="caption" style="display:block">New agent</span>
+      </button>
+      <span class="note" aria-hidden="true">build your own
+        <svg width="40" height="28" viewBox="0 0 46 30"><path d="M4 26c4-16 18-22 36-16M34 4l6 6-8 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </li>`);
+  }
+  $("team").innerHTML = cards.join("");
+  drawStrings();
+}
+
+/* String through every pinned card in a row, draped over the photos, with a pin head drawn over each join.
+*/
+function drawStrings() {
+  const board = $("board").getBoundingClientRect();
+  const pts = [...document.querySelectorAll(".card:not(.is-new)")].map(li => {
+    const r = li.querySelector(".pin-anchor").getBoundingClientRect();
+    return { x: r.left - board.left, y: r.top - board.top, live: li.dataset.live === "true" };
+  });
+  // one garland per row: a slack droop between neighbours; rows aren't joined, so the string never crosses card text
+  let d = "";
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i], dx = b.x - a.x;
+    if (dx <= 0 || Math.abs(b.y - a.y) > 60) continue;
+    const sag = Math.min(60, 22 + dx * .16);
+    d += `M${a.x} ${a.y}C${a.x + dx * .3} ${a.y + sag} ${b.x - dx * .3} ${b.y + sag} ${b.x} ${b.y}`;
+  }
+  const pin = p => `<g transform="translate(${p.x} ${p.y})">
+    <ellipse cx="4" cy="15" rx="5" ry="2" fill="rgb(16 24 32 / 22%)"/>
+    <path d="M1 2l2 12" stroke="#8A969D" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="0" cy="0" r="10" fill="url(#pin-${p.live ? "red" : "blue"})"/>
+    <circle cx="0" cy="0" r="10" fill="none" stroke="rgb(16 24 32 / 25%)"/>
+    <ellipse cx="-3.5" cy="-3.5" rx="3.4" ry="2.2" fill="#fff" fill-opacity=".7" transform="rotate(-35 -3.5 -3.5)"/>
+  </g>`;
+  $("strings").innerHTML = d ? `<path class="string" d="${d}"/>` : "";
+  $("pins").innerHTML = `<defs>
+    <radialGradient id="pin-blue" cx=".35" cy=".3" r=".75"><stop offset="0" stop-color="#8CC8F0"/><stop offset=".45" stop-color="#3691CD"/><stop offset="1" stop-color="#1D5A86"/></radialGradient>
+    <radialGradient id="pin-red" cx=".35" cy=".3" r=".75"><stop offset="0" stop-color="#FF8A80"/><stop offset=".45" stop-color="#E5322D"/><stop offset="1" stop-color="#9E1712"/></radialGradient>
+  </defs>${pts.map(pin).join("")}`;
+}
+
+/* ---- events */
+let toastT;
+const toast = msg => { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 1800); };
+$("q").addEventListener("input", e => { state.q = e.target.value; render(); });
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-kind],[data-chat],[data-edit],[data-new],[data-clear]");
+  if (!el) return;
+  if (el.dataset.kind) { state.kind = el.dataset.kind; render(); }
+  else if (el.dataset.chat) { state.current = el.dataset.chat; render(); toast(`Now chatting with @${AGENTS.find(a => a.id === el.dataset.chat).handle}`); }
+  else if (el.dataset.edit) toast(`Opens AgentDialog for ${AGENTS.find(a => a.id === el.dataset.edit).name}`);
+  else if (el.hasAttribute("data-new")) toast("Opens AgentDialog in create mode");
+  else if (el.hasAttribute("data-clear")) { state.q = ""; $("q").value = ""; render(); }
+});
+$("theme").addEventListener("click", () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+});
+new ResizeObserver(() => drawStrings()).observe($("board"));
+// entrance animation moves cards; redraw once it settles, and again when fonts change line heights
+$("team").addEventListener("animationend", () => requestAnimationFrame(drawStrings));
+document.fonts && document.fonts.ready.then(drawStrings);
+render();
+</script>
+</body>
+</html>

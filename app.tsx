@@ -13,8 +13,8 @@ interface Goal { aid: number; text: string; budget: string; status: GoalStatus; 
 interface Conversation { id: number; title: string; time: string; group: "Today" | "Earlier" }
 interface Agent {
   id: string; name: string; desc: string; hue: string;
-  handle?: string; look?: number; tint?: string; model?: string; reasoning?: string; instructions?: string;
-  builtin?: boolean;  // ships with the workspace: instructions, model and reasoning are editable; name, look and removal are not
+  handle?: string; look?: number; tint?: string; model?: string; instructions?: string;
+  builtin?: boolean;  // ships with the workspace: instructions and model are editable; name, look and removal are not
 }
 
 /* ---------------------------------------------------------------- data */
@@ -66,18 +66,16 @@ const TINTS = [
   { id: "lilac", label: "Lilac", bg: "#EFEDF8", dot: "#C4BDE3" },
 ];
 const MODELS = [
-  { id: "default", label: "Workspace default", short: "default model" },
   { id: "opus", label: "Claude Opus 5.5", short: "opus 5.5" },
   { id: "sonnet", label: "Claude Sonnet 5.5", short: "sonnet 5.5" },
   { id: "haiku", label: "Claude Haiku 4.5", short: "haiku 4.5" },
 ];
-const REASONING = ["Default", "Low", "Medium", "High"];
 const tintOf = (id?: string) => TINTS.find(t => t.id === id) || TINTS[0];
 const modelOf = (id?: string) => MODELS.find(m => m.id === id) || MODELS[0];
 // The editable fields of an agent, with defaults filled in, so a draft can be compared against what's saved.
 const agentFields = (a: Agent) => ({
   name: a.name, desc: a.desc, instructions: a.instructions || "", look: a.look ?? 2,
-  tint: a.tint || "ice", model: a.model || "default", reasoning: a.reasoning || "Default",
+  tint: a.tint || "ice", model: modelOf(a.model).id,
 });
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 20);
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -366,8 +364,7 @@ function Sidebar({ open, activeId, nav, setNav, onPick, onNew, onSearch }: {
         </button>
 
         <nav className="side-nav">
-          {[["home", "Home", "home"], ["projects", "Projects", "folder"], ["agents", "Agents", "bot"],
-            ["knowledge", "Knowledge", "book"]].map(([id, label, icon]) => (
+          {[["agents", "Agents", "bot"]].map(([id, label, icon]) => (
             <button key={id} className={"side-link" + (nav === id ? " is-active" : "")}
               onClick={() => setNav(id)} tabIndex={open ? 0 : -1}>
               <Icon name={icon} size={16} /> {label}
@@ -892,7 +889,7 @@ function Badge({ name, handle, look, tint, model, tag, shine = 0 }: {
               <div className={"badge-name" + (name.trim() ? "" : " is-empty")}>{name.trim() || "Unnamed"}</div>
               <div className="badge-handle">@{handle || "handle"}{tag && ` · ${tag}`}</div>
             </div>
-            <div className="badge-foot"><span>every capability</span><span>{modelOf(model).short}</span></div>
+            <div className="badge-foot"><span>{modelOf(model).short}</span></div>
           </div>
         </div>
       </div>
@@ -917,7 +914,7 @@ function Confetti() {
 }
 
 // Create and edit share one dialog. Editing keeps the handle fixed so existing mentions keep working;
-// built-ins only expose instructions, model and reasoning.
+// built-ins only expose instructions and model.
 function AgentDialog({ open, agents, editing, onClose, onCreate, onSave, onRemove, onSayHi }: {
   open: boolean; agents: Agent[]; editing: Agent | null; onClose: () => void;
   onCreate: (a: Agent) => void; onSave: (a: Agent) => void; onRemove: (a: Agent) => void; onSayHi: (a: Agent) => void;
@@ -956,7 +953,7 @@ function AgentDialog({ open, agents, editing, onClose, onCreate, onSave, onRemov
     }
     const a: Agent = {
       id: "agent-" + Date.now(), handle, name: f.name.trim(), desc: f.desc.trim() || "New specialist",
-      hue: tintOf(f.tint).dot, look: f.look, tint: f.tint, model: f.model, reasoning: f.reasoning, instructions: f.instructions.trim(),
+      hue: tintOf(f.tint).dot, look: f.look, tint: f.tint, model: f.model, instructions: f.instructions.trim(),
     };
     onCreate(a); setCreated(a);
   };
@@ -991,9 +988,9 @@ function AgentDialog({ open, agents, editing, onClose, onCreate, onSave, onRemov
         <form className="nad-form" onSubmit={e => { e.preventDefault(); submit(); }}>
           <div className="nad-head">
             <h2 id="nad-title">{editing ? `Edit ${base.name || editing.name}` : "New agent"}</h2>
-            <p>{locked ? "A built-in specialist. Tune its instructions, model and reasoning; its name and look stay fixed."
+            <p>{locked ? "A built-in specialist. Tune its instructions and model; its name and look stay fixed."
               : editing ? `Changes apply from its next turn. The handle stays @${handle} so existing mentions keep working.`
-              : "A persistent specialist with its own identity and chat, granted every capability. Mention it in groups by its handle."}</p>
+              : "A persistent specialist with its own identity and chat. Mention it in groups by its handle."}</p>
           </div>
 
           <label className="field">
@@ -1035,26 +1032,15 @@ function AgentDialog({ open, agents, editing, onClose, onCreate, onSave, onRemov
             </div>
           </div>
 
-          <div className="field-row">
-            <label className="field">
-              <span className="field-label">Model</span>
-              <span className="select full">
-                <select value={f.model} onChange={e => set("model", e.target.value)}>
-                  {MODELS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-                </select>
-                <Icon name="chevron" size={14} />
-              </span>
-            </label>
-            <label className="field">
-              <span className="field-label">Reasoning</span>
-              <span className="select full">
-                <select value={f.reasoning} onChange={e => set("reasoning", e.target.value)}>
-                  {REASONING.map(r => <option key={r}>{r}</option>)}
-                </select>
-                <Icon name="chevron" size={14} />
-              </span>
-            </label>
-          </div>
+          <label className="field">
+            <span className="field-label">Model</span>
+            <span className="select full">
+              <select value={f.model} onChange={e => set("model", e.target.value)}>
+                {MODELS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+              </select>
+              <Icon name="chevron" size={14} />
+            </span>
+          </label>
 
           <div className="nad-actions">
             {editing && !locked && (confirm ? (
@@ -1177,7 +1163,7 @@ function AgentsView({ agents, current, onEdit, onChat, onNew }: {
                     </div>
                     <p className="pol-desc">{a.desc}</p>
                     <div className="pol-foot">
-                      <span className="pol-meta">{modelOf(a.model).short} · {(a.reasoning || "Default").toLowerCase()}</span>
+                      <span className="pol-meta">{modelOf(a.model).short}</span>
                       <button className="btn-soft" onClick={() => onChat(a)} disabled={live}>{live ? "Chatting" : "Chat"}</button>
                     </div>
                   </div>
@@ -2356,7 +2342,6 @@ textarea.input { height: auto; min-height: 84px; padding: 10px 12px; resize: ver
 .tint-row .field-label { margin-right: 4px; }
 .tint { width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 1px solid var(--line-strong); cursor: pointer; }
 .tint.is-active { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
-.field-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 12px; }
 .select.full { display: flex; margin-left: 0; }
 .select.full select { width: 100%; height: 40px; padding: 0 32px 0 12px; border-color: var(--border-control); border-radius: 10px; font-size: 14px; }
 .nad-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; padding-top: 4px; }
@@ -2535,7 +2520,6 @@ button.status-pill:hover { border-color: var(--line-strong); }
   .nad-stage { order: -1; min-height: 380px; border-left: 0; border-bottom: 1px solid var(--line); }
   .nad-stage .strap { height: 56px; }
   .look-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .field-row { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {
