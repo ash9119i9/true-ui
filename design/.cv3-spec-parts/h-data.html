@@ -1,0 +1,1168 @@
+<section class="part" id="data">
+<style>
+/* data fragment: specimens only, tokens only */
+.dt-ban{display:flex;align-items:center;gap:10px;flex-wrap:wrap;max-width:360px;padding:9px 12px;border-radius:12px;font-size:13px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+.dt-ban.warn{background:var(--warn-bg);color:var(--warn-text);border-color:color-mix(in srgb,var(--warn) 35%,transparent)}
+.dt-ban.bad{background:var(--bad-bg);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.dt-ban.info{background:var(--accent-soft);color:var(--accent-fg);border-color:transparent}
+.dt-ban-tx{flex:1 1 180px;min-width:0;display:flex;flex-direction:column;gap:1px}
+.dt-ban-tx b{font-weight:600;color:inherit}
+.dt-ban-tx span{font-size:12px;color:inherit;opacity:.9}
+.dt-btn{display:inline-flex;align-items:center;height:26px;padding:0 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 12px var(--font-sans)}
+.dt-btn.fill{background:var(--accent-fg);color:var(--on-accent);border-color:transparent}
+.dt-ref{font:11px var(--font-mono);color:var(--ink-2)}
+.dt-sk{display:flex;flex-direction:column;gap:7px;max-width:360px}
+.dt-sk i{display:block;height:9px;border-radius:999px;background:var(--surface-3)}
+.dt-sk i.b{height:30px;border-radius:10px;width:60%;align-self:flex-end}
+.dt-toast{display:flex;gap:8px;align-items:flex-start;max-width:360px;padding:9px 11px;border-radius:12px;background:var(--ink);color:var(--bg);font-size:13px}
+.dt-sheet{display:flex;flex-direction:column;gap:8px;max-width:360px;padding:12px;border:1px solid var(--line);border-radius:14px 14px 10px 10px;background:var(--surface);box-shadow:var(--shadow-md);font-size:13px;color:var(--ink)}
+.dt-lock{display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:360px;padding:10px 10px 10px 14px;border-radius:16px;border:1px dashed var(--line-strong);background:var(--surface-2);font-size:13px;color:var(--ink-2)}
+.dt-lock>span{flex:1 1 160px;min-width:0}
+.dt-stack{display:flex;flex-direction:column;gap:8px}
+</style>
+<h2>State, data and API</h2>
+<p>This part is the contract layer under every other part: the fetch client, every endpoint the v3 UI calls, the entity types, the one derived turn state, the event stream and its health states, auth and the read-only viewer, feature flags and where client state lives. Other parts reference this one for data; this part links back to them for component detail instead of redefining it.</p>
+<p>Source of truth for today's values: <code>chat-ui-schema.md</code> §7 (and §1 for Home state). Target design for the health and viewer states: the Edge states board (<code>design/.cv3-parts/states.html</code>). In this part <b>page</b> means <code>Home</code> in <code>frontend/app/page.tsx</code>. The browser never sees raw runtime data: every shape below is the projection from <code>platform/src/public.ts</code>.</p>
+<div class="note bad"><b>Fix first (production risk, BE-01).</b> <code>api()</code> calls <code>fetch</code> without <code>credentials: "include"</code>, and <code>EventSource</code> is created without <code>withCredentials</code>. With <code>AUTH_MODE=google</code> and the frontend on a different origin from the platform, the session cookie is never sent. Every call then returns 401 and the stream never opens. This blocks sign-in in any cross-origin deploy and must land before any P1 screen. The client half is in <a href="#dt-api">api() client</a>, the server half in <a href="#dt-cors">CORS and cookies</a>.</div>
+
+<h3 id="dt-plumbing">Client plumbing</h3>
+
+<div class="comp" id="dt-api">
+  <header><h4>api() client</h4><span class="tag exists">exists</span><span class="tag backend">BE-01</span><span class="tag phase">P1</span>
+    <span class="path">frontend/lib/api.ts · also lib/transport.ts subscribe()</span></header>
+  <div class="body">
+    <p>One function performs every JSON call and turns every failure into an <code>ApiRequestError</code>. v3 keeps the call shape and the error model, adds credentials, adds verbs (needed by BE-07 and later items) and adds one global handler for 401 and ownership 403.</p>
+    <h4>Anatomy</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Today</th><th>v3</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Base URL</td><td><code>NEXT_PUBLIC_PLATFORM_URL</code>, default <code>http://localhost:4000</code></td><td>unchanged</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Verb</td><td><code>body === undefined</code> is GET, else POST JSON. No other verbs</td><td>keep <code>api(path, body?)</code>; add <code>api(path, { method, body, timeoutMs, signal })</code> for PATCH and DELETE</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Timeout</td><td><code>AbortSignal.timeout(45000)</code></td><td>45000ms default; <code>AbortSignal.any([timeout, signal])</code> when a caller passes a signal</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Credentials</td><td>not set</td><td><code>credentials: "include"</code> on every fetch</td><td><span class="tag backend">BE-01</span></td></tr>
+    <tr><td>Headers</td><td>JSON content type on POST</td><td>add <code>Accept: application/json</code>; <code>Content-Type: application/json</code> whenever a body is sent (CSRF rule needs JSON)</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>204</td><td>returns <code>undefined</code></td><td>unchanged</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Error</td><td>throws <code>ApiRequestError</code></td><td>unchanged, then <code>onAuthError</code> hook (below)</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>EventSource</td><td><code>new EventSource(url)</code></td><td><code>new EventSource(url, { withCredentials: true })</code></td><td><span class="tag backend">BE-01</span></td></tr>
+    <tr><td>Health probe</td><td>raw <code>fetch("/healthz")</code>, 10s</td><td>unchanged (no cookie needed)</td><td><span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>// frontend/lib/api.ts
+export class ApiRequestError extends Error {
+  status: number;      // HTTP status, 0 for network or timeout
+  code: string;        // server code, or HTTP_&lt;status&gt;, NETWORK_ERROR, REQUEST_TIMEOUT, INVALID_RESPONSE
+  requestId?: string;  // body.requestId or x-request-id header
+}
+export interface ErrorRef { code?: string; requestId?: string; turnId?: string }
+interface ServerErrorBody { error: string; code: string; requestId: string } // errorHandler
+
+type ApiInit = {                       // derive (v3)
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  body?: unknown;
+  timeoutMs?: number;                  // default 45000
+  signal?: AbortSignal;
+  quiet?: boolean;                     // skip onAuthError (background polls)
+};
+export function api&lt;T&gt;(path: string, body?: unknown): Promise&lt;T&gt;;   // exists
+export function api&lt;T&gt;(path: string, init: ApiInit): Promise&lt;T&gt;;    // derive
+
+// One listener, set by Home. Called after the error is built, before it is thrown.
+export function setAuthErrorHandler(fn: (e: ApiRequestError, path: string) =&gt; void): void; // derive
+export function userMessage(err: unknown, fallback: string): string;   // exists
+export function errorRef(err: unknown): ErrorRef | null;               // exists
+export function warnFailure(tag: string, err: unknown): void;          // exists, quiet</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Overload detection: the second argument is an <code>ApiInit</code> only when it is a plain object with a <code>method</code> key. Existing callers that POST a body object without <code>method</code> keep working.</li>
+      <li>Message shown to the user: <code>body.error</code> verbatim when present, else the fallback below by status. Never show <code>code</code> as the headline; it goes in the ref line (<a href="#sm-errorref">ErrorRef</a>).</li>
+      <li><code>onAuthError</code> routing: status 401 opens the <a href="#dt-signin">sign-in sheet</a>. Status 403 with <code>NOT_SESSION_OWNER</code> or <code>NOT_PROJECT_OWNER</code> shows the <a href="#dt-denied">permission toast</a> and flips the view to read-only. 403 <code>CAPABILITY_DENIED</code> shows the toast only. 403 <code>TENANT_DISABLED</code> and <code>NOT_A_MEMBER</code> open the sign-in sheet in its workspace variant. All other errors go only to the caller. <span class="tag derive">derive</span></li>
+      <li>Callers that pass <code>quiet: true</code> (sidebar refresh, timings, traces, features) never trigger the sheet; they use <code>warnFailure</code>. The next foreground call will.</li>
+      <li>A 502/503/504 on POST <code>/messages</code> may have been accepted. The composer keeps the <code>clientId</code> and a retry replays it; the server answers <code>{ duplicate: true }</code> instead of a second turn (exists).</li>
+      <li><code>/api/features</code> failure is treated as flags off (exists). <code>GET /api/sessions/:id</code> never fails on runtime outage; it returns <code>snapshot: null</code> and <code>recoveryError</code> (exists).</li>
+    </ul>
+    <h4>Status fallbacks (exists)</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Status</th><th>Fallback copy</th><th>Global reaction (v3)</th></tr></thead><tbody>
+    <tr><td>0 network</td><td>caller fallback</td><td>none; stream health handles connectivity</td></tr>
+    <tr><td>400</td><td>The request is invalid. Check your input.</td><td>none</td></tr>
+    <tr><td>401</td><td>Your session is not authenticated. Sign in again.</td><td>sign-in sheet</td></tr>
+    <tr><td>403</td><td>You do not have permission to perform this operation.</td><td>toast; owner codes also flip to read-only</td></tr>
+    <tr><td>404</td><td>The requested conversation, agent, or file was not found.</td><td>on the open session: "This conversation is no longer available" empty state, see <a href="#nv-errors">Shell errors</a></td></tr>
+    <tr><td>409</td><td>The request conflicts with the conversation's current state. Refresh it before retrying.</td><td>request cards hide stale cards (<a href="#rq-expiry">Requests</a>)</td></tr>
+    <tr><td>410</td><td>server message (<code>THREAD_LOST</code>)</td><td>set <code>session.status = "dead"</code> locally, show the dead banner</td></tr>
+    <tr><td>413</td><td>The request is too large. Reduce the attachment or message size.</td><td>none</td></tr>
+    <tr><td>422</td><td>The request could not be processed. Check your input and agent configuration.</td><td>none</td></tr>
+    <tr><td>429</td><td>Too many requests. Wait before trying again.</td><td>none (only <code>/auth</code> is limited, 60/min)</td></tr>
+    <tr><td>502 / 503 / 504</td><td>Invalid response / temporarily unavailable / timed out (may have been accepted)</td><td>none</td></tr>
+    </tbody></table></div>
+    <h4>Server error codes the UI can meet (exists)</h4>
+    <p><code>INVALID_INPUT</code>, <code>INVALID_JSON</code>, <code>REQUEST_TOO_LARGE</code>, <code>CONFLICT</code>, <code>STORAGE_UNAVAILABLE</code>, <code>PLATFORM_INTERNAL</code>, <code>UNAUTHENTICATED</code> (401), <code>WRONG_APP</code> (403), <code>CSRF_ORIGIN</code> (403), <code>RATE_LIMITED</code> (429), <code>CAPABILITY_DENIED</code> (403), <code>SESSION_NOT_FOUND</code> / <code>PROJECT_NOT_FOUND</code> (404), <code>NOT_SESSION_OWNER</code> / <code>NOT_PROJECT_OWNER</code> (403), <code>THREAD_LOST</code> (410), <code>OWNER_UNAVAILABLE</code> / <code>OWNER_UNCONFIGURED</code> / <code>STREAM_UNAVAILABLE</code> (503/502), <code>DUPLICATE_MESSAGE</code> (409), <code>FEATURE_DISABLED</code> (404), <code>INVALID_APPROVAL_MODE</code> (422), <code>INVALID_REVIEW</code> (400), <code>GOAL_NOT_COMPLETE</code> (409), <code>MODEL_UNAVAILABLE</code> (422), <code>AGENT_HANDLE_TAKEN</code> (409), <code>INVALID_PROJECT</code>, <code>TENANT_DISABLED</code> (403), <code>NOT_A_MEMBER</code> (403). Code strings are read from the error, never hard-coded into copy.</p>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Every request in the network panel carries the session cookie when frontend and platform are on different origins.</li>
+      <li>The EventSource request carries the cookie and opens in google mode cross-origin.</li>
+      <li><code>api("/api/agents/x", { method: "DELETE" })</code> sends DELETE; <code>api("/api/projects", { name })</code> still sends POST.</li>
+      <li>A 401 from any foreground call opens the sign-in sheet once, even if three calls fail together.</li>
+      <li>A 401 from a <code>quiet</code> poll does not open the sheet.</li>
+      <li>A timed-out send shows "timed out (may have been accepted)" and a retry does not create a second turn.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="dt-cors">
+  <header><h4>CORS and cookies (server half of BE-01)</h4><span class="tag backend">BE-01</span><span class="tag phase">P1</span>
+    <span class="path">platform/src/http.ts middleware · platform/src/auth.ts cookie</span></header>
+  <div class="body">
+    <p>What the platform must return so credentialed calls from the browser work. This is a backend task; it is listed here because the UI cannot be tested cross-origin without it.</p>
+    <h4>Rules</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Item</th><th>Required value</th></tr></thead><tbody>
+    <tr><td><code>Access-Control-Allow-Origin</code></td><td>the exact request <code>Origin</code> when it is in the allowed list (the same list the CSRF check uses). Never <code>*</code>, which browsers reject with credentials</td></tr>
+    <tr><td><code>Access-Control-Allow-Credentials</code></td><td><code>true</code></td></tr>
+    <tr><td><code>Vary</code></td><td><code>Origin</code></td></tr>
+    <tr><td>Preflight <code>OPTIONS</code></td><td>204; <code>Allow-Methods: GET, POST, PATCH, DELETE</code>; <code>Allow-Headers: Content-Type, Last-Event-ID</code>; <code>Max-Age: 600</code></td></tr>
+    <tr><td><code>Access-Control-Expose-Headers</code></td><td><code>x-request-id</code>, so <code>ApiRequestError.requestId</code> is readable</td></tr>
+    <tr><td>SSE route</td><td>same CORS headers on <code>GET /api/sessions/:id/events</code></td></tr>
+    <tr><td>Cookie</td><td>HTTP-only (exists). Same-site deploy (for example <code>app.</code> and <code>api.</code> on one domain): <code>SameSite=Lax; Secure</code>. Cross-site deploy: <code>SameSite=None; Secure</code></td></tr>
+    <tr><td>CSRF</td><td>unchanged: state-changing <code>/api</code> and <code>/auth</code> requests need an allowed <code>Origin</code> and JSON, else 403 <code>CSRF_ORIGIN</code></td></tr>
+    </tbody></table></div>
+    <div class="note warn">Allowed-origin list configuration name and the same-site vs cross-site deploy choice are open: D-NEW-D1. Default: same-site with <code>SameSite=Lax</code>, which keeps the CSRF surface smallest.</div>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>A request from an unlisted origin gets no <code>Allow-Origin</code> header and the browser blocks it.</li>
+      <li>A DELETE from the app origin passes preflight.</li>
+      <li><code>x-request-id</code> is readable in the browser from a failed call.</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="dt-inventory">API inventory</h3>
+<p>Every call the v3 UI makes. Paths are relative to the platform base, and <code>:id</code> is a session id (<code>sess_&lt;uuid&gt;</code>). Status is <span class="tag exists">exists</span> when the route is live today, or the backend id that adds or changes it. Paths for new routes are <span class="tag proposal">proposal</span> D-NEW-D2 (backend may rename; the client wraps each one in a single <code>lib/</code> function so a rename touches one line). Request and response shapes for existing routes are in §7.2 of the schema and are not repeated here unless v3 changes them.</p>
+
+<h4 id="dt-inv-identity">Identity, config, catalog</h4>
+<div class="tw"><table class="tbl"><thead><tr><th>Method</th><th>Path</th><th>Used by (v3)</th><th>Status</th></tr></thead><tbody>
+<tr><td>GET</td><td><code>/healthz</code></td><td>Home boot probe (not rendered)</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>GET</td><td><code>/api/me</code></td><td>AccountButton, UserMenu, viewer check (<code>me.user.id</code>), workspace switcher (<a href="#nv-account">Account</a>)</td><td><span class="tag exists">exists</span> route; name, picture and caller <span class="tag backend">BE-17</span></td></tr>
+<tr><td>GET</td><td><code>/api/features</code></td><td><code>loadApprovalModes()</code> → ApprovalModePicker (<a href="#cp-approval">Composer</a>)</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>GET</td><td><code>/api/assistant-capabilities</code></td><td>Hero capability cards</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>GET</td><td><code>/api/agents</code></td><td>AgentChip, All agents sheet, topbar pill name, Hero starters</td><td><span class="tag exists">exists</span>; <code>starterPrompts</code> <span class="tag backend">BE-18</span>; <code>approvalPolicy</code>, <code>mcpCount</code> <span class="tag backend">BE-NEW: roster facts</span></td></tr>
+<tr><td>POST</td><td><code>/api/agents</code></td><td>AgentDialog create</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>PATCH</td><td><code>/api/agents/:agentId</code></td><td>AgentDialog edit, AgentMenu rename</td><td><span class="tag backend">BE-07</span></td></tr>
+<tr><td>DELETE</td><td><code>/api/agents/:agentId</code></td><td>AgentMenu Delete</td><td><span class="tag backend">BE-07</span></td></tr>
+<tr><td>GET</td><td><code>/api/models</code></td><td>ModelChip, AgentDialog model select</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>GET / POST</td><td><code>/api/agents/:agentId/mcp</code></td><td>Connected tools sheet, MCP settings</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>GET / POST</td><td><code>/api/mcp</code>; PATCH / DELETE <code>/api/mcp/:id</code></td><td>MCP settings (user-scoped)</td><td><span class="tag exists">exists</span> (not via <code>api()</code> today; moves to <code>api()</code> with verbs)</td></tr>
+<tr><td>GET</td><td><code>/api/agents/:agentId/mcp/status</code></td><td>Tool-health dot, Connected tools rows (<a href="#ag-mcp">Agents</a>)</td><td><span class="tag backend">BE-06</span> (or via the <code>mcp.status</code> event)</td></tr>
+<tr><td>POST</td><td><code>/api/mcp/:id/oauth/start</code></td><td>"Sign in" on a server that needs auth</td><td><span class="tag backend">BE-06</span></td></tr>
+<tr><td>GET / POST / PATCH / DELETE</td><td><code>/api/tenant/mcp[/:id]</code>, <code>/api/agents/:id/tenant-mcp</code></td><td>Admin only; not in the chat UI</td><td><span class="tag exists">exists</span> (403 for non-admins)</td></tr>
+<tr><td>GET</td><td><code>/api/capabilities</code>, <code>/api/schemas/:name</code></td><td>Removed from v3 (always 403 <code>CAPABILITY_DENIED</code>)</td><td><span class="tag exists">exists</span>, not called</td></tr>
+<tr><td>POST</td><td><code>/api/providers/:provider/reconnect</code></td><td>"Reconnect {provider}" on a credentials failure (<a href="#sm-failure">Failure card</a>)</td><td><span class="tag backend">BE-NEW-S1: provider re-auth</span></td></tr>
+</tbody></table></div>
+
+<h4 id="dt-inv-sessions">Sessions</h4>
+<div class="tw"><table class="tbl"><thead><tr><th>Method</th><th>Path</th><th>Used by (v3)</th><th>Status</th></tr></thead><tbody>
+<tr><td>GET</td><td><code>/api/sessions[?projectId=]</code></td><td>Sidebar, SearchPalette chats scope, project groups</td><td><span class="tag exists">exists</span>; <code>turnState</code>, <code>pendingCount</code> <span class="tag backend">BE-16</span></td></tr>
+<tr><td>GET</td><td><code>/api/sessions?archived=1</code></td><td>Sidebar Archived filter</td><td><span class="tag backend">BE-16</span></td></tr>
+<tr><td>GET</td><td><code>/api/sessions?q=</code></td><td>SearchPalette and ThreadSearch beyond loaded history</td><td><span class="tag backend">BE-16</span></td></tr>
+<tr><td>POST</td><td><code>/api/sessions</code></td><td>First send from a draft</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>GET</td><td><code>/api/sessions/:id</code></td><td>Open chat, resync hydration, 401/403 recovery</td><td><span class="tag exists">exists</span>; <code>session.ownerName</code>, <code>viewer</code> <span class="tag backend">BE-09</span>; <code>session.settings</code> <span class="tag backend">BE-NEW: session settings</span>; <code>delegation</code> <span class="tag backend">BE-10</span></td></tr>
+<tr><td>POST</td><td><code>/api/sessions/:id/project</code></td><td>SessionMenu Move to project</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>POST</td><td><code>/api/sessions/:id/approval-mode</code></td><td>ApprovalModePicker</td><td><span class="tag exists">exists</span> (404 <code>FEATURE_DISABLED</code> when off)</td></tr>
+<tr><td>POST</td><td><code>/api/sessions/:id/delegation</code></td><td>Delegation control for this chat (<a href="#ag-delegation">Agents</a>)</td><td><span class="tag backend">BE-10</span></td></tr>
+<tr><td>GET</td><td><code>/api/sessions/:id/timings</code></td><td>Activity timings (dev mode)</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>GET</td><td><code>/api/sessions/:id/tools</code></td><td>@-mention picker tools group, Connected tools for this chat</td><td><span class="tag backend">BE-15</span></td></tr>
+<tr><td>POST</td><td><code>/api/sessions/:id/share</code>; GET for current state</td><td>Share popover (<a href="#nv-share">Share</a>)</td><td><span class="tag backend">BE-19</span></td></tr>
+<tr><td>POST</td><td><code>/api/sessions/:id/duplicate</code></td><td>Viewer bar "Duplicate to my chats"</td><td><span class="tag backend">BE-09</span></td></tr>
+<tr><td>POST</td><td><code>/api/sessions/:id/access-requests</code></td><td>Viewer bar "Ask the owner for access"</td><td><span class="tag backend">BE-09</span></td></tr>
+</tbody></table></div>
+
+<h4 id="dt-inv-turns">Turn lifecycle and requests</h4>
+<div class="tw"><table class="tbl"><thead><tr><th>Method</th><th>Path</th><th>Used by (v3)</th><th>Status</th></tr></thead><tbody>
+<tr><td>POST</td><td><code>/api/sessions/:id/messages</code></td><td>Send, Steer, queue dispatch (<a href="#cp-submit">Composer</a>)</td><td><span class="tag exists">exists</span>; <code>mentions[]</code> in body <span class="tag backend">BE-15</span>; file ids reuse documents</td></tr>
+<tr><td>POST</td><td><code>/api/sessions/:id/interrupt</code></td><td>Stop, Esc while running</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>POST</td><td><code>/api/sessions/:id/approvals/:requestId</code></td><td>RequestDock cards, batch sheet (<a href="#rq-dock">Requests</a>)</td><td><span class="tag exists">exists</span>; <code>turnId</code>, <code>createdAt</code>, <code>threadId</code> on the request <span class="tag backend">BE-02</span>; tool args <span class="tag backend">BE-NEW: tool call arguments on approvals</span></td></tr>
+<tr><td>GET</td><td><code>/api/sessions/:id/events?cursor=</code></td><td>Stream (<a href="#dt-stream">Streaming protocol</a>)</td><td><span class="tag exists">exists</span>; <code>withCredentials</code> <span class="tag backend">BE-01</span>; live item and span events <span class="tag backend">BE-04</span>; <code>mcp.status</code> <span class="tag backend">BE-06</span>; failure <code>turnId</code> <span class="tag backend">BE-NEW-S2: failure turnId</span></td></tr>
+<tr><td>POST</td><td><code>/api/sessions/:id/turns/:turnId/regenerate</code></td><td>Answer actions Regenerate</td><td><span class="tag backend">BE-03</span></td></tr>
+<tr><td>POST</td><td><code>/api/sessions/:id/messages/:messageId/edit</code></td><td>User message Edit and resend</td><td><span class="tag backend">BE-03</span></td></tr>
+<tr><td>POST</td><td><code>/api/sessions/:id/capabilities</code> with <code>thread/fork</code></td><td>Branch from here (owner only today)</td><td><span class="tag exists">exists</span>; branch from any turn in the UI <span class="tag backend">BE-03</span></td></tr>
+<tr><td>POST</td><td><code>/api/sessions/:id/turns/:turnId/resume</code></td><td>Failure card Retry (resume instead of resend)</td><td><span class="tag backend">BE-05</span></td></tr>
+<tr><td>POST</td><td><code>/api/sessions/:id/turns/:turnId/steps/:stepId/retry</code></td><td>Work log failed step Retry</td><td><span class="tag backend">BE-05</span></td></tr>
+<tr><td>GET</td><td><code>/api/sessions/:id/checkpoints</code>; POST <code>/api/sessions/:id/checkpoints/:checkpointId/restore</code></td><td>Restore to before this turn</td><td><span class="tag backend">BE-12</span></td></tr>
+</tbody></table></div>
+
+<h4 id="dt-inv-commands">Commands, goals, documents, helpers, observability</h4>
+<div class="tw"><table class="tbl"><thead><tr><th>Method</th><th>Path</th><th>Used by (v3)</th><th>Status</th></tr></thead><tbody>
+<tr><td>POST</td><td><code>/api/sessions/:id/capabilities</code></td><td>Slash commands, Goal chip and strip, model and effort (<code>thread/settings/update</code>), archive and unarchive, compact</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>GET</td><td><code>/api/sessions/:id/goal/history</code></td><td>Goal tab timeline</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>POST</td><td><code>/api/sessions/:id/goal/review</code></td><td>Goal review card Accept and Reopen</td><td><span class="tag exists">exists</span>; usage reset time <span class="tag backend">BE-21</span></td></tr>
+<tr><td>GET</td><td><code>/api/sessions/:id/documents</code></td><td>Files tab, FileCard, file chips</td><td><span class="tag exists">exists</span>; <code>turnId</code>, versions <span class="tag backend">BE-14</span></td></tr>
+<tr><td>POST</td><td><code>/api/sessions/:id/documents</code></td><td>Attach (<a href="#cp-attach">Composer</a>)</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>GET</td><td><code>/api/sessions/:id/documents/:fileId</code></td><td>Download link</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>GET</td><td><code>/api/sessions/:id/documents/:fileId/versions</code></td><td>Canvas version list</td><td><span class="tag backend">BE-14</span></td></tr>
+<tr><td>GET</td><td><code>/api/sessions/:id/visualizations/:fileId</code></td><td>Visualization frame</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>GET</td><td><code>/api/sessions/:id/agents</code></td><td>Agents tab, helper chip</td><td><span class="tag exists">exists</span>; usage, stable identity, parent thread <span class="tag backend">BE-08</span></td></tr>
+<tr><td>GET</td><td><code>/api/sessions/:id/agents/:agentId</code></td><td>Helper detail transcript</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>POST</td><td><code>/api/sessions/:id/agents/:agentId/interrupt</code></td><td>Helper row Stop</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>GET</td><td><code>/api/sessions/:id/traces</code></td><td>Activity trace list, work log receipt</td><td><span class="tag exists">exists</span>; <code>TurnTrace.status</code> enum, <code>StepSpan.error</code> <span class="tag backend">BE-05</span>; cost and thinking duration <span class="tag backend">BE-11</span>; privacy finding fields <span class="tag backend">BE-20</span>; viewer filtering <span class="tag backend">BE-09</span></td></tr>
+<tr><td>GET</td><td><code>/api/sessions/:id/turns/:turnId/context</code></td><td>Model context view (dev mode, D-04)</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>GET</td><td>citations on <code>Message</code> (no new route)</td><td>SourcesList</td><td><span class="tag backend">BE-13</span></td></tr>
+</tbody></table></div>
+
+<h4 id="dt-inv-projects">Projects and auth</h4>
+<div class="tw"><table class="tbl"><thead><tr><th>Method</th><th>Path</th><th>Used by (v3)</th><th>Status</th></tr></thead><tbody>
+<tr><td>GET</td><td><code>/api/projects</code></td><td>Sidebar projects group, SessionMenu targets</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>POST</td><td><code>/api/projects</code></td><td>New project</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>POST</td><td><code>/api/projects/:id</code></td><td>Rename project</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>POST</td><td><code>/api/projects/:id/delete</code></td><td>Delete project</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>GET</td><td><code>/auth/google/start[?returnTo=]</code>, <code>/auth/google/callback</code></td><td>Sign-in sheet</td><td><span class="tag exists">exists</span>; <code>returnTo</code> <span class="tag backend">BE-NEW-D1: sign-in return path</span></td></tr>
+<tr><td>POST</td><td><code>/auth/logout</code></td><td>UserMenu Sign out</td><td><span class="tag exists">exists</span> route; UI caller <span class="tag backend">BE-17</span></td></tr>
+<tr><td>GET</td><td><code>/auth/tenants</code></td><td>Workspace switcher</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>POST</td><td><code>/auth/switch-tenant</code></td><td>Workspace switcher (reloads all state)</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>*</td><td><code>/auth/invites/*</code>, <code>/auth/admin/*</code>, <code>/api/admin/*</code></td><td>Invite and admin flows, outside the chat UI</td><td><span class="tag exists">exists</span></td></tr>
+</tbody></table></div>
+
+<h4 id="dt-inv-be">Backend id index</h4>
+<p>Every canonical id and every BE-NEW raised in this spec, with the part that owns its UI.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Id</th><th>What it adds</th><th>Routes or fields</th><th>UI owner</th></tr></thead><tbody>
+<tr><td>BE-01</td><td>credentials on fetch and EventSource, CORS for exact origin</td><td>all routes</td><td><a href="#dt-api">api() client</a></td></tr>
+<tr><td>BE-02</td><td><code>PendingRequest.turnId</code>, <code>createdAt</code>, <code>threadId</code></td><td><code>approval.requested</code>, snapshot <code>pending</code></td><td><a href="#rq-data">Requests</a></td></tr>
+<tr><td>BE-03</td><td>regenerate, edit and resend, branch</td><td>regenerate, edit routes; fork from any turn</td><td><a href="#sm-user-actions">Stream</a></td></tr>
+<tr><td>BE-04</td><td>live span and item events, emit <code>diff.updated</code></td><td>stream</td><td><a href="#sm-workgroup">Stream</a></td></tr>
+<tr><td>BE-05</td><td><code>TurnTrace.status</code> enum, <code>StepSpan.error</code>, resume turn, retry step</td><td>resume, retry routes; traces</td><td><a href="#sm-failure">Stream</a></td></tr>
+<tr><td>BE-06</td><td><code>mcp.status</code> payload and OAuth sign-in</td><td>stream, status and oauth routes</td><td><a href="#ag-mcp">Agents</a></td></tr>
+<tr><td>BE-07</td><td>PATCH and DELETE agents</td><td><code>/api/agents/:id</code></td><td><a href="#ag-dialog">Agents</a></td></tr>
+<tr><td>BE-08</td><td>per-helper usage, stable helper identity, parent threadId</td><td><code>SubAgent</code></td><td><a href="#ag-subagents">Agents</a></td></tr>
+<tr><td>BE-09</td><td>viewer rules: <code>ownerName</code>, trace visibility, request access, duplicate chat</td><td>session history, traces, duplicate, access-requests</td><td><a href="#dt-viewer">Read-only viewer</a></td></tr>
+<tr><td>BE-10</td><td>per-session delegation mode</td><td>delegation route, <code>Session.delegation</code></td><td><a href="#ag-delegation">Agents</a></td></tr>
+<tr><td>BE-11</td><td>cost in currency, thinking duration</td><td>traces, thinking items</td><td><a href="#ag-cost">Agents</a>, <a href="#sm-thinking">Stream</a></td></tr>
+<tr><td>BE-12</td><td>checkpoints and restore</td><td>checkpoint routes, <code>Message.checkpointId</code></td><td><a href="#sm-answer-actions">Stream</a></td></tr>
+<tr><td>BE-13</td><td><code>citations[]</code> on messages</td><td><code>Message</code></td><td><a href="#sm-citations">Stream</a></td></tr>
+<tr><td>BE-14</td><td>versioned conversation files</td><td>documents, versions</td><td><a href="#sm-file">Stream</a></td></tr>
+<tr><td>BE-15</td><td>per-session tool list, <code>mentions[]</code> on sent messages</td><td><code>/tools</code>, messages body</td><td><a href="#cp-mention">Composer</a></td></tr>
+<tr><td>BE-16</td><td>session list <code>turnState</code>, <code>pendingCount</code>, archived filter, content search</td><td><code>/api/sessions</code> query</td><td><a href="#nv-sidebar">Shell</a></td></tr>
+<tr><td>BE-17</td><td><code>/api/me</code> name, email, picture, and sign-out</td><td><code>/api/me</code>, <code>/auth/logout</code></td><td><a href="#nv-account">Shell</a></td></tr>
+<tr><td>BE-18</td><td><code>AgentSummary.starterPrompts[]</code></td><td><code>/api/agents</code></td><td><a href="#nv-hero">Shell</a></td></tr>
+<tr><td>BE-19</td><td>Share endpoint</td><td><code>/share</code></td><td><a href="#nv-share">Shell</a></td></tr>
+<tr><td>BE-20</td><td>privacy finding resource, agent, stepId, exclusion rule</td><td>traces <code>privacy</code></td><td>Activity part</td></tr>
+<tr><td>BE-21</td><td>rate-limit and usage reset time</td><td><code>error</code> event, <code>Goal</code></td><td><a href="#sm-failure">Stream</a>, <a href="#ag-goal-stops">Agents</a></td></tr>
+<tr><td>BE-NEW: session settings</td><td><code>Session.settings</code> in PublicSession</td><td>session history</td><td><a href="#cp-model">Composer</a></td></tr>
+<tr><td>BE-NEW: roster facts</td><td><code>AgentSummary.approvalPolicy</code>, <code>mcpCount</code></td><td><code>/api/agents</code></td><td><a href="#ag-agent-data">Agents</a></td></tr>
+<tr><td>BE-NEW: tool call arguments on approvals</td><td>redacted <code>arguments</code> on tool approval questions</td><td><code>approval.requested</code></td><td><a href="#rq-tool">Requests</a></td></tr>
+<tr><td>BE-NEW-S1: provider re-auth</td><td>reconnect model provider credentials from the chat</td><td>provider reconnect route</td><td><a href="#sm-failure">Stream</a></td></tr>
+<tr><td>BE-NEW-S2: failure turnId</td><td><code>turnId</code> on every failure and <code>error</code> event</td><td>stream</td><td><a href="#sm-failure">Stream</a></td></tr>
+<tr><td>BE-NEW-D1: sign-in return path</td><td><code>returnTo</code> on Google start, validated against the allowed origins</td><td><code>/auth/google/start</code></td><td><a href="#dt-signin">Sign-in sheet</a></td></tr>
+<tr><td>BE-NEW-D2: session status event</td><td>a public <code>session.updated</code> event with <code>{ status, archived }</code></td><td>stream</td><td><a href="#dt-banners">Session banners</a></td></tr>
+</tbody></table></div>
+
+<h3 id="dt-entities">Entity types</h3>
+<p>Types as the browser receives them, in <code>shared/contracts.ts</code> unless noted. Fields marked <code>// BE-xx</code> are new and optional: the UI must render correctly when they are absent. Types already specified in full by another part are linked, not repeated.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Type</th><th>Defined in</th></tr></thead><tbody>
+<tr><td><code>PendingRequest</code>, <code>InputQuestion</code>, <code>InputOption</code>, <code>ApprovalRecord</code></td><td><a href="#rq-data">Requests: request data</a> (adds <code>turnId</code>, <code>createdAt</code>, <code>threadId</code> for BE-02)</td></tr>
+<tr><td><code>Goal</code>, <code>SessionGoal</code>, <code>GoalHistoryEntry</code>, <code>GoalReview</code>, <code>GoalStatus</code></td><td><a href="#ag-goal-data">Agents: goal data</a> (adds <code>usageResetsAt</code> for BE-21)</td></tr>
+<tr><td><code>AgentSummary</code>, <code>AgentFields</code>, <code>Agent</code></td><td><a href="#ag-agent-data">Agents: agent data</a> (adds <code>starterPrompts</code> BE-18, roster facts BE-NEW)</td></tr>
+<tr><td><code>SubAgent</code>, <code>SubAgentTranscript</code>, <code>CollabTool</code></td><td><a href="#ag-subagents">Agents: helper data</a> (adds usage, identity, parent for BE-08)</td></tr>
+<tr><td><code>Message</code>, <code>CommandRecord</code>, <code>Entry</code>, <code>VisualPart</code></td><td><a href="#sm-entry">Stream: Entry union and Message</a> (adds citations BE-13, checkpointId BE-12, mentions BE-15, editedFrom BE-03, failure and file entries)</td></tr>
+<tr><td><code>TurnFailure</code></td><td><a href="#sm-failure">Stream: failure card</a></td></tr>
+<tr><td><code>Toast</code></td><td><a href="#nv-toast">Shell: Toast</a></td></tr>
+</tbody></table></div>
+
+<div class="comp" id="dt-session">
+  <header><h4>Session, SessionHistory and Snapshot</h4><span class="tag exists">exists</span><span class="tag backend">BE-09 BE-10 BE-16</span><span class="tag phase">P1</span>
+    <span class="path">shared/contracts.ts · platform/src/public.ts publicSession, publicSnapshot</span></header>
+  <div class="body">
+    <p>The conversation as the list, the open chat and the stream see it. <code>PublicSession</code> is the only session shape the UI may read; <code>threadId</code>, <code>agentCoreHost</code>, <code>cwd</code> and <code>approvals</code> never leave the server.</p>
+    <h4>Data</h4>
+<pre><code>type SessionStatus = "active" | "orphaned" | "dead";
+// active: normal. orphaned: runtime host unreachable, resumes on next message.
+// dead: thread lost, every runtime call returns 410 THREAD_LOST, history read-only.
+
+interface PublicSession {
+  _id: string;                       // "sess_" + uuid
+  userId?: string;                   // owner; only when set
+  agentId: string;
+  title?: string;                    // list fills untitled with first user message, 80 chars
+  status: SessionStatus;
+  createdAt: string;                 // ISO
+  goal?: { objective: string; status: GoalStatus };   // trimmed
+  projectId?: string;                // only when set
+  approvalMode?: ApprovalMode;       // only when the approval-modes flag is on
+  // v3 additions
+  archived?: boolean;                // BE-16 (list with ?archived=1; today stored, not projected)
+  turnState?: "idle" | "running" | "waiting" | "failed";  // BE-16, list rows only
+  pendingCount?: number;             // BE-16, list rows only
+  ownerName?: string;                // BE-09, display name of userId
+  delegation?: { mode: "explicitRequestOnly" | "proactive"; maxConcurrent: number }; // BE-10
+  settings?: { model?: string; effort?: string };     // BE-NEW: session settings
+}
+
+interface SessionHistory {           // GET /api/sessions/:id
+  session: PublicSession;
+  messages: Message[];               // ordered transcript
+  snapshot: PublicSnapshot | null;   // null when runtime unreachable
+  plan: { steps: PlanStep[]; explanation?: string; turnId?: string; updatedAt?: string } | null;
+  approvals: ApprovalRecord[];       // resolved-request audit trail
+  goalReview: GoalReview | null;
+  goalHistory: GoalHistoryEntry[];
+  recoveryError: string | null;      // "Conversation recovery: ..."
+  recoveryErrorRef: { code: string; requestId?: string } | null;
+  viewer?: ViewerAccess;             // BE-09, see Auth
+}
+
+interface PublicSnapshot {           // first frame of every connection
+  cursor: string;
+  state: { kind: "idle" | "starting" | "running" | "interrupting"; turnId?: string };
+  messages: { id: string; turnId?: string; text: string; final: boolean; messageIndex?: number }[];
+  pending: PendingRequest[];
+  plan: PlanStep[];                  // falls back to the saved plan
+  goal: Goal | null;
+  diff: "";                          // always empty publicly (BE-04 to populate)
+  timings: TurnTiming[];
+  traces: TurnTrace[];               // recent completed turns, oldest first
+  rateLimits: RateLimitView | null;
+  subAgents: SubAgent[];
+  thinking: { id: string; turnId?: string; summary: string; raw: string; done: boolean }[];
+}</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Owner check: <code>isOwner = !session.userId || session.userId === me.user.id</code>. A session with no <code>userId</code> (dev mode, legacy) is treated as owned. Until <code>/api/me</code> resolves, treat as owned and let a 403 flip it (the server is the guard).</li>
+      <li><code>snapshot === null</code> with <code>recoveryError</code>: render history from <code>messages</code>, show the orphaned banner, keep the composer (the next send resumes).</li>
+      <li><code>archived</code> is read from the list row when present; after <code>thread/archive</code> succeeds set it locally.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="dt-turn-types">
+  <header><h4>Turn, usage and trace types</h4><span class="tag exists">exists</span><span class="tag backend">BE-05 BE-11 BE-20 BE-21</span><span class="tag phase">P1</span>
+    <span class="path">shared/contracts.ts · platform/src/public.ts publicTrace</span></header>
+  <div class="body">
+    <p>There is no Turn entity. A turn is a <code>turnId</code> that appears on messages, events, timings, traces and requests.</p>
+    <h4>Data</h4>
+<pre><code>type RuntimeTurnKind = "idle" | "starting" | "running" | "interrupting"; // snapshot.state.kind
+type TurnEndStatus = "completed" | "failed" | "interrupted";
+
+interface TurnTiming {
+  turnId: string; acceptMs: number | null; ttftMs: number | null;
+  streamMs: number; adapterStreamMs: number; idleStreamMs: number; maxGapMs: number;
+  deltaRate: number; finalizeMs: number; totalMs: number; deltaCount: number;
+  nonStreaming: boolean; status: string;   // projected to TurnEndStatus
+}
+interface TurnTrace {
+  turnId: string; startedAt: string; totalMs: number | null;
+  status: string;                  // today free string; BE-05 narrows to TurnEndStatus | "completedWithErrors"
+  model?: string;
+  steps: StepSpan[];               // max 300
+  usage: TurnUsage | null; helperUsage: TokenCounts | null;
+  rateLimits: RateLimitView | null; privacy: PrivacyReport;
+  costUsd?: number;                // BE-11
+  currency?: string;               // BE-11, ISO 4217
+}
+type StepKind = "thinking" | "message" | "command" | "tool" | "fileChange" | "webSearch" | "agent" | "other";
+interface StepSpan {
+  id: string; kind: StepKind;
+  label: string;                   // plain words, ≤120 chars, never raw args
+  agent: string; agentThreadId: string;   // "main" for the main agent
+  startMs: number; durationMs: number | null;
+  status: "running" | "completed" | "failed" | "declined";
+  error?: { message: string; code?: string };   // BE-05
+}
+interface TurnContext { turnId: string; reconstructed: true;
+  sections: { kind: "user" | "toolOutput" | "command" | "fileContent" | "assistant";
+              label: string; text: string; chars: number }[];
+  truncated: boolean }
+interface TraceSummary { turns: number; avgTotalMs: number | null; p95TotalMs: number | null;
+  inputTokens: number; cachedInputTokens: number; outputTokens: number;
+  reasoningOutputTokens: number; helperTokens: number; privacyFindings: number }
+interface SessionTraces { traces: TurnTrace[]; summary: TraceSummary }
+
+interface TokenCounts { inputTokens: number; cachedInputTokens: number; outputTokens: number;
+  reasoningOutputTokens: number; totalTokens: number }
+interface TurnUsage extends TokenCounts {
+  contextWindow: number | null;
+  contextUsedTokens: number | null;    // context fullness
+}
+interface RateLimitView {
+  limitName: string | null;
+  primaryUsedPercent: number | null; primaryWindowMins: number | null; primaryResetsAt: number | null; // epoch s
+  secondaryUsedPercent: number | null; secondaryWindowMins: number | null; secondaryResetsAt: number | null;
+  reached: string | null; at: string;
+}
+type PrivacyKind = "email" | "phone" | "card" | "iban" | "ssn" | "aadhaar" | "pan" | "ip" | "secret";
+type PrivacySource = "userMessage" | "toolOutput" | "command" | "fileContent" | "assistant";
+interface PrivacyFinding {
+  kind: PrivacyKind; source: PrivacySource; count: number;
+  sample: string;                      // masked, ≤24 chars, dev mode only (D-04)
+  resource?: string; agent?: string; stepId?: string;   // BE-20
+}
+interface PrivacyReport { scannedChars: number; findings: PrivacyFinding[] }
+
+type ErrorReason = "rateLimited" | "quota" | "credentials" | "providerDown" | "contextWindow" | "other";
+interface StreamErrorData {            // "error" event data
+  message: string; code: string; reason: ErrorReason;
+  httpStatus?: number; willRetry?: boolean; turnId?: string;
+  resetsAt?: string;                   // BE-21, rateLimited only
+}</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>A turn's failure placement uses the event <code>turnId</code>, else <code>ErrorRef.turnId</code>, else the latest turn (BE-NEW-S2 makes the first always present).</li>
+      <li>Usage shown to the user is <code>contextUsedTokens / contextWindow</code>; hide the meter when either is null.</li>
+      <li>Rate-limit reset: <code>primaryResetsAt</code> is epoch seconds; convert with <code>* 1000</code>.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="dt-misc-types">
+  <header><h4>Files, projects, models, capabilities, user and tenant</h4><span class="tag exists">exists</span><span class="tag backend">BE-14 BE-17</span><span class="tag phase">P1</span>
+    <span class="path">shared/assistant-capabilities.ts · shared/visualizations.ts · lib/projects.ts · platform/src/user.ts, tenant.ts</span></header>
+  <div class="body">
+    <h4>Data</h4>
+<pre><code>interface ConversationFile {           // per conversation, not per message
+  id: string; name: string; size: number; createdAt: string; mediaType: string;
+  sourceId?: string;                   // previous version this revises
+  kind?: "visualization"; title?: string; description?: string; mode?: "inline" | "wide";
+  turnId?: string;                     // BE-14, turn that produced it
+  version?: number;                    // BE-14, 1-based
+}
+interface Visualization { id: string; title: string; description: string; html: string; mode: "inline" | "wide" }
+interface VisualizationState { modelContent: unknown; privateContent: unknown } // ≤16 KiB, per browser
+type DocumentKind = "code" | "text" | "sheet" | "slides" | "document";  // UI, lib/document-kind.ts
+
+interface Project { _id: string; ownerId?: string; name: string /* 1–80 */; createdAt: string; updatedAt: string }
+interface ModelOption { id: string; name: string; provider: string }   // never has credentials
+interface AssistantCapability {
+  id: "explain" | "questions" | "web" | "documents" | "visualize" | "goals" | "collaboration";
+  name: string; description: string; prompt: string;                   // composer prefill
+}
+
+type UserRole = "user" | "admin";      // per tenant membership
+type ChatVisibility = "own" | "all";   // tenant setting, missing = "all"
+interface MeResponse {                 // GET /api/me
+  user: { id: string; email: string; name?: string; picture?: string }; // name, picture: google mode
+  tenant: { id: string; name: string };
+  role: UserRole;
+  tenants: { id: string; name: string; role: UserRole }[];              // dev mode: current only
+}
+// Server-only, never in the browser: ModelProfile (apikey, baseUrl), TenantRef.dbName,
+// UserDocument, MembershipDocument, InviteDocument.</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Upload limits (exists): 1 byte to 1 MB per file, max 50 files and 25 MB per conversation. Accept list <code>.pdf,.docx,.xlsx,.pptx,.txt,.md,.csv,.tsv,.abap,.cds,.json,.xml,.yaml,.sql,.js,.ts</code>.</li>
+      <li>Download of a visualization id returns 400; visualizations open through their own route.</li>
+      <li>Display name for the user: <code>me.user.name</code>, else the part of <code>email</code> before <code>@</code>. Avatar: <code>picture</code>, else initials on <code>--surface-3</code>.</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="dt-turn">The one derived turn state</h3>
+
+<div class="comp" id="dt-derive">
+  <header><h4>deriveTurnState (full version)</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">lib/turn-state.ts · supersedes the 8-state sketch in the Shell part's Topbar block</span></header>
+  <div class="body">
+    <p>One pure function turns page state into one turn state. Every surface that shows "is the assistant doing something" reads it: the topbar pill, the helper chip, the dock badge, the Needs-you count freeze, the sidebar row dot, the composer Send/Stop/Steer and the polite live region.</p>
+    <div class="note"><b>Relation to the Shell part.</b> <a href="#nv-turn-state">Shell: Turn state table</a> defines 8 pill states. This block is the full derivation and <b>supersedes</b> that sketch. It adds two finer states that the pill folds back into the Shell ones: <code>sending</code> shows as Starting, and <code>interrupting</code> shows as Stopping. So the pill labels, tones and priority in the Shell part stay valid. <code>TurnView</code>'s <code>pill</code> field is the Shell's <code>TurnState</code>, and the Shell's field names are kept.</div>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Meaning</th><th>Inputs (after higher rows fail)</th><th>Pill (Shell)</th><th>Composer</th><th>Tag</th></tr></thead><tbody>
+    <tr><td><code>reconnecting</code></td><td>stream is not live</td><td><code>stream.phase</code> is <code>reconnecting</code>, <code>disconnected</code> or <code>resyncing</code></td><td>reconnecting: "Reconnecting…", "Still reconnecting…" after 30s, "Disconnected", "Refreshing…"</td><td>Send allowed (POST works without the stream); Stop kept if <code>running</code></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>failed</code></td><td>last turn ended in error, no retry pending</td><td><code>failure &amp;&amp; !retrying</code></td><td>failed "Failed"</td><td>Send</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>interrupting</code></td><td>server accepted the stop, turn still closing</td><td><code>running &amp;&amp; (stop.phase === "acked" || runtime.kind === "interrupting")</code></td><td>stopping "Stopping"</td><td>Stop disabled, Steer hidden, Send queues</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td><code>stopping</code></td><td>Stop pressed, interrupt POST in flight</td><td><code>running &amp;&amp; stop.phase === "requested"</code></td><td>stopping "Stopping"</td><td>Stop shows spinner, disabled</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td><code>waiting</code></td><td>turn blocked on a person</td><td><code>running &amp;&amp; pending.length &gt; 0</code></td><td>waiting "Waiting on you" (viewer: "Waiting on {ownerName}")</td><td>Send queues; Steer allowed</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td><code>working</code></td><td>turn streaming</td><td><code>running</code> (label: <code>retrying</code> › goal active › plain)</td><td>working "Working" · "Working on goal" · "Retrying…"</td><td>Stop, Steer, Send queues</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>starting</code></td><td>message accepted, no <code>turn.started</code> yet</td><td><code>send.phase === "accepted"</code> or <code>runtime.kind === "starting"</code></td><td>starting "Starting"</td><td>Stop enabled (interrupt works after accept)</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td><code>sending</code></td><td>POST in flight, no <code>turnId</code> yet</td><td><code>busy &amp;&amp; send.phase === "posting"</code></td><td>starting "Starting"</td><td>textarea and Send disabled; no Stop</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td><code>interrupted</code></td><td>last turn was stopped</td><td><code>lastTurnEnd === "interrupted"</code></td><td>interrupted "Stopped"</td><td>Send</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>idle</code></td><td>nothing happening</td><td>otherwise</td><td>idle "Ready"</td><td>Send</td><td><span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <p><b>Priority</b> (first match wins): <code>reconnecting</code> › <code>failed</code> › <code>interrupting</code> › <code>stopping</code> › <code>waiting</code> › <code>working</code> › <code>starting</code> › <code>sending</code> › <code>interrupted</code> › <code>idle</code>. Folding <code>interrupting</code> into stopping and <code>sending</code> into starting gives exactly the Shell order.</p>
+    <h4>Data</h4>
+<pre><code>// lib/turn-state.ts
+export type TurnStateFull =
+  | "idle" | "sending" | "starting" | "working" | "waiting"
+  | "stopping" | "interrupting" | "interrupted" | "failed" | "reconnecting";
+export type TurnState =                       // the Shell pill state, unchanged
+  | "idle" | "starting" | "working" | "waiting"
+  | "stopping" | "interrupted" | "failed" | "reconnecting";
+
+export interface TurnInputs {
+  running: boolean;                           // exists: turn.started seen, turn.completed not yet
+  busy: boolean;                              // exists: a request is in flight
+  status: StreamStatus;                       // exists: "Connected" | "Reconnecting" | "Disconnected" | "Mock" | "Not connected"
+  stream: StreamHealth;                       // derive: see connection state machine
+  slowReconnect: boolean;                     // exists: 30s in reconnecting
+  retrying: boolean;                          // exists: error with willRetry: true, no turn.completed yet
+  pending: PendingRequest[];                  // exists
+  goal: Goal | null;                          // exists
+  failure: TurnFailure | null;                // exists
+  runtime: { kind: RuntimeTurnKind; turnId?: string } | null;  // snapshot.state, updated by events
+  send: { phase: "idle" | "posting" | "accepted"; clientId?: string; turnId?: string }; // derive
+  stop: { phase: "idle" | "requested" | "acked"; at?: number };                         // derive
+  lastTurnEnd: TurnEndStatus | null;          // derive: from the last turn.completed
+  isOwner: boolean;                           // derive: see Auth
+  ownerName?: string;                         // BE-09
+}
+
+export interface TurnView {
+  full: TurnStateFull;
+  state: TurnState;                           // Shell name; pill, sidebar dot and dock read this
+  label: string;
+  indicator: "dot" | "spinner";
+  tone: "idle" | "accent" | "warn" | "bad";
+  pulse: boolean;                             // false under prefers-reduced-motion
+  frozen: boolean;                            // reconnecting: counts hold their last value
+  canStop: boolean; canSteer: boolean; sendQueues: boolean;
+}
+
+const PILL: Record&lt;TurnStateFull, TurnState&gt; = {
+  idle: "idle", sending: "starting", starting: "starting", working: "working",
+  waiting: "waiting", stopping: "stopping", interrupting: "stopping",
+  interrupted: "interrupted", failed: "failed", reconnecting: "reconnecting",
+};
+
+export function deriveFull(i: TurnInputs): TurnStateFull {
+  // "idle" (no session) and "connecting" (first open) are not trouble
+  if (i.stream.phase === "reconnecting" || i.stream.phase === "disconnected"
+      || i.stream.phase === "resyncing") return "reconnecting";
+  if (i.failure &amp;&amp; !i.retrying) return "failed";
+  if (i.running &amp;&amp; (i.stop.phase === "acked" || i.runtime?.kind === "interrupting")) return "interrupting";
+  if (i.running &amp;&amp; i.stop.phase === "requested") return "stopping";
+  if (i.running &amp;&amp; i.pending.length &gt; 0) return "waiting";
+  if (i.running) return "working";
+  if (i.send.phase === "accepted" || i.runtime?.kind === "starting") return "starting";
+  if (i.busy &amp;&amp; i.send.phase === "posting") return "sending";
+  if (i.lastTurnEnd === "interrupted") return "interrupted";
+  return "idle";
+}
+
+export function deriveTurnState(i: TurnInputs): TurnView {
+  const full = deriveFull(i);
+  return view(full, PILL[full], i);           // label, tone, indicator from the Shell table
+}
+
+function reconnectLabel(i: TurnInputs): string {
+  switch (i.stream.phase) {
+    case "disconnected": return "Disconnected";
+    case "resyncing":    return "Refreshing…";
+    default:             return i.slowReconnect ? "Still reconnecting…" : "Reconnecting…";
+  }
+}</code></pre>
+    <h4>Transitions (who sets each input)</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Event</th><th>Sets</th></tr></thead><tbody>
+    <tr><td>Send pressed (not queued)</td><td><code>busy = true</code>, <code>send = { phase: "posting", clientId }</code>, <code>failure = null</code>, <code>lastTurnEnd = null</code></td></tr>
+    <tr><td>POST <code>/messages</code> 202, <code>steer: false</code></td><td><code>send = { phase: "accepted", turnId }</code>, <code>busy = false</code></td></tr>
+    <tr><td>POST 202, <code>steer: true</code></td><td>no turn change; <code>send.phase = "idle"</code>; the message joins the running turn</td></tr>
+    <tr><td>POST fails</td><td><code>send.phase = "idle"</code>, <code>busy = false</code>; the message row shows <code>delivery: "failed"</code></td></tr>
+    <tr><td><code>turn.started</code></td><td><code>running = true</code>, <code>runtime = { kind: "running", turnId }</code>, <code>send.phase = "idle"</code>, <code>failure = null</code>, <code>stop.phase = "idle"</code></td></tr>
+    <tr><td>Stop pressed</td><td><code>stop = { phase: "requested", at: now }</code></td></tr>
+    <tr><td>POST <code>/interrupt</code> ok</td><td><code>stop.phase = "acked"</code></td></tr>
+    <tr><td>POST <code>/interrupt</code> fails</td><td><code>stop.phase = "idle"</code>; inline error under Stop "Couldn't stop. Try again."</td></tr>
+    <tr><td><code>error</code> with <code>willRetry: true</code></td><td><code>retrying = true</code></td></tr>
+    <tr><td><code>error</code> with <code>willRetry</code> false or missing</td><td><code>retrying = false</code>, <code>failure = { reason, message, httpStatus }</code></td></tr>
+    <tr><td><code>turn.completed</code></td><td><code>running = false</code>, <code>runtime.kind = "idle"</code>, <code>retrying = false</code>, <code>stop.phase = "idle"</code>, <code>lastTurnEnd = turn.status</code>; <code>failed</code> also sets <code>failure</code> from <code>turn.error</code></td></tr>
+    <tr><td><code>snapshot</code></td><td><code>runtime = state</code>; <code>running = kind === "running" || kind === "interrupting"</code>; <code>pending = snapshot.pending</code>; <code>stop.phase = kind === "interrupting" ? "acked" : "idle"</code></td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Stop watchdog: if <code>stop.phase</code> is not idle 15000ms after <code>stop.at</code> and no <code>turn.completed</code> arrived, reload history (<code>GET /api/sessions/:id</code>) and hydrate from its snapshot. <span class="tag proposal">proposal</span> D-NEW-D3</li>
+      <li>Starting watchdog: if <code>send.phase === "accepted"</code> for 30000ms with no <code>turn.started</code> and the stream is connected, reload history once. <span class="tag proposal">proposal</span> D-NEW-D3</li>
+      <li>Reconnecting wins over everything because every other input may be stale while the stream is down. Counts (<code>frozen</code>) hold their last value.</li>
+      <li>Viewer: the same function runs for viewers; <code>canStop</code>, <code>canSteer</code> and Send are false when <code>!isOwner</code>, and the waiting label uses <code>ownerName</code> (fallback "the owner").</li>
+      <li>Pure: no timers, no <code>Date.now()</code> inside. Timers live in the hook <code>useTurnState()</code> that feeds it.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Live region text is written by the Shell (<a href="#nv-topbar">Topbar</a>) on <code>state</code> change, not <code>full</code> change, so sending → starting → working says "Working" once.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>A unit test exists for every row, and for these overlaps: reconnecting with pending, failed with running, interrupting with pending, stopping with pending, starting with lastTurnEnd interrupted.</li>
+      <li><code>PILL[deriveFull(i)]</code> equals the Shell <code>deriveTurnState</code> result for every input the Shell table defines.</li>
+      <li>Between Send and the 202, Stop is not shown; between the 202 and <code>turn.started</code>, Stop is shown and works.</li>
+      <li>A reload during an interrupt shows Stopping (from <code>snapshot.state.kind === "interrupting"</code>), not Working.</li>
+      <li>A steer send never changes the pill.</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="dt-stream">Streaming protocol</h3>
+<p>Server-Sent Events through the browser <code>EventSource</code> at <code>GET /api/sessions/:id/events[?cursor=&lt;cursor&gt;]</code>. The platform proxies agent-core's thread SSE, passes <code>Last-Event-ID</code> (or <code>cursor</code>) upstream and filters every frame through <code>publicEvent()</code>.</p>
+<dl class="kv">
+  <dt>Frame</dt><dd><code>id: &lt;cursor&gt;\ndata: &lt;JSON DomainEvent&gt;\n\n</code></dd>
+  <dt>Heartbeat</dt><dd>SSE comment <code>: heartbeat</code>; the browser ignores it</dd>
+  <dt>Fatal end</dt><dd>named <code>event: stream.error</code> with <code>{ code: "STREAM_FAILED" | "STREAM_ENDED", error, requestId? }</code>, then close</dd>
+  <dt>Limits</dt><dd>unknown or malformed frames dropped server-side; a frame over 4 MB kills the stream</dd>
+  <dt>Ordering</dt><dd>monotonic <code>seq</code>, opaque <code>cursor</code>. A fresh connection starts with <code>snapshot</code>, then deltas</dd>
+  <dt>Resume</dt><dd>last <code>lastEventId</code> saved in <code>sessionStorage["cursor:&lt;sessionId&gt;"]</code>, sent as <code>?cursor=</code> on the next subscribe; the browser's own retry sends <code>Last-Event-ID</code></dd>
+</dl>
+<pre><code>interface DomainEvent {
+  type: DomainType; seq: number; cursor: string; at: string;  // ISO
+  threadId: string;   // not copied by publicEvent(): absent in the browser
+  turnId?: string; itemId?: string;
+  data: Record&lt;string, any&gt;;
+}</code></pre>
+
+<h4 id="dt-events">Event table</h4>
+<div class="tw"><table class="tbl"><thead><tr><th>type</th><th>data</th><th>UI reaction</th><th>Updates</th><th>Tag</th></tr></thead><tbody>
+<tr><td><code>snapshot</code></td><td><code>PublicSnapshot</code></td><td>Replace live state: runtime state, pending, plan, goal, rate limits, helpers, thinking. Merge <code>messages</code> into entries by id (never drop rendered history). Clear the resync skeleton</td><td>Home reducer; every live surface</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>resync.required</code></td><td><code>{ reason }</code></td><td>Enter <code>resyncing</code>: show the tail skeleton, reload <code>GET /api/sessions/:id</code>, clear the saved cursor, resubscribe without cursor</td><td>ResyncSkeleton, pill "Refreshing…"</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>turn.started</code></td><td><code>{}</code>, <code>turnId</code> on envelope</td><td><code>running = true</code>; add the answer placeholder; start the turn clock</td><td>Pill, Composer (Stop, Steer, queue), <a href="#sm-placeholder">placeholder</a>, sidebar dot</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>message.delta</code></td><td><code>{ delta, messageIndex? }</code></td><td>Append to the streaming message for <code>(turnId, messageIndex)</code>; follow-scroll rule applies</td><td><a href="#sm-agent">Agent message</a></td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>message.final</code></td><td><code>{ text, messageIndex? }</code></td><td>Replace text, set <code>final: true</code>; shadow-message guard runs</td><td>Agent message, answer actions</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>reasoning.delta</code></td><td><code>{ delta, method }</code></td><td>Append to the open thinking block; <code>summaryTextDelta</code> goes to <code>summary</code>, <code>textDelta</code> to <code>raw</code></td><td><a href="#sm-thinking">Thinking</a></td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>item.started</code> / <code>item.completed</code> (reasoning)</td><td><code>{ item: { id, type: "reasoning", summary[] } }</code></td><td>Open / close a thinking block</td><td>Thinking</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>item events for tools, commands, files</td><td>not public today</td><td>Live work-log steps</td><td><a href="#sm-workgroup">Work group</a></td><td><span class="tag backend">BE-04</span></td></tr>
+<tr><td><code>activity.updated</code></td><td><code>{ label }</code></td><td>Replace the status line text for the running turn</td><td>Work group header, placeholder label</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>plan.updated</code></td><td><code>{ plan, explanation? }</code></td><td>Replace plan</td><td><a href="#sm-plansteps">Plan steps</a>, plan request card</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>goal.updated</code></td><td><code>{ goal }</code></td><td>Replace goal; <code>tokensObserved</code> kept as max</td><td><a href="#ag-goal-strip">Goal strip</a>, pill label</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>goal.cleared</code></td><td><code>{}</code></td><td><code>goal = null</code></td><td>Goal strip hides</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>approval.requested</code></td><td><code>PendingRequest</code></td><td>Push to <code>pending</code> (dedupe by <code>requestId</code>); dock shows card; pill Waiting</td><td><a href="#rq-dock">RequestDock</a>, Needs you, dock badge</td><td><span class="tag exists">exists</span>; turnId BE-02</td></tr>
+<tr><td><code>approval.resolved</code></td><td><code>{ requestId, audit? }</code></td><td>Remove from <code>pending</code>; append audit entry to its turn</td><td>RequestDock, <a href="#rq-audit">audit row</a></td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>subagent.spawned</code> / <code>.status</code> / <code>.completed</code></td><td><code>{ agent: SubAgent, label, tool? }</code></td><td>Upsert helper by <code>threadId</code>; add or update the agents entry of the turn</td><td><a href="#ag-helpers">Helpers</a>, helper chip</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>subagent.event</code></td><td><code>{ agentThreadId, agentPath, nickname, role, depth, kind, delta?, text?, itemId? }</code></td><td>Append to the helper's live transcript</td><td>Helper detail</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>usage.updated</code></td><td><code>{ usage: TurnUsage }</code></td><td>Replace live usage</td><td>Context meter, token counts</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>limits.updated</code></td><td><code>{ rateLimits }</code></td><td>Replace rate limits</td><td>Rate-limit meter</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>error</code></td><td><code>StreamErrorData</code></td><td><code>willRetry: true</code>: <code>retrying = true</code>, pill Retrying, no banner. Else: set <code>failure</code>, show the failure card in the turn</td><td>Pill, <a href="#sm-failure">TurnFailureCard</a></td><td><span class="tag exists">exists</span>; turnId BE-NEW-S2; resetsAt BE-21</td></tr>
+<tr><td><code>turn.completed</code></td><td><code>{ timing?, trace?, turn: { status, error? } }</code></td><td><code>running = false</code>; mark entries done; store timing and trace; set <code>lastTurnEnd</code>; dispatch the queue</td><td>Pill, composer, receipt, Activity, sidebar dot, queue</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>mcp.status</code></td><td>dropped today; BE-06: <code>{ profileId, name, state, toolCount, authRequired }</code></td><td>Update tool health</td><td>Tool-health dot, Connected tools</td><td><span class="tag backend">BE-06</span></td></tr>
+<tr><td><code>diff.updated</code></td><td>dropped today</td><td>Update the changes view</td><td>Work group file changes</td><td><span class="tag backend">BE-04</span></td></tr>
+<tr><td><code>session.updated</code></td><td>not in <code>DomainType</code>; proposed <code>{ status, archived }</code></td><td>Switch session banner without a reload</td><td><a href="#dt-banners">Session banners</a></td><td><span class="tag backend">BE-NEW-D2: session status event</span></td></tr>
+<tr><td><code>stream.error</code> (named SSE event)</td><td><code>{ code, error, requestId? }</code></td><td>Close; enter <code>disconnected</code>; show the disconnected banner</td><td>DisconnectedBanner, pill</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>never emitted to browser</td><td><code>session.created</code>, <code>thread.started</code>, <code>runtime.event</code>, other item events</td><td>none</td><td></td><td><span class="tag exists">exists</span></td></tr>
+</tbody></table></div>
+<p>Typical order: <code>turn.started</code> → (<code>reasoning.delta</code>* / reasoning items / <code>activity.updated</code>* / <code>plan.updated</code> / <code>approval.requested</code> → <code>approval.resolved</code> / <code>subagent.*</code>)* → <code>message.delta</code>* → <code>message.final</code> → <code>usage.updated</code> / <code>limits.updated</code> → <code>turn.completed</code>. A steer send joins the running turn and emits no new <code>turn.started</code>. The mock transport (<code>lib/mock.ts</code>) plays turn.started, reasoning.delta, approval.requested (15s expiry), approval.resolved, word-by-word message.delta (100ms), message.final, usage.updated, turn.completed, and reports status <code>"Mock"</code>.</p>
+<ul>
+  <li>Reducer rule: events are applied in <code>seq</code> order. An event with <code>seq</code> at or below the last applied one is ignored (duplicate after reconnect). <span class="tag derive">derive</span></li>
+  <li>An unparseable frame calls <code>handlers.onResync()</code> without advancing the cursor (exists); treat it exactly like <code>resync.required</code>.</li>
+  <li>The streaming answer is never in a live region. It carries <code>aria-busy="true"</code> while deltas arrive.</li>
+</ul>
+
+<div class="comp" id="dt-conn">
+  <header><h4>Connection state machine</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">lib/transport.ts subscribe() · new lib/use-stream-health.ts</span></header>
+  <div class="body">
+    <p>Today the stream exposes one string, <code>status</code>. v3 wraps it in a small machine so the pill, banners and skeleton read one value with a reason and a ref. <code>status</code> stays for compatibility and is derived from <code>phase</code>.</p>
+    <h4>Data</h4>
+<pre><code>type StreamStatus = "Connected" | "Reconnecting" | "Disconnected" | "Mock" | "Not connected"; // exists
+type StreamPhase =
+  | "idle"          // no session open (draft)
+  | "connecting"    // first subscribe, before onopen
+  | "connected"     // onopen, snapshot received or pending
+  | "reconnecting"  // onerror while EventSource retries, or error willRetry at transport level
+  | "resyncing"     // resync.required or unparseable frame; reloading history
+  | "disconnected"; // CLOSED, or after stream.error
+interface StreamHealth {
+  phase: StreamPhase;
+  since: number;                              // ms epoch of the last phase change
+  code?: "STREAM_FAILED" | "STREAM_ENDED" | string;   // from stream.error
+  message?: string;                           // server error text, verbatim
+  requestId?: string;
+  attempts: number;                           // reconnect attempts in this outage
+  hydrated: boolean;                          // a snapshot arrived on the current connection
+}</code></pre>
+    <h4>Transitions</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>From</th><th>Trigger</th><th>To</th><th>Side effects</th></tr></thead><tbody>
+    <tr><td>idle</td><td>session opened, <code>subscribe()</code></td><td>connecting</td><td>read <code>cursor:&lt;id&gt;</code>; <code>hydrated = false</code></td></tr>
+    <tr><td>connecting / reconnecting</td><td><code>onopen</code></td><td>connected</td><td><code>status = "Connected"</code>, <code>attempts = 0</code>, clear <code>slowReconnect</code></td></tr>
+    <tr><td>connected</td><td><code>snapshot</code> event</td><td>connected</td><td><code>hydrated = true</code>; apply snapshot</td></tr>
+    <tr><td>connected</td><td><code>onerror</code>, <code>readyState === CONNECTING</code></td><td>reconnecting</td><td><code>status = "Reconnecting"</code>; start 30000ms timer for <code>slowReconnect</code></td></tr>
+    <tr><td>reconnecting</td><td>30000ms elapsed</td><td>reconnecting</td><td><code>slowReconnect = true</code>; show the slow reconnect banner</td></tr>
+    <tr><td>any open</td><td><code>onerror</code>, <code>readyState === CLOSED</code></td><td>disconnected</td><td><code>status = "Disconnected"</code>, no code</td></tr>
+    <tr><td>any open</td><td><code>stream.error</code></td><td>disconnected</td><td>store <code>code</code>, <code>message</code>, <code>requestId</code>; close the EventSource</td></tr>
+    <tr><td>connected / reconnecting</td><td><code>resync.required</code> or unparseable frame</td><td>resyncing</td><td>clear saved cursor; <code>GET /api/sessions/:id</code>; hydrate from its snapshot; resubscribe without cursor</td></tr>
+    <tr><td>resyncing</td><td>history loaded and new <code>snapshot</code> received</td><td>connected</td><td>remove skeleton</td></tr>
+    <tr><td>resyncing</td><td>history load fails</td><td>disconnected</td><td>message from <code>userMessage(err)</code></td></tr>
+    <tr><td>disconnected</td><td>Reconnect (button, topbar, or auto on <code>online</code> / tab visible)</td><td>connecting</td><td>bump <code>streamKey</code>; fresh <code>subscribe()</code> with saved cursor</td></tr>
+    <tr><td>any</td><td>401 on subscribe or sibling call</td><td>disconnected</td><td>open sign-in sheet; resubscribe after sign-in</td></tr>
+    <tr><td>any</td><td>session closed or switched</td><td>idle</td><td>close EventSource, keep cursor</td></tr>
+    </tbody></table></div>
+    <pre><code>idle ─subscribe→ connecting ─onopen→ connected ─snapshot→ connected(hydrated)
+connected ─onerror(CONNECTING)→ reconnecting ─onopen→ connected
+                                reconnecting ─30s→ reconnecting(slow)
+connected|reconnecting ─resync.required→ resyncing ─snapshot→ connected
+any ─stream.error | CLOSED→ disconnected ─Reconnect→ connecting</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Auto-reconnect from <code>disconnected</code>: on <code>window.online</code> and on <code>visibilitychange</code> to visible, at most once per 10000ms. <code>STREAM_ENDED</code> also retries once after 3000ms (copy says "Reconnect in a moment"). <code>STREAM_FAILED</code> never auto-retries. <span class="tag proposal">proposal</span> D-NEW-D4</li>
+      <li>The EventSource's own retry interval is the browser default; the client does not set <code>retry:</code>.</li>
+      <li>Snapshot hydration keeps rendered entries: messages are merged by id, and entries after the last snapshot message are kept only if they are final. Pending, plan, goal, helpers and rate limits are replaced whole.</li>
+      <li><code>willRetry</code> on an <code>error</code> event is a provider retry, not a transport state; it does not change <code>phase</code>. It sets <code>retrying</code> (see <a href="#dt-derive">derivation</a>).</li>
+      <li>POST calls do not wait on the stream. Send while reconnecting still posts; the answer arrives when the stream is back.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Killing the platform for 5s shows Reconnecting and then recovers with no duplicate messages.</li>
+      <li>After 30s of reconnecting the pill reads "Still reconnecting…".</li>
+      <li>A <code>stream.error</code> STREAM_FAILED shows the disconnected banner with the server text and does not reconnect on its own.</li>
+      <li>A <code>resync.required</code> keeps every rendered turn on screen and shimmers only the tail.</li>
+      <li>An event with a lower <code>seq</code> than the last applied one changes nothing.</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="dt-health">Streaming health UI</h3>
+<p>The rule from the Edge states board: the pill carries transient trouble, and banners are only for states that need you. Each banner has exactly one recovery action. All banners share one frame, <code>HealthBanner</code>, placed at the top of the chat column under the topbar, above the first message, sticky at <code>--z-sticky</code>. Only one banner shows at a time; priority is sign-in sheet (modal) › disconnected › dead › orphaned › slow reconnect › archived. The 403 toast and the interrupting state are not banners.</p>
+
+<div class="comp" id="dt-banner">
+  <header><h4>HealthBanner (shared frame)</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">new components/v2/health-banner.tsx · styles/v2/states.css</span></header>
+  <div class="body">
+    <div class="specimen" aria-hidden="true"><div class="dt-stack">
+      <div class="dt-ban warn"><div class="dt-ban-tx"><b>Still reconnecting…</b><span>Live updates paused. Your messages still send.</span></div></div>
+      <div class="dt-ban bad"><div class="dt-ban-tx"><b>Live updates stopped</b><span>The assistant service stopped live updates, usually for a restart. Reconnect in a moment.</span><span class="dt-ref">Example ref: STREAM_ENDED · req_2d9e0</span></div><span class="dt-btn fill">Reconnect</span></div>
+      <div class="dt-ban"><div class="dt-ban-tx"><b>Archived</b><span>Hidden from your list.</span></div><span class="dt-btn">Unarchive</span></div>
+    </div></div>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Frame</td><td>flex, align center, gap 10px, wrap; padding 9px 12px; radius 12px; border 1px; 13px text; max-width 740px (chat column); margin <code>--sp-3</code> above the first message</td><td><span class="tag proposal">proposal</span> D-01 (wireframe <code>.ss-ban</code>)</td></tr>
+    <tr><td>Text block</td><td>flex <code>1 1 180px</code>, min-width 0, column, gap 1px; title 13/600; body 12px</td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Ref line</td><td>mono 11px, <code>{code} · {requestId}</code>, uses <a href="#sm-errorref">ErrorRef</a> rules; omitted when both empty</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Action</td><td>one button, height 26px, padding 0 8px, 12px/500, radius 8px. Primary action filled <code>--accent-fg</code></td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Mobile (≤720)</td><td>full width minus 16px gutters; button wraps under the text</td><td><span class="tag derive">derive</span></td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>neutral</dt><dd>bg <code>--surface-2</code>, border <code>--line</code>, text <code>--ink-2</code></dd><dt>warn</dt><dd>bg <code>--warn-bg</code>, text <code>--warn-text</code>, border <code>color-mix(in srgb, var(--warn) 35%, transparent)</code></dd><dt>bad</dt><dd>bg <code>--bad-bg</code>, text <code>--bad</code>, border <code>color-mix(in srgb, var(--bad) 30%, transparent)</code></dd><dt>info</dt><dd>bg <code>--accent-soft</code>, text <code>--accent-fg</code></dd><dt>primary button</dt><dd><code>--accent-fg</code> fill, <code>--on-accent</code> text</dd><dt>ref</dt><dd><code>--ink-2</code> (11px)</dd></dl>
+    <h4>Data</h4>
+<pre><code>interface HealthBannerProps {
+  kind: "slowReconnect" | "disconnected" | "orphaned" | "dead" | "archived" | "viewer";
+  tone: "neutral" | "warn" | "bad" | "info";
+  title: string; body?: string;
+  errorRef?: ErrorRef | null;
+  action?: { label: string; run: () =&gt; void; busy?: boolean; primary?: boolean };
+}</code></pre>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Frame <code>role="status"</code> for neutral, info and warn; <code>role="alert"</code> for bad (disconnected, dead), announced once on mount.</li>
+      <li>The action button is in the tab order right after the topbar. It never takes focus on its own.</li>
+      <li>Action busy: <code>aria-busy="true"</code>, label unchanged, spinner static under reduced motion.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Two conditions at once show only the higher-priority banner.</li>
+      <li>No banner shows more than one button.</li>
+      <li>At 400px the banner has no horizontal scroll and the button wraps below the text.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="dt-reconnecting">
+  <header><h4>Reconnecting (pill, then banner)</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">Topbar pill · HealthBanner kind="slowReconnect"</span></header>
+  <div class="body">
+    <p>A dropped stream first shows only in the pill. After 30s it earns a warn banner, because that is when a person should know live updates are not arriving.</p>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Reconnecting</td><td><code>phase === "reconnecting"</code>, under 30s</td><td>pill warn dot, pulse. No banner, no button</td><td>pill "Reconnecting…"</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Provider retrying</td><td><code>error</code> with <code>willRetry: true</code></td><td>pill accent, label only. No banner</td><td>pill "Retrying…"; tooltip is the event <code>message</code> plus <code>{code} · {requestId}</code></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Slow reconnect</td><td><code>slowReconnect</code></td><td>pill "Still reconnecting…"; warn banner</td><td>title "Still reconnecting…"; body "Live updates paused. Your messages still send."</td><td><span class="tag proposal">proposal</span> D-NEW-D5</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>No action button: the browser is already retrying. The banner clears on <code>onopen</code>.</li>
+      <li>Needs-you count, dock badges and helper chip are frozen (<code>turn.frozen</code>).</li>
+      <li>Composer stays usable; Send posts normally.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A 5s drop never shows a banner. A 31s drop shows it, and it disappears within one frame of reconnecting.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="dt-disconnected">
+  <header><h4>Disconnected banner with Reconnect</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">HealthBanner kind="disconnected" · replaces the topbar-only Reconnect</span></header>
+  <div class="body">
+    <p>The stream is closed and will not come back without a new <code>subscribe()</code>.</p>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Cause</th><th>Title</th><th>Body</th><th>Action</th></tr></thead><tbody>
+    <tr><td><code>stream.error</code> STREAM_ENDED</td><td>"Live updates stopped"</td><td>server <code>error</code> verbatim; fallback "The assistant service stopped live updates, usually for a restart. Reconnect in a moment."</td><td>Reconnect</td></tr>
+    <tr><td><code>stream.error</code> STREAM_FAILED</td><td>"Live updates stopped"</td><td>server <code>error</code>; fallback "Live updates stopped unexpectedly. Reopen the conversation to reconnect."</td><td>Reconnect</td></tr>
+    <tr><td>CLOSED without a code</td><td>"Disconnected"</td><td>"Live updates stopped. Reconnect to catch up."</td><td>Reconnect</td></tr>
+    <tr><td>Resync history load failed</td><td>"Couldn't refresh this conversation"</td><td><code>userMessage(err, …)</code></td><td>Reconnect</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Reconnect: set phase connecting (pill "Reconnecting…"), bump <code>streamKey</code>, call <code>subscribe()</code> with the saved cursor. Button busy until <code>onopen</code> or the next failure. The topbar Reconnect button (exists) calls the same function; with the banner showing, the topbar button is hidden to keep one action.</li>
+      <li>STREAM_FAILED copy says "Reopen the conversation". Reconnect does exactly that from the client side, so the button label stays "Reconnect".</li>
+      <li>The ref line shows <code>code · requestId</code>.</li>
+    </ul>
+    <h4>Copy</h4>
+    <p>Button "Reconnect". Busy label unchanged. The "Reconnect in a moment" timer is in <a href="#dt-conn">Connection</a>.</p>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>The banner text for STREAM_ENDED and STREAM_FAILED is the server <code>error</code> string when present.</li>
+      <li>Pressing Reconnect twice quickly opens one EventSource.</li>
+      <li>After reconnect, events missed during the outage appear (cursor resume) or a resync runs.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="dt-resync">
+  <header><h4>Resync skeleton</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">new components/v2/resync-skeleton.tsx · rendered at the end of ChatMessages</span></header>
+  <div class="body">
+    <p>Shown while history reloads after <code>resync.required</code> or an unparseable frame. Rendered turns stay; only the tail shimmers, so the reader keeps their place.</p>
+    <div class="specimen" aria-hidden="true"><div class="dt-sk"><i style="width:90%"></i><i style="width:72%"></i><i class="b"></i><i style="width:84%"></i></div></div>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>Layout</dt><dd>column, gap 7px, after the last rendered entry</dd><dt>Lines</dt><dd>3 bars, height 9px, radius 999px, widths 90%, 72%, 84%</dd><dt>User bubble</dt><dd>one bar 30px tall, radius 10px, width 60%, aligned end</dd><dt>Motion</dt><dd>shimmer 1.4s linear infinite, gradient <code>--surface-3</code> to 40% mix with <code>--bg</code>; static <code>--surface-3</code> under reduced motion</dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Shown</td><td><code>phase === "resyncing"</code></td><td>skeleton at the tail; pill "Refreshing…"</td><td>sr-only "Refreshing conversation"</td></tr>
+    <tr><td>Hidden</td><td>new snapshot applied</td><td>removed, no fade</td><td></td></tr>
+    <tr><td>Failed</td><td>history load error</td><td>removed; disconnected banner</td><td>see Disconnected</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul><li>Scroll position is kept: the skeleton appears below the viewport's content and does not trigger follow-scroll unless the reader was already following.</li><li>Composer stays enabled; a send during resync is posted normally.</li></ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li><code>aria-hidden="true"</code> on the bars; one <code>.sr-only</code> <code>role="status"</code> text "Refreshing conversation". The message list gets <code>aria-busy="true"</code> while shown.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>During a resync the previously rendered turns do not flicker or re-mount (keys stable).</li><li>Reduced motion shows static bars.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="dt-interrupting">
+  <header><h4>Interrupting state</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">Composer Stop button · Topbar pill · work group note</span></header>
+  <div class="body">
+    <p>After Stop, output can keep arriving while the runtime finishes its current step. This state tells the reader why and prevents a second stop.</p>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Full state</th><th>Trigger</th><th>Stop button</th><th>Pill</th><th>Note under the running turn</th></tr></thead><tbody>
+    <tr><td><code>stopping</code></td><td>Stop pressed</td><td>spinner, disabled</td><td>"Stopping"</td><td>none</td></tr>
+    <tr><td><code>interrupting</code></td><td>interrupt ack, or <code>snapshot.state.kind === "interrupting"</code></td><td>disabled</td><td>"Stopping"</td><td>"Finishing the current step, then the turn ends."</td></tr>
+    <tr><td>ended</td><td><code>turn.completed</code> status interrupted</td><td>hidden, Send shows</td><td>"Stopped"</td><td>removed</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Deltas that arrive while interrupting are still rendered.</li>
+      <li>Pending requests resolve as <code>interrupted</code> through <code>approval.resolved</code>; the dock does not clear them on its own.</li>
+      <li>Watchdog at 15000ms reloads history (D-NEW-D3).</li>
+      <li>The wireframe names a helper ("Juno finishes its current write"). That is example text. The note uses no helper name unless <code>activity.updated.label</code> is available, in which case it reads "{label}. The turn ends after this step."</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Stop keeps focus while disabled (<code>aria-disabled="true"</code>, not <code>disabled</code>) so focus is not lost. Its name becomes "Stopping".</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Pressing Stop twice sends one interrupt POST.</li><li>The pill never shows Working between Stop and <code>turn.completed</code>.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="dt-signin">
+  <header><h4>Session-expired sheet (401)</h4><span class="tag derive">derive</span><span class="tag backend">BE-01</span><span class="tag phase">P1</span>
+    <span class="path">new components/v2/signin-sheet.tsx · opened by api() onAuthError</span></header>
+  <div class="body">
+    <p>Any foreground 401 <code>UNAUTHENTICATED</code> in google mode opens a modal sheet. The chat and the draft stay in memory underneath.</p>
+    <div class="specimen" aria-hidden="true"><div class="dt-sheet"><b>Sign in to keep going</b><span>Your session timed out. Your chat and draft are saved.</span><span class="dt-btn fill">Sign in with Google</span><span class="dt-ref">Example ref: UNAUTHENTICATED · 401</span></div></div>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>Container</dt><dd>the shared <a href="#nv-sheet">Sheet</a> in its centred dialog form on desktop (width min(400px, 100vw − 32px)) and bottom-sheet form ≤720; padding 12px; gap 8px; radius 14px 14px 10px 10px</dd><dt>Title</dt><dd>14px/600 <code>--ink</code></dd><dt>Body</dt><dd>13px <code>--ink-2</code></dd><dt>Button</dt><dd>full width, height 36px, <code>--accent-fg</code> fill</dd><dt>Ref</dt><dd>mono 11px <code>--ink-2</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Title / body</th><th>Action</th></tr></thead><tbody>
+    <tr><td>Expired</td><td>401 <code>UNAUTHENTICATED</code>, google mode</td><td>"Sign in to keep going" / "Your session timed out. Your chat and draft are saved."</td><td>"Sign in with Google"</td></tr>
+    <tr><td>Workspace access lost</td><td>403 <code>NOT_A_MEMBER</code> or <code>TENANT_DISABLED</code></td><td>"You no longer have access to this workspace" / server <code>error</code></td><td>"Switch workspace" (opens switcher; hidden when <code>tenants.length &lt; 2</code>, then "Sign out")</td></tr>
+    <tr><td>Dev mode</td><td>401 with <code>AUTH_MODE=dev</code></td><td>no sheet; the caller's error shows</td><td></td></tr>
+    <tr><td>Cross-origin misconfig</td><td>401 on every call right after a successful sign-in</td><td>same as Expired; logged with <code>warnFailure("auth-loop")</code> once</td><td>same; after 2 loops in 60s the body adds "If this keeps happening, contact your admin."</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Open once: concurrent 401s share one sheet.</li>
+      <li>Before redirecting, save the draft to <code>sessionStorage["truex.draft." + sessionId]</code> (key <code>"truex.draft.new"</code> for a draft chat), and the open session id. Restore both after the callback, then delete them. The queue already persists (<code>truex.queue.*</code>, Composer part). <span class="tag proposal">proposal</span> D-NEW-D6</li>
+      <li>Redirect to <code>/auth/google/start?returnTo=&lt;current url&gt;</code>. Without BE-NEW-D1 the callback lands on the app root, and the app reopens the saved session id.</li>
+      <li>After sign-in: re-fetch <code>/api/me</code>, the session list and the open session, then resubscribe with the saved cursor.</li>
+      <li>Not dismissible by Esc or the backdrop: every call would fail again. The page behind stays readable (not blurred).</li>
+      <li>Cross-origin, this whole path depends on BE-01. Without it the sheet loops.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li><code>role="dialog"</code>, <code>aria-modal="true"</code>, labelled by the title, described by the body. Focus moves to the button on open.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>After an expired session and sign-in, the same chat is open and the unsent draft is back in the composer.</li><li>Three simultaneous 401s show one sheet.</li><li>Esc does not close the sheet.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="dt-denied">
+  <header><h4>Permission toast (403 NOT_SESSION_OWNER / CAPABILITY_DENIED)</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">Toast from the Shell part · opened by api() onAuthError</span></header>
+  <div class="body">
+    <p>A fallback for a write that races an ownership check, or an operation the platform blocks. It uses the shared <a href="#nv-toast">Toast</a> with bad tone.</p>
+    <div class="specimen" aria-hidden="true"><div class="dt-toast"><span>Only the person who started this conversation can change it.</span></div></div>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Code</th><th>Toast text</th><th>Then</th></tr></thead><tbody>
+    <tr><td><code>NOT_SESSION_OWNER</code></td><td>server <code>error</code>; fallback "Only the person who started this conversation can change it."</td><td>set <code>readOnly = true</code> for this session; the view flips to the <a href="#dt-viewer">read-only viewer</a>; the draft stays in memory</td></tr>
+    <tr><td><code>NOT_PROJECT_OWNER</code></td><td>server <code>error</code>; fallback 403 text</td><td>project menu actions hide for that project</td></tr>
+    <tr><td><code>CAPABILITY_DENIED</code></td><td>server <code>error</code>; fallback "This operation is not available in Truex"</td><td>nothing else</td></tr>
+    <tr><td><code>CSRF_ORIGIN</code>, <code>WRONG_APP</code></td><td>server <code>error</code></td><td><code>warnFailure</code>; this is a deploy bug</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul><li>ttl 8000ms (bad tone). One toast per code per 5000ms. A queued message that fails with <code>NOT_SESSION_OWNER</code> stops the queue with <code>queuePaused</code> and is not retried.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A 403 <code>NOT_SESSION_OWNER</code> on send removes the composer within one frame and shows the viewer bar.</li><li>The toast text is the server message when present.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="dt-banners">
+  <header><h4>Orphaned, dead and archived banners</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">HealthBanner kinds orphaned / dead / archived · reads PublicSession.status, archived</span></header>
+  <div class="body">
+    <p>Session-level states from <code>PublicSession.status</code> and <code>archived</code>. Each has one recovery action.</p>
+    <div class="specimen" aria-hidden="true"><div class="dt-stack">
+      <div class="dt-ban warn"><div class="dt-ban-tx"><b>Runner unreachable</b><span>Resumes when you send.</span></div><span class="dt-btn">Reconnect</span></div>
+      <div class="dt-ban bad"><div class="dt-ban-tx"><b>This chat ended</b><span>History is read-only.</span></div><span class="dt-btn fill">Start a new chat</span></div>
+    </div></div>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Kind</th><th>Trigger</th><th>Tone</th><th>Title / body</th><th>Action</th><th>Composer</th></tr></thead><tbody>
+    <tr><td>orphaned</td><td><code>status === "orphaned"</code>, or history <code>snapshot === null</code> with <code>recoveryError</code></td><td>warn</td><td>"Runner unreachable" / "Resumes when you send."; ref from <code>recoveryErrorRef</code></td><td>"Reconnect": reload history and resubscribe</td><td>enabled; a send resumes the thread</td></tr>
+    <tr><td>dead</td><td><code>status === "dead"</code>, or any 410 <code>THREAD_LOST</code></td><td>bad</td><td>"This chat ended" / "History is read-only."</td><td>"Start a new chat": new draft with the same agent and project</td><td>replaced by the ended bar (no input); copy, citations and downloads still work</td></tr>
+    <tr><td>archived</td><td><code>archived === true</code> (BE-16 projection)</td><td>neutral</td><td>"Archived" / "Hidden from your list."</td><td>"Unarchive": <code>thread/unarchive</code></td><td>enabled</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Orphaned clears when a send is accepted or a snapshot arrives. Dead is final.</li>
+      <li>Today the status only changes on reload. With BE-NEW-D2 the banner switches live. Until then a 410 from any call sets <code>dead</code> locally.</li>
+      <li>A viewer sees dead and archived banners without actions (they cannot unarchive or start from the owner's chat; "Start a new chat" for a viewer opens a blank draft).</li>
+      <li>Dead and viewer: the dead banner wins; the viewer banner is not shown on top.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A 410 on send switches to the dead banner and removes the composer.</li><li>Unarchive removes the banner and the row reappears in the default sidebar filter.</li><li>An orphaned chat accepts a message and the banner goes away when <code>turn.started</code> arrives.</li></ul>
+  </div>
+</div>
+
+<h3 id="dt-auth">Auth and permissions</h3>
+<dl class="kv">
+  <dt>Auth modes</dt><dd><code>AUTH_MODE=dev</code>: fixed user <code>dev-user</code>, role default <code>admin</code>; optional <code>x-truex-user</code> / <code>x-truex-role</code> headers when <code>DEV_USER_HEADER=on</code>. <code>AUTH_MODE=google</code>: HTTP-only session cookie with idle and absolute expiry; tenant switch rotates the cookie</dd>
+  <dt>CSRF</dt><dd>state-changing <code>/api</code> and <code>/auth</code> requests need an allowed <code>Origin</code> and JSON, else 403 <code>CSRF_ORIGIN</code></dd>
+  <dt>Agents</dt><dd>any user may create agents (alpha, no role check). Tenant MCP management is admin only</dd>
+  <dt>Hidden vs denied</dt><dd>hidden records are 404, never 403. A 404 on a session link means "not found or not shared with you"</dd>
+</dl>
+<h4 id="dt-access">Access matrix (platform/src/access.ts, sessions and projects)</h4>
+<div class="tw"><table class="tbl"><thead><tr><th>Caller</th><th>visibility "all"</th><th>visibility "own"</th><th>UI mode</th></tr></thead><tbody>
+<tr><td>Owner</td><td>read + write</td><td>read + write</td><td>owner</td></tr>
+<tr><td>Admin, not owner</td><td>read only</td><td>read only</td><td>viewer</td></tr>
+<tr><td>Other user</td><td>read only</td><td>hidden (404)</td><td>viewer, or not found</td></tr>
+</tbody></table></div>
+<h4 id="dt-owner-viewer">What owner and viewer can do</h4>
+<div class="tw"><table class="tbl"><thead><tr><th>Surface</th><th>Owner</th><th>Viewer</th><th>Tag</th></tr></thead><tbody>
+<tr><td>Composer</td><td>full</td><td>replaced by the viewer bar</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Stop, Steer, queue</td><td>shown</td><td>not rendered</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Request cards, batch sheet</td><td>answerable</td><td>"Waiting on {ownerName}", no controls (<a href="#rq-viewer">Requests viewer state</a>)</td><td><span class="tag backend">BE-09</span></td></tr>
+<tr><td>Goal chip, goal strip actions, goal review</td><td>shown</td><td>goal text and status only; no Resume, Clear, Accept, Reopen</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Approval-mode picker, model chip, agent chip</td><td>shown</td><td>not rendered</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Retry, Edit, Regenerate, Branch, Restore</td><td>shown</td><td>not rendered</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Copy, citations, file chips, downloads, visualizations</td><td>shown</td><td>shown</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Helper Stop</td><td>shown</td><td>not rendered</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Session menu: rename, move to project, archive</td><td>shown</td><td>not rendered; "Duplicate to my chats" only</td><td><span class="tag backend">BE-09</span></td></tr>
+<tr><td>Work log and Activity trace</td><td>full</td><td>step names only until BE-09 returns a trace visibility rule</td><td><span class="tag backend">BE-09</span></td></tr>
+<tr><td>Needs-you count and tray</td><td>shown</td><td>hidden</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Share</td><td>shown (BE-19)</td><td>hidden</td><td><span class="tag backend">BE-19</span></td></tr>
+</tbody></table></div>
+
+<div class="comp" id="dt-viewer">
+  <header><h4>Read-only viewer</h4><span class="tag derive">derive</span><span class="tag backend">BE-09</span><span class="tag phase">P2</span>
+    <span class="path">new components/v2/viewer-bar.tsx · HealthBanner kind="viewer" · readOnly prop threaded from Home</span></header>
+  <div class="body">
+    <p>Someone else's conversation. The viewer can read and copy. Everything a viewer cannot do is gone, not greyed, which keeps the tab order short.</p>
+    <div class="specimen" aria-hidden="true"><div class="dt-stack">
+      <div class="dt-ban info"><div class="dt-ban-tx"><b>Started by another member · View only</b><span>You can read and copy. Only the owner can send, approve or stop.</span></div></div>
+      <div class="dt-lock"><span>You're viewing the owner's chat.</span><span class="dt-btn">Ask the owner for access</span><span class="dt-btn fill">Duplicate to my chats</span></div>
+    </div></div>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>View-only banner</td><td>HealthBanner, info tone, no action, top of the chat column</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Viewer bar (replaces composer)</td><td>same position and max-width as the composer (740px); flex, gap 8px, wrap; padding 10px 10px 10px 14px; radius 16px; 1px dashed <code>--line-strong</code>; bg <code>--surface-2</code>; 13px <code>--ink-2</code>; text flex <code>1 1 160px</code></td><td><span class="tag proposal">proposal</span> D-01 (wireframe <code>.ss-lock</code>)</td></tr>
+    <tr><td>Buttons</td><td>height 26px, 12px; "Duplicate" filled <code>--accent-fg</code>, "Ask the owner" outline</td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Work log note</td><td>"Work log: {n} steps · details hidden for viewers" in place of step details</td><td><span class="tag backend">BE-09</span></td></tr>
+    </tbody></table></div>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual change</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Viewer, owner named</td><td><code>!isOwner</code> and <code>ownerName</code></td><td>banner + bar</td><td>"Started by {ownerName} · View only" / "You can read and copy. Only {ownerName} can send, approve or stop." Bar: "You're viewing {ownerName}'s chat."</td></tr>
+    <tr><td>Viewer, no name</td><td><code>ownerName</code> missing</td><td>same</td><td>"Started by another member · View only" / "…Only the owner can…". Bar: "You're viewing the owner's chat."</td></tr>
+    <tr><td>Viewer, running</td><td><code>running</code></td><td>pill shows Working or "Waiting on {ownerName}"; no Stop anywhere</td><td></td></tr>
+    <tr><td>Access requested</td><td>POST access-requests ok</td><td>"Ask" button becomes text</td><td>"Request sent"</td></tr>
+    <tr><td>Duplicating</td><td>POST duplicate in flight</td><td>button busy</td><td>"Duplicate to my chats"</td></tr>
+    <tr><td>Duplicated</td><td>201 with the new session</td><td>open the new session; toast</td><td>"Duplicated to your chats"</td></tr>
+    <tr><td>Before BE-09</td><td>no <code>duplicate</code> or <code>access-requests</code> route</td><td>bar shows text only, no buttons</td><td>"You're viewing the owner's chat. Only the owner can make changes."</td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>// derive in Home
+const isOwner = !session?.userId || !me || session.userId === me.user.id;
+const readOnly = !isOwner || forcedReadOnly;   // forcedReadOnly: set by a 403 NOT_SESSION_OWNER
+
+interface ViewerAccess {                        // BE-09, on SessionHistory
+  isOwner: boolean;                             // server truth; wins over the client check
+  ownerName?: string;
+  canRequestAccess: boolean;
+  canDuplicate: boolean;
+  trace: "full" | "stepsOnly" | "hidden";       // trace visibility rule
+}
+// POST /api/sessions/:id/duplicate        → 201 PublicSession (owned by caller)   // BE-09
+// POST /api/sessions/:id/access-requests  → 202 { ok: true }                      // BE-09</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li><code>readOnly</code> is passed as one prop to every write surface (composer, request dock, goal strip, message actions, helper rows, session menu). Components do not recompute it.</li>
+      <li>Admins see the same read-only view (§7.4 gives admins read only). An admin interrupt is open: D-NEW-D7.</li>
+      <li>Duplicate copies transcript and file refs, no pending requests and no goal, so the copy starts idle and owned by the viewer (wireframe recommendation; D-NEW-D8).</li>
+      <li>The sidebar shows other members' chats only under visibility "all"; they carry no special marker in P2.</li>
+      <li>No write request is ever sent from the viewer UI. The 403 path (<a href="#dt-denied">toast</a>) is only a guard.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Focus order: skip link goes to the viewer bar instead of the composer ("Skip to actions"). The banner is <code>role="status"</code>. No disabled controls exist, so nothing is announced as unavailable.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>As a viewer, the page has no textarea, no Stop, no request buttons and no Retry, Edit or Regenerate in the DOM.</li>
+      <li>Copy and file downloads work for a viewer.</li>
+      <li>Duplicate opens a new chat owned by the viewer, idle, with the same messages.</li>
+      <li>A chat with no <code>userId</code> is treated as owned.</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="dt-flags">Feature flags</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Flag</th><th>Source</th><th>Exact UI it changes</th><th>Off / missing</th></tr></thead><tbody>
+<tr><td><code>APPROVAL_MODES=on</code></td><td>GET <code>/api/features</code> → <code>approvalModes.enabled</code></td><td>ApprovalModePicker chip on the composer bar; <code>PublicSession.approvalMode</code> present; audit auto labels; <code>/approval-mode</code> route</td><td>chip not rendered; route 404 <code>FEATURE_DISABLED</code>; any fetch failure = off</td></tr>
+<tr><td><code>APPROVAL_MODES_DEFAULT</code></td><td><code>approvalModes.defaultMode</code></td><td>preselected picker value for a draft</td><td><code>"ask"</code> unless valid; <code>"auto"</code> needs autopilot</td></tr>
+<tr><td><code>APPROVAL_MODES_AUTOPILOT=on</code></td><td><code>approvalModes.autopilot</code></td><td>adds the "Autopilot" (<code>auto</code>) option</td><td>two options only</td></tr>
+<tr><td><code>APPROVAL_NAME_HEURISTIC=on</code></td><td><code>approvalModes.nameHeuristic</code></td><td>no direct UI; affects which requests auto-resolve as "Auto-allowed (read-only)"</td><td></td></tr>
+<tr><td><code>AUTH_MODE=dev | google</code></td><td>server; visible through <code>/api/me</code> (name, picture only in google)</td><td>google: sign-in sheet on 401, avatar picture, Sign out, workspace switcher with several tenants. dev: initials avatar, no sheet, switcher shows current only</td><td></td></tr>
+<tr><td>Tenant <code>chatVisibility</code> "own" / "all"</td><td>tenant registry</td><td>"all": other members' chats appear and open read-only. "own": other chats are 404</td><td>missing = "all"</td></tr>
+<tr><td>Tenant <code>allowedModelIds</code></td><td>tenant registry, applied in <code>/api/models</code></td><td>ModelChip and AgentDialog model list</td><td>all catalog models with usable credentials</td></tr>
+<tr><td>Developer mode</td><td><code>localStorage["truex:observability:developer"] === "1"</code></td><td>waterfall, model context, masked privacy samples, timings (D-04)</td><td>hidden</td></tr>
+<tr><td>P3 features</td><td>client flag, D-03</td><td>canvas versions, citations, checkpoints, thread search</td><td>hidden</td></tr>
+</tbody></table></div>
+<pre><code>type ApprovalMode = "ask" | "readOnly" | "auto";
+interface ApprovalModesConfig { enabled: boolean; defaultMode: ApprovalMode; autopilot: boolean; nameHeuristic: boolean }
+// Picker copy: ask "Ask me every time", readOnly "Auto-allow read-only tools", auto "Autopilot".
+// Selection priority: session mode, then pre-chat draft choice, then default.
+// Plan approval and secret questions always ask.</code></pre>
+<p>P3 flag storage: D-03 leaves the mechanism open. Default: a build-time env <code>NEXT_PUBLIC_TRUEX_P3=on</code> read once into <code>flags.p3</code>, never localStorage. <span class="tag proposal">proposal</span> D-NEW-D9</p>
+
+<h3 id="dt-enums">Enum quick reference</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Enum</th><th>Values</th><th>Note</th></tr></thead><tbody>
+<tr><td>Session.status</td><td>active, orphaned, dead</td><td></td></tr>
+<tr><td>Message.role</td><td>user, assistant</td><td></td></tr>
+<tr><td>Message.delivery</td><td>pending, accepted, failed, unknown</td><td></td></tr>
+<tr><td>CommandRecord.state</td><td>running, succeeded, failed, unknown</td><td></td></tr>
+<tr><td>TurnState.kind (runtime)</td><td>idle, starting, running, interrupting</td><td>snapshot <code>state.kind</code></td></tr>
+<tr><td>TurnStateFull (UI, derive)</td><td>idle, sending, starting, working, waiting, stopping, interrupting, interrupted, failed, reconnecting</td><td><a href="#dt-derive">derivation</a></td></tr>
+<tr><td>TurnState (pill, derive)</td><td>idle, starting, working, waiting, stopping, interrupted, failed, reconnecting</td><td>Shell part</td></tr>
+<tr><td>Turn/Trace/Timing status</td><td>completed, failed, interrupted</td><td>BE-05 may add completedWithErrors</td></tr>
+<tr><td>GoalStatus</td><td>active, paused, blocked, usageLimited, budgetLimited, complete</td><td></td></tr>
+<tr><td>GoalHistoryEntry.kind</td><td>set, objective, budget, status, accepted, reopened, cleared</td><td></td></tr>
+<tr><td>GoalReview.decision</td><td>accepted, reopened</td><td></td></tr>
+<tr><td>PlanStep.status</td><td>pending, inProgress, completed</td><td>"in_progress" tolerated</td></tr>
+<tr><td>SubAgentStatus</td><td>pendingInit, running, interrupted, completed, errored, shutdown, notFound</td><td></td></tr>
+<tr><td>Delegation mode</td><td>explicitRequestOnly, proactive (maxConcurrent 1–5)</td><td></td></tr>
+<tr><td>StepKind</td><td>thinking, message, command, tool, fileChange, webSearch, agent, other</td><td></td></tr>
+<tr><td>StepSpan.status</td><td>running, completed, failed, declined</td><td></td></tr>
+<tr><td>ApprovalRecord.outcome</td><td>answered, auto, expired, interrupted</td><td></td></tr>
+<tr><td>ApprovalRecord.autoMode</td><td>readOnly, auto, grant</td><td></td></tr>
+<tr><td>Tool decision</td><td>allowedOnce, allowedSession, allowedChat, allowedAlways, declined, expired, interrupted</td><td></td></tr>
+<tr><td>ApprovalMode</td><td>ask, readOnly, auto</td><td></td></tr>
+<tr><td>UserRole</td><td>user, admin</td><td></td></tr>
+<tr><td>ChatVisibility</td><td>own, all</td><td></td></tr>
+<tr><td>AgentTint</td><td>ice, mint, butter, peach, lilac</td><td></td></tr>
+<tr><td>Agent.scope</td><td>business, general</td><td></td></tr>
+<tr><td>Visualization.mode</td><td>inline, wide</td><td></td></tr>
+<tr><td>DocumentKind (UI)</td><td>code, text, sheet, slides, document</td><td></td></tr>
+<tr><td>StreamStatus</td><td>Connected, Reconnecting, Disconnected</td><td>plus Mock and the initial "Not connected"</td></tr>
+<tr><td>StreamPhase (derive)</td><td>idle, connecting, connected, reconnecting, resyncing, disconnected</td><td><a href="#dt-conn">connection</a></td></tr>
+<tr><td>stream.error code</td><td>STREAM_FAILED, STREAM_ENDED</td><td></td></tr>
+<tr><td>ErrorReason</td><td>rateLimited, quota, credentials, providerDown, contextWindow, other</td><td></td></tr>
+<tr><td>PrivacyKind</td><td>email, phone, card, iban, ssn, aadhaar, pan, ip, secret</td><td></td></tr>
+<tr><td>PrivacySource</td><td>userMessage, toolOutput, command, fileContent, assistant</td><td></td></tr>
+</tbody></table></div>
+
+<h3 id="dt-relations">Entity relationships</h3>
+<pre><code>User ─< Membership >─ Tenant                  (role: user | admin)
+Tenant ─< Agent, MCP profile, Project, Session   (one database per tenant)
+Catalog: Model, Skill                           (Tenant may restrict: allowedModelIds, allowedSkillIds)
+Agent ── 1 ModelProfile, ─< MCP profiles, ─< skills
+User ─< Session (Session.userId)  ·  User ─< Project (Project.ownerId)
+Project ─< Session (0..1 project per session; deleting a Project keeps its Sessions)
+Session ── 1 Agent
+Session ─< Message
+Session ─< Turn (by turnId) ── 1 TurnTiming, 1 TurnTrace
+Session ─< ApprovalRecord
+Session ─< ConversationFile (documents and visualizations; sourceId → previous version)
+Session ── 0..1 Goal ─< GoalHistoryEntry, 0..1 GoalReview
+Session ── 1 Plan
+Session ─< SubAgent ── 1 SubAgentTranscript
+Session ── at most one open PendingRequest set
+Turn ─< Message (by messageIndex), ─< StepSpan, 1 TurnUsage, 0..1 RateLimitView, 1 PrivacyReport
+Turn ─< PendingRequest ── 1 ApprovalRecord ─< items</code></pre>
+<p>Keys the UI joins on: <code>turnId</code> (message, event, timing, trace, audit record, request with BE-02, file with BE-14), <code>requestId</code> (pending to audit), <code>threadId</code> (helper to transcript, events, spans via <code>agentThreadId</code>), <code>messageIndex</code> (streaming message within a turn), <code>clientId</code> (sent message to its row and idempotent replay).</p>
+
+<h3 id="dt-ownership">Client state ownership</h3>
+<p>Home keeps owning the workspace state listed in <a href="#nv-home-state">Shell: Home state</a>. v3 moves the connection and turn plumbing into hooks so it can be tested without rendering the page. No new state library is added.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Owner</th><th>Readers</th><th>Tag</th></tr></thead><tbody>
+<tr><td><code>agents</code>, <code>agentId</code>, <code>sessions</code>, <code>session</code>, <code>entries</code>, <code>pending</code>, <code>plan</code>, <code>goal</code>, <code>goalReview</code>, <code>subAgents</code>, <code>observability</code>, <code>documents</code>, <code>failure</code></td><td>Home (<code>useState</code>)</td><td>components via props</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>status</code>, <code>streamKey</code>, <code>slowReconnect</code>, <code>StreamHealth</code></td><td><code>useStreamHealth(sessionId, streamKey)</code> in <code>lib/use-stream-health.ts</code>, wrapping <code>transport.subscribe</code></td><td>Home, <code>useTurnState</code>, banners</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td><code>running</code>, <code>busy</code>, <code>retrying</code>, <code>send</code>, <code>stop</code>, <code>runtime</code>, <code>lastTurnEnd</code></td><td>Home event reducer; <code>useTurnState(inputs)</code> returns <code>TurnView</code> and owns the watchdog timers</td><td>Topbar, Composer, Sidebar row, dock, live region</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td><code>me</code></td><td>Home, loaded once (<code>/api/me</code>), refreshed after sign-in and tenant switch</td><td>Account, <code>isOwner</code></td><td><span class="tag backend">BE-17</span></td></tr>
+<tr><td><code>readOnly</code>, <code>forcedReadOnly</code></td><td>Home, derived from <code>session</code>, <code>me</code>, <code>viewer</code>, 403s</td><td>all write surfaces</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td><code>authSheet</code></td><td>Home, set by the <code>setAuthErrorHandler</code> listener</td><td>SignInSheet</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td><code>approvalModes</code></td><td>Home via <code>loadApprovalModes()</code></td><td>Composer picker</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>queue</code>, <code>queuePaused</code>, draft <code>text</code>, <code>files</code>, <code>mentions</code></td><td>Home (see <a href="#cp-overview">Composer state</a>)</td><td>Composer</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td><code>toasts</code></td><td>Shell toast store</td><td>Toast region</td><td><span class="tag proposal">proposal</span> D-NEW-5</td></tr>
+<tr><td>Theme</td><td><code>lib/use-theme.ts</code> module store</td><td>Topbar, UserMenu</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Delegation prefs</td><td><code>loadDelegation()</code> in Home</td><td>new-chat body, Agents part</td><td><span class="tag exists">exists</span></td></tr>
+</tbody></table></div>
+<h4 id="dt-storage">What is persisted where</h4>
+<div class="tw"><table class="tbl"><thead><tr><th>Store</th><th>Key</th><th>Value</th><th>Written by</th><th>Tag</th></tr></thead><tbody>
+<tr><td>localStorage</td><td><code>truex-theme</code></td><td><code>"" | "light" | "dark"</code>; empty follows the system</td><td><code>use-theme</code>, read by <code>THEME_BOOT_SCRIPT</code> before paint</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>localStorage</td><td><code>truex-follow-activity</code></td><td><code>"off"</code> disables follow; anything else is on</td><td><code>readFollow</code></td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>localStorage</td><td><code>truex.delegation</code></td><td><code>DelegationPrefs</code>, normalised on read</td><td>Delegation settings</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>localStorage</td><td><code>truex-visualization:{sessionId}:{id}</code></td><td><code>VisualizationState</code>, ≤16 KiB</td><td>Visualization frame</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>localStorage</td><td><code>truex:observability:developer</code></td><td><code>"1"</code> on, missing off</td><td>Developer mode toggle</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>localStorage</td><td><code>truex-recent</code></td><td>recent palette items (Shell part)</td><td>SearchPalette</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>sessionStorage</td><td><code>cursor:{sessionId}</code></td><td>last event cursor</td><td><code>transport.subscribe</code>; cleared on <code>resync.required</code></td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>sessionStorage</td><td><code>truex.queue.{sessionId}</code></td><td><code>QueuedMessage[]</code></td><td>Composer queue</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>sessionStorage</td><td><code>truex.draft.{sessionId}</code> / <code>truex.draft.new</code>, <code>truex.return</code></td><td>unsent draft and open session id, only across a sign-in redirect</td><td>SignInSheet; deleted after restore</td><td><span class="tag proposal">proposal</span> D-NEW-D6</td></tr>
+<tr><td>Memory only</td><td>secret answers, <code>me</code>, <code>StreamHealth</code>, <code>TurnView</code></td><td></td><td>never persisted</td><td><span class="tag exists">exists</span></td></tr>
+</tbody></table></div>
+<ul>
+  <li>Every storage read and write is wrapped in try/catch; a failure falls back to the default and never breaks render.</li>
+  <li>Secret answers (<code>isSecret</code>) never go to any storage or log.</li>
+  <li>Tenant switch clears all sessionStorage keys that start with <code>cursor:</code> or <code>truex.</code>, because ids belong to one tenant database.</li>
+</ul>
+
+<h3 id="dt-coverage">Coverage</h3>
+<div class="tw"><table class="tbl cov"><thead><tr><th>Schema heading</th><th>Covered in</th></tr></thead><tbody>
+<tr><td data-schema="7.1 Client plumbing (frontend/lib/api.ts)">7.1 Client plumbing (frontend/lib/api.ts)</td><td><a href="#dt-api">api() client</a>, <a href="#dt-cors">CORS and cookies</a></td></tr>
+<tr><td data-schema="7.2 API inventory (everything the frontend calls)">7.2 API inventory (everything the frontend calls)</td><td><a href="#dt-inventory">API inventory</a>, <a href="#dt-inv-be">Backend id index</a></td></tr>
+<tr><td data-schema="Identity, config, catalog">Identity, config, catalog</td><td><a href="#dt-inv-identity">Identity, config, catalog</a></td></tr>
+<tr><td data-schema="Sessions (conversations)">Sessions (conversations)</td><td><a href="#dt-inv-sessions">Sessions</a></td></tr>
+<tr><td data-schema="Turn lifecycle (lib/transport.ts)">Turn lifecycle (lib/transport.ts)</td><td><a href="#dt-inv-turns">Turn lifecycle and requests</a></td></tr>
+<tr><td data-schema="Commands and capabilities">Commands and capabilities</td><td><a href="#dt-inv-commands">Commands, goals, documents, helpers</a>; allowed methods list in <a href="#cp-commands">Composer commands</a></td></tr>
+<tr><td data-schema="Goals">Goals</td><td><a href="#dt-inv-commands">Commands, goals, documents, helpers</a></td></tr>
+<tr><td data-schema="Documents and visualizations">Documents and visualizations</td><td><a href="#dt-inv-commands">Commands, goals, documents, helpers</a>, limits in <a href="#dt-misc-types">Files and other types</a></td></tr>
+<tr><td data-schema="Helper agents and observability (lib/api.ts)">Helper agents and observability (lib/api.ts)</td><td><a href="#dt-inv-commands">Commands, goals, documents, helpers</a></td></tr>
+<tr><td data-schema="Projects (lib/projects.ts)">Projects (lib/projects.ts)</td><td><a href="#dt-inv-projects">Projects and auth</a></td></tr>
+<tr><td data-schema="Auth routes (Google mode)">Auth routes (Google mode)</td><td><a href="#dt-inv-projects">Projects and auth</a>, <a href="#dt-signin">Session-expired sheet</a></td></tr>
+<tr><td data-schema="7.3 Entity types (verbatim from source)">7.3 Entity types (verbatim from source)</td><td><a href="#dt-entities">Entity types</a></td></tr>
+<tr><td data-schema="7.3.1 Agent">7.3.1 Agent</td><td>Linked: <a href="#ag-agent-data">Agents: agent data</a></td></tr>
+<tr><td data-schema="7.3.2 Model">7.3.2 Model</td><td><a href="#dt-misc-types">Files, projects, models</a></td></tr>
+<tr><td data-schema="7.3.3 Session (conversation / chat)">7.3.3 Session (conversation / chat)</td><td><a href="#dt-session">Session, SessionHistory and Snapshot</a></td></tr>
+<tr><td data-schema="7.3.4 Message">7.3.4 Message</td><td>Linked: <a href="#sm-entry">Stream: Entry union and Message</a></td></tr>
+<tr><td data-schema="7.3.5 Session history (GET /api/sessions/:id)">7.3.5 Session history (GET /api/sessions/:id)</td><td><a href="#dt-session">Session, SessionHistory and Snapshot</a></td></tr>
+<tr><td data-schema="7.3.6 Turn">7.3.6 Turn</td><td><a href="#dt-turn-types">Turn, usage and trace types</a>, <a href="#dt-derive">deriveTurnState</a></td></tr>
+<tr><td data-schema="7.3.7 Usage and limits">7.3.7 Usage and limits</td><td><a href="#dt-turn-types">Turn, usage and trace types</a></td></tr>
+<tr><td data-schema="7.3.8 Approvals and input requests">7.3.8 Approvals and input requests</td><td>Linked: <a href="#rq-data">Requests: request data</a></td></tr>
+<tr><td data-schema="7.3.9 Attachment / document">7.3.9 Attachment / document</td><td><a href="#dt-misc-types">Files, projects, models</a></td></tr>
+<tr><td data-schema="7.3.10 Goal">7.3.10 Goal</td><td>Linked: <a href="#ag-goal-data">Agents: goal data</a></td></tr>
+<tr><td data-schema="7.3.11 Plan and helper agents">7.3.11 Plan and helper agents</td><td>Linked: <a href="#ag-subagents">Agents: helper data</a>, <a href="#sm-plansteps">Stream: plan steps</a></td></tr>
+<tr><td data-schema="7.3.12 Project, assistant capabilities">7.3.12 Project, assistant capabilities</td><td><a href="#dt-misc-types">Files, projects, models</a></td></tr>
+<tr><td data-schema="7.3.13 User and tenant (no shared TS type; server shapes)">7.3.13 User and tenant (no shared TS type; server shapes)</td><td><a href="#dt-misc-types">Files, projects, models, user and tenant</a></td></tr>
+<tr><td data-schema="7.4 Auth, session and permissions exposed to the UI">7.4 Auth, session and permissions exposed to the UI</td><td><a href="#dt-auth">Auth and permissions</a>, <a href="#dt-viewer">Read-only viewer</a></td></tr>
+<tr><td data-schema="7.5 Streaming protocol">7.5 Streaming protocol</td><td><a href="#dt-stream">Streaming protocol</a>, <a href="#dt-conn">Connection state machine</a>, <a href="#dt-health">Streaming health UI</a></td></tr>
+<tr><td data-schema="7.6 Feature flags that change UI behaviour">7.6 Feature flags that change UI behaviour</td><td><a href="#dt-flags">Feature flags</a></td></tr>
+<tr><td data-schema="7.7 Enum quick reference">7.7 Enum quick reference</td><td><a href="#dt-enums">Enum quick reference</a></td></tr>
+<tr><td data-schema="7.8 Entity relationships">7.8 Entity relationships</td><td><a href="#dt-relations">Entity relationships</a></td></tr>
+</tbody></table></div>
+
+<h3 id="dt-backend">New backend items</h3>
+<p>Items raised in this part. BE-NEW items from other parts are listed in the <a href="#dt-inv-be">Backend id index</a>.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Id</th><th>Need</th><th>Used by</th></tr></thead><tbody>
+<tr><td>BE-NEW-D1: sign-in return path</td><td><code>returnTo</code> on <code>/auth/google/start</code>, validated against allowed origins, honoured by the callback</td><td><a href="#dt-signin">Session-expired sheet</a></td></tr>
+<tr><td>BE-NEW-D2: session status event</td><td>public <code>session.updated</code> event with <code>{ status, archived }</code> so orphaned, dead and archived change without reload</td><td><a href="#dt-banners">Session banners</a></td></tr>
+</tbody></table></div>
+
+<h3 id="dt-decisions">New decisions</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Id</th><th>Question</th><th>Default chosen</th></tr></thead><tbody>
+<tr><td>D-NEW-D1</td><td>Same-site or cross-site deploy, and the allowed-origin config name?</td><td>Same-site, <code>SameSite=Lax; Secure</code>, reuse the CSRF allowed-origin list</td></tr>
+<tr><td>D-NEW-D2</td><td>Paths for new routes</td><td>As written in the inventory; each wrapped by one <code>lib/</code> function</td></tr>
+<tr><td>D-NEW-D3</td><td>Watchdog timings for stuck stop and stuck start</td><td>15000ms after Stop, 30000ms after accept; reload history once</td></tr>
+<tr><td>D-NEW-D4</td><td>Auto-reconnect from Disconnected?</td><td>On <code>online</code> and tab visible, max once per 10000ms; STREAM_ENDED retries once after 3000ms; STREAM_FAILED never</td></tr>
+<tr><td>D-NEW-D5</td><td>Show a banner for slow reconnect?</td><td>Yes, warn banner after 30s, no button</td></tr>
+<tr><td>D-NEW-D6</td><td>Preserve the draft across a sign-in redirect?</td><td>Yes, in sessionStorage, deleted after restore</td></tr>
+<tr><td>D-NEW-D7</td><td>Can admins act on someone else's chat?</td><td>No, read only for alpha (wireframe recommendation)</td></tr>
+<tr><td>D-NEW-D8</td><td>What does Duplicate copy?</td><td>Transcript and file refs; no pending requests, no goal; starts idle</td></tr>
+<tr><td>D-NEW-D9</td><td>How is the P3 flag stored?</td><td>Build-time env <code>NEXT_PUBLIC_TRUEX_P3</code></td></tr>
+</tbody></table></div>
+</section>

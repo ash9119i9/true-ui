@@ -1,0 +1,276 @@
+<section id="overview">
+<h2>Overview</h2>
+<p>This page is the invite landing for truex agents. Someone opens an invite link, sees who invited them and to which workspace, and joins. The source prototype is <code>design/join-tenant-v3-capabilities.html</code>.</p>
+<p>The page has one job: accept the invite by entering your name and pressing Join. Everything else supports that job or explains what the person gets after joining.</p>
+<h3>Two panes</h3>
+<ul>
+<li>Left, the invitation (<code>.left</code>): brand header, a one-line "who invited you" row with an expiry pill, the headline "Take your seat at <em>Northwind Labs</em>", and the join card. The join card holds a 3-step progress checkup, the locked work email, the name input, the Join button and fine print.</li>
+<li>Right, the capabilities board (<code>aside.right</code>): a dotted specimen sheet with eight numbered objects, one per truex capability, and a legend underneath. The board is decorative (<code>aria-hidden="true"</code>). The legend is the readable version. Specimen 07 ("You") mirrors the name as it is typed.</li>
+</ul>
+<h3>Prototype-only controls</h3>
+<ul>
+<li>The "Preview state" segmented control in <code>.foot</code> (Valid invite / Expired / Already a member) is a design-review tool. Do not ship it. In production the state comes from the invite lookup.</li>
+<li>The theme segmented control in the header (Auto / Light / Dark) is also a review tool. It mirrors the app's <code>useTheme()</code> hook in <code>app.tsx</code>: same localStorage key <code>"truex-theme"</code>, value <code>""</code> for Auto, <code>"light"</code> or <code>"dark"</code>, applied as <code>data-theme</code> on <code>&lt;html&gt;</code> (removed for Auto). In production, reuse <code>useTheme()</code> and do not add a second theme store.</li>
+<li>The <code>?theme=light|dark</code> query param override is prototype-only (used for screenshots). Do not ship it.</li>
+</ul>
+</section>
+
+<section id="layout">
+<h2>Layout</h2>
+<h3>Frame</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Element</th><th>Rule</th></tr></thead><tbody>
+<tr><td><code>.split</code></td><td><code>height: 100vh; height: 100dvh</code>; <code>display: grid</code>; <code>grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr)</code>; <code>gap: 12px</code>; <code>padding: 12px</code></td></tr>
+<tr><td><code>.left</code></td><td><code>display: flex; flex-direction: column</code>; <code>padding: 8px 28px 20px</code>; <code>min-height: 0</code>; <code>overflow-x: hidden; overflow-y: auto</code>; <code>scrollbar-width: thin</code></td></tr>
+<tr><td><code>.top</code> (header)</td><td><code>height: 52px</code>; flex, <code>align-items: center</code>, <code>justify-content: space-between</code>, <code>gap: 12px</code></td></tr>
+<tr><td><code>.invite</code> (main)</td><td><code>flex: 1</code>; <code>width: 100%</code>; <code>max-width: 460px</code>; <code>margin: 0 auto</code>; <code>padding-block: clamp(20px, 7vh, 72px) 20px</code>; flex column, <code>justify-content: flex-start</code>, <code>gap: 20px</code>; entry animation <code>rise .35s ease-out</code></td></tr>
+<tr><td><code>.join</code> (card)</td><td><code>padding: 16px</code>; flex column, <code>gap: 16px</code>. Fields group: flex column, <code>gap: 14px</code></td></tr>
+<tr><td><code>.foot</code></td><td><code>max-width: 460px</code>, <code>width: 100%</code>, <code>margin: 0 auto</code>; flex wrap, <code>gap: 8px</code> (prototype-only content)</td></tr>
+<tr><td><code>.right</code></td><td><code>border-radius: 24px</code>; <code>background-color: var(--board-bg)</code>; <code>background-image: radial-gradient(var(--board-dot) 1px, transparent 1.2px)</code>; <code>background-size: 14px 14px</code>; <code>border: 1px solid var(--line)</code>; flex column; <code>padding: 22px 24px 20px</code>; <code>min-width: 0; min-height: 0</code>; <code>overflow: hidden</code>; entry animation <code>rise .5s .08s ease-out both</code></td></tr>
+<tr><td><code>.right-head</code></td><td>flex, <code>justify-content: space-between</code>, <code>align-items: flex-start</code>, <code>gap: 12px</code></td></tr>
+<tr><td><code>.board-wrap</code></td><td><code>flex: 1</code>; <code>min-height: 0</code>; <code>margin-top: 8px</code>; <code>container-type: size</code>; <code>display: grid; place-items: center</code></td></tr>
+<tr><td><code>.board</code></td><td><code>position: relative</code>; <code>width: min(100cqw, 560px, 100cqh * 5 / 5.4)</code>; <code>aspect-ratio: 5 / 5.4</code>; <code>container-type: inline-size</code></td></tr>
+<tr><td><code>.legend</code></td><td><code>flex: none</code>; <code>margin: 14px 0 0</code>; <code>padding: 10px 0 0</code>; <code>border-top: 1px dashed var(--line-strong)</code>; grid <code>repeat(2, minmax(0, 1fr))</code>, <code>gap: 2px 8px</code>. Item: grid <code>18px minmax(0, 1fr)</code>, <code>gap: 1px 4px</code>, <code>padding: 6px</code>, <code>border-radius: 9px</code></td></tr>
+</tbody></table></div>
+<h3>Board sizing</h3>
+<p>The board is sized by two nested container queries. <code>.board-wrap</code> is a size container that fills whatever height is left between the head and the legend. The board takes the largest width that fits both axes and caps at 560px: <code>min(100cqw, 560px, 100cqh * 5 / 5.4)</code>, with <code>aspect-ratio: 5 / 5.4</code>. The board is itself an inline-size container, so every specimen position, size and font inside it is in <code>%</code> or <code>cqw</code> and scales with the board. Specimen positions are absolute percentages of the board.</p>
+<div class="note">On desktop the page itself must never scroll. <code>.split</code> is locked to <code>100dvh</code> and the right panel is <code>overflow: hidden</code>, so the board shrinks to fit. Only the left column may scroll, and only on short viewports.</div>
+<h3>Desktop wireframe</h3>
+<pre><code>viewport 100dvh, .split padding 12, gap 12
++--------------------------------------+ +------------------------------------------+
+| .left  1fr   pad 8 28 20  overflow-y | | .right  1.08fr  radius 24  pad 22 24 20  |
+| +----------------------------------+ | | dotted bg, 14px grid, 1px dots           |
+| | .top  h52  brand ........ [theme]| | | +--------------------------------------+ |
+| +----------------------------------+ | | | .right-head  h2 + p     | mono label | |
+|      pad-top clamp(20px,7vh,72px)    | | +--------------------------------------+ |
+|   +------ .invite max-w 460 -------+ | |   margin-top 8                           |
+|   | [av] Maya Chen invited ... [exp]| | | +----------- .board-wrap flex 1 -------+ |
+|   |          gap 20                | | | |                                      | |
+|   | H1 Take your seat at Northwind | | | |    .board  w = min(100cqw, 560px,    | |
+|   |          gap 20                | | | |            100cqh*5/5.4)  5 : 5.4    | |
+|   | +-- .card.join  pad 16 gap 16 -+ | | | |    8 absolute specimens 01..08       | |
+|   | | eyebrow                      | | | | |                                      | |
+|   | | progress 1 of 3  bar h4      | | | | |    board-foot: mono .... sig         | |
+|   | | steps (3 cols, gap 8)        | | | | +--------------------------------------+ |
+|   | | email  input h40 (readonly)  | | | |   margin-top 14, dashed top, pad-top 10  |
+|   | | name   input h40             | | | | +--------------------------------------+ |
+|   | | [ Join Northwind Labs ] h44  | | | | | .legend 2 cols (4 cols >= 1400px)    | |
+|   | | fine print                   | | | | +--------------------------------------+ |
+|   | +------------------------------+ | | +------------------------------------------+
+|   +--------------------------------+ |
+|   .foot (prototype only)             |
++--------------------------------------+</code></pre>
+<h3>Responsive breakpoints</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Query</th><th>Changes</th></tr></thead><tbody>
+<tr><td><code>min-width: 1400px</code></td><td><code>.legend</code> becomes 4 columns: <code>repeat(4, minmax(0, 1fr))</code></td></tr>
+<tr><td><code>max-width: 960px</code></td><td>Stack to one column. <code>.split</code>: <code>height: auto; min-height: 100vh; grid-template-columns: minmax(0, 1fr); padding: 0 0 16px</code>. The page scrolls. <code>.left</code> padding <code>8px 16px 12px</code>. <code>.right</code>: <code>margin: 0 12px; border-radius: 20px; padding: 18px 16px 16px</code>. <code>.board-wrap</code>: <code>flex: none; container-type: inline-size</code> (board is sized by width only; <code>cqh</code> no longer constrains it)</td></tr>
+<tr><td><code>max-width: 520px</code></td><td><code>.legend</code> 1 column. <code>.board</code> <code>aspect-ratio: 5 / 6.4</code>. Inviter row wraps: <code>.from-text { flex-basis: calc(100% - 64px) }</code>, <code>.exp { margin-left: 64px }</code></td></tr>
+<tr><td><code>max-width: 420px</code></td><td><code>.steps</code> 1 column: <code>grid-template-columns: minmax(0, 1fr)</code></td></tr>
+<tr><td><code>prefers-reduced-motion: reduce</code></td><td>All animations and transitions set to <code>.01ms</code>, one iteration. The pointer parallax listener is not attached.</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="tokens">
+<h2>Color tokens</h2>
+<h3>Theme selectors</h3>
+<p>Tokens are defined in three states, the same pattern as <code>index.html</code>:</p>
+<ol>
+<li><code>:root</code> holds light values and <code>color-scheme: light</code>.</li>
+<li><code>@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { ... } }</code> applies dark values when the OS is dark and the user has not forced light (Auto).</li>
+<li><code>:root[data-theme="dark"] { ... }</code> applies the same dark values when the user forces dark, regardless of OS.</li>
+</ol>
+<p>Blocks 2 and 3 are identical and both set <code>color-scheme: dark</code>. <code>data-theme="light"</code> needs no block of its own: it only disables block 2.</p>
+<h3>Semantic tokens</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Token</th><th>Light</th><th>Dark</th></tr></thead><tbody>
+<tr><td><code>--bg</code></td><td><span class="sw" style="background:#FFFFFF"></span> #FFFFFF</td><td><span class="sw" style="background:#171717"></span> #171717</td></tr>
+<tr><td><code>--surface</code></td><td><span class="sw" style="background:#FFFFFF"></span> #FFFFFF</td><td><span class="sw" style="background:#171717"></span> #171717</td></tr>
+<tr><td><code>--surface-3</code></td><td><span class="sw" style="background:#F6F9FA"></span> #F6F9FA</td><td><span class="sw" style="background:#242424"></span> #242424</td></tr>
+<tr><td><code>--line</code></td><td><span class="sw" style="background:#E3ECEF"></span> #E3ECEF</td><td><span class="sw" style="background:#2A2A2A"></span> #2A2A2A</td></tr>
+<tr><td><code>--line-strong</code></td><td><span class="sw" style="background:#D8E0E4"></span> #D8E0E4</td><td><span class="sw" style="background:#363636"></span> #363636</td></tr>
+<tr><td><code>--border-control</code></td><td><span class="sw" style="background:#D8E0E4"></span> #D8E0E4</td><td><span class="sw" style="background:#404040"></span> #404040</td></tr>
+<tr><td><code>--ink</code></td><td><span class="sw" style="background:#1F2A30"></span> #1F2A30</td><td><span class="sw" style="background:#EEF4F6"></span> #EEF4F6</td></tr>
+<tr><td><code>--ink-2</code></td><td><span class="sw" style="background:#5F6D73"></span> #5F6D73</td><td><span class="sw" style="background:#B7C3C8"></span> #B7C3C8</td></tr>
+<tr><td><code>--ink-3</code></td><td><span class="sw" style="background:#849198"></span> #849198</td><td><span class="sw" style="background:#8B999F"></span> #8B999F</td></tr>
+<tr><td><code>--ink-disabled</code></td><td><span class="sw" style="background:#B4BEC3"></span> #B4BEC3</td><td><span class="sw" style="background:#4E5C62"></span> #4E5C62</td></tr>
+<tr><td><code>--accent</code></td><td><span class="sw" style="background:#3691CD"></span> #3691CD</td><td><span class="sw" style="background:#3691CD"></span> #3691CD</td></tr>
+<tr><td><code>--accent-2</code></td><td><span class="sw" style="background:#2A7DB4"></span> #2A7DB4</td><td><span class="sw" style="background:#5AA8DC"></span> #5AA8DC</td></tr>
+<tr><td><code>--accent-hover</code></td><td><span class="sw" style="background:#2A7DB4"></span> #2A7DB4</td><td><span class="sw" style="background:#2A7DB4"></span> #2A7DB4</td></tr>
+<tr><td><code>--accent-pressed</code></td><td><span class="sw" style="background:#226A9B"></span> #226A9B</td><td><span class="sw" style="background:#226A9B"></span> #226A9B</td></tr>
+<tr><td><code>--accent-soft</code></td><td><span class="sw" style="background:#EAF5F8"></span> #EAF5F8</td><td><span class="sw" style="background:#14283A"></span> #14283A</td></tr>
+<tr><td><code>--accent-soft-2</code></td><td><span class="sw" style="background:#BCDEE8"></span> #BCDEE8</td><td><span class="sw" style="background:#1F4461"></span> #1F4461</td></tr>
+<tr><td><code>--accent-fg</code></td><td><span class="sw" style="background:#2A72A3"></span> #2A72A3</td><td><span class="sw" style="background:#BCDEE8"></span> #BCDEE8</td></tr>
+<tr><td><code>--on-accent</code></td><td><span class="sw" style="background:#FFFFFF"></span> #FFFFFF</td><td><span class="sw" style="background:#FFFFFF"></span> #FFFFFF</td></tr>
+<tr><td><code>--success-bg</code></td><td><span class="sw" style="background:#E7F4ED"></span> #E7F4ED</td><td><span class="sw" style="background:#16291F"></span> #16291F</td></tr>
+<tr><td><code>--success-text</code></td><td><span class="sw" style="background:#35624E"></span> #35624E</td><td><span class="sw" style="background:#A8D8BE"></span> #A8D8BE</td></tr>
+<tr><td><code>--warning-bg</code></td><td><span class="sw" style="background:#FFF3D9"></span> #FFF3D9</td><td><span class="sw" style="background:#2E2512"></span> #2E2512</td></tr>
+<tr><td><code>--warning-text</code></td><td><span class="sw" style="background:#7D5D1D"></span> #7D5D1D</td><td><span class="sw" style="background:#E6C27A"></span> #E6C27A</td></tr>
+<tr><td><code>--error-bg</code></td><td><span class="sw" style="background:#FBE7E7"></span> #FBE7E7</td><td><span class="sw" style="background:#2F1A1A"></span> #2F1A1A</td></tr>
+<tr><td><code>--error-text</code></td><td><span class="sw" style="background:#8D4545"></span> #8D4545</td><td><span class="sw" style="background:#EDB0B0"></span> #EDB0B0</td></tr>
+<tr><td><code>--glow-1</code></td><td><code>rgb(188 222 232 / 60%)</code></td><td><code>rgb(54 145 205 / 16%)</code></td></tr>
+<tr><td><code>--glow-2</code></td><td><code>rgb(234 245 248 / 90%)</code></td><td><code>rgb(188 222 232 / 6%)</code></td></tr>
+</tbody></table></div>
+<h3>Shadows</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Token</th><th>Light</th><th>Dark</th></tr></thead><tbody>
+<tr><td><code>--shadow-sm</code></td><td><code>0 1px 2px rgb(31 42 48 / 5%)</code></td><td><code>0 1px 2px rgb(0 0 0 / 30%)</code></td></tr>
+<tr><td><code>--shadow-md</code></td><td><code>0 1px 2px rgb(31 42 48 / 4%), 0 8px 24px -8px rgb(31 42 48 / 10%)</code></td><td><code>0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -8px rgb(0 0 0 / 50%)</code></td></tr>
+<tr><td><code>--shadow-lg</code></td><td><code>0 2px 4px rgb(31 42 48 / 4%), 0 10px 35px rgb(31 42 48 / 8%)</code></td><td><code>0 2px 4px rgb(0 0 0 / 30%), 0 24px 48px -16px rgb(0 0 0 / 70%)</code></td></tr>
+</tbody></table></div>
+<h3>Board-only tokens</h3>
+<p>Used only inside <code>.right</code> (the capabilities board). Scope them to the board component if you prefer not to add them globally.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Token</th><th>Light</th><th>Dark</th><th>Used by</th></tr></thead><tbody>
+<tr><td><code>--board-bg</code></td><td><span class="sw" style="background:#F6F9FA"></span> #F6F9FA</td><td><span class="sw" style="background:#1C1C1C"></span> #1C1C1C</td><td>Panel fill, ghost pill fill, check stroke in board</td></tr>
+<tr><td><code>--board-dot</code></td><td><code>rgb(31 42 48 / 11%)</code></td><td><code>rgb(238 244 246 / 9%)</code></td><td>Dot grid</td></tr>
+<tr><td><code>--glass</code></td><td><code>rgb(255 255 255 / 38%)</code></td><td><code>rgb(255 255 255 / 4%)</code></td><td>Glass gradient end</td></tr>
+<tr><td><code>--glass-hi</code></td><td><code>rgb(255 255 255 / 78%)</code></td><td><code>rgb(255 255 255 / 13%)</code></td><td>Glass gradient start</td></tr>
+<tr><td><code>--glass-line</code></td><td><code>rgb(31 42 48 / 9%)</code></td><td><code>rgb(255 255 255 / 11%)</code></td><td>Glass border</td></tr>
+<tr><td><code>--sheen</code></td><td><code>rgb(255 255 255 / 85%)</code></td><td><code>rgb(255 255 255 / 22%)</code></td><td>Glass inset top highlight</td></tr>
+<tr><td><code>--obj-shadow</code></td><td><code>0 1px 1px rgb(31 42 48 / 5%), 0 14px 30px -12px rgb(31 42 48 / 24%)</code></td><td><code>0 1px 1px rgb(0 0 0 / 40%), 0 18px 36px -12px rgb(0 0 0 / 75%)</code></td><td>Glass tiles, bars</td></tr>
+<tr><td><code>--obj-drop</code></td><td><code>drop-shadow(0 12px 16px rgb(31 42 48 / 14%))</code></td><td><code>drop-shadow(0 16px 20px rgb(0 0 0 / 55%))</code></td><td><code>.drop</code> filter on clover shapes</td></tr>
+<tr><td><code>--noise</code></td><td colspan="2">Same in both themes: inline SVG data URI, 140x140, <code>feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'</code> plus <code>feColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .7 0'</code></td><td><code>.grain::after</code>, <code>mix-blend-mode: overlay</code>, <code>opacity: .55</code></td></tr>
+</tbody></table></div>
+<h3>Agent tints</h3>
+<p>Fixed hex. No dark variant: they are defined once on <code>:root</code> and are not redefined in either dark block. Content on tint fills uses <code>--tint-ink</code>.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Tint</th><th>Soft fill</th><th>Dot</th></tr></thead><tbody>
+<tr><td>ice</td><td><span class="sw" style="background:#EAF5F8"></span> <code>--ice</code> #EAF5F8</td><td><span class="sw" style="background:#3691CD"></span> <code>--ice-dot</code> #3691CD</td></tr>
+<tr><td>mint</td><td><span class="sw" style="background:#E7F4ED"></span> <code>--mint</code> #E7F4ED</td><td><span class="sw" style="background:#A9D5BE"></span> <code>--mint-dot</code> #A9D5BE</td></tr>
+<tr><td>butter</td><td><span class="sw" style="background:#FFF3D9"></span> <code>--butter</code> #FFF3D9</td><td><span class="sw" style="background:#EBCB8B"></span> <code>--butter-dot</code> #EBCB8B</td></tr>
+<tr><td>peach</td><td><span class="sw" style="background:#FBE9DD"></span> <code>--peach</code> #FBE9DD</td><td><span class="sw" style="background:#F0B999"></span> <code>--peach-dot</code> #F0B999</td></tr>
+<tr><td>lilac</td><td><span class="sw" style="background:#EFEDF8"></span> <code>--lilac</code> #EFEDF8</td><td><span class="sw" style="background:#C4BDE3"></span> <code>--lilac-dot</code> #C4BDE3</td></tr>
+<tr><td>ink on tints</td><td colspan="2"><span class="sw" style="background:#1F2A30"></span> <code>--tint-ink</code> #1F2A30</td></tr>
+</tbody></table></div>
+<p>The profile aura (specimen 07) picks its colors from the name with a hash: <code>h = [...name].reduce((a, c) =&gt; (a * 31 + c.charCodeAt(0)) &gt;&gt;&gt; 0, 7)</code>, <code>a = h % 5</code>, <code>b = (a + 1 + (h &gt;&gt; 4) % 4) % 5</code>, over the order ice, mint, butter, peach, lilac. <code>--a1</code> is dot[a], <code>--a2</code> is dot[b], <code>--a3</code> is soft[a].</p>
+
+<h3>Token availability in index.html</h3>
+<p>Checked by grepping <code>/Users/ashok/true-ui/index.html</code> for each <code>--name:</code> definition.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Token group</th><th>Status</th><th>Action</th></tr></thead><tbody>
+<tr><td><code>--bg</code>, <code>--surface</code>, <code>--surface-3</code>, <code>--line</code>, <code>--line-strong</code>, <code>--border-control</code>, <code>--ink</code>, <code>--ink-2</code>, <code>--ink-3</code>, <code>--ink-disabled</code></td><td>Exists</td><td>Reuse</td></tr>
+<tr><td><code>--accent</code>, <code>--accent-2</code>, <code>--accent-hover</code>, <code>--accent-pressed</code>, <code>--accent-soft</code>, <code>--accent-soft-2</code>, <code>--accent-fg</code>, <code>--on-accent</code></td><td>Exists</td><td>Reuse</td></tr>
+<tr><td><code>--success-*</code>, <code>--warning-*</code>, <code>--error-*</code>, <code>--glow-1</code>, <code>--glow-2</code></td><td>Exists</td><td>Reuse</td></tr>
+<tr><td><code>--shadow-sm</code>, <code>--shadow-md</code>, <code>--shadow-lg</code></td><td>Exists (see mismatch below)</td><td>Reuse; add dark <code>--shadow-sm</code></td></tr>
+<tr><td><code>--font-sans</code>, <code>--font-accent</code>, <code>--font-mono</code></td><td>Exists</td><td>Reuse</td></tr>
+<tr><td><code>--ice</code>, <code>--ice-dot</code>, <code>--mint</code>, <code>--mint-dot</code>, <code>--butter</code>, <code>--butter-dot</code>, <code>--peach</code>, <code>--peach-dot</code>, <code>--lilac</code>, <code>--lilac-dot</code>, <code>--tint-ink</code></td><td>MISSING (0 matches each)</td><td>Add to <code>:root</code> only</td></tr>
+<tr><td><code>--board-bg</code>, <code>--board-dot</code>, <code>--glass</code>, <code>--glass-hi</code>, <code>--glass-line</code>, <code>--sheen</code>, <code>--obj-shadow</code>, <code>--obj-drop</code>, <code>--noise</code></td><td>MISSING (0 matches each)</td><td>Add light values to <code>:root</code> and dark values to both dark blocks (or scope to the board)</td></tr>
+</tbody></table></div>
+<h3>Value mismatches between the prototype and index.html</h3>
+<p>All shared color values match in light and dark. Two differences:</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Token</th><th>Prototype</th><th>index.html</th><th>Resolution</th></tr></thead><tbody>
+<tr><td><code>--shadow-sm</code> (dark)</td><td><code>0 1px 2px rgb(0 0 0 / 30%)</code> in both dark blocks</td><td>Not redefined in either dark block, so dark inherits the light value <code>0 1px 2px rgb(31 42 48 / 5%)</code></td><td>Add the dark value to index.html. It is used by the pressed segmented-control button.</td></tr>
+<tr><td><code>--font-mono</code></td><td><code>"JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace</code></td><td><code>"JetBrains Mono", ui-monospace, monospace</code></td><td>Fallback-only difference. Use the index.html value.</td></tr>
+</tbody></table></div>
+<p>index.html also defines tokens the prototype does not use (<code>--brand-50</code> to <code>--brand-700</code>, <code>--surface-2</code>, <code>--signature</code>, <code>--accent-text</code>, <code>--accent-ink</code>, <code>--warn</code>, <code>--info-*</code>, <code>--neutral-*</code>, <code>--radius</code>, <code>--font-display</code>, display/accent type vars). These need no change.</p>
+</section>
+
+<section id="type">
+<h2>Typography</h2>
+<h3>Fonts</h3>
+<ul>
+<li>Figtree, weights 400, 500, 600, 700, 800. Token <code>--font-sans</code>. Base: <code>font: 14px/1.5 var(--font-sans)</code>, <code>-webkit-font-smoothing: antialiased</code>.</li>
+<li>Newsreader, italic only, optical size 6..72, weights 400..500. Token <code>--font-accent</code>. Used for the italic accent words and the board signature.</li>
+<li>JetBrains Mono, weights 400 and 500. Token <code>--font-mono</code>. Used for eyebrows, hints, counts and all board labels.</li>
+</ul>
+<pre><code>https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&amp;family=Newsreader:ital,opsz,wght@1,6..72,400..500&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap</code></pre>
+<p>index.html already loads the same three families (plus Caveat), so no new font request is needed in the app.</p>
+<h3>Type scale</h3>
+<p>Blank line-height means inherited 1.5. Blank letter-spacing means normal.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Role</th><th>Selector</th><th>Family</th><th>Size</th><th>Weight</th><th>Line-height</th><th>Tracking</th><th>Color</th></tr></thead><tbody>
+<tr><td>Body</td><td><code>body</code></td><td>sans</td><td>14px</td><td>400</td><td>1.5</td><td></td><td><code>--ink</code></td></tr>
+<tr><td>Brand word</td><td><code>.brand-word</code></td><td>sans</td><td>17px</td><td>700</td><td></td><td>-.03em</td><td><code>--ink</code></td></tr>
+<tr><td>Brand slash</td><td><code>.brand-slash</code></td><td>sans</td><td>16px</td><td>400</td><td></td><td></td><td><code>--line-strong</code></td></tr>
+<tr><td>Brand sub ("agents")</td><td><code>.brand-sub</code></td><td>sans</td><td>14px</td><td>500</td><td></td><td></td><td><code>--ink-2</code></td></tr>
+<tr><td>Segmented button</td><td><code>.seg button</code></td><td>sans</td><td>12px</td><td>400; 500 when pressed</td><td></td><td></td><td><code>--ink-2</code>; <code>--ink</code> hover/pressed</td></tr>
+<tr><td>Inviter line</td><td><code>.from-line</code></td><td>sans</td><td>14px</td><td>400; name <code>b</code> 600</td><td></td><td></td><td><code>--ink-2</code>; name <code>--ink</code></td></tr>
+<tr><td>Inviter sub</td><td><code>.from-sub</code></td><td>sans</td><td>12.5px</td><td>400</td><td></td><td></td><td><code>--ink-3</code></td></tr>
+<tr><td>Avatar initials</td><td><code>.av.md</code></td><td>sans</td><td>13px</td><td>700</td><td></td><td></td><td><code>--tint-ink</code></td></tr>
+<tr><td>Workspace logo letter</td><td><code>.ws-logo</code></td><td>sans</td><td>10px</td><td>800</td><td></td><td></td><td><code>--bg</code> on <code>--ink</code></td></tr>
+<tr><td>Role pill</td><td><code>.role-pill</code></td><td>sans</td><td>12px</td><td>600</td><td></td><td></td><td><code>--accent-fg</code> on <code>--accent-soft</code></td></tr>
+<tr><td>Expiry pill</td><td><code>.exp</code></td><td>sans, tabular-nums</td><td>12px</td><td>500</td><td></td><td></td><td><code>--ink-2</code>; expired <code>--error-text</code> on <code>--error-bg</code></td></tr>
+<tr><td>H1</td><td><code>h1</code></td><td>sans</td><td><code>clamp(30px, 4vw, 42px)</code></td><td>600</td><td>1.06</td><td>-.035em</td><td><code>--ink</code>; <code>text-wrap: balance</code></td></tr>
+<tr><td>H1 accent</td><td><code>h1 em</code></td><td>accent italic</td><td>1.04em</td><td>400</td><td></td><td>-.01em</td><td><code>--accent-fg</code>; <code>padding-right: .04em</code></td></tr>
+<tr><td>Eyebrow</td><td><code>.eyebrow</code></td><td>mono, uppercase</td><td>11px</td><td>500</td><td></td><td>.08em</td><td><code>--ink-3</code></td></tr>
+<tr><td>Progress label</td><td><code>.check-h</code></td><td>sans</td><td>12.5px</td><td>500</td><td></td><td></td><td><code>--ink-2</code></td></tr>
+<tr><td>Progress count</td><td><code>.check-h .mono</code></td><td>mono, tabular-nums</td><td>11.5px</td><td>400</td><td></td><td></td><td><code>--ink-3</code></td></tr>
+<tr><td>Step label</td><td><code>.steps li</code></td><td>sans</td><td>12.5px</td><td>400; 500 when <code>.is-on</code></td><td></td><td></td><td><code>--ink-3</code>; on <code>--ink</code>; done <code>--ink-2</code>; bad <code>--error-text</code></td></tr>
+<tr><td>Step dot numeral</td><td><code>.dot</code></td><td>mono</td><td>10px</td><td>600</td><td></td><td></td><td>on <code>--accent-fg</code>; done <code>--on-accent</code></td></tr>
+<tr><td>Field label</td><td><code>.field-label</code></td><td>sans</td><td>12.5px</td><td>500</td><td></td><td></td><td><code>--ink-2</code></td></tr>
+<tr><td>Field hint</td><td><code>.field-hint</code></td><td>mono</td><td>12px</td><td>400</td><td></td><td></td><td><code>--ink-3</code>; <code>.ok</code> <code>--success-text</code></td></tr>
+<tr><td>Input text</td><td><code>.input</code></td><td>sans</td><td>14px</td><td>400</td><td></td><td></td><td><code>--ink</code>; placeholder <code>--ink-3</code>; readonly <code>--ink-2</code></td></tr>
+<tr><td>Input avatar</td><td><code>.input-av</code></td><td>sans</td><td>10px</td><td>700</td><td></td><td></td><td><code>--accent-fg</code>; set <code>--on-accent</code> on <code>--ice-dot</code></td></tr>
+<tr><td>Error text</td><td><code>.err</code></td><td>sans</td><td>12px</td><td>400</td><td></td><td></td><td><code>--error-text</code></td></tr>
+<tr><td>Join button</td><td><code>.btn-join</code></td><td>sans</td><td>15px</td><td>600</td><td></td><td></td><td><code>--on-accent</code> on <code>--accent</code></td></tr>
+<tr><td>Banner</td><td><code>.banner</code></td><td>sans</td><td>13px</td><td>400; <code>b</code> 600</td><td></td><td></td><td>warn <code>--warning-text</code>/<code>--warning-bg</code>; ok <code>--success-text</code>/<code>--success-bg</code></td></tr>
+<tr><td>Fine print</td><td><code>.fine</code></td><td>sans</td><td>12.5px</td><td>400</td><td></td><td></td><td><code>--ink-3</code>; links <code>--accent-fg</code>, underline on hover</td></tr>
+<tr><td>Preview footer</td><td><code>.foot</code></td><td>sans</td><td>12px</td><td>400</td><td></td><td></td><td><code>--ink-3</code></td></tr>
+<tr><td>Panel H2</td><td><code>.right-head h2</code></td><td>sans</td><td>20px</td><td>600</td><td>1.2</td><td>-.02em</td><td><code>--ink</code></td></tr>
+<tr><td>Panel H2 accent</td><td><code>.right-head h2 em</code></td><td>accent italic</td><td>20px</td><td>400</td><td>1.2</td><td></td><td><code>--accent-fg</code></td></tr>
+<tr><td>Panel description</td><td><code>.right-head p</code></td><td>sans</td><td>13px</td><td>400</td><td></td><td></td><td><code>--ink-3</code>; <code>max-width: 40ch</code></td></tr>
+<tr><td>Panel mono label</td><td><code>.right-head .mono</code></td><td>mono</td><td>11px</td><td>400</td><td></td><td>.04em</td><td><code>--ink-3</code>; nowrap</td></tr>
+<tr><td>Legend number</td><td><code>.legend .n</code></td><td>mono</td><td>10.5px</td><td>400</td><td>18px</td><td></td><td><code>--ink-3</code></td></tr>
+<tr><td>Legend title</td><td><code>.legend b</code></td><td>sans</td><td>12.5px</td><td>600</td><td>18px</td><td>-.005em</td><td><code>--ink</code>; single line, ellipsis</td></tr>
+<tr><td>Legend description</td><td><code>.legend .d</code></td><td>sans</td><td>11.5px</td><td>400</td><td>1.4</td><td></td><td><code>--ink-2</code>; clamp 2 lines</td></tr>
+<tr><td>Board specimen index</td><td><code>.sp .idx</code></td><td>mono</td><td><code>max(10px, 1.9cqw)</code></td><td>400</td><td></td><td></td><td><code>--ink-3</code></td></tr>
+<tr><td>Board timer (02)</td><td><code>.s2 .pill</code></td><td>mono, tabular-nums</td><td><code>max(12px, 2.8cqw)</code></td><td>500</td><td></td><td></td><td><code>--ink</code></td></tr>
+<tr><td>Board shortcut (04)</td><td><code>.s4 kbd</code></td><td>mono</td><td><code>max(10px, 1.8cqw)</code></td><td>500</td><td></td><td></td><td><code>--ink-3</code> on <code>--surface-3</code></td></tr>
+<tr><td>Board ghost pill (05)</td><td><code>.s5 .ghost-pill</code></td><td>mono</td><td><code>max(12px, 2.6cqw)</code></td><td>400</td><td></td><td></td><td><code>--ink</code></td></tr>
+<tr><td>Board person name (06, 07)</td><td><code>.who</code></td><td>mono</td><td><code>max(12px, 2.3cqw)</code></td><td>500</td><td></td><td></td><td><code>--ink</code>; check icon <code>--accent-fg</code></td></tr>
+<tr><td>Board person sub (06, 07)</td><td><code>.sub</code></td><td>mono</td><td><code>max(10.5px, 2cqw)</code></td><td>400</td><td></td><td></td><td><code>--ink-3</code></td></tr>
+<tr><td>Board initials (07, filled)</td><td><code>.s7 .me</code></td><td>sans</td><td>4.2cqw</td><td>600</td><td></td><td>-.02em</td><td>#fff, <code>text-shadow: 0 1px 8px rgb(31 42 48 / 35%)</code></td></tr>
+<tr><td>Board initials (07, empty "YOU")</td><td><code>.is-empty .me</code></td><td>mono</td><td><code>max(10px, 2cqw)</code></td><td>500</td><td></td><td>.08em</td><td><code>--ink-3</code></td></tr>
+<tr><td>Board footer caption</td><td><code>.board-foot .mono</code></td><td>mono, uppercase</td><td><code>max(9.5px, 1.7cqw)</code></td><td>400</td><td>1.6</td><td>.04em</td><td><code>--ink-3</code></td></tr>
+<tr><td>Board signature</td><td><code>.board-foot .sig</code></td><td>accent italic</td><td><code>max(15px, 3.4cqw)</code></td><td>400</td><td></td><td></td><td><code>--ink</code></td></tr>
+</tbody></table></div>
+</section>
+
+<section id="spacing">
+<h2>Spacing, radius and controls</h2>
+<h3>Radius scale</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Radius</th><th>Used on</th></tr></thead><tbody>
+<tr><td>4px</td><td>Progress bar and its fill (<code>.bar</code>)</td></tr>
+<tr><td>5px</td><td><code>.ws-logo</code> (default), board <code>kbd</code></td></tr>
+<tr><td>6px</td><td><code>.ws-logo</code> inside <code>.from-pair</code></td></tr>
+<tr><td>7px</td><td><code>.brand-mark</code>, <code>.seg button</code></td></tr>
+<tr><td>8px</td><td>Focus ring (<code>:focus-visible</code>)</td></tr>
+<tr><td>9px</td><td><code>.seg</code> track, legend item</td></tr>
+<tr><td>10px</td><td><code>.input</code></td></tr>
+<tr><td>12px</td><td><code>.btn-join</code>, <code>.banner</code></td></tr>
+<tr><td>16px</td><td><code>.card</code> (join card)</td></tr>
+<tr><td>20px</td><td><code>.right</code> at <code>max-width: 960px</code></td></tr>
+<tr><td>24px</td><td><code>.right</code> desktop</td></tr>
+<tr><td>999px</td><td><code>.role-pill</code>, <code>.exp</code>, board pills</td></tr>
+<tr><td>50%</td><td>Avatars, step dots, input avatar, orbs, pearls</td></tr>
+</tbody></table></div>
+<p>Board specimen radii are in <code>cqw</code> so they scale with the board: glass tile 03 <code>4.6cqw</code>, tray 08 <code>3.8cqw</code>, bars <code>2.6cqw</code>.</p>
+<h3>Spacing values</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Value</th><th>Where</th></tr></thead><tbody>
+<tr><td>2px</td><td><code>.seg</code> padding; legend row gap</td></tr>
+<tr><td>4px</td><td>Role pill gap; field hint gap; panel <code>p</code> top margin</td></tr>
+<tr><td>5px</td><td>Seg button icon gap; board <code>.who</code> gap</td></tr>
+<tr><td>6px</td><td>Brand gap; field label-to-input gap; expiry pill gap; legend item padding</td></tr>
+<tr><td>7px</td><td>Step dot-to-label gap</td></tr>
+<tr><td>8px</td><td>Eyebrow gap; bar top margin; steps grid gap; button icon gap; <code>.foot</code> gap; legend column gap; board-wrap top margin</td></tr>
+<tr><td>10px</td><td>Inviter row gap (row); steps top margin; banner icon gap; seg button side padding; legend top padding</td></tr>
+<tr><td>12px</td><td>Frame gap and padding; header gap; inviter row gap (column); panel head gap; banner <code>12px 14px</code>; input right padding</td></tr>
+<tr><td>14px</td><td>Gap between the two fields; fine print column gap; legend top margin</td></tr>
+<tr><td>16px</td><td>Join card padding and internal gap</td></tr>
+<tr><td>20px</td><td><code>.invite</code> gap and bottom padding; <code>.left</code> bottom padding; <code>.right</code> bottom padding</td></tr>
+<tr><td>22px / 24px</td><td><code>.right</code> top / sides</td></tr>
+<tr><td>28px</td><td><code>.left</code> side padding (16px at 960 and below)</td></tr>
+<tr><td>44px</td><td><code>.input</code> left padding (room for the 24px avatar or lock icon)</td></tr>
+</tbody></table></div>
+<h3>Control heights</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Control</th><th>Height</th><th>Other</th></tr></thead><tbody>
+<tr><td>Segmented button (<code>.seg button</code>)</td><td>26px</td><td>padding <code>0 10px</code>; pressed: <code>--surface</code> fill, <code>--shadow-sm</code></td></tr>
+<tr><td>Input (<code>.input</code>)</td><td>40px</td><td>padding <code>0 12px 0 44px</code>; <code>1px solid var(--border-control)</code>; readonly fill <code>--surface-3</code>, <code>cursor: not-allowed</code>; invalid border <code>--error-text</code></td></tr>
+<tr><td>Input avatar / lock</td><td>24px avatar at <code>left: 8px; top: 8px</code>; 14px lock at <code>left: 14px; top: 12px</code></td><td>Empty avatar: <code>1.5px dashed var(--accent-2)</code></td></tr>
+<tr><td>Join button (<code>.btn-join</code>)</td><td>44px</td><td>hover <code>--accent-hover</code>; active <code>--accent-pressed</code> + <code>scale(.985)</code>; busy spinner 16px, <code>2px solid rgb(255 255 255 / 35%)</code>, top <code>--on-accent</code>, <code>.7s</code></td></tr>
+<tr><td>Role pill</td><td>22px</td><td>padding <code>0 8px</code></td></tr>
+<tr><td>Expiry pill</td><td>24px</td><td>padding <code>0 9px</code>; 6px status dot</td></tr>
+<tr><td>Step dot</td><td>18px</td><td><code>1.5px solid var(--line-strong)</code></td></tr>
+<tr><td>Progress bar</td><td>4px</td><td>track <code>--surface-3</code>, fill <code>--accent</code> (error: <code>--error-text</code>); width transition <code>.45s cubic-bezier(.2,.8,.2,1)</code></td></tr>
+<tr><td>Header</td><td>52px</td><td>brand mark 24px</td></tr>
+</tbody></table></div>
+<h3>Focus</h3>
+<ul>
+<li>Global: <code>:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; border-radius: 8px; }</code></li>
+<li>Input: <code>.input:focus { outline: none; border-color: var(--accent-2); box-shadow: 0 0 0 3px var(--accent-soft); }</code></li>
+<li>Legend items are focusable (<code>tabindex="0"</code>). Focus and hover both give <code>background: color-mix(in srgb, var(--surface) 70%, transparent)</code> and highlight the matching board specimen (others drop to <code>opacity: .3</code>, the hot one scales to 1.04).</li>
+</ul>
+</section>

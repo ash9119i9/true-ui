@@ -1,0 +1,357 @@
+<section class="sec" id="first-look">
+<style>
+/* ch1 First look: v3 app mocks (sidebar, empty hero, composer action bar, approval picker) under the tour layer */
+#first-look .fl-frame{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;padding:10px}
+#first-look .fl-frame.with-side{grid-template-columns:230px minmax(0,1fr)}
+@media (max-width:640px){#first-look .fl-frame.with-side{grid-template-columns:minmax(0,1fr)}}
+#first-look .fl-stage{background:var(--bg);border:1px solid var(--line);border-radius:16px;min-width:0;display:flex;flex-direction:column}
+#first-look .fl-top{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border-bottom:1px solid var(--line);font-size:13px;font-weight:500;color:var(--ink-2);min-width:0}
+#first-look .fl-top .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#first-look kbd{font:500 10.5px var(--font-mono);color:var(--ink-2);background:var(--surface-3);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 5px;white-space:nowrap}
+/* sidebar */
+#first-look .fl-side{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px;min-width:0}
+#first-look .fl-brand{display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px}
+#first-look .fl-brand i{width:22px;height:22px;border-radius:7px;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-style:normal}
+#first-look .fl-brand span{color:var(--ink-3);font-weight:500}
+#first-look .fl-search{display:flex;align-items:center;gap:8px;height:32px;padding:0 8px 0 10px;border:1px solid var(--line-strong);border-radius:10px;background:var(--surface-2);color:var(--ink-3);font-size:13px;min-width:0}
+#first-look .fl-search span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#first-look .fl-new{display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border-radius:10px;background:var(--ink);color:var(--bg);font-size:13px;font-weight:600}
+#first-look .fl-new span{flex:1}
+#first-look .fl-new kbd{background:color-mix(in srgb,var(--bg) 16%,transparent);color:var(--bg);border-color:transparent}
+#first-look .fl-grp{display:flex;flex-direction:column;gap:1px;min-width:0}
+#first-look .fl-lab{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);padding:4px 6px}
+#first-look .fl-row{display:flex;align-items:center;gap:8px;height:32px;padding:0 8px;border-radius:9px;font-size:13px;color:var(--ink);min-width:0}
+#first-look .fl-row .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#first-look .fl-row .tm{font:500 11px var(--font-mono);color:var(--ink-2);white-space:nowrap}
+#first-look .fl-row.on{background:var(--accent-soft);color:var(--accent-fg);font-weight:600}
+#first-look .fl-row.in{padding-left:22px}
+#first-look .fl-dot{width:8px;height:8px;border-radius:50%;flex:none}
+#first-look .fl-dot.run{background:var(--accent);animation:pulse 1.6s infinite}
+#first-look .fl-dot.wait{background:var(--warn);box-shadow:0 0 0 3px color-mix(in srgb,var(--warn) 22%,transparent)}
+#first-look .fl-dot.idle{border:1.5px solid var(--line-strong)}
+#first-look .fl-user{display:flex;align-items:center;gap:8px;padding:8px 4px 0;border-top:1px solid var(--line);font-size:12.5px;min-width:0}
+#first-look .fl-ava{width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-size:11px;font-weight:700;flex:none}
+/* empty hero */
+#first-look .fl-hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:30px 16px 20px;min-width:0}
+#first-look .fl-hero.tall{padding-top:64px}
+#first-look .fl-greet{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 12px;border-radius:999px;background:var(--ts);color:var(--t);font-size:13px;font-weight:600}
+#first-look .fl-greet i{width:8px;height:8px;border-radius:50%;background:var(--t)}
+#first-look .fl-h1{font-size:clamp(22px,3.4vw,30px);font-weight:800;letter-spacing:-.035em;line-height:1.1;text-wrap:balance}
+#first-look .fl-h1 em{font-family:var(--font-accent);font-weight:400;color:var(--t1)}
+#first-look .fl-starts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;width:100%;max-width:600px}
+#first-look .fl-start{display:flex;gap:8px;align-items:flex-start;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-size:13px;color:var(--ink);min-width:0}
+#first-look .fl-start .ic{color:var(--t1);margin-top:2px}
+#first-look .fl-recent{width:100%;max-width:600px;display:flex;flex-direction:column;gap:2px;text-align:left}
+/* composer */
+#first-look .fl-dock{padding:0 14px 14px;display:flex;flex-direction:column;gap:8px;min-width:0;width:100%;max-width:640px;align-self:center}
+#first-look .fl-box{border:1px solid var(--line);border-radius:18px;background:var(--surface);box-shadow:var(--shadow-md);padding:10px 10px 8px 12px;display:flex;flex-direction:column;gap:8px;min-width:0;text-align:left}
+#first-look .fl-ta{min-height:44px;padding:2px 4px;font-size:14px;color:var(--ink-3);overflow-wrap:anywhere}
+#first-look .fl-bar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-width:0}
+#first-look .fl-chip{position:relative;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);font:500 13px var(--font-sans);color:var(--ink);white-space:nowrap;min-width:0}
+#first-look .fl-chip.ghost{background:transparent;border-color:transparent;color:var(--ink-2);padding:0 8px}
+#first-look .fl-chip.on{background:var(--accent-soft);color:var(--accent-fg);border-color:transparent}
+#first-look .fl-av{width:18px;height:18px;border-radius:6px;display:grid;place-items:center;font-size:9px;font-weight:700;background:var(--ts);color:var(--t);flex:none}
+#first-look .fl-send{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:none;background:var(--accent-fg);color:var(--on-accent);opacity:.35}
+#first-look .fl-file{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;max-width:100%;padding:5px 6px 5px 8px;border:1px solid var(--line);border-radius:11px;background:var(--surface-2);font-size:12.5px;min-width:0}
+#first-look .fl-file b{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#first-look .fl-file small{color:var(--ink-2);font-size:11.5px;white-space:nowrap}
+#first-look .fl-file > span:first-child{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-fg);flex:none}
+/* menus: palette and approval picker */
+#first-look .fl-pop{border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:var(--shadow-card);padding:6px;display:flex;flex-direction:column;gap:1px;min-width:0}
+#first-look .fl-gh{display:flex;justify-content:space-between;gap:8px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);padding:8px 8px 4px}
+#first-look .fl-it{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 8px;border-radius:9px;font-size:13px;color:var(--ink);min-width:0}
+#first-look .fl-it > span:first-child{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:var(--surface-3);color:var(--ink-2)}
+#first-look .fl-it b{font-weight:600}
+#first-look .fl-it small{display:block;font-size:12px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#first-look .fl-it mark{background:color-mix(in srgb,var(--warn) 30%,transparent);color:inherit;border-radius:3px;padding:0 1px}
+#first-look .fl-it.on{background:var(--accent-soft)}
+#first-look .fl-it.on > span:first-child{background:var(--accent-fg);color:var(--on-accent)}
+#first-look .fl-it.tone-1 > span:first-child{background:var(--ts);color:var(--t)}
+#first-look .fl-flag{font:600 10px var(--font-mono);text-transform:uppercase;letter-spacing:.05em;padding:1px 6px;border-radius:999px;background:var(--warn-bg);color:var(--warn-text)}
+#first-look .fl-pop-f{display:flex;gap:8px;align-items:center;padding:8px 8px 4px;margin-top:4px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-2)}
+#first-look .fl-q{display:flex;align-items:center;gap:10px;height:44px;padding:0 10px;border-bottom:1px solid var(--line);font-size:14px;min-width:0}
+#first-look .fl-q span{flex:1;min-width:0}
+#first-look .fl-inset{margin-top:14px;border:1px dashed var(--line-strong);border-radius:14px;background:var(--surface);padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+#first-look .fl-inset .cap{font:700 18px/1 var(--font-hand);color:var(--ink-3)}
+#first-look .fl-inset .fl-pop{max-width:460px}
+#first-look .fl-menu{width:min(320px,100%);margin-left:6px}
+/* an open popover portals above the scrim; it is a sibling of the target, never its ancestor */
+#first-look .fl-lift{position:relative;z-index:6}
+/* coach extras */
+#first-look .fl-center{left:50%;top:40px;transform:translateX(-50%)}
+#first-look .coach.hero .c-art.fl-art{height:92px;display:grid;place-items:center}
+#first-look .fl-art svg{width:220px;height:72px;overflow:visible}
+#first-look .fl-art .ln{fill:none;stroke:var(--accent-fg);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#first-look .fl-art .b1{fill:var(--mint)} #first-look .fl-art .b2{fill:var(--butter)} #first-look .fl-art .b3{fill:var(--lilac)} #first-look .fl-art .b4{fill:var(--peach)}
+#first-look .fl-art .card{fill:var(--coach);stroke:var(--accent-fg);stroke-width:1.4}
+#first-look .fl-lines{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--ink-2)}
+#first-look .fl-lines li{display:grid;grid-template-columns:18px minmax(0,1fr);gap:6px;align-items:start}
+#first-look .fl-lines .ic{color:var(--accent-fg);margin-top:2px}
+#first-look .fl-lines b{color:var(--ink);font-weight:600}
+@media (max-width:640px){#first-look .demo .fl-center{transform:none}#first-look .fl-hero.tall{padding-top:30px}}
+@media (prefers-reduced-motion:reduce){#first-look .fl-dot.run{animation:none}}
+</style>
+<div class="sec-head">
+  <span class="eyebrow">Chapter 1</span>
+  <h2>First look</h2>
+  <p>Four Look stops that name the parts of the v3 screen before anything runs: the empty hero, the sidebar and ⌘K, the composer action bar and the approval modes.</p>
+</div>
+
+  <!-- Board 1: Welcome -->
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Step 1 of 12: the empty v3 hero is dimmed except the agent starter prompts, with a centered welcome card offering Start tour and Not now">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app</span></div>
+          <div class="fl-frame">
+            <div class="fl-stage">
+              <div class="fl-top"><svg class="ic"><use href="#i-sidebar"/></svg><span class="t">New conversation</span><kbd>⌘K</kbd></div>
+              <div class="fl-hero tall">
+                <span class="fl-greet tone-1"><i></i>Good morning, Nitin · Qlik Analyst</span>
+                <div class="fl-h1">What should we <em>work on</em> today?</div>
+                <div class="fl-box" style="width:100%;max-width:600px">
+                  <div class="fl-ta">Ask the Qlik Analyst about your apps, data or docs…</div>
+                  <div class="fl-bar">
+                    <span class="fl-chip ghost"><svg class="ic"><use href="#i-plus"/></svg></span>
+                    <span class="fl-chip tone-1"><span class="fl-av">QA</span>Qlik Analyst<svg class="ic sm"><use href="#i-chevd"/></svg></span>
+                    <span class="fl-chip"><svg class="ic sm"><use href="#i-brain"/></svg>gpt-5 · high</span>
+                    <span class="fl-chip"><svg class="ic sm"><use href="#i-shield"/></svg>Ask</span>
+                    <span class="fl-chip"><svg class="ic sm"><use href="#i-target"/></svg>Goal</span>
+                    <span class="spacer"></span><span class="fl-send"><svg class="ic"><use href="#i-send"/></svg></span>
+                  </div>
+                </div>
+                <div class="fl-starts t-anchor" data-tour="hero-starters">
+                  <div class="fl-start"><svg class="ic sm"><use href="#i-file"/></svg><span>Draft a 30-day onboarding plan for new analysts from the handbook</span></div>
+                  <div class="fl-start"><svg class="ic sm"><use href="#i-chart"/></svg><span>Explain the KPIs on the Sales Overview app</span></div>
+                  <div class="fl-start"><svg class="ic sm"><use href="#i-sigma"/></svg><span>Write a set analysis expression for last quarter</span></div>
+                  <span class="spot inset" aria-hidden="true"></span>
+                </div>
+                <div class="fl-recent">
+                  <div class="fl-lab">Pick up where you left off</div>
+                  <div class="fl-row"><i class="fl-dot idle"></i><span class="t">Qlik set analysis cheat sheet</span><span class="tm">8:15</span></div>
+                  <div class="fl-row"><i class="fl-dot idle"></i><span class="t">Handbook glossary cleanup</span><span class="tm">Mon</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="coach hero fl-center" data-side="center">
+          <div class="c-art fl-art" aria-hidden="true">
+            <svg viewBox="0 0 220 72">
+              <rect class="card" x="62" y="10" width="96" height="54" rx="10"/>
+              <path class="ln" d="M76 26h40M76 36h62M76 46h30"/>
+              <circle class="b1" cx="30" cy="40" r="12"/><circle class="b2" cx="190" cy="24" r="9"/>
+              <circle class="b3" cx="184" cy="56" r="6"/><circle class="b4" cx="44" cy="14" r="5"/>
+              <path class="ln" d="M42 40c8 0 12-6 20-8M158 30c8-2 14-4 22-5"/>
+            </svg>
+          </div>
+          <div class="c-body">
+            <div class="c-eye"><span>Step 1 of 12 · First look</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+            <h4>Meet the <em>Qlik Analyst</em></h4>
+            <p>It answers from your docs and data, calls in helpers, and shows its work as it goes. The starters below are a good first move.</p>
+            <div class="c-foot">
+              <span class="muted" style="font-size:12px;margin-right:auto"><svg class="ic sm"><use href="#i-clock"/></svg> about 3 minutes</span>
+              <span class="tb quiet">Not now</span><span class="tb primary">Start tour</span>
+            </div>
+          </div>
+        </div>
+        <span class="scribble" style="right:18px;bottom:22px;transform:rotate(-3deg)">starters come<br>from the agent
+          <svg width="54" height="34" viewBox="0 0 54 34"><path d="M50 30C40 26 26 18 14 6"/><path d="M12 16 13 5l10 2"/></svg>
+        </span>
+      </div>
+      <p class="board-cap">First visit only. The greeting speaks in the agent's tint, and the only lit thing is a real first move.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Welcome, target hero-starters</b> <span class="tag look">Look</span> <span class="tag derive">derive</span><span>Spot on <code>data-tour="hero-starters"</code>, everything else under the scrim. Hero coach centered at the top so the starters stay clear. Art is a small inline SVG card with tint dots.</span></div></li>
+      <li><span class="pin">2</span><div><b>Copy</b> <span class="tag data">data</span><span>"Meet the Qlik Analyst." Agent name and tint come from the current <code>AgentSummary</code>; the greeting reads <code>greetingFor(hour)</code>. "about 3 minutes" sets the cost up front.</span></div></li>
+      <li><span class="pin">3</span><div><b>Starter prompts</b> <span class="tag backend">backend</span><span>Needs <code>starterPrompts[]</code> on <code>AgentSummary</code>. Until then the hero shows generic slash prompts and the step still points at the same slot. "Nitin" needs the <code>GET /api/me</code> name.</span></div></li>
+      <li><span class="pin">4</span><div><b>prepare()</b> <span class="tag derive">derive</span><span>Runs only when <code>truex-tour</code> is missing or <code>{v:3, done:false, step:0}</code>. Opens a fresh home screen, closes palette and popovers, focuses nothing.</span></div></li>
+      <li><span class="pin">5</span><div><b>Advance and fallback</b> <span class="tag derive">derive</span><span>Start tour, <span class="kbd">→</span> or <span class="kbd">Enter</span> go to step 2. Not now, x and <span class="kbd">Esc</span> save step 0 and show the resume chip. If hero-starters is missing after 3s, the same card shows centered with no spot.</span></div></li>
+    </ol>
+  </div>
+
+  <!-- Board 2: Sidebar and ⌘K -->
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Step 2 of 12: the v3 sidebar with projects, running dots and recent chats is spotlighted, with a coach card to its right naming Command B and Command K">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app</span></div>
+          <div class="fl-frame with-side">
+            <aside class="fl-side t-anchor" data-tour="sidebar" aria-label="Conversations">
+              <div class="fl-brand"><i><svg class="ic sm"><use href="#i-spark"/></svg></i>truex<span>/ agents</span></div>
+              <div class="fl-search"><svg class="ic sm"><use href="#i-search"/></svg><span>Search chats, commands…</span><kbd>⌘K</kbd></div>
+              <div class="fl-new"><svg class="ic sm"><use href="#i-plus"/></svg><span>New conversation</span><kbd>⌘J</kbd></div>
+              <div class="fl-grp">
+                <div class="fl-lab"><svg class="ic sm"><use href="#i-layers"/></svg>Analyst onboarding</div>
+                <div class="fl-row in on"><i class="fl-dot run"></i><span class="t">Onboarding plan for new analysts</span><span class="tm">9:42</span></div>
+                <div class="fl-row in"><i class="fl-dot wait"></i><span class="t">Drive folder access for Juno</span><span class="tm">9:10</span></div>
+              </div>
+              <div class="fl-grp">
+                <div class="fl-lab">Today</div>
+                <div class="fl-row"><i class="fl-dot idle"></i><span class="t">Qlik set analysis cheat sheet</span><span class="tm">8:15</span></div>
+                <div class="fl-lab">Earlier</div>
+                <div class="fl-row"><i class="fl-dot idle"></i><span class="t">Handbook glossary cleanup</span><span class="tm">Mon</span></div>
+              </div>
+              <div class="fl-user"><span class="fl-ava">NK</span><span class="t" style="flex:1;min-width:0">Nitin</span><svg class="ic sm"><use href="#i-chev"/></svg></div>
+              <span class="spot inset" aria-hidden="true"></span>
+            </aside>
+            <div class="fl-stage">
+              <div class="fl-top"><svg class="ic"><use href="#i-sidebar"/></svg><span class="t">New conversation</span></div>
+              <div class="fl-hero">
+                <span class="fl-greet tone-1"><i></i>Good morning, Nitin · Qlik Analyst</span>
+                <div class="fl-h1">What should we <em>work on</em> today?</div>
+                <div class="fl-box" style="width:100%"><div class="fl-ta">Ask the Qlik Analyst…</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="coach" data-side="right" style="left:256px;top:92px;width:min(300px,calc(100% - 268px));--caret:40px">
+          <div class="c-eye"><span>Step 2 of 12 · First look</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Your chats, <em>grouped</em></h4>
+          <p>Projects hold related chats. A pulsing dot means a chat is running, amber means it is waiting on you. <span class="kbd">⌘B</span> hides the sidebar, <span class="kbd">⌘K</span> searches chats, commands and agents.</p>
+          <div class="c-foot">
+            <span class="c-dots"><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+          </div>
+        </div>
+      </div>
+      <div class="fl-inset">
+        <span class="cap">⌘K, typed "handbook"</span>
+        <div class="fl-pop" data-tour="palette" role="dialog" aria-label="Search">
+          <div class="fl-q"><svg class="ic"><use href="#i-search"/></svg><span>handbook<span class="caret"></span></span><kbd>esc</kbd></div>
+          <div class="fl-gh"><span>Chats</span><span>2</span></div>
+          <div class="fl-it on"><span><svg class="ic sm"><use href="#i-file"/></svg></span><div style="min-width:0"><b>Onboarding plan from <mark>handbook</mark> docs</b><small>Analyst onboarding</small></div><span class="tm mono sm">9:42</span></div>
+          <div class="fl-it"><span><svg class="ic sm"><use href="#i-file"/></svg></span><div style="min-width:0"><b><mark>Handbook</mark> glossary cleanup</b><small>Earlier</small></div><span class="tm mono sm">Mon</span></div>
+          <div class="fl-gh"><span>Commands and agents</span></div>
+          <div class="fl-it"><span><svg class="ic sm"><use href="#i-slash"/></svg></span><div style="min-width:0"><b>/goal</b><small>Set a goal with a token budget</small></div><kbd>↵</kbd></div>
+          <div class="fl-it tone-1"><span><svg class="ic sm"><use href="#i-bot"/></svg></span><div style="min-width:0"><b>Qlik Analyst</b><small>@qlikanalyst · start a chat</small></div><span></span></div>
+        </div>
+      </div>
+      <p class="board-cap">The sidebar is open for this stop. The palette sits in a side inset so the coach can name it without opening it.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Sidebar, target sidebar</b> <span class="tag look">Look</span> <span class="tag data">data</span><span>Spot on the <code>aside</code> with <code>data-tour="sidebar"</code>, coach to its right. Projects come from <code>useProjects</code>, Today and Earlier from <code>convoGroup</code>.</span></div></li>
+      <li><span class="pin">2</span><div><b>Running and waiting dots</b> <span class="tag backend">backend</span><span>Pulse and amber dots need a live <code>turnState</code> on <code>PublicSession</code>. Until then rows show the idle ring, and the copy still reads true because it describes what the dots mean.</span></div></li>
+      <li><span class="pin">3</span><div><b>prepare()</b> <span class="tag derive">derive</span><span>If the sidebar is collapsed, open it the same way <span class="kbd">⌘B</span> does, and remember to restore it on finish or skip. Close the palette if it is open.</span></div></li>
+      <li><span class="pin">4</span><div><b>⌘K palette</b> <span class="tag data">data</span><span>One box for chats, commands and agents, <code>data-tour="palette"</code>. Title matches work today; message text search is backend and not promised here. The tour pauses <span class="kbd">⌘K</span> and <span class="kbd">⌘B</span> while a coach is open.</span></div></li>
+      <li><span class="pin">5</span><div><b>Advance and fallback</b> <span class="tag derive">derive</span><span>Next, <span class="kbd">→</span> or <span class="kbd">Enter</span>. <span class="kbd">←</span> back to step 1. On phones where the sidebar is a drawer and fails to mount within 3s, the same copy shows as a centered card.</span></div></li>
+    </ol>
+  </div>
+
+  <!-- Board 3: Composer action bar -->
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Step 3 of 12: the composer action bar is spotlighted, showing a paperclip with a file chip, the agent chip, model and effort, the approval mode chip and Goal, with a coach card below explaining each">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app</span></div>
+          <div class="fl-frame">
+            <div class="fl-stage">
+              <div class="fl-top"><svg class="ic"><use href="#i-sidebar"/></svg><span class="t">New conversation</span><kbd>⌘K</kbd></div>
+              <div class="fl-hero">
+                <span class="fl-greet tone-1"><i></i>Good morning, Nitin · Qlik Analyst</span>
+                <div class="fl-h1">What should we <em>work on</em> today?</div>
+                <div class="fl-box" style="width:100%;max-width:600px">
+                  <div class="fl-file"><span><svg class="ic sm"><use href="#i-file"/></svg></span><b>analyst-handbook-2026.pdf</b><small>910 KB</small><svg class="ic sm" style="color:var(--ink-3)"><use href="#i-x"/></svg></div>
+                  <div class="fl-ta">Ask the Qlik Analyst about your apps, data or docs…</div>
+                  <div class="fl-bar t-anchor" data-tour="composer-bar">
+                    <span class="fl-chip ghost" data-tour="attach" aria-label="Attach files"><svg class="ic"><use href="#i-plus"/></svg></span>
+                    <span class="fl-chip tone-1" data-tour="agent-chip"><span class="fl-av">QA</span>Qlik Analyst<svg class="ic sm"><use href="#i-chevd"/></svg></span>
+                    <span class="fl-chip" data-tour="model-chip"><svg class="ic sm"><use href="#i-brain"/></svg>gpt-5 · high<svg class="ic sm"><use href="#i-chevd"/></svg></span>
+                    <span class="fl-chip" data-tour="approval-mode"><svg class="ic sm"><use href="#i-shield"/></svg>Ask<svg class="ic sm"><use href="#i-chevd"/></svg></span>
+                    <span class="fl-chip" data-tour="goal-chip" aria-pressed="false"><svg class="ic sm"><use href="#i-target"/></svg>Goal</span>
+                    <span class="spacer"></span><span class="fl-send"><svg class="ic"><use href="#i-send"/></svg></span>
+                    <span class="spot inset" aria-hidden="true"></span>
+                  </div>
+                </div>
+                <div class="fl-starts" style="min-height:280px;align-content:start">
+                  <div class="fl-start"><svg class="ic sm"><use href="#i-file"/></svg><span>Draft a 30-day onboarding plan for new analysts from the handbook</span></div>
+                  <div class="fl-start"><svg class="ic sm"><use href="#i-chart"/></svg><span>Explain the KPIs on the Sales Overview app</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="coach" data-side="below" style="left:24px;top:372px;--caret:48px">
+          <div class="c-eye"><span>Step 3 of 12 · First look</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>One bar sets up <em>the next message</em></h4>
+          <ul class="fl-lines">
+            <li><svg class="ic sm"><use href="#i-plus"/></svg><span><b>Attach</b> adds files, 1 MB each.</span></li>
+            <li><svg class="ic sm"><use href="#i-bot"/></svg><span><b>Agent</b> picks who answers. It locks once the chat starts.</span></li>
+            <li><svg class="ic sm"><use href="#i-brain"/></svg><span><b>Model and effort</b> trade speed for depth.</span></li>
+            <li><svg class="ic sm"><use href="#i-shield"/></svg><span><b>Approval mode</b> decides what waits for you.</span></li>
+            <li><svg class="ic sm"><use href="#i-target"/></svg><span><b>Goal</b> keeps working toward a token budget.</span></li>
+          </ul>
+          <div class="c-foot">
+            <span class="c-dots"><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">Left to right in the order you would set things. The spot covers the whole bar; each chip keeps its own name for later steps.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Action bar, target composer-bar</b> <span class="tag look">Look</span> <span class="tag data">data</span><span>Spot on <code>data-tour="composer-bar"</code>, coach below it over the starters. Child names <code>attach</code>, <code>agent-chip</code>, <code>model-chip</code>, <code>approval-mode</code> and <code>goal-chip</code> are set now so later steps can reuse them.</span></div></li>
+      <li><span class="pin">2</span><div><b>File chip</b> <span class="tag data">data</span><span>Paperclip opens the picker. Files over 1 MB or outside <code>uploadAccept</code> fail inline on the chip before any request. The demo chip is a mock; prepare() never uploads.</span></div></li>
+      <li><span class="pin">3</span><div><b>Agent chip lock</b> <span class="tag derive">derive</span><span>Open before the first message, locked with a tooltip once a session exists. The coach says so now, since step 6 sends a message and the chip locks right after.</span></div></li>
+      <li><span class="pin">4</span><div><b>prepare()</b> <span class="tag derive">derive</span><span>Close any open chip popover and blur the textarea so no menu covers the bar. Nothing is typed and no setting changes.</span></div></li>
+      <li><span class="pin">5</span><div><b>Advance and fallback</b> <span class="tag derive">derive</span><span>Next, <span class="kbd">→</span> or <span class="kbd">Enter</span>; <span class="kbd">←</span> back. If composer-bar is not mounted within 3s, the same five lines show on a centered card.</span></div></li>
+    </ol>
+  </div>
+
+  <!-- Board 4: Approval modes -->
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Step 4 of 12: the approval mode chip is spotlighted with its picker open above it, listing Ask, Auto-allow read-only tools and Autopilot, and a coach card to the right">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app</span></div>
+          <div class="fl-frame">
+            <div class="fl-stage">
+              <div class="fl-top"><svg class="ic"><use href="#i-sidebar"/></svg><span class="t">New conversation</span><kbd>⌘K</kbd></div>
+              <div class="fl-hero" style="padding-bottom:8px">
+                <span class="fl-greet tone-1"><i></i>Good morning, Nitin · Qlik Analyst</span>
+                <div class="fl-h1">What should we <em>work on</em> today?</div>
+              </div>
+              <div class="fl-dock">
+                <div class="fl-pop fl-menu fl-lift" role="listbox" aria-label="Approval mode">
+                  <div class="fl-it on" role="option" aria-selected="true"><span><svg class="ic sm"><use href="#i-user"/></svg></span><div style="min-width:0"><b>Ask</b><small>Every tool use waits for you.</small></div><svg class="ic sm"><use href="#i-check"/></svg></div>
+                  <div class="fl-it" role="option" aria-selected="false"><span><svg class="ic sm"><use href="#i-eye"/></svg></span><div style="min-width:0"><b>Auto-allow read-only tools</b><small>Tools that only read data run without asking.</small></div><span></span></div>
+                  <div class="fl-it" role="option" aria-selected="false"><span><svg class="ic sm"><use href="#i-spark"/></svg></span><div style="min-width:0"><b>Autopilot <span class="fl-flag">flag</span></b><small>Runs tools without asking.</small></div><span></span></div>
+                  <div class="fl-pop-f"><svg class="ic sm"><use href="#i-lock"/></svg>Plans and secrets always ask.</div>
+                </div>
+                <div class="fl-box">
+                  <div class="fl-ta">Ask the Qlik Analyst about your apps, data or docs…</div>
+                  <div class="fl-bar">
+                    <span class="fl-chip ghost" aria-label="Attach files"><svg class="ic"><use href="#i-plus"/></svg></span>
+                    <span class="fl-chip tone-1"><span class="fl-av">QA</span>Qlik Analyst<svg class="ic sm"><use href="#i-chevd"/></svg></span>
+                    <span class="fl-chip"><svg class="ic sm"><use href="#i-brain"/></svg>gpt-5 · high<svg class="ic sm"><use href="#i-chevd"/></svg></span>
+                    <span class="fl-chip on t-anchor" data-tour="approval-mode" aria-expanded="true"><svg class="ic sm"><use href="#i-shield"/></svg>Ask<svg class="ic sm"><use href="#i-chevd"/></svg><span class="spot round inset" aria-hidden="true"></span></span>
+                    <span class="fl-chip"><svg class="ic sm"><use href="#i-target"/></svg>Goal</span>
+                    <span class="spacer"></span><span class="fl-send"><svg class="ic"><use href="#i-send"/></svg></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="coach" data-side="right" style="right:16px;top:300px;width:min(280px,calc(100% - 420px));--caret:150px">
+          <div class="c-eye"><span>Step 4 of 12 · First look</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Choose what <em>waits for you</em></h4>
+          <p>Ask checks with you before each tool. Auto-allow read-only lets tools that only read data run on their own. Autopilot runs tools without asking, and only shows when your workspace turns it on.</p>
+          <p>Plans and secrets always ask, in every mode.</p>
+          <div class="c-foot">
+            <span class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">The picker is opened for the stop and closed again on leave. The mode stays Ask unless Nitin picks one himself.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Approval modes, target approval-mode</b> <span class="tag look">Look</span> <span class="tag data">data</span><span>Spot on the chip with <code>data-tour="approval-mode"</code>, coach to the right. The open picker is lifted above the scrim, the same way the real popover portals, so it reads while the chip stays the target.</span></div></li>
+      <li><span class="pin">2</span><div><b>Options and Autopilot</b> <span class="tag data">data</span><span>Three modes from <code>ApprovalModePicker</code>. Autopilot only lists with <code>autopilot=true</code>, and the whole chip hides when <code>enabled=false</code>. The coach drops its Autopilot sentence when the option is absent.</span></div></li>
+      <li><span class="pin">3</span><div><b>prepare()</b> <span class="tag derive">derive</span><span>Opens the picker without changing the mode. On Next, Back or minimize it closes the picker. Tour <span class="kbd">Esc</span> runs first and only minimizes, so it never reaches the picker's own Esc.</span></div></li>
+      <li><span class="pin">4</span><div><b>Advance</b> <span class="tag derive">derive</span><span>Look step: Next, <span class="kbd">→</span> or <span class="kbd">Enter</span> go to step 5. The dim layer blocks option clicks, so the tour never changes a setting.</span></div></li>
+      <li><span class="pin">5</span><div><b>3s fallback</b> <span class="tag derive">derive</span><span>If the chip is hidden (<code>enabled=false</code>) or the picker does not open within 3s, show the same copy on a centered card and keep "Plans and secrets always ask."</span></div></li>
+    </ol>
+  </div>
+</section>

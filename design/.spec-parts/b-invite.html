@@ -1,0 +1,394 @@
+<section id="left-components">
+<h2>Left pane components</h2>
+<p>These are listed top to bottom as they render in <code>.left</code>. The left pane uses <code>display: flex; flex-direction: column; padding: 8px 28px 20px</code>, which becomes <code>8px 16px 12px</code> below 960px. The invite column <code>.invite</code> has <code>max-width: 460px</code>, is centered, and uses <code>padding-block: clamp(20px, 7vh, 72px) 20px</code>, <code>gap: 20px</code> and a <code>rise .35s ease-out</code> entry animation. The base font is <code>14px/1.5 var(--font-sans)</code> (Figtree).</p>
+
+<h3>Header (.top / .brand)</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Property</th><th>Value</th></tr></thead><tbody>
+<tr><td>.top</td><td>layout</td><td>flex, space-between, align center, gap 12px, height 52px</td></tr>
+<tr><td>.brand</td><td>layout</td><td>flex, align center, gap 6px, <code>aria-label="truex agents"</code></td></tr>
+<tr><td>.brand-mark</td><td>box</td><td>24 x 24px, radius 7px, bg <code>--ink</code>, color <code>--bg</code>, grid centered</td></tr>
+<tr><td>.brand-mark svg</td><td>icon</td><td>14 x 14 sparkle, viewBox 0 0 24 24, stroke currentColor, stroke-width 2, linejoin round, path <code>M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z</code></td></tr>
+<tr><td>.brand-word</td><td>text</td><td>"truex", 17px, weight 700, letter-spacing -.03em</td></tr>
+<tr><td>.brand-slash</td><td>text</td><td>"/", 16px, color <code>--line-strong</code></td></tr>
+<tr><td>.brand-sub</td><td>text</td><td>"agents", weight 500, color <code>--ink-2</code></td></tr>
+</tbody></table></div>
+
+<h3>Theme segmented control (.seg#themeSeg)</h3>
+<div class="note">Prototype only. The production app already has a theme control (<code>useTheme()</code>, <code>localStorage["truex-theme"]</code>). Do not ship this control on the invite page unless product asks for it. The prototype also reads <code>?theme=light|dark</code> from the URL.</div>
+<div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Property</th><th>Value</th></tr></thead><tbody>
+<tr><td>.seg</td><td>box</td><td>inline-flex, padding 2px, radius 9px, bg <code>--surface-3</code>, border 1px <code>--line</code>, flex-wrap wrap</td></tr>
+<tr><td>.seg button</td><td>box</td><td>height 26px, padding 0 10px, radius 7px, no border, bg none, color <code>--ink-2</code>, 12px</td></tr>
+<tr><td>.seg button:hover</td><td>color</td><td><code>--ink</code></td></tr>
+<tr><td>.seg button[aria-pressed="true"]</td><td>selected</td><td>bg <code>--surface</code>, color <code>--ink</code>, shadow <code>--shadow-sm</code>, weight 500</td></tr>
+<tr><td>Copy</td><td>labels</td><td>"Auto" (<code>data-t=""</code>), "Light", "Dark"; group <code>aria-label="Theme"</code></td></tr>
+</tbody></table></div>
+
+<h3>Inviter row (.from)</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Property</th><th>Value</th></tr></thead><tbody>
+<tr><td>.from</td><td>layout</td><td>flex, align center, wrap, gap 10px 12px, <code>aria-label="Invitation"</code></td></tr>
+<tr><td>.from-pair</td><td>box</td><td>52 x 42px, position relative, <code>aria-hidden="true"</code></td></tr>
+<tr><td>.av.md</td><td>avatar</td><td>38 x 38px circle at left 0 / top 0, 13px, weight 700, color <code>--tint-ink</code>, bg <code>--lilac-dot</code> (inline), text "MC"</td></tr>
+<tr><td>.from-pair .ws-logo</td><td>badge</td><td>18 x 18px at right 0 / bottom 0, radius 6px, 10px, weight 800, bg <code>--ink</code>, color <code>--bg</code>, ring <code>box-shadow: 0 0 0 2px var(--bg)</code>, text "N"</td></tr>
+<tr><td>.from-text</td><td>layout</td><td>flex 1, min-width 0. Below 520px: <code>flex-basis: calc(100% - 64px)</code></td></tr>
+<tr><td>.from-line</td><td>text</td><td>flex, wrap, gap 4px 6px, 14px, color <code>--ink-2</code>; <code>b</code> is color <code>--ink</code>, weight 600</td></tr>
+<tr><td>.verified</td><td>icon</td><td>13 x 13 badge SVG, fill currentColor = <code>--accent-fg</code>, check path stroke <code>--bg</code> width 2.2, <code>title="Workspace admin"</code>, <code>aria-label="Verified admin"</code></td></tr>
+<tr><td>.role-pill</td><td>pill</td><td>inline-flex, gap 4px, height 22px, padding 0 8px, radius 999px, bg <code>--accent-soft</code>, color <code>--accent-fg</code>, 12px, weight 600</td></tr>
+<tr><td>.from-sub</td><td>text</td><td>12.5px, color <code>--ink-3</code>, single line with ellipsis</td></tr>
+<tr><td>.exp</td><td>pill</td><td>inline-flex, gap 6px, height 24px, padding 0 9px, radius 999px, bg <code>--surface-3</code>, color <code>--ink-2</code>, 12px, weight 500, tabular-nums. Below 520px: <code>margin-left: 64px</code></td></tr>
+<tr><td>.exp .tick</td><td>dot</td><td>6 x 6px circle, bg <code>--success-text</code></td></tr>
+<tr><td>.exp.bad</td><td>variant</td><td>bg <code>--error-bg</code>, color <code>--error-text</code>, tick bg <code>--error-text</code></td></tr>
+</tbody></table></div>
+<p>Copy: "<b>Maya Chen</b> [verified] invited you as [Member]", sub line "Head of Research · sent Sep 24", expiry pill "Expires in 6 days" (bad variant: "Expired Sep 23").</p>
+
+<h3>Headline (h1#join-h)</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Property</th><th>Value</th></tr></thead><tbody>
+<tr><td>h1</td><td>type</td><td><code>clamp(30px, 4vw, 42px)</code>, line-height 1.06, weight 600, letter-spacing -.035em, <code>text-wrap: balance</code>, margin 0</td></tr>
+<tr><td>h1 em</td><td>workspace name</td><td><code>--font-accent</code> (Newsreader) italic, weight 400, 1.04em, letter-spacing -.01em, color <code>--accent-fg</code>, padding-right .04em</td></tr>
+<tr><td>Copy</td><td>text</td><td>"Take your seat at <em>Northwind Labs</em>"</td></tr>
+</tbody></table></div>
+
+<h3>Join card (form.card.join#joinForm)</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Property</th><th>Value</th></tr></thead><tbody>
+<tr><td>.card</td><td>surface</td><td>bg <code>--surface</code>, border 1px <code>--line</code>, radius 16px, shadow <code>--shadow-md</code></td></tr>
+<tr><td>.join</td><td>layout</td><td>padding 16px, flex column, gap 16px</td></tr>
+<tr><td>form</td><td>attrs</td><td><code>novalidate</code>, <code>aria-labelledby="join-sec-h"</code></td></tr>
+</tbody></table></div>
+
+<h3>Eyebrow (.eyebrow#join-sec-h)</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Property</th><th>Value</th></tr></thead><tbody>
+<tr><td>type</td><td><code>500 11px var(--font-mono)</code>, letter-spacing .08em, uppercase, color <code>--ink-3</code></td></tr>
+<tr><td>layout</td><td>flex, align center, gap 8px (<code>.n</code> child would use <code>--accent-fg</code>; unused here)</td></tr>
+<tr><td>Copy</td><td>"Set up your seat"</td></tr>
+</tbody></table></div>
+
+<h3>Progress checkup</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Property</th><th>Value</th></tr></thead><tbody>
+<tr><td>.check-h</td><td>header row</td><td>flex, space-between, baseline, 12.5px, weight 500, color <code>--ink-2</code>. Left: "Progress checkup"</td></tr>
+<tr><td>.check-h .mono#checkCount</td><td>counter</td><td>11.5px mono, color <code>--ink-3</code>, tabular-nums, text "{n} of 3"</td></tr>
+<tr><td>.bar#bar</td><td>track</td><td>height 4px, radius 4px, bg <code>--surface-3</code>, margin-top 8px, overflow hidden. <code>role="progressbar"</code>, <code>aria-label="Join progress"</code>, valuemin 0, valuemax 3</td></tr>
+<tr><td>.bar span</td><td>fill</td><td>radius 4px, bg <code>--accent</code>, initial width 33.34%, transition <code>width .45s cubic-bezier(.2,.8,.2,1), background .2s</code></td></tr>
+<tr><td>.bar.bad span</td><td>error fill</td><td>bg <code>--error-text</code></td></tr>
+<tr><td>ol.steps</td><td>grid</td><td>3 columns <code>minmax(0,1fr)</code>, gap 8px, margin-top 10px, no list style. Below 420px: 1 column</td></tr>
+<tr><td>.steps li</td><td>item</td><td>flex, align center, gap 7px, 12.5px, color <code>--ink-3</code>, label truncates with ellipsis</td></tr>
+<tr><td>.dot</td><td>dot</td><td>18 x 18px circle, border 1.5px <code>--line-strong</code>, <code>600 10px var(--font-mono)</code>, transition all .2s</td></tr>
+<tr><td>li.is-on</td><td>current</td><td>text <code>--ink</code>, weight 500; dot border <code>--accent-2</code>, dot text <code>--accent-fg</code></td></tr>
+<tr><td>li.is-busy</td><td>working</td><td>dot border <code>--accent-2</code> with top border transparent, <code>spin .8s linear infinite</code> (used together with is-on)</td></tr>
+<tr><td>li.is-done</td><td>complete</td><td>text <code>--ink-2</code>; dot bg and border <code>--accent</code>, dot text <code>--on-accent</code>, glyph "✓"</td></tr>
+<tr><td>li.is-bad</td><td>error</td><td>text <code>--error-text</code>; dot bg <code>--error-bg</code>, border and text <code>--error-text</code>, glyph "!"</td></tr>
+</tbody></table></div>
+<p>Default step labels: "Invite verified", "Add your name", "Join workspace".</p>
+
+<h3>Email field (readonly)</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Property</th><th>Value</th></tr></thead><tbody>
+<tr><td>#fields</td><td>wrapper</td><td>flex column, gap 14px (inline style)</td></tr>
+<tr><td>.field</td><td>layout</td><td>flex column, gap 6px</td></tr>
+<tr><td>.field-label</td><td>label</td><td>flex, space-between, baseline, gap 8px, 12.5px, weight 500, color <code>--ink-2</code>. Text "Work email"</td></tr>
+<tr><td>.field-hint</td><td>hint</td><td>12px mono, color <code>--ink-3</code>. Text "from invite"</td></tr>
+<tr><td>.input</td><td>input</td><td>height 40px, padding 0 12px 0 44px, border 1px <code>--border-control</code>, radius 10px, bg <code>--surface</code>, 14px</td></tr>
+<tr><td>.input[readonly]</td><td>readonly</td><td>bg <code>--surface-3</code>, color <code>--ink-2</code>, cursor not-allowed</td></tr>
+<tr><td>.input-lock</td><td>icon</td><td>14 x 14 lock SVG at left 14px / top 12px, color <code>--ink-3</code></td></tr>
+<tr><td>Value</td><td>copy</td><td>"alex@northwind.dev", <code>type="email"</code></td></tr>
+</tbody></table></div>
+
+<h3>Name field</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Property</th><th>Value</th></tr></thead><tbody>
+<tr><td>label</td><td>copy</td><td>"Your name", hint <code>#nameHint</code> "shown to teammates", or "looks good" when valid</td></tr>
+<tr><td>.field-hint.ok</td><td>valid hint</td><td>color <code>--success-text</code></td></tr>
+<tr><td>input#name</td><td>attrs</td><td><code>type="text"</code>, placeholder "e.g. Alex Rivera", <code>autocomplete="name"</code>, <code>maxlength="60"</code>, <code>required</code>, <code>aria-describedby="nameErr"</code></td></tr>
+<tr><td>.input::placeholder</td><td>color</td><td><code>--ink-3</code></td></tr>
+<tr><td>.input:focus</td><td>focus</td><td>no outline, border <code>--accent-2</code>, ring <code>0 0 0 3px var(--accent-soft)</code>; transition border-color .15s, box-shadow .15s</td></tr>
+<tr><td>.input[aria-invalid="true"]</td><td>error</td><td>border <code>--error-text</code></td></tr>
+<tr><td>.input-av#nameAv</td><td>empty avatar</td><td>24 x 24px circle at left 8px / top 8px, 10px, weight 700, border 1.5px dashed <code>--accent-2</code>, color <code>--accent-fg</code>, text "?", transition all .25s, <code>aria-hidden</code></td></tr>
+<tr><td>.input-av.is-set</td><td>filled avatar</td><td>no border, bg <code>--ice-dot</code>, color <code>--on-accent</code>, text = initials</td></tr>
+<tr><td>.err#nameErr</td><td>error text</td><td>12px, color <code>--error-text</code>. "Add your full name so teammates know who joined."</td></tr>
+</tbody></table></div>
+
+<h3>Join button (.btn-join#joinBtn)</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Property</th><th>Value</th></tr></thead><tbody>
+<tr><td>default</td><td>box</td><td>height 44px, radius 12px, no border, bg <code>--accent</code>, color <code>--on-accent</code>, 15px, weight 600, inline-flex centered, gap 8px, transition background .15s, transform .12s</td></tr>
+<tr><td>:hover:not(:disabled)</td><td>bg</td><td><code>--accent-hover</code></td></tr>
+<tr><td>:active:not(:disabled)</td><td>bg / transform</td><td><code>--accent-pressed</code>, <code>scale(.985)</code></td></tr>
+<tr><td>:disabled</td><td>cursor</td><td><code>progress</code> (no visual dimming)</td></tr>
+<tr><td>icon (default)</td><td>arrow</td><td>16 x 16, stroke-width 2.2, round caps, path <code>M5 12h14M13 6l6 6-6 6</code></td></tr>
+<tr><td>.spin</td><td>spinner</td><td>16 x 16px circle, border 2px <code>rgb(255 255 255 / 35%)</code>, top border <code>--on-accent</code>, <code>spin .7s linear infinite</code></td></tr>
+<tr><td>Copy</td><td>label</td><td>"Join Northwind Labs" (see states for the rest)</td></tr>
+</tbody></table></div>
+
+<h3>Banners (#stateBanner .banner)</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Property</th><th>Value</th></tr></thead><tbody>
+<tr><td>.banner</td><td>box</td><td>flex, gap 10px, align flex-start, padding 12px 14px, radius 12px, 13px</td></tr>
+<tr><td>.banner.warn</td><td>colors</td><td>bg <code>--warning-bg</code>, text <code>--warning-text</code>; icon 15 x 15 circle + "!" (stroke 2.2)</td></tr>
+<tr><td>.banner.ok</td><td>colors</td><td>bg <code>--success-bg</code>, text <code>--success-text</code>; icon 15 x 15 check <code>M5 12l5 5 9-10</code> (stroke 2.4)</td></tr>
+<tr><td>.banner svg</td><td>icon</td><td>flex none, margin-top 2px</td></tr>
+<tr><td>.banner b</td><td>lead</td><td>weight 600</td></tr>
+</tbody></table></div>
+
+<h3>Fine print (.fine)</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Property</th><th>Value</th></tr></thead><tbody>
+<tr><td>layout</td><td>flex, wrap, space-between, gap 6px 14px, 12.5px, color <code>--ink-3</code></td></tr>
+<tr><td>links</td><td>color <code>--accent-fg</code>, no underline, underline on hover</td></tr>
+<tr><td>Copy left (#terms)</td><td>"By joining you accept the workspace terms" (shown only in Valid before join)</td></tr>
+<tr><td>Copy right</td><td>"Not you? Switch account" (always shown)</td></tr>
+</tbody></table></div>
+
+<h3>Preview-state footer (.foot)</h3>
+<div class="note">Prototype only. Do not ship. It switches between mocked states. In production the state comes from the invite lookup response.</div>
+<p>Layout: flex, wrap, space-between, gap 8px, 12px, color <code>--ink-3</code>, max-width 460px, centered. Copy: "Preview state", then a <code>.seg</code> with "Valid invite", "Expired" and "Already a member".</p>
+</section>
+
+<section id="states">
+<h2>Page states</h2>
+<p>Each state is set by <code>setState(s)</code> or reached through input and submit. Every <code>setState</code> call resets the page first: it clears the name, clears the error, sets the hint to "shown to teammates", sets the expiry pill to "Expires in 6 days" (not bad), sets the arrow icon, enables the button and clears the profile specimen.</p>
+
+<h3>Valid (initial)</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Aspect</th><th>Value</th></tr></thead><tbody>
+<tr><td>Steps</td><td>1 is-done "✓" "Invite verified"; 2 is-on "2" "Add your name"; 3 default "3" "Join workspace"</td></tr>
+<tr><td>Progress</td><td>"1 of 3", width 33.33%, <code>--accent</code>, aria-valuenow 1</td></tr>
+<tr><td>Fields</td><td>visible (email readonly, name empty)</td></tr>
+<tr><td>Banner</td><td>hidden</td></tr>
+<tr><td>Button</td><td>"Join Northwind Labs", arrow, enabled</td></tr>
+<tr><td>Fine print</td><td>terms and Switch account</td></tr>
+<tr><td>Specimen 07</td><td>empty clover (aura hidden, shimmer sweep), initials "YOU", name "Your name", sub "seat open", no check</td></tr>
+</tbody></table></div>
+
+<h3>Typing a valid name</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Aspect</th><th>Value</th></tr></thead><tbody>
+<tr><td>Steps</td><td>1 is-done "✓"; 2 is-done "✓"; 3 is-on "3". If the name becomes invalid again: 2 goes back to is-on "2" and 3 to default "3"</td></tr>
+<tr><td>Progress</td><td>"2 of 3", 66.67%, <code>--accent</code> (1 of 3 while invalid)</td></tr>
+<tr><td>Fields</td><td>visible. Hint "looks good" in <code>--success-text</code>. Input avatar filled with initials. Any error is cleared on each input</td></tr>
+<tr><td>Banner</td><td>hidden</td></tr>
+<tr><td>Button</td><td>"Join Northwind Labs", arrow, enabled</td></tr>
+<tr><td>Fine print</td><td>unchanged</td></tr>
+<tr><td>Specimen 07</td><td>aura shown with hashed colors, initials, cleaned name, sub "member · northwind", no check. This also happens for any non-empty text, even text that is not yet valid</td></tr>
+</tbody></table></div>
+
+<h3>Invalid submit</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Aspect</th><th>Value</th></tr></thead><tbody>
+<tr><td>Steps / progress</td><td>unchanged (1 of 3)</td></tr>
+<tr><td>Fields</td><td>name gets <code>aria-invalid="true"</code> (border <code>--error-text</code>), <code>#nameErr</code> shown: "Add your full name so teammates know who joined.", focus moves to name</td></tr>
+<tr><td>Banner</td><td>hidden</td></tr>
+<tr><td>Button</td><td>unchanged, enabled</td></tr>
+<tr><td>Specimen 07</td><td>unchanged</td></tr>
+</tbody></table></div>
+
+<h3>Submitting</h3>
+<p>The page runs three phases of 700ms each (2100ms total). Each phase sets the button label and announces it in the live region.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Phase</th><th>Button label and aria-live text</th></tr></thead><tbody>
+<tr><td>1 (0 to 700ms)</td><td>"Verifying your invite"</td></tr>
+<tr><td>2 (700 to 1400ms)</td><td>"Setting up your seat"</td></tr>
+<tr><td>3 (1400 to 2100ms)</td><td>"Opening your first conversation"</td></tr>
+</tbody></table></div>
+<div class="tw"><table class="tbl"><thead><tr><th>Aspect</th><th>Value</th></tr></thead><tbody>
+<tr><td>Steps</td><td>1 and 2 is-done "✓"; 3 is "is-on is-busy" with an empty dot (spinning ring)</td></tr>
+<tr><td>Progress</td><td>"2 of 3", 66.67%</td></tr>
+<tr><td>Fields</td><td>visible, name <code>readOnly</code></td></tr>
+<tr><td>Banner</td><td>hidden</td></tr>
+<tr><td>Button</td><td>phase label, <code>.spin</code> icon, disabled (cursor progress)</td></tr>
+<tr><td>Specimen 07</td><td>unchanged from typing</td></tr>
+</tbody></table></div>
+
+<h3>Joined</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Aspect</th><th>Value</th></tr></thead><tbody>
+<tr><td>Steps</td><td>all three is-done "✓"</td></tr>
+<tr><td>Progress</td><td>"3 of 3", 100%, <code>--accent</code></td></tr>
+<tr><td>Fields</td><td>hidden (<code>display: none</code>)</td></tr>
+<tr><td>Banner</td><td>ok: "<b>You're in, {firstName}.</b> Your seat in Northwind Labs is ready and Maya has been notified."</td></tr>
+<tr><td>Button</td><td>"Open Northwind Labs", arrow, enabled. Clicking it: label "Opening…", announces "Opening Northwind Labs"</td></tr>
+<tr><td>Fine print</td><td>terms hidden, "Not you? Switch account" still shown</td></tr>
+<tr><td>Specimen 07</td><td>aura, initials, full name, check shown, sub "joined just now"</td></tr>
+<tr><td>aria-live</td><td>"Joined Northwind Labs"</td></tr>
+</tbody></table></div>
+
+<h3>Expired</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Aspect</th><th>Value</th></tr></thead><tbody>
+<tr><td>Steps</td><td>1 is-bad "!" "Invite expired"; 2 default "2"; 3 default "3"</td></tr>
+<tr><td>Progress</td><td>"0 of 3", aria-valuenow 0. The fill is kept at 33.33% (<code>Math.max(n, bad ? 1 : 0)</code>) and uses <code>--error-text</code></td></tr>
+<tr><td>Expiry pill</td><td>.exp.bad "Expired Sep 23"</td></tr>
+<tr><td>Fields</td><td>hidden</td></tr>
+<tr><td>Banner</td><td>warn: "<b>This invite expired on Sep 23.</b> Invites last 7 days. Ask Maya Chen for a new one and we'll email it to you."</td></tr>
+<tr><td>Button</td><td>"Request a new invite", arrow, enabled</td></tr>
+<tr><td>Fine print</td><td>terms hidden, Switch account shown</td></tr>
+<tr><td>Specimen 07</td><td>empty ("YOU" / "Your name" / "seat open")</td></tr>
+</tbody></table></div>
+
+<h3>Request sent (submit from Expired)</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Aspect</th><th>Value</th></tr></thead><tbody>
+<tr><td>Steps / progress / pill</td><td>unchanged from Expired</td></tr>
+<tr><td>Fields</td><td>hidden</td></tr>
+<tr><td>Banner</td><td>ok: "<b>Request sent.</b> We let Maya Chen know. A fresh invite will land in alex@northwind.dev."</td></tr>
+<tr><td>Button</td><td>"Request sent", arrow kept, disabled</td></tr>
+<tr><td>Specimen 07</td><td>empty</td></tr>
+<tr><td>aria-live</td><td>nothing is announced (see logic notes)</td></tr>
+</tbody></table></div>
+
+<h3>Already a member</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Aspect</th><th>Value</th></tr></thead><tbody>
+<tr><td>Steps</td><td>all three is-done "✓". Step 1 label "Invite verified". Steps 2 and 3 keep their existing labels ("Add your name", "Join workspace") because an empty label is skipped</td></tr>
+<tr><td>Progress</td><td>"3 of 3", 100%</td></tr>
+<tr><td>Fields</td><td>hidden</td></tr>
+<tr><td>Banner</td><td>ok: "<b>You're already in Northwind Labs.</b> Signed in as alex@northwind.dev."</td></tr>
+<tr><td>Button</td><td>"Open Northwind Labs", arrow. Clicking it: label "Opening…", announces "Opening Northwind Labs"</td></tr>
+<tr><td>Fine print</td><td>terms hidden, Switch account shown</td></tr>
+<tr><td>Specimen 07</td><td>initials "AR", name "Alex Rivera", check shown, sub "member since Aug"</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="logic">
+<h2>Form logic</h2>
+<h3>Rules as coded</h3>
+<pre><code>const clean    = (s) =&gt; s.trim().replace(/\s+/g, " ");
+const initials = (n) =&gt; n.split(" ").filter(Boolean).map(w =&gt; w[0]).slice(0, 2).join("").toUpperCase();
+const isValid  = (n) =&gt; n.length &gt;= 2 &amp;&amp; /\p{L}/u.test(n);</code></pre>
+<ul>
+<li>Whitespace: <code>clean()</code> trims the value and collapses runs of whitespace into one space. It runs on every input event and on submit. The cleaned value is the one sent and displayed.</li>
+<li>Validity: the cleaned name must be at least 2 characters long (UTF-16 length) and contain at least one Unicode letter (<code>\p{L}</code>). "A1" is valid. "12" and "--" are not.</li>
+<li>Initials: take the first character of each of the first two words and uppercase them. "alex rivera jones" gives "AR". "Cher" gives "C".</li>
+<li>Input limits: <code>maxlength="60"</code>, <code>autocomplete="name"</code>, <code>required</code>. The form uses <code>novalidate</code>, so all validation is in JS.</li>
+<li>Input events are ignored when the state is not <code>valid</code>, while busy, or after joining.</li>
+<li>Submit is ignored while busy.</li>
+<li>First name in the joined banner is <code>name.split(" ")[0]</code>, passed through <code>escapeHTML</code>, which escapes <code>&amp; &lt; &gt; " '</code>. Only this banner is built with <code>innerHTML</code> from user input. Every other place uses <code>textContent</code>. In production, render with the framework's text binding and skip <code>innerHTML</code>.</li>
+</ul>
+
+<h3>Profile specimen aura hash</h3>
+<pre><code>const AURA      = ["--ice-dot", "--mint-dot", "--butter-dot", "--peach-dot", "--lilac-dot"];
+const AURA_SOFT = ["--ice", "--mint", "--butter", "--peach", "--lilac"];
+
+const h = [...name].reduce((a, c) =&gt; (a * 31 + c.charCodeAt(0)) &gt;&gt;&gt; 0, 7);
+const a = h % 5, b = (a + 1 + (h &gt;&gt; 4) % 4) % 5;
+// --a1 = var(AURA[a]), --a2 = var(AURA[b]), --a3 = var(AURA_SOFT[a])</code></pre>
+<p>Tint values: <code>--ice</code> #EAF5F8 / <code>--ice-dot</code> #3691CD, <code>--mint</code> #E7F4ED / <code>--mint-dot</code> #A9D5BE, <code>--butter</code> #FFF3D9 / <code>--butter-dot</code> #EBCB8B, <code>--peach</code> #FBE9DD / <code>--peach-dot</code> #F0B999, <code>--lilac</code> #EFEDF8 / <code>--lilac-dot</code> #C4BDE3. These are fixed and have no dark variant. The empty-state fallback is butter-dot / peach-dot / butter.</p>
+<div class="note">Bug in the prototype: <code>h</code> is an unsigned 32-bit value, but <code>h &gt;&gt; 4</code> is a signed shift. When <code>h &gt;= 2^31</code> the result is negative, so <code>b</code> can equal <code>a</code> or become negative (for example <code>AURA[-2]</code> is <code>undefined</code>, which gives <code>var(undefined)</code>). Use <code>(h &gt;&gt;&gt; 4) % 4</code> in production. This keeps <code>b</code> in the range 0 to 4 and different from <code>a</code>. If the hash also drives the real profile color, compute it in one shared place so the invite and the app agree.</div>
+
+<h3>Accessibility announcements</h3>
+<ul>
+<li><code>&lt;p class="sr" aria-live="polite" id="live"&gt;</code> receives: each submit phase label, "Joined Northwind Labs", and "Opening Northwind Labs".</li>
+<li>Nothing is announced when the invite request is sent or when the name error appears. The error is linked to the input through <code>aria-describedby</code> and focus moves to the input. Consider announcing "Request sent" as well.</li>
+<li>The progress bar updates <code>aria-valuenow</code> (0 to 3).</li>
+<li><code>prefers-reduced-motion: reduce</code> cuts every animation and transition to .01ms.</li>
+</ul>
+
+<h3>Production wiring</h3>
+<p>The prototype hard-codes the following. Developers need to implement each item.</p>
+<ul>
+<li>Invite token lookup: inviter name, title and avatar tint; workspace name and logo initial; role; sent date; expiry; invited email; and whether the signed-in user is already a member. This lookup decides the page state (valid, expired, member, invalid).</li>
+<li>Accept endpoint: replaces the three 700ms fake phases. Keep the phase labels as progress feedback, but tie completion to the response rather than a timer.</li>
+<li>Request-new-invite endpoint: backs "Request a new invite" in the Expired state.</li>
+<li>"Switch account": in the prototype it only calls <code>preventDefault()</code>. It should sign the user out and return to sign-in with the invite token kept (for example as a <code>returnTo</code> param).</li>
+<li>Terms link: <code>href="#"</code> today. It needs the workspace terms URL.</li>
+<li>"Open Northwind Labs": today it only changes the label to "Opening…". It should navigate to the workspace (the first conversation, per phase 3 copy).</li>
+<li>Expiry pill: "Expires in 6 days" and "Expired Sep 23" are static. Derive them from <code>expiresAt</code> and server time (send <code>serverNow</code> so client clock skew does not matter). The "Invites last 7 days" copy should come from the invite TTL.</li>
+<li>Mock data mismatch: the sub line says "sent Sep 24" while the expired copy says "expired on Sep 23". Real data will not have this problem, but QA should not copy these dates as fixtures.</li>
+</ul>
+
+<h3>Proposed payload types</h3>
+<div class="note">Proposal only. These types do not match any existing API. Align names with the backend before building.</div>
+<pre><code>// PROPOSAL - not an existing API
+type InviteStatus = "valid" | "expired" | "revoked" | "invalid" | "already_member";
+
+interface InvitePayload {
+  token: string;
+  status: InviteStatus;
+  workspace: {
+    id: string;
+    name: string;            // "Northwind Labs"
+    logoInitial: string;     // "N"
+    memberCount: number;     // used by the board ("+11 teammates")
+  };
+  inviter: {
+    id: string;
+    name: string;            // "Maya Chen"
+    title?: string;          // "Head of Research"
+    avatarTint?: "ice" | "mint" | "butter" | "peach" | "lilac";
+    isAdmin: boolean;        // shows the verified badge
+  };
+  role: "member" | "admin" | "guest";   // role pill text
+  invitedEmail: string;      // "alex@northwind.dev"
+  sentAt: string;            // ISO 8601
+  expiresAt: string;         // ISO 8601
+  serverNow: string;         // ISO 8601, for the countdown
+  viewer?: {                 // present when signed in
+    email: string;
+    name?: string;           // prefill for the name field
+    memberSince?: string;    // for "member since Aug"
+  };
+}
+
+interface AcceptInviteRequest {
+  token: string;
+  displayName: string;       // clean()ed, 2-60 chars, contains a letter
+}
+
+type AcceptInviteResponse =
+  | { ok: true; workspaceId: string; redirectUrl: string; member: { id: string; displayName: string } }
+  | { ok: false; error: "invite_expired" | "invite_revoked" | "invite_invalid"
+        | "email_mismatch" | "already_member" | "invalid_name" | "rate_limited" };
+
+interface RequestNewInviteRequest { token: string; }
+interface RequestNewInviteResponse { ok: boolean; notifiedInviter: boolean; }</code></pre>
+
+<h3>Error cases to handle</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Case</th><th>Proposed behavior</th></tr></thead><tbody>
+<tr><td>Token invalid or revoked</td><td>Step 1 is-bad "!" with a label such as "Invite not found". Progress bar bad. Fields hidden. Show a warn banner, for example "<b>This invite link isn't valid.</b> Ask {inviter} to send a new one." (proposed copy). Offer "Request a new invite" if the inviter is known. Otherwise hide the button.</td></tr>
+<tr><td>Network failure on join</td><td>Stop the spinner. Set step 3 back to is-on "3". Re-enable the button as "Join {workspace}" and make the name field editable again. Show <code>.banner.warn</code>: "Couldn't join. Check your connection and try again." (proposed copy). Announce it through <code>#live</code>.</td></tr>
+<tr><td>Expired between load and submit</td><td>Switch to the Expired state with the server's <code>expiresAt</code>.</td></tr>
+<tr><td>Email mismatch with the signed-in account</td><td>Warn banner, for example "<b>This invite is for {invitedEmail}.</b> You're signed in as {viewerEmail}. Switch account to join." (proposed copy). Hide the fields and disable Join. Keep "Switch account" as the main action.</td></tr>
+<tr><td>Name rejected by the server</td><td>Show the <code>#nameErr</code> pattern with the server message.</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="copy">
+<h2>Copy deck</h2>
+<p>Dynamic parts: {workspace}, {inviter}, {inviterFirst}, {inviterTitle}, {role}, {firstName}, {email}, {date}, {n}. Strings are verbatim from the prototype. The prototype values are Northwind Labs, Maya Chen, Head of Research, Member and alex@northwind.dev.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Key</th><th>String</th><th>Where</th></tr></thead><tbody>
+<tr><td>brand.word</td><td>truex</td><td>Header</td></tr>
+<tr><td>brand.sub</td><td>agents</td><td>Header</td></tr>
+<tr><td>theme.auto / light / dark</td><td>Auto / Light / Dark</td><td>Theme control (prototype)</td></tr>
+<tr><td>inviter.line</td><td>{inviter} invited you as {role}</td><td>Inviter row</td></tr>
+<tr><td>inviter.verified.title</td><td>Workspace admin</td><td>Badge tooltip</td></tr>
+<tr><td>inviter.verified.aria</td><td>Verified admin</td><td>Badge aria-label</td></tr>
+<tr><td>inviter.sub</td><td>{inviterTitle} · sent {date}</td><td>Inviter sub line</td></tr>
+<tr><td>expiry.active</td><td>Expires in {n} days</td><td>Expiry pill</td></tr>
+<tr><td>expiry.expired</td><td>Expired {date}</td><td>Expiry pill (bad)</td></tr>
+<tr><td>h1</td><td>Take your seat at {workspace}</td><td>Headline, {workspace} in italic accent</td></tr>
+<tr><td>card.eyebrow</td><td>Set up your seat</td><td>Join card</td></tr>
+<tr><td>progress.title</td><td>Progress checkup</td><td>Checkup header</td></tr>
+<tr><td>progress.count</td><td>{n} of 3</td><td>Checkup header</td></tr>
+<tr><td>progress.aria</td><td>Join progress</td><td>Progress bar aria-label</td></tr>
+<tr><td>step.1</td><td>Invite verified</td><td>Step 1</td></tr>
+<tr><td>step.1.expired</td><td>Invite expired</td><td>Step 1 (Expired)</td></tr>
+<tr><td>step.2</td><td>Add your name</td><td>Step 2</td></tr>
+<tr><td>step.3</td><td>Join workspace</td><td>Step 3</td></tr>
+<tr><td>email.label</td><td>Work email</td><td>Email field</td></tr>
+<tr><td>email.hint</td><td>from invite</td><td>Email field</td></tr>
+<tr><td>name.label</td><td>Your name</td><td>Name field</td></tr>
+<tr><td>name.hint</td><td>shown to teammates</td><td>Name field (default)</td></tr>
+<tr><td>name.hint.ok</td><td>looks good</td><td>Name field (valid)</td></tr>
+<tr><td>name.placeholder</td><td>e.g. Alex Rivera</td><td>Name input</td></tr>
+<tr><td>name.error</td><td>Add your full name so teammates know who joined.</td><td>Under name input</td></tr>
+<tr><td>btn.join</td><td>Join {workspace}</td><td>Button (Valid)</td></tr>
+<tr><td>btn.phase1</td><td>Verifying your invite</td><td>Button and aria-live (Submitting)</td></tr>
+<tr><td>btn.phase2</td><td>Setting up your seat</td><td>Button and aria-live (Submitting)</td></tr>
+<tr><td>btn.phase3</td><td>Opening your first conversation</td><td>Button and aria-live (Submitting)</td></tr>
+<tr><td>btn.open</td><td>Open {workspace}</td><td>Button (Joined, Member)</td></tr>
+<tr><td>btn.opening</td><td>Opening…</td><td>Button after Open click</td></tr>
+<tr><td>btn.request</td><td>Request a new invite</td><td>Button (Expired)</td></tr>
+<tr><td>btn.requested</td><td>Request sent</td><td>Button (Request sent)</td></tr>
+<tr><td>banner.joined</td><td><b>You're in, {firstName}.</b> Your seat in {workspace} is ready and {inviterFirst} has been notified.</td><td>Banner ok (Joined)</td></tr>
+<tr><td>banner.expired</td><td><b>This invite expired on {date}.</b> Invites last 7 days. Ask {inviter} for a new one and we'll email it to you.</td><td>Banner warn (Expired)</td></tr>
+<tr><td>banner.requested</td><td><b>Request sent.</b> We let {inviter} know. A fresh invite will land in {email}.</td><td>Banner ok (Request sent)</td></tr>
+<tr><td>banner.member</td><td><b>You're already in {workspace}.</b> Signed in as {email}.</td><td>Banner ok (Member)</td></tr>
+<tr><td>banner.joinError (proposed)</td><td>Couldn't join. Check your connection and try again.</td><td>Banner warn (network failure)</td></tr>
+<tr><td>live.joined</td><td>Joined {workspace}</td><td>aria-live</td></tr>
+<tr><td>live.opening</td><td>Opening {workspace}</td><td>aria-live</td></tr>
+<tr><td>fine.terms</td><td>By joining you accept the workspace terms</td><td>Fine print, "workspace terms" is a link</td></tr>
+<tr><td>fine.switch</td><td>Not you? Switch account</td><td>Fine print, "Switch account" is a link</td></tr>
+<tr><td>profile.empty.initials</td><td>YOU</td><td>Specimen 07</td></tr>
+<tr><td>profile.empty.name</td><td>Your name</td><td>Specimen 07</td></tr>
+<tr><td>profile.empty.sub</td><td>seat open</td><td>Specimen 07</td></tr>
+<tr><td>profile.typing.sub</td><td>member · northwind</td><td>Specimen 07 (lowercase workspace slug)</td></tr>
+<tr><td>profile.joined.sub</td><td>joined just now</td><td>Specimen 07</td></tr>
+<tr><td>profile.member.sub</td><td>member since {date}</td><td>Specimen 07 ("member since Aug")</td></tr>
+<tr><td>preview.label</td><td>Preview state</td><td>Footer (prototype)</td></tr>
+<tr><td>preview.options</td><td>Valid invite / Expired / Already a member</td><td>Footer (prototype)</td></tr>
+</tbody></table></div>
+</section>

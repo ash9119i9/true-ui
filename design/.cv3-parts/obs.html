@@ -1,0 +1,315 @@
+<section class="sec" id="obs">
+<style>
+#obs .ob-stage{padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+#obs .ob-num{font-variant-numeric:tabular-nums}
+.ob-rcpt{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:13px;color:var(--ink-2);min-width:0}
+.ob-rcpt .ob-out{color:var(--ink);font-weight:600;min-width:0}
+.ob-rcpt .ob-meta{font:12px var(--font-mono);color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ob-ghost{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:999px;border:1px dashed var(--line-strong);color:var(--ink-2);font-size:12px;font-style:italic;background:transparent}
+.ob-det{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 6px 0 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 12px var(--font-sans)}
+.ob-det.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.ob-det.on .ic{transform:rotate(180deg)}
+.ob-prob{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--warn-bg);color:var(--warn-text);border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);flex-wrap:wrap}
+.ob-prob > div{flex:1;min-width:180px;display:flex;flex-direction:column;gap:2px;font-size:13px}
+.ob-prob b{color:var(--warn-text);font-size:14px}
+.ob-prob .ic{color:var(--warn);margin-top:2px}
+.ob-card{border:1px solid var(--line);border-radius:14px;background:var(--surface);overflow:hidden;min-width:0}
+.ob-sec{padding:12px 14px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);min-width:0}
+.ob-sec:first-child{border-top:0}
+.ob-h{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--ink);flex-wrap:wrap}
+.ob-h .ob-r{margin-left:auto;font:500 11px var(--font-mono);color:var(--ink-2);font-variant-numeric:tabular-nums}
+.ob-sw{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2);border:0;background:none;padding:0;font-family:var(--font-sans)}
+.ob-sw i{position:relative;width:30px;height:18px;border-radius:999px;background:var(--line-strong);flex:none}
+.ob-sw i::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--surface);box-shadow:var(--shadow-sm)}
+.ob-sw.on i{background:var(--accent-fg)} .ob-sw.on i::after{left:14px}
+.ob-locked{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;border:1px dashed var(--line-strong);font-size:12px;color:var(--ink-2)}
+/* waterfall */
+.ob-wf-scroll{overflow-x:auto;margin:0 -14px;padding:0 14px 4px}
+.ob-wf{--lab:136px;--dur:40px;position:relative;min-width:520px;display:flex;flex-direction:column;gap:2px}
+.ob-row{display:grid;grid-template-columns:var(--lab) minmax(0,1fr) var(--dur);gap:8px;align-items:center;height:22px}
+.ob-row.ob-lane{height:24px;margin-top:6px}
+.ob-row.ob-lane:first-child{margin-top:0}
+.ob-lab{display:flex;align-items:center;gap:6px;min-width:0;font-size:12px;color:var(--ink-2);padding-left:24px;white-space:nowrap}
+.ob-lab > span{overflow:hidden;text-overflow:ellipsis}
+.ob-lane .ob-lab{padding-left:0;font-weight:600;color:var(--ink)}
+.ob-trk{position:relative;height:100%;background:linear-gradient(90deg,var(--line) 1px,transparent 1px) 0 0/25% 100%}
+.ob-bar{position:absolute;top:5px;bottom:5px;min-width:3px;border-radius:4px;background:var(--t)}
+.ob-lane .ob-bar{top:9px;bottom:9px;background:var(--ts);box-shadow:inset 0 0 0 1.5px var(--t)}
+.ob-bar.ob-think{background:repeating-linear-gradient(135deg,var(--t) 0 3px,var(--ts) 3px 6px)}
+.ob-bar.ob-fail{background:var(--bad)}
+.ob-dur{font:11px var(--font-mono);color:var(--ink-2);text-align:right;font-variant-numeric:tabular-nums}
+.ob-row.is-err .ob-lab,.ob-row.is-err .ob-dur{color:var(--bad);font-weight:600}
+.ob-axis{display:flex;justify-content:space-between;margin-left:calc(var(--lab) + 8px);margin-right:calc(var(--dur) + 8px);font:10px var(--font-mono);color:var(--ink-2)}
+.ob-err{margin:2px 0 4px calc(var(--lab) + 8px);padding:6px 10px;border-radius:8px;background:var(--bad-bg);color:var(--bad);font-size:12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+/* token stack + ring */
+.ob-stack{display:flex;height:12px;border-radius:999px;overflow:hidden;background:var(--surface-3);gap:2px}
+.ob-stack i{display:block;height:100%}
+.ob-leg{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:4px 12px;font-size:12px;color:var(--ink-2)}
+.ob-leg span{display:flex;align-items:center;gap:6px;min-width:0}
+.ob-leg b{margin-left:auto;font:500 12px var(--font-mono);color:var(--ink)}
+.ob-sw8{width:10px;height:10px;border-radius:3px;flex:none}
+.ob-c-cache{background:color-mix(in srgb,var(--accent) 35%,var(--surface-3))}
+.ob-c-in{background:var(--accent)} .ob-c-out{background:var(--t1)} .ob-c-rsn{background:color-mix(in srgb,var(--t1) 45%,var(--surface-3))}
+.ob-ctx{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.ob-ctx .ring{--p:78;width:56px;height:56px;background:conic-gradient(var(--warn) calc(var(--p)*1%),var(--surface-3) 0)}
+.ob-ctx .ring::before{width:44px;height:44px}
+.ob-ctx > div{flex:1;min-width:160px;font-size:12px;color:var(--ink-2);display:flex;flex-direction:column;gap:2px}
+.ob-scale{position:relative;height:6px;border-radius:999px;background:linear-gradient(90deg,var(--accent) 0 75%,var(--warn) 75% 90%,var(--bad) 90%);opacity:.8}
+.ob-empty{padding:10px 12px;border-radius:10px;background:var(--surface-3);font-size:12px;color:var(--ink-2);display:flex;gap:8px;align-items:center}
+/* privacy + limits */
+.ob-find{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);background:var(--warn-bg);color:var(--warn-text);font-size:13px}
+.ob-find b{font-size:14px}
+.ob-dev{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:10px;background:var(--surface-3);font-size:12px;color:var(--ink-2)}
+.ob-dev code{align-self:flex-start}
+.ob-lim{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;border:1px solid var(--line);font-size:13px}
+.ob-lim .bar{height:8px}
+/* insights */
+.ob-bars{display:flex;flex-direction:column;gap:6px;font-size:12px}
+.ob-bars > div{display:grid;grid-template-columns:minmax(64px,34%) minmax(0,1fr) 42px;gap:8px;align-items:center}
+.ob-bars span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink-2)}
+.ob-bars i{display:block;height:8px;border-radius:0 4px 4px 0;background:var(--t)}
+.ob-bars em{font:normal 11px var(--font-mono);text-align:right;color:var(--ink-2)}
+.ob-cols{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:4px;align-items:end;height:110px;border-bottom:1px solid var(--line-strong);position:relative}
+.ob-col{display:flex;flex-direction:column-reverse;height:100%;justify-content:flex-start;min-width:0}
+.ob-col i{display:block;border-radius:3px 3px 0 0}
+.ob-col i.m{background:var(--tm)} .ob-col i.h{background:var(--t0);border-radius:3px 3px 0 0}
+.ob-col.last i.m{background:var(--ink-2)}
+.ob-xl{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:4px;font:10px var(--font-mono);color:var(--ink-2);text-align:center}
+.ob-line{position:relative;height:100px;border-bottom:1px solid var(--line-strong);border-left:1px solid var(--line-strong)}
+.ob-line svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.ob-line polyline{fill:none;stroke:var(--accent);stroke-width:2;vector-effect:non-scaling-stroke}
+.ob-line polygon{fill:var(--accent-soft)}
+.ob-thr{position:absolute;left:0;right:0;border-top:1px dashed var(--warn);font:10px var(--font-mono);color:var(--warn-text)}
+.ob-thr.bad{border-color:var(--bad);color:var(--bad)}
+.ob-thr span{position:absolute;right:2px;top:-14px;background:var(--surface);padding:0 3px}
+.ob-grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1px;background:var(--line)}
+.ob-grid2 > .ob-sec{border-top:0;background:var(--surface)}
+</style>
+
+<div class="sec-head">
+  <span class="eyebrow">Receipts and insights</span>
+  <h2>Say what happened first, show the numbers on request</h2>
+  <p>Every finished turn gets a receipt that reads like a sentence: what the agent did, how long it took, what it used, and anything that needs the user's hand. Developer mode unlocks the waterfall, token stack and context ring. Privacy findings become actions, rate limits become turns left, and the Insights tab answers "where does the time go" for the whole session.</p>
+</div>
+
+<!-- Board 1: plain receipt -->
+<div class="board">
+  <div>
+    <div class="wf">
+      <div class="ob-stage">
+        <div class="msg"><span class="av"><svg class="ic sm"><use href="#i-bot"/></svg></span>
+          <div class="grow">
+            <div class="msg-meta"><b>Qlik Analyst</b><span class="muted sm">Onboarding plan for new analysts</span></div>
+            <div class="answer">Here is a four-week onboarding plan built from the Analyst Handbook, the Qlik Sense style guide and the data dictionary. Week one covers access and the sales app tour...</div>
+            <div class="ob-rcpt" style="margin-top:12px"><span class="pin">1</span>
+              <span class="ob-out">Read 3 docs, asked 2 helpers, wrote the answer</span>
+              <span class="ob-meta">2.6s · 26.6k tokens</span>
+              <span class="ob-ghost" title="Needs backend pricing">≈ cost</span><span class="pin">5</span>
+              <button class="ob-det on" type="button" aria-expanded="true">Details <svg class="ic sm"><use href="#i-chevd"/></svg></button>
+            </div>
+          </div>
+        </div>
+        <div class="ob-prob" role="status"><span class="pin">2</span><svg class="ic"><use href="#i-alert"/></svg>
+          <div><b>Drive folder not shared with TrueX</b><span>"Team rituals" could not be read, so week three is based on the handbook only.</span></div>
+          <div class="row"><button class="btn soft" type="button">Share folder</button><button class="btn ghost" type="button">Reconnect Google</button></div>
+        </div>
+        <div class="ob-card">
+          <div class="ob-sec"><div class="ob-h"><span class="pin">3</span>What happened<span class="ob-r">6 steps</span></div>
+            <ol class="log">
+              <li><span class="node k-think"><svg class="ic sm"><use href="#i-brain"/></svg></span><div class="what"><b>Thought</b><span>142 words</span></div><span class="t"></span></li>
+              <li><span class="node k-tool"><svg class="ic sm"><use href="#i-file"/></svg></span><div class="what"><b>Read 3 docs from Google Drive</b><span>Analyst Handbook, Style guide, Data dictionary</span></div><span class="t">0.8s</span></li>
+              <li><span class="node k-err"><svg class="ic sm"><use href="#i-lock"/></svg></span><div class="what"><b>Could not open "Team rituals"</b></div><span class="t">0.1s</span></li>
+              <li><span class="node k-agent"><svg class="ic sm"><use href="#i-users"/></svg></span><div class="what"><b>Asked Atlas and Juno</b><span>Research and first draft, in parallel</span></div><span class="t">1.0s</span></li>
+              <li><span class="node k-file"><svg class="ic sm"><use href="#i-spark"/></svg></span><div class="what"><b>Wrote the answer</b></div><span class="t">0.5s</span></li>
+            </ol>
+          </div>
+          <div class="ob-sec"><div class="row"><span class="pin">4</span><button class="ob-sw" type="button" role="switch" aria-checked="false"><i></i>Developer mode</button></div>
+            <div class="ob-locked"><svg class="ic sm"><use href="#i-activity"/></svg>Turn on developer mode to see the timing waterfall, token breakdown and context window.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">Outcome, then problems, then numbers. The waterfall waits behind a toggle.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Outcome sentence</b> <span class="tag derive">derive</span><span>Built from <code>steps[]</code> grouped by <code>kind</code> (tool reads, agent spawns, message). Duration is <code>formatDuration(totalMs)</code>, tokens are <code>usage</code> plus <code>helperUsage</code>. Null parts drop out.</span></div></li>
+    <li><span class="pin">2</span><div><b>Problem-first line</b> <span class="tag backend">backend</span> <span class="tag new">new</span><span>A failed step has <code>status:"failed"</code> today but no reason. Needs <code>StepSpan.error {code:"notShared", resource}</code> to name the folder and pick Share folder or Reconnect Google.</span></div></li>
+    <li><span class="pin">3</span><div><b>Plain step list</b> <span class="tag data">data</span><span>One row per <code>StepSpan</code> using its plain <code>label</code> and <code>durationMs</code>. Thinking shows "Thought" plus words, never a duration.</span></div></li>
+    <li><span class="pin">4</span><div><b>Developer mode toggle</b> <span class="tag data">data</span><span><code>useDeveloperMode</code> exists. Surfacing it here tells people the deeper view is one click away, instead of hiding it in settings.</span></div></li>
+    <li><span class="pin">5</span><div><b>Cost chip</b> <span class="tag backend">backend</span><span>Ghost placeholder only. No currency exists anywhere in the contract; needs a per-model price table or a <code>TurnTrace.cost</code> field.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 2: developer trace -->
+<div class="board">
+  <div>
+    <div class="wf">
+      <div class="ob-stage">
+        <div class="row"><b>Turn 9 trace</b><span class="pill ok">completed</span><span class="pin">4</span><span class="spacer"></span><button class="ob-sw on" type="button" role="switch" aria-checked="true"><i></i>Developer mode</button></div>
+        <div class="ob-card">
+          <div class="ob-sec"><div class="ob-h"><span class="pin">1</span>Where the time went<span class="ob-r">2.6s total</span></div>
+            <div class="ob-wf-scroll"><div class="ob-wf" role="img" aria-label="Waterfall: main 2.6s, Atlas 0.8s, Juno 0.9s">
+              <div class="ob-row ob-lane tone-main"><div class="ob-lab"><span class="h-av">Q</span><span>Main</span></div><div class="ob-trk"><i class="ob-bar" style="left:0;width:100%"></i></div><span class="ob-dur">2.6s</span></div>
+              <div class="ob-row tone-main"><div class="ob-lab"><span>Thought</span></div><div class="ob-trk"><i class="ob-bar ob-think" style="left:0;width:11%"></i></div><span class="ob-dur">0.3s</span></div>
+              <div class="ob-row tone-1"><div class="ob-lab"><span>Read 3 docs</span></div><div class="ob-trk"><i class="ob-bar" style="left:12%;width:31%"></i></div><span class="ob-dur">0.8s</span></div>
+              <div class="ob-row is-err"><div class="ob-lab"><span>Open "Team rituals"</span></div><div class="ob-trk"><i class="ob-bar ob-fail" style="left:43%;width:4%"></i></div><span class="ob-dur">0.1s</span></div>
+              <div class="ob-err"><span class="pin">3</span>403 · folder not shared with service account</div>
+              <div class="ob-row tone-main"><div class="ob-lab"><span>Wrote the answer</span></div><div class="ob-trk"><i class="ob-bar" style="left:81%;width:19%"></i></div><span class="ob-dur">0.5s</span></div>
+              <div class="ob-row ob-lane tone-0"><div class="ob-lab"><span class="h-av">A</span><span>Atlas · research</span></div><div class="ob-trk"><i class="ob-bar" style="left:47%;width:31%"></i></div><span class="ob-dur">0.8s</span></div>
+              <div class="ob-row tone-0"><div class="ob-lab"><span>Searched handbook</span></div><div class="ob-trk"><i class="ob-bar" style="left:49%;width:27%"></i></div><span class="ob-dur">0.7s</span></div>
+              <div class="ob-row ob-lane tone-2"><div class="ob-lab"><span class="h-av">J</span><span>Juno · drafting</span></div><div class="ob-trk"><i class="ob-bar" style="left:47%;width:34%"></i></div><span class="ob-dur">0.9s</span></div>
+              <div class="ob-axis"><span>0</span><span>0.65s</span><span>1.3s</span><span>1.95s</span><span>2.6s</span></div>
+            </div></div>
+          </div>
+          <div class="ob-grid2">
+            <div class="ob-sec"><div class="ob-h"><span class="pin">2</span>Tokens<span class="ob-r">26.6k main</span></div>
+              <div class="ob-stack" role="img" aria-label="Cached 14.2k, new input 7.2k, output 3.4k, reasoning 1.8k"><i class="ob-c-cache" style="width:53%"></i><i class="ob-c-in" style="width:27%"></i><i class="ob-c-out" style="width:13%"></i><i class="ob-c-rsn" style="width:7%"></i></div>
+              <div class="ob-leg"><span><i class="ob-sw8 ob-c-cache"></i>Cached<b>14.2k</b></span><span><i class="ob-sw8 ob-c-in"></i>New input<b>7.2k</b></span><span><i class="ob-sw8 ob-c-out"></i>Output<b>3.4k</b></span><span><i class="ob-sw8 ob-c-rsn"></i>Reasoning<b>1.8k</b></span></div>
+              <span class="muted sm">Helpers used another 9.8k tokens.</span>
+            </div>
+            <div class="ob-sec"><div class="ob-h"><span class="pin">5</span>Context window<span class="ob-r">100k/128k</span></div>
+              <div class="ob-ctx"><span class="ring" role="meter" aria-valuenow="78" aria-valuemin="0" aria-valuemax="100" aria-label="Context 78 percent full"><span>78%</span></span>
+                <div><b class="strong">Getting full</b><span>Warns at 75%, turns red at 90%. Compact soon to keep answers sharp.</span><div class="ob-scale" aria-hidden="true"></div></div></div>
+            </div>
+          </div>
+          <div class="ob-sec"><div class="ob-h"><span class="pin">6</span>When data is missing</div>
+            <div class="ob-empty"><svg class="ic sm"><use href="#i-list"/></svg>No steps were recorded for this turn.</div>
+            <div class="ob-empty"><svg class="ic sm"><use href="#i-sigma"/></svg>Token usage was not reported for this turn.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">Lanes per agent make parallel helpers obvious. Live bars need span events.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Waterfall by agent lane</b> <span class="tag data">data</span> <span class="tag new">new</span><span>Group <code>steps[]</code> by <code>agent</code>, place by <code>startMs</code> and <code>durationMs</code> against <code>totalMs</code>. A null <code>durationMs</code> runs to the span end. Drawing it live during a turn needs <code>step.started</code>/<code>step.ended</code> events streamed (backend); today the card only exists after <code>turn.completed</code>.</span></div></li>
+    <li><span class="pin">2</span><div><b>Token stack</b> <span class="tag derive">derive</span><span><code>splitTokens(usage)</code> pulls cached out of input and reasoning out of output. Helper tokens come from <code>helperUsage</code> as one note line; per-helper counts are backend.</span></div></li>
+    <li><span class="pin">3</span><div><b>Per-step error</b> <span class="tag backend">backend</span><span>We can color the failed bar from <code>status</code>, but the message needs <code>StepSpan.error</code>. Shares the field with the board 1 problem line.</span></div></li>
+    <li><span class="pin">4</span><div><b>Turn status pill</b> <span class="tag backend">backend</span><span><code>TurnTrace.status</code> is a free <code>string</code>. Needs an enum (completed, failed, interrupted) to map tones safely.</span></div></li>
+    <li><span class="pin">5</span><div><b>Context ring</b> <span class="tag derive">derive</span><span><code>contextFraction(usage)</code> = <code>contextUsedTokens / contextWindow</code>. Accent under 75%, warn 75-90%, bad above. Hidden when either is null.</span></div></li>
+    <li><span class="pin">6</span><div><b>Empty fallbacks</b> <span class="tag data">data</span><span>The §6 strings verbatim, for empty <code>steps</code> and null <code>usage</code>. Formatters fall back to a dash.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 3: privacy + limits -->
+<div class="board">
+  <div>
+    <div class="app">
+      <div class="app-chrome"><i></i><i></i><i></i><span>Insights · This turn</span></div>
+      <div class="ob-stage" style="background:var(--bg)">
+        <div class="ob-find"><div class="row"><span class="pin">1</span><svg class="ic"><use href="#i-shield"/></svg><b>2 email addresses were sent to gpt-5.1</b></div>
+          <span>Found 2 times in file content this turn. From "Analyst Handbook.pdf", read by Atlas.<span class="pin" style="margin-left:6px">3</span></span>
+          <div class="row"><button class="btn primary" type="button">Don't send files like this</button><button class="btn ghost" type="button">That's fine</button><span class="pin">2</span></div>
+        </div>
+        <div class="ob-dev"><div class="row"><span class="pin">4</span><b class="strong">Developer view</b><span class="pill">dev only</span></div>
+          <span>Masked sample</span><code>j***@***.com</code>
+          <span>Checked 48,210 characters for emails, phone numbers, card and account numbers, IDs and access keys. Pattern checks can miss things.</span>
+        </div>
+        <div class="ob-lim"><div class="row"><span class="pin">5</span><svg class="ic"><use href="#i-clock"/></svg><b class="strong">About 12 more turns like this before the 3:40 PM reset</b></div>
+          <div class="bar"><i style="width:64%"></i></div>
+          <div class="row sm muted"><span class="ob-num">5-hour limit · 64% used</span><span class="spacer"></span><span class="ob-num">resets in 1h 52m</span><span class="pin">6</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">Say what left, where it went, and what to do about it.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Finding headline</b> <span class="tag data">data</span><span><code>PrivacyFinding.kind</code> and <code>count</code> with <code>source</code> via <code>describeFinding</code>. The model name is <code>TurnTrace.model</code>. "2 times" is the reported occurrence count; counting the model requests that carried it would need backend.</span></div></li>
+    <li><span class="pin">2</span><div><b>Don't send files like this</b> <span class="tag backend">backend</span> <span class="tag new">new</span><span>Needs an exclusion rule endpoint (by file or pattern) that the scanner applies before the model call. Today the scan is report-only.</span></div></li>
+    <li><span class="pin">3</span><div><b>Source file and agent</b> <span class="tag backend">backend</span><span><code>PrivacySource</code> only says <code>fileContent</code>. Naming the file and the helper needs <code>finding.resource</code> and <code>finding.agentThreadId</code>.</span></div></li>
+    <li><span class="pin">4</span><div><b>Masked sample</b> <span class="tag data">data</span> <span class="tag diag">diag</span><span><code>sample</code> never holds a raw value but still reads as technical, so it sits behind developer mode with the <code>scannedChars</code> note.</span></div></li>
+    <li><span class="pin">5</span><div><b>Turns left</b> <span class="tag derive">derive</span><span>Remaining <code>100 − primaryUsedPercent</code> divided by the percent this turn used, from the change between the last two <code>rateLimits</code> snapshots. Reset clock from <code>primaryResetsAt</code>. Falls back to the percent line when there is one snapshot.</span></div></li>
+    <li><span class="pin">6</span><div><b>Meter line</b> <span class="tag data">data</span><span><code>windowLabel(primaryWindowMins)</code> and <code>resetsIn(primaryResetsAt)</code>. Turns bad with fix copy when <code>reached</code> is set.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 4: session insights -->
+<div class="board">
+  <div>
+    <div class="app">
+      <div class="app-chrome"><i></i><i></i><i></i><span>Insights · Session</span></div>
+      <div class="ob-card" style="border:0;border-radius:0">
+        <div class="ob-sec"><div class="row"><span class="seg"><span>This turn</span><span class="on">Session</span></span><span class="spacer"></span><span class="muted sm ob-num">9 turns · 42.1k of 50k goal</span></div></div>
+        <div class="ob-grid2">
+          <div class="ob-sec"><div class="ob-h"><span class="pin">1</span>Slowest step types<span class="ob-r">all turns</span></div>
+            <div class="ob-bars">
+              <div class="tone-2"><span>Helper work</span><i style="width:100%"></i><em>7.4s</em></div>
+              <div class="tone-1"><span>Drive reads</span><i style="width:69%"></i><em>5.1s</em></div>
+              <div class="tone-main"><span>Writing</span><i style="width:43%"></i><em>3.2s</em></div>
+              <div class="tone-0"><span>Thinking</span><i style="width:26%"></i><em>1.9s</em></div>
+            </div>
+          </div>
+          <div class="ob-sec"><div class="ob-h"><span class="pin">2</span>Helper time vs main</div>
+            <div class="ob-bars">
+              <div class="tone-main"><span>Main agent</span><i style="width:100%"></i><em>18.4s</em></div>
+              <div class="tone-0"><span>Atlas</span><i style="width:34%"></i><em>6.2s</em></div>
+              <div class="tone-2"><span>Juno</span><i style="width:27%"></i><em>4.9s</em></div>
+            </div>
+            <span class="muted sm">Helpers run in parallel, so their times overlap.</span>
+          </div>
+        </div>
+        <div class="ob-sec"><div class="ob-h"><span class="pin">3</span>Tokens per turn<span class="ob-r">main + helpers</span></div>
+          <div class="ob-cols" role="img" aria-label="Tokens per turn, turns 1 to 9: 8.2k, 12.4k, 6.1k, 18.9k, 14.3k, 9.7k, 22.1k, 11.5k, 36.4k">
+            <div class="ob-col"><i class="m" style="height:22%"></i></div>
+            <div class="ob-col"><i class="m" style="height:26%"></i><i class="h" style="height:8%"></i></div>
+            <div class="ob-col"><i class="m" style="height:17%"></i></div>
+            <div class="ob-col"><i class="m" style="height:36%"></i><i class="h" style="height:16%"></i></div>
+            <div class="ob-col"><i class="m" style="height:39%"></i></div>
+            <div class="ob-col"><i class="m" style="height:27%"></i></div>
+            <div class="ob-col"><i class="m" style="height:44%"></i><i class="h" style="height:17%"></i></div>
+            <div class="ob-col"><i class="m" style="height:32%"></i></div>
+            <div class="ob-col last"><i class="m" style="height:73%"></i><i class="h" style="height:27%"></i></div>
+          </div>
+          <div class="ob-xl"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span></div>
+          <div class="ob-leg"><span><i class="ob-sw8" style="background:var(--tm)"></i>Main agent<b>31.2k</b></span><span><i class="ob-sw8" style="background:var(--t0)"></i>Helpers<b>10.9k</b></span></div>
+        </div>
+        <div class="ob-sec"><div class="ob-h"><span class="pin">4</span>Context fill over time<span class="ob-r">now 78%</span></div>
+          <div class="ob-line" role="img" aria-label="Context fill by turn: 12, 21, 26, 38, 47, 55, 63, 71, 78 percent">
+            <svg viewBox="0 0 800 100" preserveAspectRatio="none" aria-hidden="true">
+              <polygon points="0,100 0,88 100,79 200,74 300,62 400,53 500,45 600,37 700,29 800,22 800,100"/>
+              <polyline points="0,88 100,79 200,74 300,62 400,53 500,45 600,37 700,29 800,22"/>
+            </svg>
+            <div class="ob-thr" style="top:25%"><span>75%</span></div>
+            <div class="ob-thr bad" style="top:10%"><span>90%</span></div>
+          </div>
+          <div class="ob-xl"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">One tab answers where the time and tokens went across the whole chat.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Slowest step types</b> <span class="tag derive">derive</span> <span class="tag new">new</span><span>Sum <code>durationMs</code> across all traces by <code>StepKind</code>, mapped to plain names. Replaces the per-turn-only view of where time goes.</span></div></li>
+    <li><span class="pin">2</span><div><b>Helper time vs main</b> <span class="tag derive">derive</span><span>Main is the sum of <code>totalMs</code>; each helper uses <code>elapsedMs(a, now)</code> in <code>spawnOrder</code> with tone <code>i % 3</code>, as InsightsPanel does today.</span></div></li>
+    <li><span class="pin">3</span><div><b>Tokens-per-turn columns</b> <span class="tag derive">derive</span><span><code>turnCounts(t)</code> per trace, stacked main and <code>helperUsage.totalTokens</code>. The latest turn is darker. Axis and legend text use <code>--ink-2</code> tokens, never literals.</span></div></li>
+    <li><span class="pin">4</span><div><b>Context fill line</b> <span class="tag derive">derive</span> <span class="tag new">new</span><span><code>contextFraction(trace.usage)</code> per turn, with 75% and 90% guides matching the ring. Shows when to compact before a <code>contextWindow</code> failure.</span></div></li>
+  </ol>
+</div>
+
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Element</th><th>Source field or event</th><th>Data tag</th></tr></thead>
+  <tbody>
+    <tr><td>Outcome sentence</td><td><code>steps[].kind</code>, <code>label</code>; <code>totalMs</code>; <code>usage</code> + <code>helperUsage</code></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Problem line, per-step error</td><td>New <code>StepSpan.error {code, resource}</code></td><td><span class="tag backend">backend</span></td></tr>
+    <tr><td>Plain step list</td><td><code>StepSpan.label</code>, <code>durationMs</code> (nullable), <code>status</code></td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Developer mode toggle</td><td><code>useDeveloperMode</code></td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Cost chip</td><td>New pricing table or <code>TurnTrace.cost</code></td><td><span class="tag backend">backend</span></td></tr>
+    <tr><td>Waterfall lanes</td><td><code>steps[].agent</code>, <code>startMs</code>, <code>durationMs</code>, <code>totalMs</code></td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Live waterfall</td><td>New streamed <code>step.started</code> / <code>step.ended</code> events</td><td><span class="tag backend">backend</span></td></tr>
+    <tr><td>Turn status pill</td><td><code>TurnTrace.status</code> as an enum</td><td><span class="tag backend">backend</span></td></tr>
+    <tr><td>Token stack</td><td><code>splitTokens(usage)</code>; helper note from <code>helperUsage</code></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Context ring and fill line</td><td><code>contextUsedTokens / contextWindow</code> per trace</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Privacy finding</td><td><code>PrivacyFinding.kind</code>, <code>source</code>, <code>count</code>; <code>TurnTrace.model</code></td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Finding file and agent</td><td>New <code>finding.resource</code>, <code>finding.agentThreadId</code></td><td><span class="tag backend">backend</span></td></tr>
+    <tr><td>Don't send files like this</td><td>New exclusion rule endpoint</td><td><span class="tag backend">backend</span></td></tr>
+    <tr><td>Turns left before reset</td><td><code>RateLimitView.primaryUsedPercent</code> delta, <code>primaryResetsAt</code></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Slowest step types, helper vs main, tokens per turn</td><td><code>traces[]</code>, <code>elapsedMs</code>, <code>turnCounts</code></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Per-helper tokens</td><td>Split of <code>helperUsage</code> by thread</td><td><span class="tag backend">backend</span></td></tr>
+  </tbody>
+</table></div>
+
+<div class="qs">
+  <div class="q"><b>Show turns left with one snapshot?</b><span>A single <code>rateLimits</code> reading has no per-turn delta. Recommend the percent line until a second turn lands, rather than guessing from token counts.</span></div>
+  <div class="q"><b>Where does the problem line live?</b><span>Under the answer, above Details. It should also raise the Requests badge so a blocked Drive folder is not missed on a long thread.</span></div>
+</div>
+</section>

@@ -1,0 +1,383 @@
+<section class="sec" id="see-it-work">
+<style>
+/* Chapter 2 mocks: v3 composer, stream, handed off node, request dock and needs-you tray (copied from cv3 parts, scoped) */
+#see-it-work .app-stage{min-height:0}
+#see-it-work .s2-top{display:flex;align-items:center;gap:10px;min-height:48px;padding:8px 12px 8px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap;min-width:0}
+#see-it-work .s2-top .crumb{flex:1;min-width:0}
+#see-it-work .s2-stream{padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+#see-it-work .s2-empty{padding:26px 16px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;color:var(--ink-2);font-size:13px}
+#see-it-work .s2-empty b{font-size:17px;color:var(--ink);letter-spacing:-.02em}
+#see-it-work .cp-dock{padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+#see-it-work .cp-box{border:1px solid var(--line);border-radius:18px;background:var(--surface);box-shadow:var(--shadow-md);padding:10px 10px 8px 12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+#see-it-work .cp-box.is-focus{border-color:color-mix(in srgb,var(--accent) 45%,transparent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 10%,transparent),var(--shadow-md)}
+#see-it-work .cp-ta{min-height:48px;padding:4px 4px 8px;font-size:15px;line-height:1.5;color:var(--ink);overflow-wrap:anywhere;min-width:0}
+#see-it-work .cp-ta.ph{color:var(--ink-3)}
+#see-it-work .cp-bar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-width:0}
+#see-it-work .cp-chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);font:500 13px var(--font-sans);color:var(--ink);white-space:nowrap;min-width:0}
+#see-it-work .cp-chip.ghost{background:transparent;border-color:transparent;color:var(--ink-2);padding:0 8px}
+#see-it-work .cp-chip.locked{color:var(--ink-2);background:var(--surface-3)}
+#see-it-work .cp-send,#see-it-work .cp-stop{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:none;border:0}
+#see-it-work .cp-send{background:var(--accent-fg);color:var(--on-accent)}
+#see-it-work .cp-stop{background:var(--ink);color:var(--bg)}
+#see-it-work .cp-pop{border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:var(--shadow-card);padding:6px;display:flex;flex-direction:column;gap:1px;min-width:0}
+#see-it-work .cp-pop-h{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);padding:8px 8px 4px;display:flex;gap:6px;align-items:center}
+#see-it-work .cp-it{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 8px;border-radius:9px;font-size:13px;color:var(--ink)}
+#see-it-work .cp-it > span:first-child{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:var(--surface-3);color:var(--ink-2)}
+#see-it-work .cp-it b{font-weight:600}
+#see-it-work .cp-it small{display:block;font-size:12px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#see-it-work .cp-it.is-active{background:var(--accent-soft)}
+#see-it-work .cp-it.is-active > span:first-child{background:var(--accent-fg);color:var(--on-accent)}
+#see-it-work .cp-kbd{font:500 11px var(--font-mono);color:var(--ink-2);border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:5px;padding:0 5px;background:var(--surface-2);white-space:nowrap}
+#see-it-work .cp-pop-f{display:flex;gap:10px;flex-wrap:wrap;padding:8px 8px 4px;margin-top:4px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-2)}
+#see-it-work .cp-live{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);padding:0 4px}
+/* handed off node, 7 statuses in 4 tones */
+#see-it-work .ag-hand{display:flex;flex-direction:column;gap:8px;min-width:0}
+#see-it-work .ag-hand-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--ink-2)}
+#see-it-work .ag-hand-head b{color:var(--ink);font-weight:600}
+#see-it-work .ag-tree{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+#see-it-work .ag-tree li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:9px 12px;font-size:13px;min-width:0}
+#see-it-work .ag-tree li + li{border-top:1px solid var(--line)}
+#see-it-work .ag-tree li.ag-d2{padding-left:36px;background:var(--surface-2)}
+#see-it-work .ag-who{display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap}
+#see-it-work .ag-who b{color:var(--ink);font-weight:600}
+#see-it-work .ag-task{grid-column:2 / 4;font-size:12px;color:var(--ink-2);min-width:0;overflow-wrap:anywhere}
+#see-it-work .ag-mono{font:11px var(--font-mono);color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+#see-it-work .ag-lvl{font:600 10px/16px var(--font-mono);padding:0 5px;border-radius:5px;background:var(--surface-3);color:var(--ink-2)}
+#see-it-work .ag-st{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+#see-it-work .ag-st.run{background:var(--accent-soft);color:var(--accent-fg)}
+#see-it-work .ag-st.done{background:var(--ok-bg);color:var(--ok)}
+#see-it-work .ag-st.stop{background:var(--surface-3);color:var(--ink-2)}
+#see-it-work .ag-st.warn{background:var(--warn-bg);color:var(--warn-text)}
+#see-it-work .ag-st .spinner{width:8px;height:8px}
+#see-it-work .ag-legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px 12px;padding:10px 12px;border:1px dashed var(--line-strong);border-radius:12px;font-size:12px;color:var(--ink-2)}
+#see-it-work .ag-legend div{display:flex;flex-direction:column;gap:4px;min-width:0}
+#see-it-work .ag-legend i{font:11px var(--font-mono);font-style:normal;color:var(--ink-2)}
+#see-it-work .s2-fold{display:inline-flex;align-items:center;gap:6px;color:var(--ink-2)}
+#see-it-work .s2-inset{position:absolute;z-index:6;width:min(230px,calc(100% - 24px));box-shadow:var(--shadow-card)}
+/* request dock */
+#see-it-work .rq-wait{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 6px 0 11px;border-radius:999px;background:var(--warn-bg);color:var(--warn-text);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);font-size:13px;font-weight:600;white-space:nowrap}
+#see-it-work .rq-wait.is-open{box-shadow:0 0 0 3px color-mix(in srgb,var(--warn) 22%,transparent)}
+#see-it-work .rq-wait em{font:700 11px/18px var(--font-mono);font-style:normal;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--warn-text);color:var(--bg);text-align:center}
+#see-it-work .rq-hold{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 10px;border:1px dashed color-mix(in srgb,var(--warn) 55%,transparent);border-radius:10px;background:color-mix(in srgb,var(--warn-bg) 55%,transparent);font-size:12.5px;color:var(--warn-text);min-width:0}
+#see-it-work .rq-dockzone{padding:6px 14px 14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+#see-it-work .rq-req{position:relative;display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:16px;background:var(--surface);border:1px solid color-mix(in srgb,var(--warn) 45%,var(--line));box-shadow:var(--shadow-card);min-width:0}
+#see-it-work .rq-head{display:flex;align-items:flex-start;gap:12px;min-width:0}
+#see-it-work .rq-tile{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:none;background:var(--accent-soft);color:var(--accent-fg)}
+#see-it-work .rq-tile.warn{background:var(--warn-bg);color:var(--warn-text)}
+#see-it-work .rq-tile.bad{background:var(--bad-bg);color:var(--bad)}
+#see-it-work .rq-ttl{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+#see-it-work .rq-kind{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2)}
+#see-it-work .rq-ttl strong{font-size:15px;font-weight:700;line-height:1.3;color:var(--ink)}
+#see-it-work .rq-ttl small{font-size:12.5px;color:var(--ink-2)}
+#see-it-work .rq-clock{display:flex;flex-direction:column;align-items:center;gap:2px;flex:none}
+#see-it-work .rq-clock small{font-size:10.5px;color:var(--ink-2);white-space:nowrap}
+#see-it-work .rq-ring{background:conic-gradient(var(--warn) calc(var(--p)*1%),var(--surface-3) 0)}
+#see-it-work .rq-acts{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+#see-it-work .rq-acts .btn{height:32px}
+#see-it-work .rq-kbd{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border-radius:5px;font:600 10px/1 var(--font-mono);color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line-strong);border-bottom-width:2px}
+#see-it-work .rq-acts .btn.primary .rq-kbd{background:color-mix(in srgb,var(--bg) 16%,transparent);border-color:color-mix(in srgb,var(--bg) 35%,transparent);color:var(--bg)}
+#see-it-work .rq-composer{border:1px solid var(--line);border-radius:18px;background:var(--surface);box-shadow:var(--shadow-md);padding:10px 10px 8px 14px;display:flex;align-items:center;gap:8px;min-width:0;color:var(--ink-2);font-size:13.5px}
+#see-it-work .rq-composer > span:nth-child(2){flex:1;min-width:0}
+/* needs-you tray */
+#see-it-work .rq-tray{margin:10px 12px 12px auto;width:min(400px,calc(100% - 24px));border:1px solid var(--line);border-radius:16px;background:var(--surface);box-shadow:var(--shadow-lift)}
+#see-it-work .rq-tray-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+#see-it-work .rq-tray-head b{font-size:14px}
+#see-it-work .rq-item{display:grid;grid-template-columns:28px minmax(0,1fr);gap:4px 10px;padding:10px 12px;border-top:1px solid var(--line);min-width:0}
+#see-it-work .rq-item:first-of-type{border-top:0}
+#see-it-work .rq-item.is-focus{background:color-mix(in srgb,var(--accent-soft) 60%,transparent);box-shadow:inset 3px 0 0 var(--accent)}
+#see-it-work .rq-item .rq-tile{width:28px;height:28px;border-radius:8px}
+#see-it-work .rq-item-body{display:flex;flex-direction:column;gap:2px;min-width:0}
+#see-it-work .rq-item-body b{font-size:13.5px;color:var(--ink);font-weight:600}
+#see-it-work .rq-item-body small{font-size:12px;color:var(--ink-2)}
+#see-it-work .rq-item .rq-acts{grid-column:2}
+#see-it-work .rq-item .btn{height:28px;font-size:12.5px}
+#see-it-work .rq-tray-foot{display:flex;gap:10px;flex-wrap:wrap;padding:9px 12px;border-top:1px solid var(--line);background:var(--surface-2);font-size:11.5px;color:var(--ink-2);border-radius:0 0 16px 16px}
+#see-it-work .rq-sub{font-size:12px;color:var(--ink-2)}
+#see-it-work .s2-quiet{opacity:.5}
+#see-it-work :is(.cp-chip,.cp-send,.btn,.cp-it):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:640px){#see-it-work .cp-chip .cp-hide{display:none}#see-it-work .s2-inset{position:relative;inset:auto!important;width:auto;margin:12px}}
+@media (prefers-reduced-motion:reduce){#see-it-work .spinner,#see-it-work .caret,#see-it-work .pulse{animation:none}}
+</style>
+<div class="sec-head">
+  <div class="eyebrow">Chapter 2</div>
+  <h2>See it work</h2>
+  <p>Five stops that walk Nitin through one real turn: pick context with @, send the demo prompt, watch helpers take over, answer a request, and find everything that still needs him.</p>
+</div>
+
+<!-- Board 5: @ mention picker (Try) -->
+<div class="board">
+  <div>
+    <div class="demo">
+      <div class="app">
+        <div class="app-chrome"><i></i><i></i><i></i><span>truex · Qlik Analyst</span></div>
+        <div class="app-stage" style="margin:10px">
+          <div class="s2-empty"><b>Good afternoon, Nitin</b><span>Qlik Analyst is ready. Add context with @ before you send.</span></div>
+          <div class="cp-dock">
+            <div class="t-anchor" data-tour="mention-picker" style="max-width:300px">
+              <div class="cp-pop" role="listbox" aria-label="Mention">
+                <div class="cp-pop-h"><svg class="ic sm"><use href="#i-file"/></svg>Files</div>
+                <div class="cp-it is-active" role="option" aria-selected="true"><span><svg class="ic sm"><use href="#i-file"/></svg></span><div style="min-width:0"><b>analyst-handbook-2026.pdf</b><small>Uploaded to this chat · 910 KB</small></div><span class="cp-kbd">Enter</span></div>
+                <div class="cp-pop-h"><svg class="ic sm"><use href="#i-bot"/></svg>Agents</div>
+                <div class="cp-it" role="option" aria-selected="false"><span><svg class="ic sm"><use href="#i-bot"/></svg></span><div style="min-width:0"><b>@researchscout</b><small>Research Scout · gpt-5-mini · medium</small></div><span></span></div>
+                <div class="cp-pop-h"><svg class="ic sm"><use href="#i-plug"/></svg>Tools</div>
+                <div class="cp-it" role="option" aria-selected="false"><span><svg class="ic sm"><use href="#i-globe"/></svg></span><div style="min-width:0"><b>Google Drive</b><small>MCP · search_files, get_file</small></div><span></span></div>
+                <div class="cp-pop-f"><span><span class="cp-kbd">↑</span> <span class="cp-kbd">↓</span> move</span><span><span class="cp-kbd">Enter</span> insert</span><span><span class="cp-kbd">Esc</span> close</span></div>
+              </div>
+              <span class="spot inset" aria-hidden="true"></span>
+            </div>
+            <div class="cp-box is-focus">
+              <div class="cp-ta">@<span class="caret"></span></div>
+              <div class="cp-bar">
+                <span class="cp-chip ghost" aria-label="Attach files"><svg class="ic"><use href="#i-plus"/></svg></span>
+                <span class="cp-chip"><span class="av" style="width:18px;height:18px;font-size:9px;border-radius:6px">QA</span><span class="cp-hide">Qlik Analyst</span></span>
+                <span class="cp-chip"><svg class="ic sm"><use href="#i-brain"/></svg>gpt-5 · high</span>
+                <span class="cp-chip"><svg class="ic sm"><use href="#i-shield"/></svg><span class="cp-hide">Ask</span></span>
+                <span class="cp-chip"><svg class="ic sm"><use href="#i-target"/></svg>Goal</span>
+                <span class="spacer"></span>
+                <span class="cp-send" aria-label="Send"><svg class="ic"><use href="#i-send"/></svg></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <span class="pin pin-at" style="top:118px;left:18px">1</span>
+      <span class="pin pin-at" style="top:300px;left:18px">2</span>
+      <div class="coach" data-side="right" style="top:150px;right:14px;width:min(250px,calc(100% - 24px));--caret:40px">
+        <div class="c-eye"><span>Step 5 of 12 · See it work</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+        <h4>@ adds a file, an agent or <em>a tool</em></h4>
+        <p>Type @ to point Qlik Analyst at exactly what to use. Google Drive is listed because it is attached to this agent.</p>
+        <div class="c-try"><svg class="ic sm"><use href="#i-file"/></svg>Pick any item to continue</div>
+        <div class="c-foot">
+          <div class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <span class="tb quiet">Back</span><span class="tb line">Skip this</span>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">three groups, always in this order. picking one drops a chip into the text.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Try: target mention-picker</b> <span class="tag derive">derive</span> <span class="tag try">try</span><span>prepare() focuses the empty composer and types "@" so the picker mounts, then the spotlight wraps <code>mention-picker</code>. advanceOn: any item inserted. If the picker is not found after 3s, the same copy shows as a centered card with Next.</span></div></li>
+    <li><span class="pin">2</span><div><b>Groups and sources</b> <span class="tag derive">derive</span><span>Files, Agents, Tools in fixed order, 5 per group. Files come from this chat's uploads and agents from the agent list, so both work today.</span></div></li>
+    <li><span class="pin">3</span><div><b>Tools per session</b> <span class="tag backend">backend</span><span>The Tools group needs a per-session tool list endpoint (MCP servers and their tools for this chat). Until it ships, the group hides and the coach body drops the Google Drive sentence.</span></div></li>
+    <li><span class="pin">4</span><div><b>Skip this</b> <span class="tag data">data</span><span>Clears the typed "@", closes the picker and moves to step 6. Esc inside the picker is the app's first Esc level, so the tour's Esc handler runs before it and only minimizes the tour.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 6: send the demo prompt (Try) -->
+<div class="board">
+  <div>
+    <div class="demo">
+      <div class="app">
+        <div class="app-chrome"><i></i><i></i><i></i><span>truex · Qlik Analyst</span></div>
+        <div class="app-stage" style="margin:10px">
+          <div class="s2-empty" style="padding-bottom:150px"><b>Good afternoon, Nitin</b><span>Qlik Analyst can search the handbook in Google Drive.</span></div>
+          <div class="cp-dock">
+            <div class="cp-box is-focus">
+              <div class="cp-ta">Draft a 30-day onboarding plan for new analysts from the handbook<span class="caret"></span></div>
+              <div class="cp-bar">
+                <span class="cp-chip ghost" aria-label="Attach files"><svg class="ic"><use href="#i-plus"/></svg></span>
+                <span class="cp-chip"><span class="av" style="width:18px;height:18px;font-size:9px;border-radius:6px">QA</span><span class="cp-hide">Qlik Analyst</span></span>
+                <span class="cp-chip"><svg class="ic sm"><use href="#i-brain"/></svg>gpt-5 · high</span>
+                <span class="cp-chip"><svg class="ic sm"><use href="#i-shield"/></svg><span class="cp-hide">Ask</span></span>
+                <span class="cp-chip"><svg class="ic sm"><use href="#i-target"/></svg>Goal</span>
+                <span class="spacer"></span>
+                <span class="cp-send t-anchor" data-tour="send" aria-label="Send"><svg class="ic"><use href="#i-send"/></svg><span class="spot round inset" aria-hidden="true"></span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <span class="pin pin-at" style="bottom:98px;left:22px">1</span>
+      <span class="pin pin-at" style="bottom:64px;right:18px">2</span>
+      <div class="coach" data-side="above" style="bottom:130px;right:14px;--caret:262px">
+        <div class="c-eye"><span>Step 6 of 12 · See it work</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+        <h4>Send it and <em>watch</em></h4>
+        <p>We wrote a starter request from the handbook. Edit it if you like, then send.</p>
+        <div class="c-try"><svg class="ic sm"><use href="#i-send"/></svg>Press send, or hit <span class="kbd">Enter</span></div>
+        <div class="c-foot">
+          <div class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <span class="tb quiet">Back</span><span class="tb line">Skip this</span>
+        </div>
+      </div>
+      <span class="scribble" style="bottom:22px;left:40%">your words, sent for real
+        <svg width="80" height="22" viewBox="0 0 80 22" aria-hidden="true"><path d="M2 6 C 28 22, 52 20, 76 8 M68 4 L76 8 L70 15"/></svg></span>
+    </div>
+    <p class="board-cap">the prompt is real text in the box, so it can be edited before sending.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>prepare() fills the composer</b> <span class="tag derive">derive</span><span>Sets the draft to "Draft a 30-day onboarding plan for new analysts from the handbook" only if the box is empty, then focuses it. A draft the user typed is kept.</span></div></li>
+    <li><span class="pin">2</span><div><b>Try: target send, advanceOn send</b> <span class="tag data">data</span> <span class="tag try">try</span><span>Round spotlight on <code>send</code>. The step listens for the app's send event, so the button, Enter and an edited prompt all count. Enter is let through while other hotkeys are paused. Missing target after 3s shows the centered card.</span></div></li>
+    <li><span class="pin">3</span><div><b>Skip this</b> <span class="tag derive">derive</span><span>Sends nothing and jumps to step 9, since steps 7 and 8 need a live turn. The dots mark 7 and 8 as skipped, not done. The agent chip locks after the send, as step 3 explained.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 7: handed off node (Wait then Look) -->
+<div class="board">
+  <div>
+    <div class="demo">
+      <div class="app">
+        <div class="app-chrome"><i></i><i></i><i></i><span>Onboarding plan for new analysts</span></div>
+        <div class="app-stage" style="margin:10px">
+          <div class="s2-stream">
+            <div class="msg user"><div class="bubble-wrap"><div class="bubble">Draft a 30-day onboarding plan for new analysts from the handbook</div></div></div>
+            <div class="msg"><span class="av">QA</span><div class="grow" style="gap:8px">
+              <ol class="log">
+                <li><span class="node k-think"><svg class="ic sm"><use href="#i-brain"/></svg></span><div class="what"><b>Thought for 4s</b><span>Find the handbook, then split research and drafting.</span></div><span class="t">0:04</span></li>
+                <li><span class="node k-tool"><svg class="ic sm"><use href="#i-plug"/></svg></span><div class="what"><b>Searched Google Drive</b><span class="s2-fold"><svg class="ic sm"><use href="#i-chev"/></svg>"analyst handbook" · 6 files</span></div><span class="t">0:12</span></li>
+                <li><span class="node k-agent k-live"><svg class="ic sm"><use href="#i-users"/></svg></span>
+                  <div class="what ag-hand t-anchor" data-tour="handoff" style="max-width:360px">
+                    <div class="ag-hand-head"><b>Handed off</b><span>3 helpers · 2 running</span></div>
+                    <ul class="ag-tree" aria-label="Helpers in this turn">
+                      <li class="tone-0"><span class="h-av">A</span><span class="ag-who"><b>Atlas</b><span class="ag-st run"><span class="spinner"></span>Running</span></span><span class="ag-mono">1:42</span><span class="ag-task">Pull the week-one checklist and tool access steps from the handbook.</span></li>
+                      <li class="tone-0 ag-d2"><span class="h-av">S</span><span class="ag-who"><b>Atlas › Scout</b><span class="ag-lvl">level 2</span><span class="ag-st done">Finished</span></span><span class="ag-mono">0:38</span><span class="ag-task">Check which Qlik license tiers new analysts get.</span></li>
+                      <li class="tone-1"><span class="h-av">J</span><span class="ag-who"><b>Juno</b><span class="ag-st run"><span class="spinner"></span>Starting</span></span><span class="ag-mono">0:04</span><span class="ag-task">Draft the 30-day plan as a table once Atlas reports back.</span></li>
+                    </ul>
+                    <div class="ag-legend" aria-label="Helper status legend">
+                      <div><span class="ag-st run"><span class="spinner"></span>Running</span><i>pendingInit · running</i></div>
+                      <div><span class="ag-st done">Finished</span><i>completed</i></div>
+                      <div><span class="ag-st stop">Stopped</span><i>interrupted · shutdown</i></div>
+                      <div><span class="ag-st warn"><svg class="ic sm"><use href="#i-alert"/></svg>Failed</span><i>errored · notFound</i></div>
+                    </div>
+                    <span class="spot inset" aria-hidden="true"></span>
+                  </div><span class="t">0:31</span></li>
+              </ol>
+            </div></div>
+          </div>
+          <div class="cp-dock"><div class="cp-box"><div class="cp-ta ph" style="min-height:0">Queue a follow-up or steer</div><div class="cp-bar"><span class="cp-live"><span class="pulse"></span>Working · 0:31</span><span class="spacer"></span><span class="cp-stop" aria-label="Stop"><svg class="ic sm"><use href="#i-stop"/></svg></span></div></div></div>
+        </div>
+      </div>
+      <span class="pin pin-at" style="top:250px;left:18px">1</span>
+      <div class="coach s2-inset" style="top:44px;right:14px">
+        <div class="c-eye"><span>Step 7 of 12 · See it work</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+        <div class="c-wait"><span class="spinner"></span>Waiting for the helpers</div>
+      </div>
+      <div class="coach" data-side="right" style="bottom:120px;right:14px;width:min(210px,calc(100% - 24px));--caret:40px">
+        <div class="c-eye"><span>Step 7 of 12 · See it work</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+        <h4>Qlik Analyst <em>handed off</em></h4>
+        <p>One node holds every helper from this turn. Scout was started by Atlas, so it sits one level in.</p>
+        <div class="c-foot">
+          <div class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div>
+          <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">the small wait card shows first, then the real coach once the node mounts.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Wait: waitFor handoff</b> <span class="tag data">data</span> <span class="tag wait">wait</span><span>After send the small .c-wait card shows with Next hidden. It resolves when <code>handoff</code> mounts on the first <code>subagent.*</code> event. No node after 3s: centered card, same copy, Next enabled.</span></div></li>
+    <li><span class="pin">2</span><div><b>Look: rows and tones</b> <span class="tag data">data</span> <span class="tag look">look</span><span>Rows come from <code>SubAgent</code> (nickname, depth, task, status, startedAt/endedAt). The legend folds the 7 <code>SubAgentStatus</code> values into 4 tones. The ring follows the node as rows update. Next advances.</span></div></li>
+    <li><span class="pin">3</span><div><b>No per-helper tokens</b> <span class="tag backend">backend</span><span>Rows show elapsed time only. Tokens per helper need a <code>usage</code> field on <code>SubAgent</code>, so the coach never mentions cost here.</span></div></li>
+    <li><span class="pin">4</span><div><b>Folded work group</b> <span class="tag derive">derive</span><span>"Searched Google Drive · 6 files" stays folded during the step so the eye lands on the node. Clicks inside it still work.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 8: request card above the composer (Try) -->
+<div class="board">
+  <div>
+    <div class="demo">
+      <div class="app">
+        <div class="app-chrome"><i></i><i></i><i></i><span>Onboarding plan for new analysts</span></div>
+        <div class="app-stage" style="margin:10px">
+          <div class="s2-top"><div class="crumb"><span class="av">QA</span><span class="t">Onboarding plan for new analysts</span></div><span class="rq-wait"><span class="pulse warn"></span>Needs you<em>1</em></span></div>
+          <div class="s2-stream" style="min-height:250px;max-width:320px">
+            <div class="msg"><span class="av">QA</span><div class="grow" style="gap:8px">
+              <ol class="log">
+                <li><span class="node k-agent"><svg class="ic sm"><use href="#i-users"/></svg></span><div class="what"><b>Handed off</b><span>3 helpers · 2 running</span></div><span class="t">0:31</span></li>
+                <li><span class="node k-live"><svg class="ic sm"><use href="#i-plug"/></svg></span><div class="what"><span class="rq-hold"><svg class="ic sm"><use href="#i-clock"/></svg>Paused for your approval to read a Drive folder</span></div><span class="t">0:48</span></li>
+              </ol>
+            </div></div>
+          </div>
+          <div class="rq-dockzone">
+            <div class="t-anchor" data-tour="request-card">
+              <div class="rq-req" role="group" aria-label="Permission needed">
+                <div class="rq-head">
+                  <span class="rq-tile warn"><svg class="ic lg"><use href="#i-plug"/></svg></span>
+                  <div class="rq-ttl">
+                    <span class="rq-kind">Permission needed</span>
+                    <strong>Read the folder Handbook / Onboarding in Google Drive</strong>
+                    <small>Qlik Analyst wants the week-one checklists for the plan.</small>
+                  </div>
+                  <div class="rq-clock"><span class="ring rq-ring" style="--p:72"><span>4:18</span></span><small>then declined</small></div>
+                </div>
+                <div class="rq-acts">
+                  <span class="btn primary"><svg class="ic sm"><use href="#i-check"/></svg>Allow once <span class="rq-kbd">1</span></span>
+                  <span class="btn soft">Allow for this chat <span class="rq-kbd">2</span></span>
+                  <span class="spacer"></span>
+                  <span class="btn ghost">Cancel <span class="rq-kbd">Esc</span></span>
+                </div>
+              </div>
+              <span class="spot inset" aria-hidden="true"></span>
+            </div>
+            <div class="rq-composer"><svg class="ic"><use href="#i-steer"/></svg><span>Reply or steer while this waits</span><span class="send"><svg class="ic sm"><use href="#i-send"/></svg></span></div>
+          </div>
+        </div>
+      </div>
+      <span class="pin pin-at" style="bottom:196px;left:18px">1</span>
+      <span class="pin pin-at" style="bottom:28px;left:18px">2</span>
+      <div class="coach" data-side="above" style="top:60px;right:14px;--caret:120px">
+        <div class="c-eye"><span>Step 8 of 12 · See it work</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+        <h4>Answer it to <em>continue</em></h4>
+        <p>Requests dock right above the composer. You can still type while one waits.</p>
+        <div class="c-try"><svg class="ic sm"><use href="#i-check"/></svg>Pick an answer to continue</div>
+        <div class="c-foot">
+          <div class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i></div>
+          <span class="tb quiet">Back</span><span class="tb line">Skip this</span>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">the buttons are whatever the request offers, in its order.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Try: target request-card</b> <span class="tag data">data</span> <span class="tag try">try</span><span>waitFor <code>request-card</code> on the first <code>PendingRequest</code> for this turn (the demo runs in Ask mode, so the Drive read asks). One button per <code>options[]</code> entry. advanceOn: the request resolves with any answer. None after 3s: centered card with Next.</span></div></li>
+    <li><span class="pin">2</span><div><b>Composer stays live</b> <span class="tag derive">derive</span><span>The spotlight covers only the card. The composer keeps focus and typing, and the card's answer keys fire only while the card has focus, never from the composer.</span></div></li>
+    <li><span class="pin">3</span><div><b>Expiry ring</b> <span class="tag data">data</span><span>Counts down to <code>expiresAt</code>. An expired approval is declined, so the ring reads "then declined". If it expires during the step, the tour advances as if answered.</span></div></li>
+    <li><span class="pin">4</span><div><b>Skip this</b> <span class="tag derive">derive</span><span>Leaves the request open and moves to step 9, where it shows up in the tray. The coach copy never tells the user which option to pick.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 9: needs-you count and tray (Look) -->
+<div class="board">
+  <div>
+    <div class="demo">
+      <div class="app">
+        <div class="app-chrome"><i></i><i></i><i></i><span>Onboarding plan for new analysts</span></div>
+        <div class="app-stage" style="margin:10px">
+          <div class="s2-top"><div class="crumb"><span class="av">QA</span><span class="t">Onboarding plan for new analysts</span></div><span class="rq-wait is-open t-anchor" data-tour="needs-you" role="button" aria-expanded="true"><span class="pulse warn"></span>Needs you<em>3</em><span class="spot round inset" aria-hidden="true"></span></span></div>
+          <div class="rq-tray" role="dialog" aria-label="Needs you">
+            <div class="rq-tray-head"><b>Needs you</b><span class="pill warn">3 items</span><span class="spacer"></span><span class="rq-sub">oldest first</span></div>
+            <div class="rq-item is-focus"><span class="rq-tile warn"><svg class="ic sm"><use href="#i-plug"/></svg></span>
+              <div class="rq-item-body"><b>Read Handbook / Onboarding in Google Drive</b><small>Permission needed · expires in 4:02</small></div>
+              <div class="rq-acts"><span class="btn primary">Review</span></div></div>
+            <div class="rq-item"><span class="rq-tile warn"><svg class="ic sm"><use href="#i-target"/></svg></span>
+              <div class="rq-item-body"><b>Budget reached · 50k of 50k tokens</b><small>Goal paused at 2/4 steps. Extend it to keep going.</small></div>
+              <div class="rq-acts"><span class="btn soft">Extend by 25k</span></div></div>
+            <div class="rq-item"><span class="rq-tile bad"><svg class="ic sm"><use href="#i-key"/></svg></span>
+              <div class="rq-item-body"><b>Google Drive · sign in required</b><small>The saved token was rejected. New chats use the fixed connection.</small></div>
+              <div class="rq-acts"><span class="btn soft"><svg class="ic sm"><use href="#i-key"/></svg>Sign in</span></div></div>
+            <div class="rq-tray-foot"><span><span class="rq-kbd">g</span> then <span class="rq-kbd">n</span> jumps to the oldest</span><span><span class="rq-kbd">↑</span><span class="rq-kbd">↓</span> move</span><span><span class="rq-kbd">Esc</span> close</span></div>
+          </div>
+          <div class="cp-dock s2-quiet"><div class="cp-box"><div class="cp-ta ph" style="min-height:0">Queue a follow-up or steer</div></div></div>
+        </div>
+      </div>
+      <span class="pin pin-at" style="top:52px;left:18px">1</span>
+      <span class="pin pin-at" style="top:150px;left:18px">2</span>
+      <div class="coach" data-side="below" style="top:96px;left:14px;width:min(210px,calc(100% - 24px));--caret:180px">
+        <div class="c-eye"><span>Step 9 of 12 · See it work</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+        <h4>One count for <em>what needs you</em></h4>
+        <p>Requests, goal stops and tools that need sign-in all land here, oldest first. Press <span class="kbd">g</span> then <span class="kbd">n</span> to jump to the oldest.</p>
+        <div class="c-foot">
+          <div class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i></div>
+          <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">the same count rides on the dock when the chat is scrolled away.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Look: target needs-you</b> <span class="tag derive">derive</span> <span class="tag look">look</span><span>prepare() opens the tray so the rows are visible, and the round spotlight sits on the <code>needs-you</code> count. Next advances and closes the tray. No count after 3s (nothing open, or step 6 was skipped): centered card, same copy.</span></div></li>
+    <li><span class="pin">2</span><div><b>Open requests and goal stops</b> <span class="tag data">data</span><span>Requests come from open <code>PendingRequest</code> items with <code>expiresAt</code>. The goal stop comes from the goal status (budget reached at 50k). Both work today.</span></div></li>
+    <li><span class="pin">3</span><div><b>Tools needing sign-in</b> <span class="tag backend">backend</span><span>Needs live MCP server status with an auth state per server. Until then the row and its Sign in button hide, and the count covers requests, goal stops and failed helpers only.</span></div></li>
+    <li><span class="pin">4</span><div><b>g then n during the tour</b> <span class="tag derive">derive</span><span>The tour pauses global hotkeys, but lets g then n through on this step only. Using it jumps to the oldest item and counts as Next.</span></div></li>
+  </ol>
+</div>
+</section>

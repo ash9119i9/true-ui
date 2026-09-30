@@ -1,0 +1,308 @@
+<section class="sec" id="agents">
+<style>
+/* Section: agents and goals. Every selector prefixed ag-. Colors from shell tokens only. */
+#agents .ag-hand{display:flex;flex-direction:column;gap:8px;min-width:0}
+#agents .ag-hand-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--ink-2)}
+#agents .ag-hand-head b{color:var(--ink);font-weight:600}
+#agents .ag-tree{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+#agents .ag-tree li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:9px 12px;font-size:13px;min-width:0}
+#agents .ag-tree li + li{border-top:1px solid var(--line)}
+#agents .ag-tree li.ag-d2{padding-left:36px;background:var(--surface-2)}
+#agents .ag-who{display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap}
+#agents .ag-who b{color:var(--ink);font-weight:600}
+#agents .ag-task{grid-column:2 / 4;font-size:12px;color:var(--ink-2);min-width:0;overflow-wrap:anywhere}
+#agents .ag-mono{font:11px var(--font-mono);color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+#agents .ag-lvl{font:600 10px/16px var(--font-mono);padding:0 5px;border-radius:5px;background:var(--surface-3);color:var(--ink-2)}
+/* 7 statuses, 4 tones */
+#agents .ag-st{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+#agents .ag-st.run{background:var(--accent-soft);color:var(--accent-fg)}
+#agents .ag-st.done{background:var(--ok-bg);color:var(--ok)}
+#agents .ag-st.stop{background:var(--surface-3);color:var(--ink-2)}
+#agents .ag-st.warn{background:var(--warn-bg);color:var(--warn-text)}
+#agents .ag-st .spinner{width:8px;height:8px}
+#agents .ag-legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px 12px;padding:10px 12px;border:1px dashed var(--line-strong);border-radius:12px;font-size:12px;color:var(--ink-2)}
+#agents .ag-legend div{display:flex;flex-direction:column;gap:4px;min-width:0}
+#agents .ag-legend i{font:11px var(--font-mono);font-style:normal;color:var(--ink-2)}
+#agents .ag-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+#agents .ag-tile{border:1px solid var(--line);border-top:3px solid var(--t);border-radius:10px;background:var(--surface);padding:8px 10px;display:flex;flex-direction:column;gap:6px;min-width:0}
+#agents .ag-tile pre{margin:0;font:11px/1.5 var(--font-mono);color:var(--ink-2);white-space:pre-wrap;overflow-wrap:anywhere}
+#agents .ag-prow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:10px;font-size:12px;min-width:0}
+#agents .ag-prow .ag-task{grid-column:2 / 4}
+#agents .ag-deleg{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);font-size:12px;color:var(--ink-2)}
+/* goal */
+#agents .ag-goal{border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:var(--shadow-sm);display:flex;flex-direction:column;min-width:0}
+#agents .ag-strip{display:flex;align-items:center;gap:10px;padding:10px 12px;flex-wrap:wrap;min-width:0}
+#agents .ag-obj{flex:1 1 180px;min-width:0;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#agents .ag-prog{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+#agents .ag-dots{display:inline-flex;gap:3px}
+#agents .ag-dots i{width:14px;height:6px;border-radius:3px;background:var(--surface-3)}
+#agents .ag-dots i.on{background:var(--accent)}
+#agents .ag-meter{display:flex;align-items:center;gap:8px;flex:1 1 160px;min-width:0}
+#agents .ag-meter .bar{flex:1;min-width:60px}
+#agents .ag-ib{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;color:var(--ink-2);border:1px solid transparent}
+#agents .ag-ib.on{background:var(--surface-3);border-color:var(--line)}
+#agents .ag-stops{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+#agents .ag-stop{border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);background:var(--warn-bg);color:var(--warn-text);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;font-size:12px;min-width:0}
+#agents .ag-stop b{font-size:13px}
+#agents .ag-stop .btn{height:26px;font-size:12px;align-self:flex-start}
+#agents .ag-note{font-size:12px;color:var(--ink-2)}
+#agents .ag-twocol{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;align-items:start}
+#agents .ag-menu{max-width:220px}
+#agents .ag-review{border:1px solid var(--accent);background:var(--accent-soft);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--ink)}
+/* sheets */
+#agents .ag-sheet{border:1px solid var(--line);border-radius:16px;background:var(--bg);box-shadow:var(--shadow-lift);display:flex;flex-direction:column;min-width:0;overflow:hidden}
+#agents .ag-sheet-head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+#agents .ag-sheet-head h3{flex:1;min-width:0}
+#agents .ag-sheet-body{padding:12px 16px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+#agents .ag-roster{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+#agents .ag-roster li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:10px 12px;font-size:13px;min-width:0}
+#agents .ag-roster li + li{border-top:1px solid var(--line)}
+#agents .ag-robot{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--ts);color:var(--t);flex:none}
+#agents .ag-meta{grid-column:2 / 4;display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--ink-2)}
+#agents .ag-ro{display:inline-flex;align-items:center;gap:4px;font:11px var(--font-mono);color:var(--ink-2)}
+#agents .ag-dialog{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:12px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow-card)}
+#agents .ag-looks{display:flex;gap:4px;flex-wrap:wrap}
+#agents .ag-looks span{width:26px;height:26px;border-radius:7px;background:var(--surface-3);display:grid;place-items:center;color:var(--ink-2)}
+#agents .ag-looks span.on{outline:2px solid var(--accent);outline-offset:1px;background:var(--ts0);color:var(--t0)}
+#agents .ag-tints{display:flex;gap:6px}
+#agents .ag-tints i{width:20px;height:20px;border-radius:50%;background:var(--ts);box-shadow:inset 0 0 0 1px var(--line-strong)}
+#agents .ag-tints i.on{outline:2px solid var(--accent);outline-offset:2px}
+#agents .ag-hint{font-size:12px;color:var(--ink-2)}
+#agents .ag-hint.bad{color:var(--bad)}
+/* tools shelf */
+#agents .ag-srv{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;align-items:start;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-size:13px;min-width:0}
+#agents .ag-srv.dim{background:var(--surface-2)}
+#agents .ag-srv .ag-meta{grid-column:2 / 4}
+#agents .ag-led{width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block;box-shadow:0 0 0 3px var(--ok-bg)}
+#agents .ag-scope{font:600 10px/18px var(--font-sans);padding:0 7px;border-radius:999px;background:var(--ts0);color:var(--t0)}
+#agents .ag-scope.ws{background:var(--ts1);color:var(--t1)}
+#agents .ag-warn{grid-column:1 / 4;display:flex;gap:6px;align-items:flex-start;padding:6px 8px;border-radius:8px;background:var(--warn-bg);color:var(--warn-text);font-size:12px}
+#agents .ag-403{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border:1px dashed var(--line-strong);border-radius:12px;font-size:12px;color:var(--ink-2)}
+#agents .ag-sub{font:600 11px var(--font-sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+#agents .btn:focus-visible,#agents .ag-ib:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+
+<div class="sec-head">
+  <span class="eyebrow">Agents and goals</span>
+  <h2>Helpers, the goal strip, the agent roster and the tools shelf</h2>
+  <p>Everything that works on the user's behalf. Helpers show up as one "Handed off" node in the stream and a roster in the panel. The goal strip leads with progress, then budget, and every stop has exactly one fix. Agents and MCP servers get a real home in two sheets, with the parts the platform can't do yet tagged as backend.</p>
+</div>
+
+<!-- Board 1: handed off + helper roster -->
+<div class="board">
+  <div>
+    <div class="app">
+      <div class="app-chrome"><i></i><i></i><i></i><span>Onboarding plan for new analysts</span></div>
+      <div class="app-body">
+        <div class="app-stage"><div class="wf-stage">
+          <ol class="log">
+            <li><span class="node k-tool"><svg class="ic sm"><use href="#i-plug"/></svg></span><div class="what"><b>Searched Google Drive</b><span>"analyst handbook" · 6 files</span></div><span class="t">0:12</span></li>
+            <li><span class="node k-agent k-live"><svg class="ic sm"><use href="#i-users"/></svg></span>
+              <div class="what ag-hand" style="position:relative">
+                <span class="pin pin-at" style="top:-6px;right:-4px">1</span>
+                <div class="ag-hand-head"><b>Handed off</b><span>3 helpers · 2 running</span><span class="pill">Whenever it helps · max 3</span><span class="pin">2</span></div>
+                <ul class="ag-tree" aria-label="Helpers in this turn">
+                  <li class="tone-0"><span class="h-av">A</span><span class="ag-who"><b>Atlas</b><span class="ag-st run"><span class="spinner"></span>Running</span></span><span class="ag-mono">1:42</span><span class="ag-task">Pull the week-one checklist and tool access steps from the Analyst Handbook.</span></li>
+                  <li class="tone-0 ag-d2"><span class="h-av">S</span><span class="ag-who"><b>Atlas › Scout</b><span class="ag-lvl">level 2</span><span class="ag-st done">Finished</span></span><span class="ag-mono">0:38</span><span class="ag-task">Check which Qlik Sense licenses new analysts get.</span></li>
+                  <li class="tone-1"><span class="h-av">J</span><span class="ag-who"><b>Juno</b><span class="ag-st run"><span class="spinner"></span>Starting</span></span><span class="ag-mono">0:04</span><span class="ag-task">Draft the 30-day plan as a table once Atlas reports back.</span></li>
+                </ul>
+                <span class="pin" style="align-self:flex-start">3</span>
+              </div><span class="t">0:31</span></li>
+          </ol>
+          <div class="ag-legend" aria-label="Helper status legend">
+            <div><span class="ag-st run"><span class="spinner"></span>Running</span><i>pendingInit · running</i></div>
+            <div><span class="ag-st done">Finished</span><i>completed</i></div>
+            <div><span class="ag-st stop">Stopped / Closed</span><i>interrupted · shutdown</i></div>
+            <div><span class="ag-st warn"><svg class="ic sm"><use href="#i-alert"/></svg>Failed / Unavailable</span><i>errored · notFound</i></div>
+          </div>
+          <div style="position:relative"><span class="pin pin-at" style="top:-8px;left:-8px">4</span>
+            <div class="ag-tiles">
+              <div class="ag-tile tone-0"><div class="row"><span class="h-av">A</span><b class="sm">Atlas</b><span class="spacer"></span><span class="ag-st run"><span class="spinner"></span>Running</span></div><pre>…Day 1: laptop, SSO, Qlik Cloud invite.
+Day 2: shadow a dashboard review.
+Day 3: data dictionary walkthrough<span class="caret"></span></pre></div>
+              <div class="ag-tile tone-1"><div class="row"><span class="h-av">J</span><b class="sm">Juno</b><span class="spacer"></span><span class="ag-st run"><span class="spinner"></span>Starting</span></div><pre>Waiting for its first message.</pre></div>
+            </div></div>
+        </div></div>
+        <div class="app-panel">
+          <div class="panel-head"><div class="tabs" style="flex:1;margin:0"><span class="tab">Steps</span><span class="tab is-active">Agents</span><span class="tab">Goal</span><span class="tab">Insights</span></div></div>
+          <div class="panel-body">
+            <div class="row"><span class="seg"><span class="on">This turn</span><span>Session</span></span><span class="pin">5</span></div>
+            <div class="ag-mono">3 helpers · 2 running · 1 done · 2:24 total</div>
+            <div class="ag-prow tone-0"><span class="h-av">A</span><b>Atlas</b><span class="ag-st run"><span class="spinner"></span>Running</span><span class="ag-task">research · 1:42 · 4 tool calls</span></div>
+            <div class="ag-prow tone-0"><span class="h-av">S</span><b>Scout <span class="ag-lvl">L2</span></b><span class="ag-st done">Finished</span><span class="ag-task">Qlik license tiers · 0:38</span></div>
+            <div class="ag-prow tone-1"><span class="h-av">J</span><b>Juno</b><span class="ag-st run"><span class="spinner"></span>Starting</span><span class="ag-task">drafting · 0:04</span></div>
+            <div class="ag-prow tone-2 faded"><span class="h-av">H</span><b>Helper 4</b><span class="ag-st warn"><svg class="ic sm"><use href="#i-alert"/></svg>Unavailable</span><span class="ag-task">turn 2 · no longer available</span></div>
+            <div class="ag-mono">Tokens per helper <span class="tag backend">backend</span><span class="pin">6</span></div>
+            <div class="ag-deleg"><b class="strong sm">Delegation for new chats</b><span>Whenever it helps · Max helpers at once: 3</span><span>Saved in this browser</span><span class="pin">7</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">One node per hand-off, not one per helper event. Details live in the panel.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Handed off node</b> <span class="tag data">data</span><span class="tag new">new</span><span>Groups every helper spawned in the turn under one work-log node. Each row carries name, the helper's task text (taskTitle, 48 chars in the collapsed view), status and elapsed from startedAt/endedAt. Nested helpers indent by depth and show "level 2".</span></div></li>
+    <li><span class="pin">2</span><div><b>Delegation mode</b> <span class="tag data">data</span><span>DelegationPrefs from localStorage: "Whenever it helps" (proactive) and max 3. Prefs apply to new chats, so the pill is informational and links to the panel setting.</span></div></li>
+    <li><span class="pin">3</span><div><b>Live status and elapsed</b> <span class="tag data">data</span><span>subagent.spawned, status and completed events upsert the row. useClock ticks only while one helper runs. Finished helpers never revert to running.</span></div></li>
+    <li><span class="pin">4</span><div><b>Tiled parallel output</b> <span class="tag derive">derive</span><span class="tag new">new</span><span>One tile per running helper, fed by previewTail of the streamed preview (4,000 chars kept). Only shown when 2 or more helpers run at once; click a tile to open HelperDetail.</span></div></li>
+    <li><span class="pin">5</span><div><b>Agents tab: This turn / Session</b> <span class="tag derive">derive</span><span>Session is today's AgentsPanel. This turn filters helpers by spawn time inside the selected turn. Status legend: 7 SubAgentStatus values collapse into 4 tones (running, done, stopped, warn).</span></div></li>
+    <li><span class="pin">6</span><div><b>Per-helper tokens</b> <span class="tag backend">backend</span><span>SubAgent has no usage. Needs a tokens field on SubAgent or subagent.status. Until then rows show elapsed and tool count only.</span></div></li>
+    <li><span class="pin">7</span><div><b>Delegation settings</b> <span class="tag data">data</span><span>Existing fieldset: "Only when I ask" / "Whenever it helps" and Max helpers at once 1 to 5. Kept below the roster, hidden while a detail view is open.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 2: goal strip + goal tab -->
+<div class="board">
+  <div>
+    <div class="wf"><div class="wf-stage">
+      <div class="ag-goal" style="position:relative">
+        <div class="ag-strip">
+          <svg class="ic" style="color:var(--accent-fg)"><use href="#i-target"/></svg>
+          <span class="ag-obj" title="Onboarding plan for new analysts from the handbook docs">Onboarding plan for new analysts</span>
+          <span class="ag-prog"><span class="ag-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i></span>2/4 steps<span class="pin">1</span></span>
+          <span class="ag-meter"><span class="bar warn" role="progressbar" aria-label="Token budget used" aria-valuenow="84" aria-valuemin="0" aria-valuemax="100"><i style="width:84%"></i></span><span class="ag-mono">42k / 50k</span><span class="pin">2</span></span>
+          <span class="pill accent"><span class="pulse"></span>In progress</span>
+          <span class="ag-ib" role="button" tabindex="0" aria-label="Pause after this turn"><svg class="ic sm"><use href="#i-stop"/></svg></span>
+          <span class="ag-ib on" role="button" tabindex="0" aria-label="Goal menu" aria-expanded="true">⋯</span><span class="pin">3</span>
+        </div>
+      </div>
+      <div class="ag-twocol">
+        <div class="pop ag-menu" role="menu">
+          <span class="it"><svg class="ic sm"><use href="#i-list"/></svg>Edit objective</span>
+          <span class="it is-active"><svg class="ic sm"><use href="#i-chart"/></svg>Set budget</span>
+          <span class="it"><svg class="ic sm"><use href="#i-check"/></svg>Mark complete</span>
+          <span class="it"><svg class="ic sm"><use href="#i-x"/></svg>Clear goal</span>
+        </div>
+        <div class="ag-review" style="position:relative"><span class="pin pin-at" style="top:-8px;right:-8px">5</span>
+          <b>Ready for review</b>
+          <span>The assistant marked this goal complete after 14:20 and 47,310 tokens. Does the result meet your goal?</span>
+          <span class="chip"><svg class="ic sm"><use href="#i-file"/></svg>onboarding-plan.md</span>
+          <div class="row"><span class="btn soft">Not yet</span><span class="btn primary"><svg class="ic sm"><use href="#i-check"/></svg>Accept result</span></div>
+        </div>
+      </div>
+      <div style="position:relative"><span class="pin pin-at" style="top:-8px;left:-8px">4</span>
+        <div class="ag-stops">
+          <div class="ag-stop"><b>Needs input</b><span>blocked · Atlas couldn't find the security training doc.</span><span class="btn soft">Provide input</span></div>
+          <div class="ag-stop"><b>Usage limit reached</b><span>usageLimited · Resets at 14:00 <span class="tag backend">backend</span></span><span class="btn soft"><svg class="ic sm"><use href="#i-clock"/></svg>Wait until reset</span></div>
+          <div class="ag-stop"><b>Budget reached</b><span>budgetLimited · 50k of 50k used.</span><div class="row"><span class="btn soft">Extend 25k</span><span class="btn soft">Extend 50k</span></div></div>
+          <div class="ag-stop"><b>Context window full</b><span>contextWindow failure while blocked.</span><span class="btn soft"><svg class="ic sm"><use href="#i-layers"/></svg>Compact</span></div>
+        </div></div>
+      <div class="card" style="position:relative"><span class="pin pin-at" style="top:-8px;right:-8px">6</span>
+        <div class="row"><b class="sm">Goal tab</b><span class="spacer"></span><span class="ag-mono">Codex 42,180 · Truex 44,960</span></div>
+        <ol class="log">
+          <li><span class="node k-file"><svg class="ic sm"><use href="#i-target"/></svg></span><div class="what"><b>Goal set · 50k budget</b><span>Onboarding plan for new analysts</span></div><span class="t">10:02</span></li>
+          <li><span class="node k-agent"><svg class="ic sm"><use href="#i-check"/></svg></span><div class="what"><b>Step 2 of 4 done</b><span>Week-one checklist drafted · View turn</span></div><span class="t">10:09</span></li>
+          <li><span class="node k-live"><svg class="ic sm"><use href="#i-history"/></svg></span><div class="what"><b>Paused, then resumed</b><span>by you</span></div><span class="t">10:11</span></li>
+        </ol>
+        <span class="ag-note">The budget counts Codex tokens, which run lower than the Truex total. Codex enforces the stop.</span>
+      </div>
+    </div></div>
+    <p class="board-cap">Progress first, cost second. Each stop names one fix.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Step progress first</b> <span class="tag derive">derive</span><span>"2/4 steps" counts done plan steps from the active turn's plan. Goal has no steps field, so with no plan the strip falls back to duration.</span></div></li>
+    <li><span class="pin">2</span><div><b>Budget meter second</b> <span class="tag data">data</span><span>tokensUsed / tokenBudget, amber past 80%. Hidden when there is no budget, and hidden with the meta below the chat.css breakpoint.</span></div></li>
+    <li><span class="pin">3</span><div><b>Pause, Resume and menu</b> <span class="tag data">data</span><span>Pause (active only, "Pause after this turn" while running), Resume (paused only), and the menu: Edit objective, Set budget, Mark complete, plus Clear. Keyboard behavior matches today's GoalBar menu.</span></div></li>
+    <li><span class="pin">4</span><div><b>Four stops, one fix each</b> <span class="tag data">data</span><span>blocked: Provide input. usageLimited: Wait until reset (reset time is not forwarded, backend). budgetLimited: Extend 25k or 50k via extendedBudget, capped at 10M. contextWindow: Compact conversation. Resume goal stays as a secondary action.</span></div></li>
+    <li><span class="pin">5</span><div><b>Review flow</b> <span class="tag data">data</span><span>complete but not accepted shows the review panel with GoalCompletion files. Not yet opens the feedback box and Reopen goal; Accept result posts decision accepted.</span></div></li>
+    <li><span class="pin">6</span><div><b>Goal tab and token note</b> <span class="tag data">data</span><span>GoalTimeline from GET goal/history. The note explains the two counts: the bar follows Codex tokensUsed, totals show goalTokens (the larger Truex count).</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 3: all agents sheet -->
+<div class="board">
+  <div>
+    <div class="ag-sheet">
+      <div class="ag-sheet-head"><svg class="ic"><use href="#i-bot"/></svg><h3>All agents</h3><span class="btn primary"><svg class="ic sm"><use href="#i-plus"/></svg>Create agent</span><span class="pin">1</span></div>
+      <div class="ag-sheet-body">
+        <ul class="ag-roster" aria-label="Agents">
+          <li class="tone-0"><span class="ag-robot"><svg class="ic"><use href="#i-bot"/></svg></span><div class="row"><b>Qlik Analyst</b><span class="pill">Built-in</span><span class="ag-mono">@qlikanalyst</span><span class="pin">2</span></div><span class="ag-mono">gpt-5 · high</span>
+            <div class="ag-meta"><span>2 tools</span><span class="ag-ro"><svg class="ic sm"><use href="#i-lock"/></svg>read-only sandbox</span><span class="ag-ro"><svg class="ic sm"><use href="#i-shield"/></svg>asks on request</span><span class="pin">3</span></div></li>
+          <li class="tone-1"><span class="ag-robot"><svg class="ic"><use href="#i-bot"/></svg></span><div class="row"><b>Research Scout</b><span class="ag-mono">@researchscout</span></div><span class="row"><span class="ag-ib" role="button" tabindex="0" aria-label="Edit Research Scout"><svg class="ic sm"><use href="#i-list"/></svg></span><span class="ag-ib" role="button" tabindex="0" aria-label="Delete Research Scout"><svg class="ic sm"><use href="#i-x"/></svg></span><span class="pin">4</span></span>
+            <div class="ag-meta"><span>gpt-5-mini · medium</span><span>1 tool</span><span class="ag-ro"><svg class="ic sm"><use href="#i-lock"/></svg>read-only sandbox</span><span class="ag-ro"><svg class="ic sm"><use href="#i-shield"/></svg>asks on request</span></div></li>
+        </ul>
+        <div class="ag-dialog" role="dialog" aria-label="New agent" style="position:relative"><span class="pin pin-at" style="top:-8px;right:-8px">5</span>
+          <b>New agent</b>
+          <label class="field">Name<span class="input" style="color:var(--ink)">Handbook Coach</span><span class="ag-hint">@handbookcoach</span></label>
+          <label class="field">Purpose<span class="input">Answers new analysts' handbook questions</span></label>
+          <label class="field">Instructions<span class="input" style="height:48px;align-items:flex-start;padding-top:6px">Cite the handbook section for every answer.</span></label>
+          <div class="field">Look<div class="ag-looks"><span><svg class="ic sm"><use href="#i-bot"/></svg></span><span><svg class="ic sm"><use href="#i-bot"/></svg></span><span class="on"><svg class="ic sm"><use href="#i-bot"/></svg></span><span><svg class="ic sm"><use href="#i-bot"/></svg></span><span class="muted sm">+8</span></div></div>
+          <div class="field">Tint<div class="ag-tints"><i class="tone-0 on"></i><i class="tone-1"></i><i class="tone-2"></i><i class="tone-main"></i></div></div>
+          <label class="field">Model<span class="input" style="color:var(--ink)">gpt-5-mini<span class="spacer"></span><svg class="ic sm"><use href="#i-chevd"/></svg></span></label>
+          <span class="ag-hint bad">@researchscout is taken. Choose a different name.</span><span class="pin">6</span>
+          <div class="row"><span class="spacer"></span><span class="btn ghost">Cancel</span><span class="btn primary">Create agent</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">A roster to scan, a dialog to add. Edit and delete wait on the platform.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>All agents sheet</b> <span class="tag data">data</span><span class="tag new">new</span><span>Lists GET /api/agents. Opened from the dock and the agent picker. Create agent opens AgentDialog.</span></div></li>
+    <li><span class="pin">2</span><div><b>Builtin badge and @handle</b> <span class="tag data">data</span><span>AgentSummary.builtin and handle. Model and tool count come from modelProfileId and mcpProfileIds length; effort is shown only when set.</span></div></li>
+    <li><span class="pin">3</span><div><b>Sandbox and approval, read-only</b> <span class="tag data">data</span><span>New agents always get sandbox read-only and approvalPolicy on-request. Shown as locked facts, never as controls, since POST /api/agents rejects those fields.</span></div></li>
+    <li><span class="pin">4</span><div><b>Edit and Delete</b> <span class="tag backend">backend</span><span>Needs PATCH and DELETE /api/agents/:id. Drawn for layout, hidden on builtin rows, and hidden everywhere until the endpoints ship.</span></div></li>
+    <li><span class="pin">5</span><div><b>AgentDialog fields</b> <span class="tag data">data</span><span>name (40), description (80), systemPrompt (20,000), look (12 robots), tint (5), model. The body accepts only these six fields.</span></div></li>
+    <li><span class="pin">6</span><div><b>Handle rules</b> <span class="tag data">data</span><span>agentHandle(name): a to z and 0 to 9, max 20 characters, unique per tenant. Client check against the list, server 409 AGENT_HANDLE_TAKEN as backup.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 4: tools shelf -->
+<div class="board">
+  <div>
+    <div class="ag-sheet">
+      <div class="ag-sheet-head"><svg class="ic"><use href="#i-plug"/></svg><h3>Tools</h3><span class="seg"><span class="on">Yours</span><span>Workspace</span></span><span class="btn soft"><svg class="ic sm"><use href="#i-plus"/></svg>Add server</span></div>
+      <div class="ag-sheet-body">
+        <div class="callout" style="transform:none"><span class="sm">Changes apply to new chats. This conversation keeps the tools it started with.</span><span class="pin">1</span></div>
+        <div class="ag-srv"><span class="ag-led" aria-label="Connected"></span>
+          <div class="row"><b>google-drive</b><span class="ag-scope">Yours</span><span class="ag-ro"><svg class="ic sm"><use href="#i-key"/></svg>Key set</span><span class="pin">2</span></div>
+          <span class="row"><span class="ag-ib" role="button" tabindex="0" aria-label="Edit google-drive"><svg class="ic sm"><use href="#i-list"/></svg></span><span class="ag-ib" role="button" tabindex="0" aria-label="Delete google-drive"><svg class="ic sm"><use href="#i-x"/></svg></span><span class="pin">3</span></span>
+          <div class="ag-meta"><span class="ag-mono">http · drive-mcp.truex.dev</span><span>Attached to Qlik Analyst</span><span>12 tools · live <span class="tag backend">backend</span></span><span class="pin">4</span></div></div>
+        <div class="ag-srv"><span class="ag-led" style="background:var(--warn);box-shadow:0 0 0 3px var(--warn-bg)"></span>
+          <div class="row"><b>drive-shared</b><span class="ag-scope">Yours</span></div>
+          <span class="btn primary" style="height:26px;font-size:12px"><svg class="ic sm"><use href="#i-globe"/></svg>Sign in to Google Drive</span>
+          <div class="ag-meta"><span class="ag-mono">http · 10.2.0.14:8080</span><span>Sign-in needed <span class="tag backend">backend</span></span></div>
+          <div class="ag-warn"><svg class="ic sm"><use href="#i-alert"/></svg><span>This server uses plain HTTP. Traffic, including the key, is not encrypted.</span><span class="pin">5</span></div></div>
+        <div class="ag-srv dim"><span class="ag-led" style="background:var(--ink-3);box-shadow:none"></span>
+          <div class="row"><b>handbook-search</b><span class="ag-scope">Yours</span><span class="pill">Shadowed</span></div>
+          <span></span>
+          <div class="ag-warn"><svg class="ic sm"><use href="#i-eye"/></svg><span>A workspace MCP server is also named handbook-search. Chats use the workspace server and skip this one; rename it to use it.</span><span class="pin">6</span></div></div>
+        <span class="ag-sub">Workspace tab, non-admin</span>
+        <div class="ag-403"><svg class="ic"><use href="#i-lock"/></svg><span>Only workspace admins can manage shared servers. You can still use the ones attached to your agents: handbook-search (Workspace, read-only).</span><span class="pin">7</span></div>
+      </div>
+    </div>
+    <p class="board-cap">Who owns it, is it safe, is it the one chats will use.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>New chats note</b> <span class="tag data">data</span><span>Attachments are read when a session starts. Same copy as today's sheet description; success notice stays "Saved. Start a new chat to use these MCP servers."</span></div></li>
+    <li><span class="pin">2</span><div><b>Scope badge and key set</b> <span class="tag data">data</span><span>scope user reads Yours, tenant reads Workspace. hasKey shows Key set; the value is never returned.</span></div></li>
+    <li><span class="pin">3</span><div><b>Edit and Delete</b> <span class="tag data">data</span><span>PATCH and DELETE /api/mcp/:id already exist and only need UI. Shown when editable is true; delete asks to confirm and lists attached agents from agentIds.</span></div></li>
+    <li><span class="pin">4</span><div><b>Live LED, tool count and sign-in</b> <span class="tag backend">backend</span><span>Needs a defined mcp.status payload (state, tool count, auth required) and an OAuth start endpoint for "Sign in to Google Drive". Until then the LED and sign-in button stay hidden and the row shows transport and urlHost only.</span></div></li>
+    <li><span class="pin">5</span><div><b>Warnings</b> <span class="tag data">data</span><span>warnings[] renders inline under the row, for example the plain-HTTP warning. The array carries the reason; the copy is ours.</span></div></li>
+    <li><span class="pin">6</span><div><b>Shadowed</b> <span class="tag data">data</span><span>shadowed true dims the row and uses the platform's shadowed copy, with "workspace" in place of "tenant".</span></div></li>
+    <li><span class="pin">7</span><div><b>Workspace tab 403</b> <span class="tag data">data</span><span>GET /api/tenant/mcp returns 403 for non-admins. Show this note and the read-only tenantProfiles instead of an error banner.</span></div></li>
+  </ol>
+</div>
+
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Element</th><th>Source field or event</th><th>Data tag</th></tr></thead>
+  <tbody>
+    <tr><td>Handed off node, helper rows</td><td><code>SubAgent</code> nickname, role, depth, task, status, startedAt/endedAt; <code>subagent.*</code> events</td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Status legend (7 in 4 tones)</td><td><code>SubAgentStatus</code>, <code>statusLabels</code></td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Delegation pill and settings</td><td><code>DelegationPrefs</code> in <code>localStorage["truex.delegation"]</code></td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Tiled output, This turn scope</td><td><code>previews</code> + <code>previewTail</code>; turn window vs startedAt</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Per-helper tokens</td><td>new usage field on <code>SubAgent</code></td><td><span class="tag backend">backend</span></td></tr>
+    <tr><td>Goal steps "2/4"</td><td>plan steps of the active turn</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Budget meter, stops, menu, review</td><td><code>Goal</code> status, tokensUsed, tokenBudget; <code>thread/goal/set</code>; <code>goal/review</code></td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Usage reset time</td><td>not forwarded by the runtime</td><td><span class="tag backend">backend</span></td></tr>
+    <tr><td>All agents roster, AgentDialog</td><td><code>GET/POST /api/agents</code>, <code>AgentSummary</code>, <code>agentHandle</code></td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Agent edit and delete</td><td><code>PATCH/DELETE /api/agents/:id</code></td><td><span class="tag backend">backend</span></td></tr>
+    <tr><td>Tools shelf rows, edit, delete, 403</td><td><code>GET /api/mcp</code> scope, hasKey, warnings, shadowed, editable; <code>PATCH/DELETE /api/mcp/:id</code></td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Live LED, OAuth sign-in</td><td><code>mcp.status</code> payload, OAuth endpoint</td><td><span class="tag backend">backend</span></td></tr>
+  </tbody>
+</table></div>
+
+<div class="qs">
+  <div class="q"><b>Where does "2/4 steps" come from with no plan?</b><span>Goal has no step list. Recommend deriving from the latest plan and falling back to duration, rather than asking the backend for goal steps now.</span></div>
+  <div class="q"><b>Should usageLimited keep a Resume button?</b><span>Without a reset time, "Wait until reset" is only guidance. Recommend keeping Resume goal as a secondary ghost button until the runtime forwards the reset.</span></div>
+</div>
+</section>

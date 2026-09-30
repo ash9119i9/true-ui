@@ -1,0 +1,209 @@
+<section class="sec" id="find-agents">
+<style>
+#find-agents .side{grid-template-columns:176px minmax(0,1fr)}
+#find-agents .sb{display:flex;flex-direction:column;gap:2px;padding:8px 4px;font-size:13px;color:var(--ink-2);min-width:0}
+#find-agents .sb .it{display:flex;align-items:center;gap:8px;height:30px;padding:0 8px;border-radius:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#find-agents .sb .it.on{background:var(--surface-3);color:var(--ink);font-weight:600}
+#find-agents .sb .it .kbd{margin-left:auto}
+#find-agents .sb .lbl{font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);padding:10px 8px 4px}
+#find-agents .t-anchor{z-index:1}
+#find-agents .stream{padding:18px 18px 8px;display:flex;flex-direction:column;gap:14px;font-size:13.5px;line-height:1.5}
+#find-agents .roster{padding:18px;display:flex;flex-direction:column;gap:14px}
+#find-agents .roster h3{margin:0;font:600 20px/1.2 var(--font-sans);letter-spacing:-.02em}
+#find-agents .roster h3 em{font:400 26px var(--font-hand);color:var(--doodle);margin-left:6px}
+#find-agents .rcrumb{font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+#find-agents .filt{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border-radius:12px}
+#find-agents .rsearch{flex:1 1 200px;min-width:0;height:34px;display:flex;align-items:center;gap:8px;padding:0 12px;border:1px solid var(--line-strong);border-radius:10px;background:var(--surface);color:var(--ink-3);font-size:13px;white-space:nowrap;overflow:hidden}
+#find-agents .rsearch b{color:var(--ink);font-weight:500}
+#find-agents .rsearch .caret{width:1.5px;height:16px;background:var(--accent);margin-left:-6px}
+#find-agents .seg .n{font:500 10.5px var(--font-mono);color:var(--ink-3)}
+#find-agents .pols{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:18px 14px;padding-top:8px}
+#find-agents .pol{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:8px 8px 4px;box-shadow:var(--shadow-card);transform:rotate(var(--tilt,0deg))}
+#find-agents .pol.flat{transform:none}
+#find-agents .pol .ph{height:84px;border-radius:2px;background:var(--tint);display:grid;place-items:center;color:var(--ink)}
+#find-agents .pol .ph .ic{width:34px;height:34px;stroke-width:1.4;color:color-mix(in srgb,var(--ink) 75%,var(--tint))}
+#find-agents .pol .cap{font:700 20px/1.05 var(--font-hand);text-align:center;padding:6px 0 0;color:var(--ink)}
+#find-agents .pol .sub{font-size:11px;text-align:center;color:var(--ink-3);padding-bottom:4px}
+#find-agents .pol .tack{position:absolute;top:-8px;left:50%;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--bad);box-shadow:0 2px 3px rgb(0 0 0 / 25%),inset -2px -2px 0 color-mix(in srgb,var(--bad) 60%,var(--ink))}
+#find-agents .pol .inchat{position:absolute;top:12px;right:12px;height:18px;font-size:10.5px}
+#find-agents .pol .lock{position:absolute;top:12px;left:12px;display:inline-flex;align-items:center;gap:3px;font:500 10px var(--font-mono);color:var(--ink-2);background:color-mix(in srgb,var(--paper) 80%,transparent);padding:1px 5px;border-radius:5px}
+#find-agents .pol .lock .ic{width:10px;height:10px}
+#find-agents .pol .acts{display:flex;justify-content:space-between;align-items:center;border-top:1px dashed var(--line);margin-top:4px;padding:5px 2px 3px;font-size:11.5px;color:var(--ink-3)}
+#find-agents .pol .acts .chat{color:var(--accent-fg);font-weight:600}
+#find-agents .pol.new{transform:none;border:1.5px dashed var(--line-strong);background:var(--surface);box-shadow:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:140px;color:var(--ink-2);font-weight:500;font-size:13px}
+#find-agents .pol.new .plus{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-fg)}
+@media (max-width:720px){#find-agents .side{grid-template-columns:minmax(0,1fr)}#find-agents .side .sb.hide-sm{display:none}}
+</style>
+  <div class="sec-head"><span class="eyebrow">Agent tour 1</span><h2>Where your agents live</h2><p>A three-stop tour that runs the first time someone opens the roster. It shows the door in, how to narrow the team down, and what a polaroid card can do, then hands off to the Create tour at New agent.</p></div>
+
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Find, stop 1 of 3: the sidebar is open and its Agents link is spotlighted, with a coach card to its right">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/c/onboarding-plan</span></div>
+          <div class="app-body side">
+            <nav class="sb" aria-label="Sidebar">
+              <span class="it"><svg class="ic"><use href="#i-search"/></svg>Search<span class="kbd">⌘K</span></span>
+              <span class="it"><svg class="ic"><use href="#i-plus"/></svg>New conversation<span class="kbd">⌘J</span></span>
+              <span class="it t-anchor" data-tour="nav-agents"><svg class="ic"><use href="#i-users"/></svg>Agents<span class="spot inset" aria-hidden="true"></span></span>
+              <span class="lbl">Recent</span>
+              <span class="it on">Analyst onboarding plan</span>
+              <span class="it">Q3 churn by region</span>
+              <span class="it">Handbook access review</span>
+              <span class="it">Weekly ops digest</span>
+            </nav>
+            <div class="app-stage">
+              <div class="wf-top">
+                <div class="crumb"><svg class="ic"><use href="#i-sidebar"/></svg><span class="t">Analyst onboarding plan</span></div>
+                <span class="status-pill"><span class="pulse idle"></span>Qlik Analyst · Idle</span>
+                <span></span>
+              </div>
+              <div class="stream">
+                <div class="msg user"><div class="bubble-wrap"><div class="bubble">Draft a 2-week onboarding plan for new analysts from the handbook</div></div></div>
+                <div class="msg">
+                  <span class="av">Q</span>
+                  <div class="answer"><p>Here is a 2-week plan built from the handbook. Week 1 covers access, the data model and three shadowing sessions. Week 2 moves to a first dashboard review with a named buddy.</p><p class="note">3 helpers · 1m 42s · 18.4k tokens</p></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="coach" data-side="right" style="left:198px;top:74px;--caret:24px">
+          <div class="c-eye"><span>Find · 1 of 3</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Every agent <em>lives</em> here</h4>
+          <p>Agents opens the whole team: built-ins and the ones you make. You can also get here from the Agent menu with All agents.</p>
+          <div class="c-foot">
+            <span class="c-dots"><i class="on"></i><i></i><i></i></span>
+            <span class="tb quiet">Skip</span><span class="tb primary">Next</span>
+          </div>
+        </div>
+        <span class="scribble" style="left:210px;top:262px;transform:rotate(-4deg)"><svg width="46" height="30" viewBox="0 0 46 30" aria-hidden="true"><path d="M44 26C30 28 16 22 8 6"/><path d="M4 12L8 4L15 9"/></svg>the door in</span>
+        <span class="pin pin-at" style="left:8px;top:108px">1</span>
+      </div>
+      <p class="board-cap">One link, one job. The roster is always a click away.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Target: nav-agents</b> <span class="tag look">Look</span><span>The sidebar Agents link. Coach sits to its right with the caret on the row. Next clicks the link for the user so stop 2 lands on the roster.</span><span class="src">data-tour="nav-agents" · Sidebar ~399</span></div></li>
+      <li><span class="pin">2</span><div><b>Trigger</b><span>Runs once, on the first visit to the roster, or from "Show me around" on main step 10. Progress lives in truex-tour.parts.find. Replay from Account, Take the tour, Finding agents.</span> <span class="tag new">New</span></div></li>
+      <li><span class="pin">3</span><div><b>prepare()</b><span>Opens the sidebar if it is collapsed (same as ⌘B) and waits one frame for nav-agents. When started from the roster itself, it steps back to the last chat first so the link has context.</span></div></li>
+      <li><span class="pin">4</span><div><b>Copy</b><span>Every agent lives here. Also reachable from the Agent menu's All agents, so the coach names both doors.</span><span class="src">AgentMenu ~626</span></div></li>
+      <li><span class="pin">5</span><div><b>Advance and fallback</b><span>Next or a click on the link advances. If nav-agents is missing after 3s, the stop shows as a centered card with the same copy.</span></div></li>
+    </ol>
+  </div>
+
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Find, stop 2 of 3: the roster page with the search box and the All, Yours and Built-in filter pills spotlighted, and a coach card below them">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/agents</span></div>
+          <div class="app-body side">
+            <nav class="sb hide-sm" aria-label="Sidebar">
+              <span class="it"><svg class="ic"><use href="#i-search"/></svg>Search<span class="kbd">⌘K</span></span>
+              <span class="it"><svg class="ic"><use href="#i-plus"/></svg>New conversation<span class="kbd">⌘J</span></span>
+              <span class="it on" data-tour="nav-agents"><svg class="ic"><use href="#i-users"/></svg>Agents</span>
+              <span class="lbl">Recent</span>
+              <span class="it">Analyst onboarding plan</span>
+              <span class="it">Q3 churn by region</span>
+              <span class="it">Handbook access review</span>
+              <span class="it">Weekly ops digest</span>
+            </nav>
+            <div class="app-stage">
+              <div class="roster">
+                <span class="rcrumb">truex / agents</span>
+                <h3>Meet the team:<em>truex style</em></h3>
+                <div class="filt t-anchor" data-tour="roster-filters">
+                  <span class="rsearch"><svg class="ic"><use href="#i-search"/></svg><span class="caret" aria-hidden="true"></span>Search by name, handle or purpose</span>
+                  <span class="seg"><span class="on">All <span class="n">5</span></span><span>Yours <span class="n">1</span></span><span>Built-in <span class="n">4</span></span></span>
+                  <span class="spot inset" aria-hidden="true"></span>
+                </div>
+                <div class="pols">
+                  <div class="pol" style="--tilt:-2deg;--tint:var(--ice)"><span class="tack" aria-hidden="true"></span><span class="pill accent inchat">in chat</span><div class="ph"><svg class="ic"><use href="#i-chart"/></svg></div><div class="cap">Qlik Analyst</div><div class="sub">@qlik · Built-in</div></div>
+                  <div class="pol" style="--tilt:1.5deg;--tint:var(--mint)"><div class="ph"><svg class="ic"><use href="#i-globe"/></svg></div><div class="cap">Researcher</div><div class="sub">@research · Built-in</div></div>
+                  <div class="pol" style="--tilt:-1deg;--tint:var(--butter)"><div class="ph"><svg class="ic"><use href="#i-file"/></svg></div><div class="cap">Writer</div><div class="sub">@writer · Built-in</div></div>
+                  <div class="pol" style="--tilt:2deg;--tint:var(--lilac)"><div class="ph"><svg class="ic"><use href="#i-term"/></svg></div><div class="cap">Ops</div><div class="sub">@ops · Built-in</div></div>
+                  <div class="pol" style="--tilt:-1.5deg;--tint:var(--peach)"><div class="ph"><svg class="ic"><use href="#i-bot"/></svg></div><div class="cap">Onboarding Buddy</div><div class="sub">@onboarding-buddy · Yours</div></div>
+                  <div class="pol new" data-tour="new-agent"><span class="plus"><svg class="ic"><use href="#i-plus"/></svg></span>New agent</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="coach" data-side="below" style="left:214px;top:184px;--caret:56px">
+          <div class="c-eye"><span>Find · 2 of 3</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Narrow the <em>team</em> down</h4>
+          <p>Yours shows the agents you made, Built-in shows the four that ship with truex. Or search by name, handle or purpose.</p>
+          <div class="c-foot">
+            <span class="c-dots"><i class="done"></i><i class="on"></i><i></i></span>
+            <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+          </div>
+        </div>
+        <span class="pin pin-at" style="right:18px;top:96px">1</span>
+      </div>
+      <p class="board-cap">Counts sit in the pills, so an empty Yours reads as an invitation, not a bug.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Target: roster-filters</b> <span class="tag look">Look</span><span>A wrapper around the search box and the pills, so one hole covers both. At narrow widths it wraps to two lines and the spot follows.</span> <span class="tag new">New</span><span class="src">data-tour="roster-filters" · .roster-search ~1244 · .bp-pills ~1248</span></div></li>
+      <li><span class="pin">2</span><div><b>prepare()</b><span>Navigates to the roster if needed, clears the search and resets the filter to All, so the counts read All 5, Yours 1, Built-in 4 in this demo. With no custom agents, Yours reads 0.</span></div></li>
+      <li><span class="pin">3</span><div><b>Copy</b><span>Filter with All, Yours or Built-in, or search by name, handle or purpose. A search with no match shows Clear search, which the coach does not need to mention.</span><span class="src">AgentsView ~1222</span></div></li>
+      <li><span class="pin">4</span><div><b>Advance and fallback</b><span>Next only. Typing or clicking a pill is allowed and does not advance; prepare() on stop 3 resets both. Missing target after 3s: centered card.</span></div></li>
+    </ol>
+  </div>
+
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Find, stop 3 of 3: the Qlik Analyst polaroid, pinned and marked in chat, is spotlighted with a coach card to its right that hands off to New agent">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/agents</span></div>
+          <div class="app-body side">
+            <nav class="sb hide-sm" aria-label="Sidebar">
+              <span class="it"><svg class="ic"><use href="#i-search"/></svg>Search<span class="kbd">⌘K</span></span>
+              <span class="it"><svg class="ic"><use href="#i-plus"/></svg>New conversation<span class="kbd">⌘J</span></span>
+              <span class="it on" data-tour="nav-agents"><svg class="ic"><use href="#i-users"/></svg>Agents</span>
+              <span class="lbl">Recent</span>
+              <span class="it">Analyst onboarding plan</span>
+              <span class="it">Q3 churn by region</span>
+              <span class="it">Handbook access review</span>
+              <span class="it">Weekly ops digest</span>
+            </nav>
+            <div class="app-stage">
+              <div class="roster">
+                <span class="rcrumb">truex / agents</span>
+                <h3>Meet the team:<em>truex style</em></h3>
+                <div class="filt" data-tour="roster-filters">
+                  <span class="rsearch"><svg class="ic"><use href="#i-search"/></svg>Search by name, handle or purpose</span>
+                  <span class="seg"><span class="on">All <span class="n">5</span></span><span>Yours <span class="n">1</span></span><span>Built-in <span class="n">4</span></span></span>
+                </div>
+                <div class="pols">
+                  <div class="pol flat t-anchor" data-tour="roster-card" style="--tint:var(--ice)"><span class="tack" aria-hidden="true"></span><span class="lock"><svg class="ic"><use href="#i-lock"/></svg>built-in</span><span class="pill accent inchat">in chat</span><div class="ph"><svg class="ic"><use href="#i-chart"/></svg></div><div class="cap">Qlik Analyst</div><div class="sub">Dashboards, metrics, BI queries</div><div class="acts"><span>Edit</span><span class="chat">Chatting</span></div><span class="spot inset" aria-hidden="true"></span></div>
+                  <div class="pol" style="--tilt:1.5deg;--tint:var(--mint)"><span class="lock"><svg class="ic"><use href="#i-lock"/></svg>built-in</span><div class="ph"><svg class="ic"><use href="#i-globe"/></svg></div><div class="cap">Researcher</div><div class="sub">Web research with citations</div><div class="acts"><span>Edit</span><span class="chat">Chat</span></div></div>
+                  <div class="pol" style="--tilt:-1deg;--tint:var(--butter)"><span class="lock"><svg class="ic"><use href="#i-lock"/></svg>built-in</span><div class="ph"><svg class="ic"><use href="#i-file"/></svg></div><div class="cap">Writer</div><div class="sub">Docs, release notes, briefs</div><div class="acts"><span>Edit</span><span class="chat">Chat</span></div></div>
+                  <div class="pol" style="--tilt:2deg;--tint:var(--lilac)"><span class="lock"><svg class="ic"><use href="#i-lock"/></svg>built-in</span><div class="ph"><svg class="ic"><use href="#i-term"/></svg></div><div class="cap">Ops</div><div class="sub">Runbooks, tickets, on-call</div><div class="acts"><span>Edit</span><span class="chat">Chat</span></div></div>
+                  <div class="pol" style="--tilt:-1.5deg;--tint:var(--peach)"><div class="ph"><svg class="ic"><use href="#i-bot"/></svg></div><div class="cap">Onboarding Buddy</div><div class="sub">First-week plans and check-ins</div><div class="acts"><span>Edit</span><span class="chat">Chat</span></div></div>
+                  <div class="pol new" data-tour="new-agent" style="position:relative"><span class="beacon" style="top:10px;right:10px" aria-hidden="true"></span><span class="plus"><svg class="ic"><use href="#i-plus"/></svg></span>New agent</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="coach" data-side="right" style="left:352px;top:164px;--caret:40px">
+          <div class="c-eye"><span>Find · 3 of 3</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>One card per <em>agent</em></h4>
+          <p>The pushpin marks who you are chatting with. Click the photo to edit, or Chat to start a conversation. Built-ins carry a lock note: their name and look stay fixed.</p>
+          <div class="c-wait"><svg class="ic"><use href="#i-plus"/></svg>Next: New agent. The Create tour starts when its dialog opens.</div>
+          <div class="c-foot">
+            <span class="c-dots"><i class="done"></i><i class="done"></i><i class="on"></i></span>
+            <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+          </div>
+        </div>
+        <span class="pin pin-at" style="left:204px;top:170px">1</span>
+      </div>
+      <p class="board-cap">The tilt comes off while it is lit, then settles back when the tour moves on.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Target: roster-card</b> <span class="tag look">Look</span><span>The first polaroid, Qlik Analyst, pinned and in chat. The tour sets --tilt to 0 while it is lit so the hole stays square, and restores it on leave.</span> <span class="tag new">New</span><span class="src">data-tour="roster-card" · .pol-card ~1270 · Pushpin ~1272</span></div></li>
+      <li><span class="pin">2</span><div><b>prepare()</b><span>Keeps the filter on All and the search empty so Qlik Analyst is first. If the current chat uses another agent, the hook moves to that pinned card instead.</span></div></li>
+      <li><span class="pin">3</span><div><b>Copy</b><span>Pin marks who you are chatting with, the photo opens edit, Chat starts a conversation, built-ins show a lock note. Edit details wait for the Edit tour.</span><span class="src">.pol-photo ~1273</span></div></li>
+      <li><span class="pin">4</span><div><b>Hand-off and fallback</b><span>Next ends the tour, marks parts.find done and leaves a beacon on new-agent. Opening the dialog starts the Create tour. Missing card after 3s: centered card with the same copy.</span><span class="src">data-tour="new-agent" · .pol-new ~1297</span></div></li>
+    </ol>
+  </div>
+</section>

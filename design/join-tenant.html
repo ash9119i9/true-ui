@@ -1,0 +1,442 @@
+<title>truex Join Invite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,6..72,400..500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: split stage. Left = the invitation (thesis + join form). Right = a live window into the tenant, with an empty seat waiting for you. Join fills the seat, then hands off to chat. */
+:root {
+  --bg: #FFFFFF; --surface: #FFFFFF; --surface-3: #F6F9FA;
+  --line: #E3ECEF; --line-strong: #D8E0E4; --border-control: #D8E0E4;
+  --ink: #1F2A30; --ink-2: #5F6D73; --ink-3: #849198;
+  --accent: #3691CD; --accent-2: #2A7DB4; --accent-hover: #2A7DB4;
+  --accent-soft: #EAF5F8; --accent-soft-2: #BCDEE8; --accent-fg: #2A72A3; --on-accent: #FFFFFF;
+  --success-bg: #E7F4ED; --success-text: #35624E;
+  --warning-bg: #FFF3D9; --warning-text: #7D5D1D;
+  --error-bg: #FBE7E7; --error-text: #8D4545;
+  --glow-1: rgb(188 222 232 / 60%); --glow-2: rgb(234 245 248 / 90%);
+  --shadow-md: 0 1px 2px rgb(31 42 48 / 4%), 0 8px 24px -8px rgb(31 42 48 / 10%);
+  --shadow-lg: 0 2px 4px rgb(31 42 48 / 4%), 0 10px 35px rgb(31 42 48 / 8%);
+  --t-a: #D8EBF0; --t-b: #E7F4ED; --t-c: #FFF3D9; --t-d: #F1E8F7;
+  --radius: 16px;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-accent: "Newsreader", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171717; --surface: #171717; --surface-3: #242424;
+  --line: #2A2A2A; --line-strong: #363636; --border-control: #404040;
+  --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F;
+  --accent: #3691CD; --accent-2: #5AA8DC; --accent-hover: #2A7DB4;
+  --accent-soft: #14283A; --accent-soft-2: #1F4461; --accent-fg: #BCDEE8; --on-accent: #FFFFFF;
+  --success-bg: #16291F; --success-text: #A8D8BE; --warning-bg: #2E2512; --warning-text: #E6C27A;
+  --error-bg: #2F1A1A; --error-text: #EDB0B0;
+  --glow-1: rgb(54 145 205 / 16%); --glow-2: rgb(188 222 232 / 6%);
+  --shadow-md: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -8px rgb(0 0 0 / 50%);
+  --shadow-lg: 0 2px 4px rgb(0 0 0 / 30%), 0 24px 48px -16px rgb(0 0 0 / 70%);
+  --t-a: #1F4461; --t-b: #1D3A2B; --t-c: #3D3117; --t-d: #33264A;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #171717; --surface: #171717; --surface-3: #242424;
+  --line: #2A2A2A; --line-strong: #363636; --border-control: #404040;
+  --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F;
+  --accent: #3691CD; --accent-2: #5AA8DC; --accent-hover: #2A7DB4;
+  --accent-soft: #14283A; --accent-soft-2: #1F4461; --accent-fg: #BCDEE8; --on-accent: #FFFFFF;
+  --success-bg: #16291F; --success-text: #A8D8BE; --warning-bg: #2E2512; --warning-text: #E6C27A;
+  --error-bg: #2F1A1A; --error-text: #EDB0B0;
+  --glow-1: rgb(54 145 205 / 16%); --glow-2: rgb(188 222 232 / 6%);
+  --shadow-md: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -8px rgb(0 0 0 / 50%);
+  --shadow-lg: 0 2px 4px rgb(0 0 0 / 30%), 0 24px 48px -16px rgb(0 0 0 / 70%);
+  --t-a: #1F4461; --t-b: #1D3A2B; --t-c: #3D3117; --t-d: #33264A;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font-sans); font-size: 14px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; border-radius: 6px; }
+.mono { font-family: var(--font-mono); }
+
+/* ---------- frame ---------- */
+.shell { position: relative; min-height: 100vh; padding: 20px 16px 28px; display: flex; flex-direction: column; overflow: hidden; }
+.shell::before, .shell::after { content: ""; position: absolute; pointer-events: none; border-radius: 50%; filter: blur(60px); z-index: 0; }
+.shell::before { width: 620px; height: 620px; left: -180px; top: -240px; background: var(--glow-1); }
+.shell::after { width: 520px; height: 520px; right: -160px; bottom: -220px; background: var(--glow-2); }
+.shell > * { position: relative; z-index: 1; }
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 1180px; width: 100%; margin: 0 auto; }
+.brand { display: flex; align-items: center; gap: 6px; }
+.brand-mark { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; background: var(--ink); color: var(--bg); }
+.brand-word { font-weight: 700; font-size: 17px; letter-spacing: -.03em; }
+.brand-slash { color: var(--line-strong); font-size: 16px; }
+.brand-sub { color: var(--ink-2); font-weight: 500; }
+.top-meta { color: var(--ink-3); font-size: 12.5px; display: flex; gap: 6px; align-items: center; }
+
+.stage { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 56px; align-items: center; max-width: 1180px; width: 100%; margin: 0 auto; padding-block: 32px; }
+@media (max-width: 920px) { .stage { grid-template-columns: minmax(0, 1fr); gap: 36px; padding-block: 28px 8px; } }
+
+/* ---------- invitation ---------- */
+.invite { max-width: 480px; animation: rise .35s ease-out; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+
+.from { display: inline-flex; align-items: center; gap: 10px; padding: 5px 12px 5px 5px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); box-shadow: 0 1px 2px rgb(31 42 48 / 5%); font-size: 13px; color: var(--ink-2); }
+.from strong { color: var(--ink); font-weight: 600; }
+.av { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font-size: 11px; font-weight: 700; color: var(--ink); flex: none; }
+
+h1 { margin: 22px 0 0; font-size: clamp(34px, 4.6vw, 52px); line-height: 1.04; font-weight: 600; letter-spacing: -.035em; text-wrap: balance; }
+h1 em { font-family: var(--font-accent); font-style: italic; font-weight: 400; font-size: 1.04em; letter-spacing: -.01em; color: var(--accent-fg); padding-right: .04em; }
+.lede { margin: 16px 0 0; color: var(--ink-2); font-size: 16px; max-width: 42ch; text-wrap: pretty; }
+
+.card { margin-top: 28px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-md); padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field-label { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 12.5px; font-weight: 500; color: var(--ink-2); }
+.field-hint { font-size: 12px; font-family: var(--font-mono); color: var(--ink-3); display: inline-flex; gap: 4px; align-items: center; }
+.input { width: 100%; height: 40px; padding: 0 12px; border: 1px solid var(--border-control); border-radius: 10px; background: var(--surface); font-size: 14px; transition: border-color .15s, box-shadow .15s; }
+.input::placeholder { color: var(--ink-3); }
+.input:focus { outline: none; border-color: var(--accent-2); box-shadow: 0 0 0 3px var(--accent-soft); }
+.input[readonly] { background: var(--surface-3); color: var(--ink-2); cursor: not-allowed; }
+.input[aria-invalid="true"] { border-color: var(--error-text); }
+.err { font-size: 12px; color: var(--error-text); min-height: 0; }
+
+.role { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--accent-soft); color: var(--ink); font-size: 13px; }
+.role svg { color: var(--accent-fg); flex: none; }
+.role b { font-weight: 600; }
+.role span { color: var(--ink-2); }
+
+.btn-join { position: relative; height: 44px; border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent); font-size: 15px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: background .15s, transform .12s; }
+.btn-join:hover:not(:disabled) { background: var(--accent-hover); }
+.btn-join:active:not(:disabled) { transform: scale(.985); }
+.btn-join:disabled { cursor: progress; }
+.btn-join .spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgb(255 255 255 / 35%); border-top-color: var(--on-accent); animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.fine { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px; font-size: 12.5px; color: var(--ink-3); }
+.fine a, .link { color: var(--accent-fg); text-decoration: none; background: none; border: 0; padding: 0; cursor: pointer; font-size: inherit; }
+.fine a:hover, .link:hover { text-decoration: underline; }
+
+/* progress checklist shown while joining */
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.steps li { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--ink-3); transition: color .2s; }
+.steps .dot { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--line-strong); display: grid; place-items: center; flex: none; transition: all .2s; }
+.steps li.is-on { color: var(--ink); }
+.steps li.is-on .dot { border-color: var(--accent-2); border-top-color: transparent; animation: spin .8s linear infinite; }
+.steps li.is-done { color: var(--ink-2); }
+.steps li.is-done .dot { background: var(--accent); border-color: var(--accent); color: var(--on-accent); animation: none; }
+
+/* state banners */
+.banner { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; font-size: 13px; }
+.banner.warn { background: var(--warning-bg); color: var(--warning-text); }
+.banner.ok { background: var(--success-bg); color: var(--success-text); }
+.banner svg { flex: none; margin-top: 2px; }
+.banner b { font-weight: 600; }
+
+/* ---------- tenant window ---------- */
+.window { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow-lg); overflow: hidden; animation: rise .5s .08s ease-out both; min-width: 0; }
+.win-bar { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.tenant-logo { width: 28px; height: 28px; border-radius: 8px; background: var(--ink); color: var(--bg); display: grid; place-items: center; font-weight: 800; font-size: 13px; letter-spacing: -.04em; flex: none; }
+.win-title { font-weight: 600; font-size: 14px; }
+.win-sub { font-size: 12px; color: var(--ink-3); }
+.win-bar .live { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); }
+.pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 var(--accent-soft-2); animation: pulse 2s infinite; }
+@keyframes pulse { 70% { box-shadow: 0 0 0 6px transparent; } }
+
+.win-body { display: grid; grid-template-columns: 170px minmax(0, 1fr); min-height: 380px; }
+@media (max-width: 560px) { .win-body { grid-template-columns: minmax(0, 1fr); } .win-side { display: none; } }
+.win-side { border-right: 1px solid var(--line); padding: 14px 10px; display: flex; flex-direction: column; gap: 14px; background: var(--surface-3); }
+.side-h { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); padding: 0 6px; }
+.side-list { display: flex; flex-direction: column; gap: 2px; }
+.side-item { display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: 8px; font-size: 13px; color: var(--ink-2); }
+.side-item.is-active { background: var(--surface); color: var(--ink); font-weight: 500; box-shadow: 0 1px 2px rgb(31 42 48 / 5%); }
+.agent-av { width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center; color: var(--ink); flex: none; }
+
+.chat { padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.msg { display: flex; gap: 10px; align-items: flex-start; animation: rise .4s ease-out both; }
+.msg .body { min-width: 0; }
+.msg .who { font-size: 12.5px; font-weight: 600; display: flex; gap: 6px; align-items: baseline; }
+.msg .who time { font-weight: 400; color: var(--ink-3); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.msg .text { font-size: 13.5px; color: var(--ink-2); margin-top: 2px; overflow-wrap: anywhere; }
+.tag { display: inline-flex; align-items: center; padding: 0 6px; height: 18px; border-radius: 5px; background: var(--accent-soft); color: var(--accent-fg); font-size: 11px; font-weight: 600; }
+.chip-file { display: inline-flex; gap: 6px; align-items: center; margin-top: 6px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; font-size: 12px; color: var(--ink-2); font-family: var(--font-mono); }
+
+/* the seat: roster of members with one empty chair for you */
+.seats { margin-top: auto; border-top: 1px dashed var(--line-strong); padding-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between; }
+.seat-row { display: flex; align-items: center; }
+.seat-row .av { width: 32px; height: 32px; font-size: 12px; border: 2px solid var(--surface); margin-left: -8px; }
+.seat-row .av:first-child { margin-left: 0; }
+.you { width: 32px; height: 32px; margin-left: 6px; border-radius: 50%; border: 1.5px dashed var(--accent-2); display: grid; place-items: center; color: var(--accent-fg); font-size: 11px; font-weight: 700; transition: all .35s cubic-bezier(.2,.8,.2,1); }
+.you.is-filled { border-style: solid; border-color: var(--accent); background: var(--accent); color: var(--on-accent); transform: scale(1.12); }
+.seat-cap { font-size: 12.5px; color: var(--ink-3); }
+.seat-cap b { color: var(--ink); font-weight: 600; }
+
+.typing { display: inline-flex; gap: 3px; padding: 8px 10px; border-radius: 10px; background: var(--surface-3); }
+.typing i { width: 5px; height: 5px; border-radius: 50%; background: var(--ink-3); animation: blink 1.2s infinite; }
+.typing i:nth-child(2) { animation-delay: .15s; } .typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes blink { 0%, 60%, 100% { opacity: .3; } 30% { opacity: 1; } }
+
+/* ---------- arrival: chat handoff ---------- */
+.arrive { position: fixed; inset: 0; z-index: 10; background: var(--bg); display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity .45s ease; }
+.arrive.is-on { opacity: 1; pointer-events: auto; }
+.arrive-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: calc(14px + env(safe-area-inset-top, 0px)) 20px 14px; border-bottom: 1px solid var(--line); }
+.hero { flex: 1; max-width: 760px; width: 100%; margin: 0 auto; padding: 24px 16px 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.arrive.is-on .hero { animation: rise .5s .15s ease-out both; }
+.hero .welcome { display: inline-flex; gap: 8px; align-items: center; padding: 4px 12px; border-radius: 999px; background: var(--success-bg); color: var(--success-text); font-size: 12.5px; font-weight: 500; }
+.hero h2 { margin: 18px 0 0; font-size: clamp(28px, 4vw, 44px); line-height: 1.08; font-weight: 600; letter-spacing: -.035em; text-wrap: balance; }
+.hero h2 em { font-family: var(--font-accent); font-style: italic; font-weight: 400; font-size: 1.04em; color: var(--accent-fg); }
+.composer { width: 100%; margin-top: 28px; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-md); padding: 12px 10px 8px 12px; transition: border-color .15s, box-shadow .15s; }
+.composer:focus-within { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); box-shadow: var(--shadow-md), 0 0 0 4px color-mix(in srgb, var(--accent) 10%, transparent); }
+.composer textarea { width: 100%; resize: none; border: 0; outline: none; background: transparent; color: var(--ink); font: inherit; font-size: 15px; padding: 4px 4px 12px; min-height: 76px; line-height: 1.5; }
+.composer textarea::placeholder { color: var(--ink-3); }
+.composer-bar { display: flex; align-items: center; gap: 6px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 12.5px; color: var(--ink-2); background: var(--surface); }
+.send { margin-left: auto; width: 32px; height: 32px; border-radius: 10px; border: 0; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; cursor: pointer; }
+.starters { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.starter { height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font-size: 13px; cursor: pointer; }
+.starter:hover { background: var(--surface-3); color: var(--ink); }
+
+/* design-review state switcher */
+.states { max-width: 1180px; width: 100%; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-3); }
+.seg { display: inline-flex; padding: 2px; border-radius: 9px; background: var(--surface-3); border: 1px solid var(--line); flex-wrap: wrap; }
+.seg button { height: 26px; padding: 0 10px; border: 0; border-radius: 7px; background: none; color: var(--ink-2); font-size: 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(31 42 48 / 8%); font-weight: 500; }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+</style>
+
+<div class="shell">
+  <header class="top">
+    <div class="brand" aria-label="truex agents">
+      <span class="brand-mark"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg></span>
+      <span class="brand-word">truex</span><span class="brand-slash">/</span><span class="brand-sub">agents</span>
+    </div>
+    <div class="top-meta">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      Secure invite link
+    </div>
+  </header>
+
+  <main class="stage">
+    <section class="invite" aria-labelledby="join-h">
+      <div class="from">
+        <span class="av" style="background:var(--t-d)">MC</span>
+        <span><strong>Maya Chen</strong> invited you</span>
+      </div>
+
+      <h1 id="join-h">Take your seat at <em>Northwind Labs</em></h1>
+      <p class="lede">Your team already has agents researching, reviewing code and drafting reports here. Join to pick up the conversation where they are.</p>
+
+      <form class="card" id="joinForm" novalidate>
+        <div id="stateBanner" hidden></div>
+
+        <div id="formFields" style="display:contents">
+          <div class="field">
+            <label class="field-label" for="email">Work email <span class="field-hint">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>from invite</span></label>
+            <input class="input" id="email" type="email" value="you@northwind.dev" readonly>
+          </div>
+          <div class="field">
+            <label class="field-label" for="name">Your name <span class="field-hint">shown to teammates</span></label>
+            <input class="input" id="name" type="text" placeholder="e.g. Alex Rivera" autocomplete="name" value="Alex Rivera" aria-describedby="nameErr">
+            <div class="err" id="nameErr" hidden>Add your name so teammates know who joined.</div>
+          </div>
+          <div class="role">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg>
+            <div><b>Member</b> <span>· can chat with 4 agents and 3 shared projects</span></div>
+          </div>
+        </div>
+
+        <ol class="steps" id="steps" hidden>
+          <li><span class="dot"></span>Verifying your invite</li>
+          <li><span class="dot"></span>Setting up your seat in Northwind Labs</li>
+          <li><span class="dot"></span>Opening your first conversation</li>
+        </ol>
+
+        <button class="btn-join" id="joinBtn" type="submit">
+          <span id="joinLabel">Join Northwind Labs</span>
+          <svg id="joinArrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+
+        <div class="fine">
+          <span>Invite expires in <b class="mono">6 days</b></span>
+          <span>Not you? <a href="#" id="notYou">Use a different account</a></span>
+        </div>
+      </form>
+    </section>
+
+    <aside class="window" aria-label="Preview of the Northwind Labs workspace">
+      <div class="win-bar">
+        <span class="tenant-logo">N</span>
+        <div><div class="win-title">Northwind Labs</div><div class="win-sub">12 members · 4 agents</div></div>
+        <span class="live"><span class="pulse"></span>Active now</span>
+      </div>
+      <div class="win-body">
+        <nav class="win-side" aria-label="Workspace sections">
+          <div class="side-list">
+            <div class="side-h">Agents</div>
+            <div class="side-item is-active"><span class="agent-av" style="background:var(--t-a)"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg></span>Research</div>
+            <div class="side-item"><span class="agent-av" style="background:var(--t-b)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg></span>Code Review</div>
+            <div class="side-item"><span class="agent-av" style="background:var(--t-c)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span>Analyst</div>
+            <div class="side-item"><span class="agent-av" style="background:var(--t-d)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 6h16M4 12h10M4 18h7"/></svg></span>Writer</div>
+          </div>
+          <div class="side-list">
+            <div class="side-h">Projects</div>
+            <div class="side-item">Q4 pricing study</div>
+            <div class="side-item">Mobile v3 launch</div>
+            <div class="side-item">Vendor audit</div>
+          </div>
+        </nav>
+
+        <div class="chat" id="chat">
+          <div class="msg">
+            <span class="av" style="background:var(--t-d)">MC</span>
+            <div class="body"><div class="who">Maya Chen <time>9:41</time></div>
+              <div class="text">@Research compare churn for annual vs monthly plans since the July price change.</div></div>
+          </div>
+          <div class="msg" style="animation-delay:.2s">
+            <span class="agent-av" style="background:var(--t-a);width:26px;height:26px;border-radius:8px"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg></span>
+            <div class="body"><div class="who">Research <span class="tag">agent</span> <time>9:42</time></div>
+              <div class="text">Monthly churn rose from 4.1% to 5.3%. Annual held at 1.2%. Draft attached with the cohort breakdown.</div>
+              <span class="chip-file">churn-cohorts.csv · 48 KB</span></div>
+          </div>
+          <div class="msg" id="typingRow" style="animation-delay:.4s">
+            <span class="av" style="background:var(--t-b)">JO</span>
+            <div class="body"><div class="who">Jon Okafor</div><span class="typing" aria-label="Jon is typing"><i></i><i></i><i></i></span></div>
+          </div>
+
+          <div class="seats">
+            <div class="seat-row" aria-label="Members">
+              <span class="av" style="background:var(--t-d)">MC</span>
+              <span class="av" style="background:var(--t-b)">JO</span>
+              <span class="av" style="background:var(--t-c)">PS</span>
+              <span class="av" style="background:var(--t-a)">+8</span>
+              <span class="you" id="youSeat" title="Your seat">You</span>
+            </div>
+            <span class="seat-cap" id="seatCap">One seat open, <b>saved for you</b></span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <div class="states" role="group" aria-label="Preview state">
+    <span>Preview state</span>
+    <div class="seg" id="seg">
+      <button type="button" data-s="valid" aria-pressed="true">Valid invite</button>
+      <button type="button" data-s="expired" aria-pressed="false">Expired</button>
+      <button type="button" data-s="member" aria-pressed="false">Already a member</button>
+    </div>
+  </div>
+</div>
+
+<!-- Arrival: handoff into the chat page -->
+<section class="arrive" id="arrive" aria-live="polite" aria-hidden="true">
+  <div class="arrive-top">
+    <div class="brand">
+      <span class="tenant-logo">N</span>
+      <span class="brand-word" style="font-size:15px">Northwind Labs</span><span class="brand-slash">/</span><span class="brand-sub">New conversation</span>
+    </div>
+    <button type="button" class="link" id="backBtn">Back to invite</button>
+  </div>
+  <div class="hero">
+    <span class="welcome"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12l5 5 9-10"/></svg>You joined Northwind Labs</span>
+    <h2>Welcome, <span id="helloName">Alex</span>. What should we <em>work on</em> today?</h2>
+    <div class="composer">
+      <label for="prompt" class="sr" hidden>Message</label>
+      <textarea id="prompt" placeholder="Ask an agent, or type @ to pick one"></textarea>
+      <div class="composer-bar">
+        <span class="pill"><span class="agent-av" style="background:var(--t-a);width:16px;height:16px;border-radius:5px"></span>Research</span>
+        <span class="pill">Q4 pricing study</span>
+        <button class="send" type="button" aria-label="Send"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+      </div>
+    </div>
+    <div class="starters">
+      <button class="starter" type="button">Catch me up on the pricing study</button>
+      <button class="starter" type="button">What are the agents working on?</button>
+      <button class="starter" type="button">Review my first pull request</button>
+    </div>
+  </div>
+</section>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const form = $("joinForm"), btn = $("joinBtn"), label = $("joinLabel"), arrow = $("joinArrow");
+  const steps = $("steps"), fields = $("formFields"), banner = $("stateBanner");
+  const nameEl = $("name"), nameErr = $("nameErr"), seat = $("youSeat"), seatCap = $("seatCap");
+  const arrive = $("arrive");
+  let state = "valid", busy = false;
+
+  const initials = (n) => n.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase() || "You";
+  nameEl.addEventListener("input", () => {
+    nameEl.removeAttribute("aria-invalid"); nameErr.hidden = true;
+  });
+
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    if (state === "expired") { banner.innerHTML = bannerHTML("warn", "<b>Request sent.</b> We let Maya Chen know you need a new invite."); return; }
+    if (state === "member") return openChat();
+    const name = nameEl.value.trim();
+    if (!name) { nameEl.setAttribute("aria-invalid", "true"); nameErr.hidden = false; nameEl.focus(); return; }
+
+    busy = true; btn.disabled = true;
+    label.textContent = "Joining"; arrow.outerHTML = '<span class="spin" id="joinArrow"></span>';
+    fields.hidden = true; fields.style.display = "none"; steps.hidden = false;
+    const items = [...steps.children];
+    for (let i = 0; i < items.length; i++) {
+      items[i].classList.add("is-on");
+      await sleep(650);
+      items[i].classList.replace("is-on", "is-done");
+      items[i].querySelector(".dot").innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M5 12l5 5 9-10"/></svg>';
+      if (i === 1) { seat.textContent = initials(name); seat.classList.add("is-filled"); seatCap.innerHTML = "<b>" + escapeHTML(name) + "</b> joined just now"; }
+    }
+    await sleep(350);
+    openChat();
+  });
+
+  function openChat() {
+    $("helloName").textContent = (nameEl.value.trim().split(/\s+/)[0]) || "there";
+    arrive.classList.add("is-on"); arrive.setAttribute("aria-hidden", "false");
+    setTimeout(() => $("prompt").focus({ preventScroll: true }), 500);
+  }
+
+  $("backBtn").addEventListener("click", () => { arrive.classList.remove("is-on"); arrive.setAttribute("aria-hidden", "true"); setState(state); });
+  $("notYou").addEventListener("click", (e) => { e.preventDefault(); });
+
+  function bannerHTML(kind, html) {
+    const icon = kind === "warn"
+      ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>'
+      : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12l5 5 9-10"/></svg>';
+    return '<div class="banner ' + kind + '">' + icon + '<div>' + html + '</div></div>';
+  }
+  function escapeHTML(s) { return s.replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+
+  function setState(s) {
+    state = s; busy = false; btn.disabled = false;
+    document.querySelectorAll("#seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.s === s)));
+    const a = $("joinArrow");
+    a.outerHTML = '<svg id="joinArrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+    steps.hidden = true;
+    [...steps.children].forEach(li => { li.className = ""; li.querySelector(".dot").innerHTML = ""; });
+    seat.classList.remove("is-filled"); seat.textContent = "You";
+    seatCap.innerHTML = "One seat open, <b>saved for you</b>";
+    fields.hidden = false; fields.style.display = "contents";
+    banner.hidden = s === "valid";
+    if (s === "valid") { label.textContent = "Join Northwind Labs"; }
+    if (s === "expired") {
+      banner.innerHTML = bannerHTML("warn", "<b>This invite expired on Sep 23.</b> Invites last 7 days. Ask Maya Chen for a new one and we'll email it to you.");
+      fields.style.display = "none"; label.textContent = "Request a new invite";
+    }
+    if (s === "member") {
+      banner.innerHTML = bannerHTML("ok", "<b>You're already in Northwind Labs.</b> Signed in as you@northwind.dev.");
+      fields.style.display = "none"; label.textContent = "Open Northwind Labs";
+      seat.textContent = "AR"; seat.classList.add("is-filled"); seatCap.innerHTML = "<b>Alex Rivera</b> · member since Aug";
+    }
+  }
+  $("seg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) setState(b.dataset.s); });
+})();
+</script>

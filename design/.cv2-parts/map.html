@@ -1,0 +1,77 @@
+<section class="sec" id="map">
+  <div class="sec-head">
+    <span class="eyebrow">Overview</span>
+    <h2>Where everything lives</h2>
+    <p>One rule decides placement. Content (the stream and live requests) is always inline. Status is pinned to the topbar and the session panel. Diagnostics stay collapsed behind the receipt and the Insights tab.</p>
+  </div>
+
+  <div class="board">
+    <div>
+      <div class="wf" aria-label="Layout map mock">
+        <div class="wf-top">
+          <div class="crumb"><span class="pin">1</span><span class="t">Onboarding plan for new analysts</span></div>
+          <span class="status-pill"><span class="pulse"></span>Qlik Analyst <span class="muted">· Working</span></span>
+          <div></div>
+        </div>
+        <div class="wf-split">
+          <div class="wf-stage">
+            <div class="row"><span class="pin">2</span><span class="pill ok">Content · stream</span></div>
+            <div class="msg user"><div class="bubble-wrap"><div class="bubble">Draft a 2-week onboarding plan for new analysts from the handbook</div></div></div>
+            <div class="msg">
+              <div class="av">Q</div>
+              <div class="grow">
+                <div class="msg-meta"><span class="strong">Qlik Analyst</span></div>
+                <ul class="steps">
+                  <li class="is-done"><span class="mark done"></span>Thought for 4s</li>
+                  <li class="is-done"><span class="mark done"></span>Read 3 workspace documents</li>
+                  <li><span class="spinner"></span>Drafting the answer</li>
+                </ul>
+                <div class="answer">Here is a two-week plan built from the analyst handbook<span class="caret"></span></div>
+                <div class="msg-foot"><span class="pin">4</span>2.6s · 26.6k tokens · Sonnet 5.5 · Details</div>
+              </div>
+            </div>
+          </div>
+          <div class="wf-panel">
+            <div class="row"><span class="pin">3</span><span class="pill accent">Status · session panel</span></div>
+            <div class="tabs"><span class="tab is-active">Activity</span><span class="tab">Goal</span><span class="tab">Agents</span><span class="tab">Plan</span><span class="tab">Insights</span></div>
+            <div class="card">
+              <div class="row"><span class="tile">▤</span><div class="grow"><span class="strong">Reading workspace sources</span><span class="muted sm">3 documents · 2 helpers</span></div></div>
+              <div class="bar"><i style="width:62%"></i></div>
+            </div>
+            <div class="row sm muted"><span class="pin">5</span>Insights tab holds the full trace</div>
+          </div>
+        </div>
+        <div class="bottom">
+          <div class="row"><span class="pin">6</span><span class="pill warn">Live request · pinned above composer</span></div>
+          <div class="composer">
+            <div class="ph">Ask, or type / for commands</div>
+            <div class="composer-bar"><span class="chip">Goal</span><span class="chip">Ask</span><span class="spacer"></span><span class="send">↑</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">Desktop layout with the session panel open. On phones the panel becomes an overlay and the stream takes the full width.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Topbar</b> <span class="tag status">Status</span><span>Title and the agent status pill. Turn state and session health show here first.</span></div></li>
+      <li><span class="pin">2</span><div><b>Stream</b> <span class="tag content">Content</span><span>User messages, thinking, tool steps, helpers, the answer, audit rows and errors, in turn order.</span></div></li>
+      <li><span class="pin">3</span><div><b>Session panel</b> <span class="tag status">Status</span><span>Activity, Goal, Agents, Plan and Insights tabs. Everything that describes the session rather than a single turn.</span></div></li>
+      <li><span class="pin">4</span><div><b>Receipt</b> <span class="tag diag">Diagnostics</span><span>One line under each response. Details opens the trace for that turn.</span></div></li>
+      <li><span class="pin">5</span><div><b>Insights</b> <span class="tag diag">Diagnostics</span><span>Session rollup, context fill, rate limits and privacy. Model context is dev mode only.</span></div></li>
+      <li><span class="pin">6</span><div><b>Live requests</b> <span class="tag content">Content</span><span>Anything that blocks the turn sits directly above the composer so it can never scroll out of view.</span></div></li>
+    </ol>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Data today</th><th>Source</th><th>v2 surface</th><th>Bucket</th></tr></thead>
+      <tbody>
+        <tr><td>Messages, thinking, tool items, helpers</td><td><code>Entry</code> union</td><td>Stream: bubble, <code>.steps</code>, <code>.hcard</code>, <code>.answer</code></td><td><span class="tag content">Content</span></td></tr>
+        <tr><td>Approval and question records</td><td><code>ApprovalRecord</code></td><td>Quiet audit row in <code>.steps</code></td><td><span class="tag content">Content</span></td></tr>
+        <tr><td>Blocking requests</td><td><code>PendingRequest</code></td><td>Request card above the composer</td><td><span class="tag content">Content</span></td></tr>
+        <tr><td>Turn state, session status, title</td><td>session events</td><td>Topbar crumb and status pill</td><td><span class="tag status">Status</span></td></tr>
+        <tr><td>Goal, plan, diff, MCP, errors</td><td><code>goal.*</code>, <code>plan.updated</code>, <code>diff.updated</code>, <code>mcp.status</code></td><td>Session panel tabs, agent popover</td><td><span class="tag status">Status</span></td></tr>
+        <tr><td>Trace, tokens, limits, privacy</td><td><code>TurnTrace</code>, <code>TraceSummary</code></td><td>Receipt, trace card, Insights tab</td><td><span class="tag diag">Diagnostics</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>

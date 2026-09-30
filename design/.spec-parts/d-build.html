@@ -1,0 +1,184 @@
+<section id="a11y">
+<h2>Accessibility</h2>
+<p>The prototype already covers most of the basics. Keep all of it and close the gaps listed below. Full WCAG validation still needs manual testing with a screen reader (VoiceOver, NVDA) and an accessibility review. This list does not replace that.</p>
+
+<h3>Already in the prototype</h3>
+<ul>
+<li>Every input has a <code>&lt;label for&gt;</code>. The name field has <code>autocomplete="name"</code>, <code>maxlength="60"</code> and <code>required</code>.</li>
+<li>Invalid submit sets <code>aria-invalid="true"</code> on the name input, shows <code>#nameErr</code> (linked with <code>aria-describedby</code>) and moves focus back to the input.</li>
+<li>The progress bar has <code>role="progressbar"</code>, <code>aria-label="Join progress"</code>, <code>aria-valuemin="0"</code>, <code>aria-valuemax="3"</code>, and <code>aria-valuenow</code> is updated on every step.</li>
+<li>Submit phases and results are announced through a visually hidden <code>aria-live="polite"</code> paragraph (<code>#live</code>).</li>
+<li>The form is labelled by its eyebrow (<code>aria-labelledby="join-sec-h"</code>). The capabilities panel is an <code>&lt;aside&gt;</code> labelled by its h2.</li>
+<li>The board is <code>aria-hidden="true"</code>. The legend is the readable version of it.</li>
+<li>The verified badge SVG has <code>aria-label="Verified admin"</code>, and its wrapper has <code>title="Workspace admin"</code>.</li>
+<li><code>:focus-visible</code> ring: 2px solid <code>--accent-2</code>, offset 2px, radius 8px.</li>
+<li><code>prefers-reduced-motion: reduce</code> cuts every animation and transition to .01ms, and the parallax listener is never attached.</li>
+</ul>
+
+<h3>Gaps to fix in production</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Issue</th><th>Fix</th></tr></thead><tbody>
+<tr><td>Step dots use bare glyphs (✓, !, 2, 3)</td><td>Hide the glyph with <code>aria-hidden="true"</code> and add visually hidden state text per step, for example "Invite verified, done", "Add your name, current step", "Join workspace, not started".</td></tr>
+<tr><td>Progress bar only exposes a number</td><td>Add <code>aria-valuetext</code>, for example "Step 2 of 3: Add your name". In the expired state use "Invite expired".</td></tr>
+<tr><td>"Request sent" is not announced</td><td>Call the same live-region <code>say()</code> in the expired submit branch.</td></tr>
+<tr><td>Error text only appears visually</td><td>Keep focus on the input, and also put <code>role="alert"</code> on <code>#nameErr</code> or announce it through <code>#live</code>.</td></tr>
+<tr><td>Legend items are focusable but do nothing</td><td>Either drop <code>tabindex="0"</code> (the highlight stays on hover) or keep it and accept that focus only drives the highlight. Don't add a button role, because there is no action.</td></tr>
+<tr><td><code>href="#"</code> links (terms, Switch account)</td><td>Point terms to the real URL. "Switch account" is an action, so make it a <code>&lt;button&gt;</code> styled as a link.</td></tr>
+<tr><td>Required state is only implied</td><td>Keep <code>required</code> (screen readers say "required"). Add <code>aria-required="true"</code> only if the native attribute is removed.</td></tr>
+<tr><td>Readonly email looks like an input</td><td>It is fine as <code>readonly</code>, which stays focusable and readable. Keep the lock icon <code>aria-hidden</code> and keep the "from invite" hint inside the label.</td></tr>
+<tr><td>Busy button</td><td>While submitting, set <code>aria-busy="true"</code> on the form. The label text changes (the phase names) are already announced by the live region.</td></tr>
+<tr><td>Timer (02) ticks every second</td><td>It is inside the <code>aria-hidden</code> board, so it is silent. Keep it out of any live region.</td></tr>
+</tbody></table></div>
+
+<h3>Contrast (computed, WCAG 2.x formula)</h3>
+<p>Small mono text on the board and hints uses <code>--ink-3</code>. 4.5 : 1 is the target for text under 18px.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Theme</th><th>Pair</th><th>Colors</th><th>Ratio</th></tr></thead><tbody>
+<tr><td>Light</td><td>ink-3 on board-bg (board mono, legend numbers, idx labels)</td><td><span class="sw" style="background:#849198"></span>#849198 on <span class="sw" style="background:#F6F9FA"></span>#F6F9FA</td><td><b>3.06 : 1, fails</b></td></tr>
+<tr><td>Light</td><td>ink-3 on bg (field hints, fine print, sub lines)</td><td><span class="sw" style="background:#849198"></span>#849198 on <span class="sw" style="background:#FFFFFF"></span>#FFFFFF</td><td><b>3.24 : 1, fails</b></td></tr>
+<tr><td>Dark</td><td>ink-3 on board-bg</td><td><span class="sw" style="background:#8B999F"></span>#8B999F on <span class="sw" style="background:#1C1C1C"></span>#1C1C1C</td><td>5.81 : 1, pass</td></tr>
+<tr><td>Dark</td><td>ink-3 on bg</td><td><span class="sw" style="background:#8B999F"></span>#8B999F on <span class="sw" style="background:#171717"></span>#171717</td><td>6.11 : 1, pass</td></tr>
+<tr><td>Light</td><td>ink-2 on board-bg (legend descriptions)</td><td><span class="sw" style="background:#5F6D73"></span>#5F6D73 on <span class="sw" style="background:#F6F9FA"></span>#F6F9FA</td><td>5.06 : 1, pass</td></tr>
+<tr><td>Dark</td><td>ink-2 on board-bg</td><td><span class="sw" style="background:#B7C3C8"></span>#B7C3C8 on <span class="sw" style="background:#1C1C1C"></span>#1C1C1C</td><td>9.46 : 1, pass</td></tr>
+<tr><td>Both</td><td>on-accent on accent (Join button, 15px 600)</td><td><span class="sw" style="background:#FFFFFF"></span>#FFFFFF on <span class="sw" style="background:#3691CD"></span>#3691CD</td><td><b>3.45 : 1, fails for 15px text</b></td></tr>
+<tr><td>Both</td><td>on-accent on accent-hover</td><td><span class="sw" style="background:#FFFFFF"></span>#FFFFFF on <span class="sw" style="background:#2A7DB4"></span>#2A7DB4</td><td><b>4.48 : 1, just fails</b></td></tr>
+<tr><td>Light</td><td>accent-fg on accent-soft (role pill)</td><td><span class="sw" style="background:#2A72A3"></span>#2A72A3 on <span class="sw" style="background:#EAF5F8"></span>#EAF5F8</td><td>4.69 : 1, pass</td></tr>
+<tr><td>Dark</td><td>accent-fg on accent-soft</td><td><span class="sw" style="background:#BCDEE8"></span>#BCDEE8 on <span class="sw" style="background:#14283A"></span>#14283A</td><td>10.58 : 1, pass</td></tr>
+<tr><td>Light</td><td>error-text on error-bg</td><td><span class="sw" style="background:#8D4545"></span>#8D4545 on <span class="sw" style="background:#FBE7E7"></span>#FBE7E7</td><td>5.76 : 1, pass</td></tr>
+<tr><td>Light</td><td>warning-text on warning-bg</td><td><span class="sw" style="background:#7D5D1D"></span>#7D5D1D on <span class="sw" style="background:#FFF3D9"></span>#FFF3D9</td><td>5.52 : 1, pass</td></tr>
+<tr><td>Light</td><td>success-text on success-bg</td><td><span class="sw" style="background:#35624E"></span>#35624E on <span class="sw" style="background:#E7F4ED"></span>#E7F4ED</td><td>6.17 : 1, pass</td></tr>
+</tbody></table></div>
+<div class="note warn">Two token issues come from the shared design system, not from this page. First, light <code>--ink-3</code> is below 4.5 : 1 on both white and the board. Second, white text on <code>--accent</code> is 3.45 : 1. Raise this with design before shipping. Suggested fixes: darken light <code>--ink-3</code> to about <code>#687479</code> (about 4.55 : 1 on the board, 4.8 : 1 on white). For the button, <code>--accent-hover</code> (#2A7DB4) still just fails at 4.48 : 1, so use <code>--accent-pressed</code> (#226A9B, about 5.8 : 1) as the resting fill and pick a darker hover. Ratios use the WCAG 2.x luminance formula.</div>
+
+<h3>Keyboard order</h3>
+<ol>
+<li>Theme segmented control: Auto, Light, Dark (prototype only; in the app, theme comes from settings)</li>
+<li>Work email (readonly, focusable)</li>
+<li>Your name</li>
+<li>Join button (Enter in the name field also submits)</li>
+<li>Workspace terms link</li>
+<li>Switch account</li>
+<li>Preview state control (prototype only, remove)</li>
+<li>Legend items 01 to 08 (only if <code>tabindex</code> is kept)</li>
+</ol>
+<p>On load, move focus to the name field when the invite is valid. In the expired and member states, focus the primary button.</p>
+</section>
+
+<section id="perf">
+<h2>Performance</h2>
+<div class="tw"><table class="tbl"><thead><tr><th>Area</th><th>What the prototype does</th><th>Recommendation</th></tr></thead><tbody>
+<tr><td>Backdrop blur</td><td>5 elements use <code>backdrop-filter</code>: 02 pill, 03 tile and 08 tile (blur 18px), the 04 orb (blur 5px), and the 06 plus badge (blur 10px).</td><td>Fine on desktop. On low-end devices or when <code>backdrop-filter</code> is unsupported, the gradient fill alone still reads as glass, so no fallback work is needed. Don't add more glass layers.</td></tr>
+<tr><td>Infinite animations</td><td>About 23 running loops: float on all 10 <code>.sp</code> items, aurora spin, core breathe, live-dot glow, 3 lotus blooms, 4 glass sweeps, the 05 edge light, the 07 aura spin and the 07 empty shimmer.</td><td>All are transform, opacity, background-position or box-shadow, so they are cheap except box-shadow (the 02 glow). Pause the board when the tab is hidden (<code>visibilitychange</code>) or scrolled off-screen on mobile (<code>IntersectionObserver</code>) by toggling a class that sets <code>animation-play-state: paused</code> on <code>.board *</code>.</td></tr>
+<tr><td>Timer</td><td><code>setInterval</code> every 1000ms, forever.</td><td>Clear it when the component unmounts. Pause it together with the animations when the board is hidden.</td></tr>
+<tr><td>Blur filters</td><td><code>filter: blur()</code> on the aurora (12px), the aura (10px), the portrait (4px) and the core (1.5px), each also rotating or scaling.</td><td>Add <code>will-change: transform</code> only to <code>.aurora</code> and <code>.aura</code>, the two rotating blurred layers. Don't put it on every <code>.sp</code>.</td></tr>
+<tr><td>Noise texture</td><td>One SVG <code>feTurbulence</code> data URI, used as a background by 6 grained elements.</td><td>The browser rasterises it once per element. If profiling shows cost, export it to a 140×140 PNG (a few KB) and reference that file instead.</td></tr>
+<tr><td>Parallax</td><td>Sets two custom properties on every <code>pointermove</code>.</td><td>Throttle with <code>requestAnimationFrame</code>. Only attach on <code>(hover: hover) and (pointer: fine)</code>.</td></tr>
+<tr><td>Container queries</td><td><code>container-type: size</code> on <code>.board-wrap</code> and <code>inline-size</code> on <code>.board</code>, with <code>cqw</code> and <code>cqh</code> units.</td><td>Supported in all current evergreen browsers. No fallback planned. If an older Safari (below 16) must be supported, set <code>.board { width: min(100%, 560px) }</code> as the default before the container rule.</td></tr>
+<tr><td><code>color-mix()</code></td><td>Used in 02, 03, 05, 07, 08, the bars and the legend hover.</td><td>Supported in current browsers. The same Safari 16.2+ floor applies.</td></tr>
+<tr><td>Viewport height</td><td><code>height: 100vh; height: 100dvh</code> on <code>.split</code>.</td><td>Keep both lines. <code>100vh</code> is the fallback.</td></tr>
+<tr><td>Fonts</td><td>One Google Fonts request, <code>display=swap</code>, with preconnect to both font hosts.</td><td>The app's <code>index.html</code> already loads the same three families (plus Caveat). Don't load them a second time from the page.</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="build">
+<h2>Build plan</h2>
+<div class="note">Verified in the repo: the app is a single file, <code>app.tsx</code>, rendered by <code>index.html</code> with React UMD and in-browser Babel. Theme uses <code>useTheme()</code> with <code>localStorage["truex-theme"]</code>, and tokens live in the <code>:root</code> block of <code>index.html</code>. I did not find or verify a router. The route, API and analytics below are <b>proposals</b>.</div>
+
+<h3>1. Tokens</h3>
+<ul>
+<li>Add to <code>index.html</code> <code>:root</code>: the agent tints (<code>--ice --ice-dot --mint --mint-dot --butter --butter-dot --peach --peach-dot --lilac --lilac-dot --tint-ink</code>). They are fixed hex values with no dark variant.</li>
+<li>Add the board-only tokens with both light and dark values: <code>--board-bg --board-dot --glass --glass-hi --glass-line --sheen --obj-shadow --obj-drop --noise</code>. Values are in <a href="#tokens">Color tokens</a>.</li>
+<li>Add the missing dark <code>--shadow-sm</code> (<code>0 1px 2px rgb(0 0 0 / 30%)</code>) to both dark blocks.</li>
+</ul>
+
+<h3>2. Components</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Component</th><th>Props</th><th>Notes</th></tr></thead><tbody>
+<tr><td><code>JoinInvitePage</code></td><td><code>token: string</code></td><td>Owns the state machine, fetches the invite, renders the split layout. Renders the clover <code>&lt;clipPath&gt;</code> once.</td></tr>
+<tr><td><code>InviterRow</code></td><td><code>inviter, workspace, role, sentAt, expiresAt, expired</code></td><td>Avatar with a workspace logo badge, name, verified badge, role pill and expiry pill.</td></tr>
+<tr><td><code>JoinCard</code></td><td><code>state, name, onName, onSubmit, email, workspaceName</code></td><td>The <code>.card.join</code> form. Contains the parts below.</td></tr>
+<tr><td><code>ProgressCheckup</code></td><td><code>steps: {label, status}[]</code>, <code>value, bad</code></td><td>Status is <code>idle | on | busy | done | bad</code>.</td></tr>
+<tr><td><code>NameField</code></td><td><code>value, onChange, error, readOnly</code></td><td>Live initials avatar and hint text.</td></tr>
+<tr><td><code>JoinButton</code></td><td><code>label, busy, disabled</code></td><td>Shows a spinner when busy, otherwise the arrow.</td></tr>
+<tr><td><code>StateBanner</code></td><td><code>kind: "ok" | "warn", children</code></td><td>Render text as React children. Don't use <code>innerHTML</code>.</td></tr>
+<tr><td><code>CapabilitiesBoard</code></td><td><code>workspaceName, agentCount, teammate, teamCount, profile, hot</code></td><td>Parallax, timer and legend highlight. Pauses when hidden.</td></tr>
+<tr><td><code>Specimen*</code> (8)</td><td>specimen-specific</td><td><code>SpecimenAgent, SpecimenTimer, SpecimenGoals, SpecimenSearch, SpecimenStart, SpecimenTeammate, SpecimenProfile, SpecimenCustomAgents</code>, plus the two bars.</td></tr>
+<tr><td><code>CapabilityLegend</code></td><td><code>items, onHot</code></td><td>Eight static items. The 06 description uses the team count.</td></tr>
+</tbody></table></div>
+
+<h3>3. State machine</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>From</th><th>Event</th><th>To</th></tr></thead><tbody>
+<tr><td><code>loading</code></td><td>Invite fetched, valid, user not a member</td><td><code>valid</code></td></tr>
+<tr><td><code>loading</code></td><td>Invite fetched, past expiry</td><td><code>expired</code></td></tr>
+<tr><td><code>loading</code></td><td>Signed-in user already in the workspace</td><td><code>member</code></td></tr>
+<tr><td><code>loading</code></td><td>Token invalid or revoked, or network error</td><td><code>error</code></td></tr>
+<tr><td><code>valid</code></td><td>Submit with an invalid name</td><td><code>valid</code> (field error shown)</td></tr>
+<tr><td><code>valid</code></td><td>Submit with a valid name</td><td><code>submitting</code></td></tr>
+<tr><td><code>submitting</code></td><td>Accept succeeds</td><td><code>joined</code></td></tr>
+<tr><td><code>submitting</code></td><td>Accept fails</td><td><code>valid</code> with an error banner, name kept</td></tr>
+<tr><td><code>expired</code></td><td>Request a new invite succeeds</td><td><code>requestSent</code></td></tr>
+<tr><td><code>joined</code> / <code>member</code></td><td>Open workspace</td><td>Navigate into the app</td></tr>
+</tbody></table></div>
+<p>The three submit phase labels ("Verifying your invite", "Setting up your seat", "Opening your first conversation") are a fake 3 × 700ms sequence in the prototype. In production, show them while the real request is in flight: advance one label every 700ms, stop on the last label until the response arrives, and never keep the user waiting just to finish the animation.</p>
+
+<h3>4. Route, data and events (proposals)</h3>
+<ul>
+<li>Route: <code>/join/:token</code>. Signed-out users sign in first and return to this URL.</li>
+<li>Data: <code>GET</code> the invite by token, <code>POST</code> accept with <code>{ name }</code>, and <code>POST</code> request-new-invite. The payload shape is in <a href="#logic">Logic &amp; wiring</a>.</li>
+<li>Analytics: <code>invite_viewed</code> (with state), <code>invite_name_entered</code> (first valid name), <code>invite_joined</code>, <code>invite_join_failed</code>, <code>invite_expired_request</code>.</li>
+<li>Remove before shipping: the theme segmented control, the Preview state footer and the <code>?theme=</code> query parameter.</li>
+</ul>
+
+<h3>5. Order of work</h3>
+<ol>
+<li>Tokens in <code>index.html</code>.</li>
+<li>Left pane and the state machine with a mocked invite. Ship-ready on its own.</li>
+<li>Board materials (clover, glass, grain, lit, drop), then specimens 01 to 08, then the legend.</li>
+<li>Wire the real invite data (names, counts, expiry, teammate photo).</li>
+<li>Motion pause, reduced motion, accessibility fixes, QA.</li>
+</ol>
+</section>
+
+<section id="qa">
+<h2>QA and acceptance</h2>
+<h3>Visual</h3>
+<ul class="chk">
+<li>At 1440×900 and 1280×760 the page has no scrollbar. The left pane, the board and the full legend fit in one screen.</li>
+<li>Left content starts near the top: the inviter row sits about 7vh below the header (clamped 20 to 72px), not vertically centred.</li>
+<li>Legend titles stay on one line, level with their 01 to 08 numbers. Descriptions wrap to 2 lines at most.</li>
+<li>The legend has 4 columns at 1400px and above, 2 columns from 521 to 1399px, and 1 column at 520px and below.</li>
+<li>Board specimens never overlap each other's labels at any desktop size. The board shrinks with the window height.</li>
+<li>Light and dark both match the reference screenshots. Auto follows the OS setting.</li>
+<li>At 400px wide the layout stacks with a 16px gutter and no horizontal scroll, and the board uses the 5 : 6.4 ratio.</li>
+</ul>
+<h3>Behaviour</h3>
+<ul class="chk">
+<li>Typing a name updates the input avatar, step 2, the progress bar (2 of 3), the hint ("looks good") and specimen 07 on every keystroke.</li>
+<li>Submitting an empty or 1-character name shows the error, sets <code>aria-invalid</code> and focuses the field.</li>
+<li>A valid submit shows the spinner and the phase labels, then the "You're in" banner, "Open Northwind Labs", 3 of 3, and 07 with a check and "joined just now".</li>
+<li>Expired: red pill "Expired Sep 23", warning banner, "Request a new invite". After clicking, the success banner shows and the button is disabled.</li>
+<li>Already a member: all steps done, "Open Northwind Labs", 07 shows Alex Rivera "member since Aug".</li>
+<li>Hovering or focusing a legend item dims the other specimens to .3 and scales the matching one to 1.04.</li>
+<li>With reduced motion on, nothing loops, there is no parallax, and the highlight still works.</li>
+<li>The whole flow can be completed with the keyboard only.</li>
+</ul>
+
+<h3>Test matrix</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Viewport</th><th>Theme</th><th>States</th></tr></thead><tbody>
+<tr><td>1440×900</td><td>Light, Dark</td><td>Valid, Typing, Submitting, Joined, Expired, Request sent, Member</td></tr>
+<tr><td>1280×760</td><td>Light, Dark</td><td>Valid, Joined, Expired</td></tr>
+<tr><td>1024×640 (short)</td><td>Light</td><td>Valid (only the left column may scroll)</td></tr>
+<tr><td>768×1024</td><td>Light, Dark</td><td>Valid, Expired (stacked)</td></tr>
+<tr><td>400×860</td><td>Light, Dark</td><td>Valid, Typing, Joined</td></tr>
+</tbody></table></div>
+
+<h3>Unit tests</h3>
+<p>These are the rules from the prototype script (<code>clean</code>, <code>isValid</code>, <code>initials</code>).</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Raw input</th><th>clean()</th><th>isValid()</th><th>initials()</th></tr></thead><tbody>
+<tr><td><code>"  alex   rivera "</code></td><td><code>"alex rivera"</code></td><td>true</td><td><code>"AR"</code></td></tr>
+<tr><td><code>"A"</code></td><td><code>"A"</code></td><td>false (under 2 chars)</td><td><code>"A"</code></td></tr>
+<tr><td><code>"12"</code></td><td><code>"12"</code></td><td>false (no letter)</td><td><code>"1"</code></td></tr>
+<tr><td><code>"José Álvarez"</code></td><td><code>"José Álvarez"</code></td><td>true</td><td><code>"JÁ"</code></td></tr>
+<tr><td><code>"李 小龙"</code></td><td><code>"李 小龙"</code></td><td>true</td><td><code>"李小"</code></td></tr>
+<tr><td><code>"Mary Jane Watson"</code></td><td><code>"Mary Jane Watson"</code></td><td>true</td><td><code>"MJ"</code> (first two words only)</td></tr>
+<tr><td><code>""</code></td><td><code>""</code></td><td>false</td><td><code>""</code> (UI shows "?" / "YOU")</td></tr>
+</tbody></table></div>
+<p>Aura hash: snapshot the (a1, a2) pair for a fixed set of names after applying the <code>&gt;&gt;&gt;</code> fix, and assert that a2 never equals a1 and is never undefined across 10,000 generated names.</p>
+</section>

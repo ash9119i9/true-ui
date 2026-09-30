@@ -1,0 +1,407 @@
+<style>
+/* ---- session chrome, round 2 ---- */
+.ch-app .app-body{display:block}
+.ch-stage{position:relative}
+/* topbar */
+.ch-top{display:flex;align-items:center;gap:10px;height:54px;padding:0 10px 0 14px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--surface),var(--bg))}
+.ch-crumb{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;color:var(--ink)}
+.ch-crumb .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.ch-proj{display:inline-flex;align-items:center;gap:5px;color:var(--ink-3);font-weight:500;white-space:nowrap}
+.ch-proj .ic{color:var(--ink-3)}
+.ch-right{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:flex-end;gap:2px}
+.ch-ib{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;color:var(--ink-2);flex:none}
+.ch-ib.on{background:var(--surface-3);color:var(--ink)}
+.ch-turnchip{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 8px;border-radius:999px;border:1px solid var(--line);font:500 11px var(--font-mono);color:var(--ink-2);white-space:nowrap;margin-right:4px}
+.ch-turnchip i{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.6s infinite}
+.ch-arch{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:999px;background:var(--surface-3);color:var(--ink-2);box-shadow:inset 0 0 0 1px var(--line-strong);font-size:11.5px;font-weight:600;white-space:nowrap;flex:none}
+
+/* status pill */
+.ch-pill{position:relative;display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 10px 0 4px;border-radius:999px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-sm);font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;flex:none;transition:box-shadow .2s,border-color .2s}
+.ch-pill.open{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft),var(--shadow-sm)}
+.ch-pill > .ic.sm{color:var(--ink-3)}
+.ch-av{position:relative;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex:none;color:var(--t1);background:linear-gradient(145deg,var(--ts1),color-mix(in srgb,var(--t1) 28%,var(--ts1)));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--t1) 25%,transparent)}
+.ch-av .ic{width:14px;height:14px}
+.ch-flag{position:absolute;top:-2px;right:-3px;width:9px;height:9px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 2px var(--surface)}
+.ch-sep{width:1px;height:14px;background:var(--line-strong);flex:none}
+.ch-st{display:inline-flex;align-items:center;gap:6px;font-weight:500;color:var(--ink-2)}
+.ch-time{font:500 11px var(--font-mono);color:var(--ink-3);font-variant-numeric:tabular-nums}
+.ch-pill.s-idle .ch-st{color:var(--ink-3)}
+.ch-pill.s-run .ch-st{color:var(--accent-fg)}
+.ch-pill.s-stop{background:var(--warn-bg);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
+.ch-pill.s-stop .ch-st{color:var(--warn-text)}
+.ch-pill.s-wait{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 55%,transparent);animation:ch-breathe 2.4s ease-in-out infinite}
+.ch-pill.s-wait .ch-st{color:var(--accent-fg);font-weight:600}
+@keyframes ch-breathe{50%{box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 16%,transparent)}}
+.ch-sq{width:8px;height:8px;border-radius:2px;background:var(--warn);flex:none;animation:blink 1.2s steps(2) infinite}
+.ch-shim{background:linear-gradient(90deg,var(--ink-3) 0 35%,var(--ink) 50%,var(--ink-3) 65%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:ch-shim 1.8s linear infinite}
+@keyframes ch-shim{from{background-position:100% 0}to{background-position:0 0}}
+
+/* goal strip */
+.ch-goal{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,var(--accent-soft),transparent 75%);font-size:13px}
+.ch-gi{width:24px;height:24px;border-radius:8px;display:grid;place-items:center;flex:none;background:var(--surface);color:var(--accent-fg);box-shadow:var(--shadow-sm)}
+.ch-obj{flex:1 1 200px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);font-weight:500}
+.ch-goal .pill .pulse{width:6px;height:6px}
+.ch-meter{display:inline-flex;align-items:center;gap:8px;font:500 11.5px var(--font-mono);color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ch-meter .bar{width:76px}
+.ch-meter b{color:var(--ink);font-weight:600}
+
+/* stream slice */
+.ch-stream{display:flex;flex-direction:column;gap:14px;padding:18px 16px 6px}
+.ch-work{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-3);margin-top:8px}
+.ch-work .ic{color:var(--t0)}
+
+/* toast */
+.ch-toast{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;margin:6px 16px 0;padding:10px 10px 10px 12px;border-radius:14px;background:var(--surface);border:1px solid color-mix(in srgb,var(--bad) 30%,var(--line));box-shadow:var(--shadow-card);animation:ch-rise .5s cubic-bezier(.2,.9,.3,1.2) both}
+@keyframes ch-rise{from{opacity:0;transform:translateY(10px)}}
+.ch-toast-ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none;background:var(--bad-bg);color:var(--bad)}
+.ch-toast-tx{flex:1 1 180px;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--ink-2)}
+.ch-toast-tx b{color:var(--ink);font-weight:600}
+.ch-ref{display:inline-flex;align-items:center;gap:5px;align-self:flex-start;margin-top:3px;height:20px;padding:0 7px;border-radius:6px;background:var(--surface-3);border:1px dashed var(--line-strong);font:500 11px var(--font-mono);color:var(--ink-2)}
+.ch-toast-act{display:flex;align-items:center;gap:4px;margin-left:auto}
+.btn .ic.sm{margin-left:-2px}
+
+.ch-bottom{padding:12px 16px 14px}
+.ch-dockrow{display:flex;align-items:center;justify-content:center;gap:8px;padding:0 12px 12px}
+.ch-dockrow .dock{margin:0}
+.dock b .ic{width:17px;height:17px}
+
+/* popover */
+.ch-float{position:relative;border-radius:18px;border:1px solid var(--line);background:var(--bg);box-shadow:var(--shadow-lift);overflow:hidden;padding:14px 14px 18px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.ch-ghost{position:absolute;inset:66px 16px auto;display:flex;flex-direction:column;gap:10px;opacity:.5}
+.ch-ghost i{display:block;height:10px;border-radius:999px;background:var(--surface-3)}
+.ch-pop{position:relative;z-index:1;width:min(372px,100%);border-radius:16px;border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow-lift);display:flex;flex-direction:column;animation:ch-pop .45s cubic-bezier(.2,.9,.3,1.2) both}
+@keyframes ch-pop{from{opacity:0;transform:translateY(-6px) scale(.98)}}
+.ch-pop::before{content:"";position:absolute;top:-6px;left:50%;width:11px;height:11px;transform:translateX(-50%) rotate(45deg);background:var(--surface);border-left:1px solid var(--line);border-top:1px solid var(--line)}
+.ch-pop-head{display:flex;align-items:center;gap:12px;padding:14px 14px 12px}
+.ch-pop-head .ch-av{width:40px;height:40px;border-radius:12px}
+.ch-pop-head .ch-av .ic{width:20px;height:20px}
+.ch-who{flex:1;min-width:0;display:flex;flex-direction:column}
+.ch-who b{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.ch-who span{font-size:12px;color:var(--ink-3)}
+.ch-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:0 12px 12px}
+.ch-fact{display:flex;align-items:center;gap:8px;padding:8px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);min-width:0}
+.ch-fact > .ic{color:var(--ink-3)}
+.ch-fact div{display:flex;flex-direction:column;min-width:0}
+.ch-fact small{font-size:10.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.ch-fact span{font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch-fact span.mono{font-weight:500}
+.ch-sechd{display:flex;align-items:center;gap:8px;padding:10px 14px 8px;border-top:1px solid var(--line);font-size:12px;font-weight:600;color:var(--ink-2)}
+.ch-sechd .ch-count{font:500 11px var(--font-mono);color:var(--ink-3);margin-left:auto}
+
+/* mini MCP cartridges */
+.ch-carts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 10px;padding:4px 12px 12px}
+.ch-cart{position:relative;padding:11px 7px 0;border-radius:11px 11px 6px 6px;background:linear-gradient(180deg,var(--surface),var(--surface-3));box-shadow:0 1px 0 var(--line-strong),0 3px 0 var(--line),var(--shadow-sm);clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,0 100%);min-width:0}
+.ch-cart::before{content:"";position:absolute;left:10px;right:24px;top:4px;height:4px;border-radius:2px;background:repeating-linear-gradient(90deg,var(--line-strong) 0 2px,transparent 2px 6px)}
+.ch-lab{position:relative;display:flex;flex-direction:column;gap:3px;min-height:58px;padding:7px 8px;border-radius:7px;background:var(--ts);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--t) 18%,transparent);overflow:hidden}
+.ch-lab .ic{color:var(--t)}
+.ch-lab b{font:700 20px/1 var(--font-hand);color:var(--t);transform:rotate(-2deg);transform-origin:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch-lab small{font:500 10px var(--font-mono);color:var(--ink-2);margin-top:auto}
+.ch-pins{display:flex;align-items:center;gap:6px;padding:6px 2px 6px}
+.ch-teeth{flex:1;height:7px;border-radius:2px;background:repeating-linear-gradient(90deg,color-mix(in srgb,var(--warn) 70%,var(--surface)) 0 4px,transparent 4px 7px);opacity:.8}
+.ch-led{width:7px;height:7px;border-radius:50%;flex:none;background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+.ch-led.warn{background:var(--warn);box-shadow:0 0 0 3px color-mix(in srgb,var(--warn) 22%,transparent)}
+.ch-led.bad{background:var(--bad);box-shadow:0 0 0 3px color-mix(in srgb,var(--bad) 22%,transparent)}
+.ch-tape{position:absolute;right:-4px;top:26px;z-index:2;padding:2px 10px 3px;font:700 16px/1 var(--font-hand);transform:rotate(7deg);background:var(--sticky);color:var(--sticky-ink);box-shadow:var(--shadow-sm);clip-path:polygon(3% 0,97% 5%,100% 50%,96% 100%,2% 95%,0 50%)}
+.ch-tape.bad{background:var(--bad-bg);color:var(--bad)}
+.ch-cart.down .ch-lab{filter:grayscale(.85);opacity:.7}
+.ch-pop-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 12px 12px;padding:8px 10px;border-radius:10px;background:var(--warn-bg);color:var(--warn-text);font-size:12.5px}
+.ch-pop-foot .spacer{min-width:4px}
+
+/* state strip */
+.ch-states{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.ch-state{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:14px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-sm);min-width:0}
+.ch-state .row{flex-wrap:nowrap}
+.ch-state p{font-size:12px;color:var(--ink-3)}
+.ch-state code{font-size:11px}
+.ch-mini{display:flex;align-items:center;justify-content:center;min-height:64px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line)}
+.ch-group{display:flex;flex-direction:column;gap:12px}
+.ch-h{font:700 20px/1 var(--font-hand);color:var(--ink-2)}
+
+/* session health slices */
+.ch-health{display:flex;flex-direction:column;gap:14px}
+.ch-slice{border-radius:16px;border:1px solid var(--line);background:var(--bg);box-shadow:var(--shadow-card);overflow:hidden}
+.ch-slice .ch-top{height:48px}
+.ch-ban{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 14px 0;padding:10px 12px;border-radius:12px;font-size:13px}
+.ch-ban.warn{background:var(--warn-bg);color:var(--warn-text);border:1px solid color-mix(in srgb,var(--warn) 35%,transparent)}
+.ch-ban.dead{background:var(--surface-3);color:var(--ink-2);border:1px solid var(--line-strong)}
+.ch-ban-ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none;background:var(--surface);box-shadow:var(--shadow-sm)}
+.ch-ban.warn .ch-ban-ic{color:var(--warn)}
+.ch-ban-tx{flex:1 1 200px;min-width:0;display:flex;flex-direction:column}
+.ch-ban-tx b{color:var(--ink);font-weight:600}
+.ch-ban.warn .ch-ban-tx b{color:inherit}
+.ch-ban-act{display:flex;gap:6px;flex-wrap:wrap}
+.ch-dim{padding:14px 16px 4px;display:flex;flex-direction:column;gap:8px;opacity:.55}
+.ch-dim i{display:block;height:9px;border-radius:999px;background:var(--surface-3)}
+.ch-lockbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 14px 14px;padding:10px 10px 10px 14px;border-radius:16px;border:1px dashed var(--line-strong);background:var(--surface-2);font-size:13px;color:var(--ink-2)}
+.ch-lockbar .ic{color:var(--ink-3)}
+.ch-lockbar span{flex:1 1 160px;min-width:0}
+
+@media (max-width:560px){
+  .ch-proj,.ch-turnchip,.ch-time,.ch-hide-sm{display:none}
+  .ch-top{padding:0 6px 0 10px;gap:6px}
+  .ch-pill{padding-right:8px;gap:6px}
+  .ch-meter .bar{width:52px}
+}
+</style>
+<section class="sec" id="chrome">
+  <div class="sec-head">
+    <span class="eyebrow">3 · Status, pinned</span>
+    <h2>Session chrome</h2>
+    <p>The frame around the stream: title, who is working and what they are doing, the goal and its budget, tool health, and the dock. It never scrolls away, so a glance at the top tells you whether the session is healthy.</p>
+  </div>
+
+  <!-- Board A: the live window -->
+  <div class="board">
+    <div>
+      <div class="app ch-app">
+        <div class="app-chrome"><i></i><i></i><i></i><span>truex</span></div>
+        <div class="app-body">
+          <div class="app-stage ch-stage">
+            <div class="ch-top">
+              <div class="ch-crumb">
+                <span class="ch-proj"><svg class="ic sm" aria-hidden="true"><use href="#i-layers"/></svg>true-ui <span>/</span></span>
+                <span class="t">Onboarding plan for new analysts</span>
+                <span class="pin">1</span>
+              </div>
+              <span class="ch-pill s-run" role="button" aria-label="Qlik Analyst, working, one tool needs attention">
+                <span class="ch-av"><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg><span class="ch-flag"></span></span>
+                Qlik Analyst<span class="ch-sep"></span>
+                <span class="ch-st"><span class="pulse"></span>Working <span class="ch-time">0:42</span></span>
+                <svg class="ic sm" aria-hidden="true"><use href="#i-chevd"/></svg>
+              </span>
+              <span class="pin">2</span>
+              <div class="ch-right">
+                <span class="ch-turnchip"><i></i>T4</span>
+                <span class="ch-ib ch-hide-sm"><svg class="ic" aria-hidden="true"><use href="#i-history"/></svg></span>
+              </div>
+            </div>
+
+            <div class="ch-goal">
+              <span class="ch-gi"><svg class="ic sm" aria-hidden="true"><use href="#i-target"/></svg></span>
+              <span class="ch-obj">Ship a one-page onboarding plan analysts can follow on day 1</span>
+              <span class="pill accent"><span class="pulse"></span>Active</span>
+              <span class="ch-meter"><span><b>142k</b> of 500k</span><span class="bar" aria-hidden="true"><i style="width:28%"></i></span></span>
+              <span class="pin">3</span>
+            </div>
+
+            <div class="ch-stream">
+              <div class="msg user"><div class="bubble-wrap"><div class="bubble">Keep it to one page. Day 1 only, then a link to the rest.</div><span class="muted sm mono">T4 · 10:31 AM</span></div></div>
+              <div class="msg">
+                <span class="av tone-1" style="background:var(--ts1);color:var(--t1)"><svg class="ic sm" aria-hidden="true"><use href="#i-bot"/></svg></span>
+                <div class="grow">
+                  <div class="msg-meta"><span class="strong sm">Qlik Analyst</span><span class="muted sm">Sonnet 5.5</span></div>
+                  <div class="answer">Trimming the plan to a single page. Day 1 covers Qlik Cloud access, the sales dashboard walkthrough and a first practice app<span class="caret"></span></div>
+                  <div class="ch-work"><svg class="ic sm" aria-hidden="true"><use href="#i-plug"/></svg><span class="ch-shim">Checking the team handbook in Qlik Cloud</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="ch-toast" role="status">
+              <span class="ch-toast-ic"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg></span>
+              <div class="ch-toast-tx">
+                <b>Google Drive search failed</b>
+                <span>Token expired. The turn keeps going without Drive.</span>
+                <span class="ch-ref"><svg class="ic sm" aria-hidden="true"><use href="#i-key"/></svg>ref err_7f3a21</span>
+              </div>
+              <div class="ch-toast-act">
+                <span class="pin">4</span>
+                <button class="btn soft" type="button">Sign in again</button>
+                <span class="ch-ib" aria-label="Dismiss"><svg class="ic sm" aria-hidden="true"><use href="#i-x"/></svg></span>
+              </div>
+            </div>
+
+            <div class="ch-bottom">
+              <div class="composer">
+                <div class="ph">Steer Qlik Analyst or queue a follow-up</div>
+                <div class="composer-bar">
+                  <span class="ch-ib"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span>
+                  <span class="ch-ib"><svg class="ic" aria-hidden="true"><use href="#i-slash"/></svg></span>
+                  <span class="spacer"></span>
+                  <span class="pin">5</span>
+                  <span class="send" aria-label="Stop"><svg class="ic sm" aria-hidden="true"><use href="#i-stop"/></svg></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="ch-dockrow">
+          <div class="dock">
+            <b title="Sidebar"><svg class="ic" aria-hidden="true"><use href="#i-sidebar"/></svg></b>
+            <b title="Search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg></b>
+            <b title="New chat"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></b>
+            <hr>
+            <b title="Agent"><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg></b>
+            <b class="on" title="Activity"><svg class="ic" aria-hidden="true"><use href="#i-activity"/></svg><span class="badge">3</span></b>
+            <hr>
+            <b title="Account"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg></b>
+          </div>
+          <span class="pin">6</span>
+        </div>
+      </div>
+      <p class="board-cap">Turn 4 is live. Drive failed mid-turn, so the pill carries an amber dot and a toast explains it once.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Crumb</b> <span class="tag changed">Changed</span><span>Project folder in muted text, then the title cut short with an ellipsis. The folder drops on phones. Falls back to "New conversation".</span><span class="src">Data: <code>session.title</code>, <code>session.cwd</code></span></div></li>
+      <li><span class="pin">2</span><div><b>Status pill</b> <span class="tag changed">Changed</span><span>Agent avatar, name, then the turn state with its own glyph and color. Working adds an elapsed timer. The amber dot on the avatar means at least one connected tool needs sign-in or failed. Click opens the agent popover.</span><span class="src">Data: <code>agent.name</code>, <code>turn.state</code>, <code>turn.startedAt</code>, <code>mcp.status</code></span></div></li>
+      <li><span class="pin">3</span><div><b>Goal strip</b> <span class="tag new">New</span><span>One slim line under the topbar: objective, status pill, tokens against budget. The bar turns amber past 80%. Hidden when the session has no goal. Details live in the panel.</span><span class="src">Data: <code>goal.objective</code>, <code>goal.status</code>, <code>goal.tokensUsed</code>, <code>goal.tokenBudget</code></span></div></li>
+      <li><span class="pin">4</span><div><b>Error toast</b> <span class="tag new">New</span><span>Rises above the composer once per error, then settles into the Activity count. Plain message, what happened to the turn, the ref in mono for support, and one fix action.</span><span class="src">Data: <code>error.message</code>, <code>error.ref</code></span></div></li>
+      <li><span class="pin">5</span><div><b>Stop button</b> <span class="tag exists">Exists</span><span>Send turns into Stop while the turn runs, and is disabled while stopping. Driven by the same state as the pill.</span><span class="src">Data: <code>turn.state</code></span></div></li>
+      <li><span class="pin">6</span><div><b>Floating dock</b> <span class="tag changed">Changed</span><span>Sidebar, Search, New chat, then Agent and Activity, then Account. Activity shows an amber badge with the count of unseen errors and events. The active item is filled.</span><span class="src">Data: <code>activity.unseen</code></span></div></li>
+    </ol>
+  </div>
+
+  <!-- Board B: the pill, every state, and opened -->
+  <div class="board">
+    <div class="ch-group">
+      <span class="ch-h">Turn states</span>
+      <div class="ch-states">
+        <div class="ch-state">
+          <div class="ch-mini"><span class="ch-pill s-idle"><span class="ch-av"><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg></span>Qlik Analyst<span class="ch-sep"></span><span class="ch-st"><span class="pulse idle"></span>Idle</span></span></div>
+          <div class="row"><span class="pin">1</span><code>idle</code></div>
+          <p>Grey dot, no motion. Composer shows Send.</p>
+        </div>
+        <div class="ch-state">
+          <div class="ch-mini"><span class="ch-pill"><span class="ch-av"><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg></span>Qlik Analyst<span class="ch-sep"></span><span class="ch-st"><span class="spinner"></span><span class="ch-shim">Starting…</span></span></span></div>
+          <div class="row"><span class="pin">1</span><code>starting</code></div>
+          <p>Spinner and a shimmer on the label until the first event.</p>
+        </div>
+        <div class="ch-state">
+          <div class="ch-mini"><span class="ch-pill s-run"><span class="ch-av"><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg></span>Qlik Analyst<span class="ch-sep"></span><span class="ch-st"><span class="pulse"></span>Working <span class="ch-time">0:42</span></span></span></div>
+          <div class="row"><span class="pin">2</span><code>running</code></div>
+          <p>Accent pulse, accent label, elapsed time.</p>
+        </div>
+        <div class="ch-state">
+          <div class="ch-mini"><span class="ch-pill s-stop"><span class="ch-av"><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg></span>Qlik Analyst<span class="ch-sep"></span><span class="ch-st"><span class="ch-sq"></span>Stopping…</span></span></div>
+          <div class="row"><span class="pin">3</span><code>interrupting</code></div>
+          <p>Amber tint and a blinking stop square.</p>
+        </div>
+        <div class="ch-state">
+          <div class="ch-mini"><span class="ch-pill s-wait"><span class="ch-av"><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg></span>Qlik Analyst<span class="ch-sep"></span><span class="ch-st"><svg class="ic sm" aria-hidden="true"><use href="#i-user"/></svg>Waiting on you</span></span></div>
+          <div class="row"><span class="pin">4</span><code>waiting</code></div>
+          <p>Accent fill with a slow breathing ring. The one state that asks for you.</p>
+        </div>
+        <div class="ch-state">
+          <div class="ch-mini"><span class="ch-pill s-idle"><span class="ch-av"><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg><span class="ch-flag"></span></span>Qlik Analyst<span class="ch-sep"></span><span class="ch-st"><span class="pulse idle"></span>Idle</span></span></div>
+          <div class="row"><span class="pin">5</span><code>any + mcp issue</code></div>
+          <p>Amber dot on the avatar layers on top of any state.</p>
+        </div>
+      </div>
+
+      <div class="ba">
+        <div>
+          <span class="ba-label">Round 1</span>
+          <div class="ch-mini faded"><span class="status-pill"><span class="pulse"></span>Qlik Analyst <span class="muted">· Working</span></span></div>
+        </div>
+        <div>
+          <span class="ba-label now">Now <span class="pin">6</span></span>
+          <div class="ch-mini"><span class="ch-pill s-run"><span class="ch-av"><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg><span class="ch-flag"></span></span>Qlik Analyst<span class="ch-sep"></span><span class="ch-st"><span class="pulse"></span>Working <span class="ch-time">0:42</span></span><svg class="ic sm" aria-hidden="true"><use href="#i-chevd"/></svg></span></div>
+        </div>
+      </div>
+
+      <span class="ch-h">Opened</span>
+      <div class="ch-float">
+        <div class="ch-ghost" aria-hidden="true"><i style="width:62%"></i><i style="width:84%"></i><i style="width:48%"></i><i style="width:76%"></i><i style="width:58%"></i></div>
+        <span class="ch-pill s-run open"><span class="ch-av"><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg><span class="ch-flag"></span></span>Qlik Analyst<span class="ch-sep"></span><span class="ch-st"><span class="pulse"></span>Working</span><svg class="ic sm" aria-hidden="true"><use href="#i-chevd"/></svg></span>
+        <div class="ch-pop" role="dialog" aria-label="Agent details">
+          <div class="ch-pop-head">
+            <span class="ch-av"><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg></span>
+            <div class="ch-who"><b>Qlik Analyst</b><span>Agent for this session</span></div>
+            <button class="btn soft" type="button">Edit agent<svg class="ic sm" aria-hidden="true"><use href="#i-chev"/></svg></button>
+            <span class="pin">7</span>
+          </div>
+          <div class="ch-facts">
+            <div class="ch-fact"><svg class="ic" aria-hidden="true"><use href="#i-spark"/></svg><div><small>Model</small><span>Sonnet 5.5</span></div></div>
+            <div class="ch-fact"><svg class="ic" aria-hidden="true"><use href="#i-globe"/></svg><div><small>Provider</small><span>Anthropic</span></div></div>
+            <div class="ch-fact"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg><div><small>Sandbox</small><span>Workspace write</span></div></div>
+            <div class="ch-fact"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><div><small>Project folder</small><span class="mono">~/true-ui</span></div></div>
+          </div>
+          <div class="ch-sechd"><svg class="ic sm" aria-hidden="true"><use href="#i-plug"/></svg>Connected tools<span class="pin">8</span><span class="ch-count">2 of 4 ready</span></div>
+          <div class="ch-carts">
+            <div class="ch-cart tone-1">
+              <div class="ch-lab"><svg class="ic sm" aria-hidden="true"><use href="#i-chart"/></svg><b>Qlik Cloud</b><small>12 tools</small></div>
+              <div class="ch-pins"><span class="ch-teeth"></span><span class="ch-led"></span></div>
+            </div>
+            <div class="ch-cart tone-main">
+              <div class="ch-lab"><svg class="ic sm" aria-hidden="true"><use href="#i-term"/></svg><b>GitHub</b><small>8 tools</small></div>
+              <div class="ch-pins"><span class="ch-teeth"></span><span class="ch-led"></span></div>
+            </div>
+            <div class="ch-cart tone-0">
+              <span class="ch-tape">sign in</span>
+              <div class="ch-lab"><svg class="ic sm" aria-hidden="true"><use href="#i-file"/></svg><b>Google Drive</b><small>Needs auth</small></div>
+              <div class="ch-pins"><span class="ch-teeth"></span><span class="ch-led warn"></span></div>
+            </div>
+            <div class="ch-cart tone-2 down">
+              <span class="ch-tape bad">failed</span>
+              <div class="ch-lab"><svg class="ic sm" aria-hidden="true"><use href="#i-list"/></svg><b>Jira</b><small>Failed</small></div>
+              <div class="ch-pins"><span class="ch-teeth"></span><span class="ch-led bad"></span></div>
+            </div>
+          </div>
+          <div class="ch-pop-foot"><svg class="ic sm" aria-hidden="true"><use href="#i-alert"/></svg><span>2 tools need attention</span><span class="spacer"></span><button class="btn" type="button">Open tools</button></div>
+        </div>
+      </div>
+      <p class="board-cap">Each state gets its own glyph and tint. Click the pill and the agent card drops out of it, tools shown as the same cartridges as the MCP shelf.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Idle and Starting</b> <span class="tag changed">Changed</span><span>Idle is a still grey dot. Starting swaps in a spinner and a light shimmer on "Starting…" so it reads as busy but not yet running.</span><span class="src">Data: <code>turn.state = "idle" | "starting"</code></span></div></li>
+      <li><span class="pin">2</span><div><b>Working</b> <span class="tag changed">Changed</span><span>Accent pulse and label plus a mono elapsed timer. The timer hides on phones.</span><span class="src">Data: <code>turn.state = "running"</code>, <code>turn.startedAt</code></span></div></li>
+      <li><span class="pin">3</span><div><b>Stopping</b> <span class="tag new">New</span><span>Whole pill tints amber with a blinking stop square. Stop in the composer is disabled until the turn settles.</span><span class="src">Data: <code>turn.state = "interrupting"</code></span></div></li>
+      <li><span class="pin">4</span><div><b>Waiting on you</b> <span class="tag new">New</span><span>Accent fill and a slow breathing ring, used when a question or approval is open in the stream. It is the only pill state that moves at rest.</span><span class="src">Data: <code>turn.state = "waiting"</code>, <code>request.open</code></span></div></li>
+      <li><span class="pin">5</span><div><b>Tool health dot</b> <span class="tag new">New</span><span>Any server in needs auth or failed puts an amber dot on the avatar, in every turn state. It clears when all servers are connected.</span><span class="src">Data: <code>mcp.status[*].state</code></span></div></li>
+      <li><span class="pin">6</span><div><b>Round 1 vs now</b> <span class="tag changed">Changed</span><span>Old pill was a dot and grey text. The new one adds the avatar, a divider, a state color, the timer and a chevron that says it opens.</span><span class="src">Data: same fields</span></div></li>
+      <li><span class="pin">7</span><div><b>Agent popover</b> <span class="tag changed">Changed</span><span>Header with avatar, name and Edit agent. Four fact tiles: model, provider, sandbox mode, project folder. Esc or outside click closes.</span><span class="src">Data: <code>agent.model</code>, <code>agent.provider</code>, <code>session.sandbox</code>, <code>session.cwd</code></span></div></li>
+      <li><span class="pin">8</span><div><b>Connected tools</b> <span class="tag new">New</span><span>Mini cartridges from the MCP shelf: label with tool count, a status LED, and masking tape only when a server needs attention. Failed ones go grey. The amber footer and each problem cartridge open server settings.</span><span class="src">Data: <code>mcp.status</code> (name, state, toolCount)</span></div></li>
+    </ol>
+  </div>
+
+  <!-- Board C: session health and archive -->
+  <div class="board">
+    <div class="ch-health">
+      <div class="ch-slice">
+        <div class="ch-top">
+          <div class="ch-crumb"><span class="t">Onboarding plan for new analysts</span></div>
+          <span class="ch-pill s-idle"><span class="ch-av"><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg></span>Qlik Analyst<span class="ch-sep"></span><span class="ch-st"><span class="pulse warn"></span>Idle</span></span>
+          <div class="ch-right"></div>
+        </div>
+        <div class="ch-ban warn" role="alert">
+          <span class="ch-ban-ic"><svg class="ic" aria-hidden="true"><use href="#i-plug"/></svg></span>
+          <div class="ch-ban-tx"><b>This session lost its runner. Reconnect or start a new chat.</b><span>Your history is safe.</span></div>
+          <div class="ch-ban-act"><span class="pin">1</span><button class="btn primary" type="button"><svg class="ic sm" aria-hidden="true"><use href="#i-retry"/></svg>Reconnect</button><button class="btn ghost" type="button">New chat</button></div>
+        </div>
+        <div class="ch-dim" aria-hidden="true"><i style="width:70%"></i><i style="width:46%"></i></div>
+        <div class="ch-bottom"><div class="composer"><div class="ph">Reconnect to send a message</div></div></div>
+      </div>
+
+      <div class="ch-slice">
+        <div class="ch-top">
+          <div class="ch-crumb"><span class="t">Onboarding plan for new analysts</span></div>
+          <span class="ch-pill s-idle"><span class="ch-av"><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg></span>Qlik Analyst<span class="ch-sep"></span><span class="ch-st"><span class="pulse idle"></span>Ended</span></span>
+          <div class="ch-right"></div>
+        </div>
+        <div class="ch-ban dead" role="status">
+          <span class="ch-ban-ic"><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg></span>
+          <div class="ch-ban-tx"><b>This session has ended.</b><span>You can read it, but it can no longer run.</span></div>
+          <span class="pin">2</span>
+        </div>
+        <div class="ch-dim" aria-hidden="true"><i style="width:64%"></i><i style="width:38%"></i></div>
+        <div class="ch-lockbar"><svg class="ic" aria-hidden="true"><use href="#i-eye"/></svg><span>Read only</span><button class="btn" type="button"><svg class="ic sm" aria-hidden="true"><use href="#i-plus"/></svg>Start a new chat</button></div>
+      </div>
+
+      <div class="ch-slice">
+        <div class="ch-top">
+          <div class="ch-crumb"><span class="t">Onboarding plan for new analysts</span><span class="ch-arch"><svg class="ic sm" aria-hidden="true"><use href="#i-history"/></svg>Archived</span><span class="pin">3</span></div>
+          <span class="ch-pill s-idle"><span class="ch-av"><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg></span>Qlik Analyst<span class="ch-sep"></span><span class="ch-st"><span class="pulse idle"></span>Idle</span></span>
+          <div class="ch-right"></div>
+        </div>
+        <div class="ch-dim" aria-hidden="true"><i style="width:58%"></i><i style="width:80%"></i></div>
+        <div class="ch-lockbar"><svg class="ic" aria-hidden="true"><use href="#i-history"/></svg><span>This chat is archived.</span><span class="pin">4</span><button class="btn primary" type="button">Unarchive</button></div>
+      </div>
+      <p class="board-cap">Three ways a session stops taking input. Each one says why and offers the one action that gets you moving again.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Orphaned</b> <span class="tag new">New</span><span>Amber banner under the topbar with a plug icon. Reconnect retries the attach; New chat forks the transcript. The composer stays visible but disabled, and the pill dot turns amber.</span><span class="src">Data: <code>session.status = "orphaned"</code></span></div></li>
+      <li><span class="pin">2</span><div><b>Dead</b> <span class="tag new">New</span><span>Neutral banner with a lock. The pill reads "Ended". The composer is replaced by a dashed read only bar with Start a new chat.</span><span class="src">Data: <code>session.status = "dead"</code></span></div></li>
+      <li><span class="pin">3</span><div><b>Archived pill</b> <span class="tag new">New</span><span>Outlined pill after the title. Title keeps its ellipsis first, the pill never truncates.</span><span class="src">Data: <code>session.archived</code></span></div></li>
+      <li><span class="pin">4</span><div><b>Unarchive bar</b> <span class="tag new">New</span><span>Replaces the composer. Unarchive restores the composer in place and keeps the scroll position.</span><span class="src">Data: <code>session.archived</code></span></div></li>
+    </ol>
+  </div>
+</section>

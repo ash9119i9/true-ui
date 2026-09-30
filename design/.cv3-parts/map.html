@@ -1,0 +1,253 @@
+<section class="sec" id="map">
+<style>
+#map .mp-app{border-radius:20px}
+#map .mp-body{display:grid;grid-template-columns:44px minmax(0,1fr) 250px;gap:8px;padding:8px}
+@media (max-width:900px){#map .mp-body{grid-template-columns:44px minmax(0,1fr)}#map .mp-panel{grid-column:1 / -1}}
+@media (max-width:520px){#map .mp-body{grid-template-columns:minmax(0,1fr)}#map .mp-rail{flex-direction:row;justify-content:flex-start;padding:6px}}
+#map .mp-rail{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0;border:1px solid var(--line);border-radius:14px;background:var(--surface);min-width:0}
+#map .mp-rail b{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;color:var(--ink-2)}
+#map .mp-rail b.on{background:var(--accent-soft);color:var(--accent-fg)}
+#map .mp-main{display:flex;flex-direction:column;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+#map .mp-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:46px;padding:8px 12px;border-bottom:1px solid var(--line)}
+#map .mp-top .crumb{flex:1 1 180px}
+#map .mp-crumb-p{color:var(--ink-3);font-weight:500;white-space:nowrap}
+#map .mp-need{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;background:var(--warn-bg);color:var(--warn-text);font-size:13px;font-weight:600;white-space:nowrap;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--warn) 35%,transparent)}
+#map .mp-goal{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--surface-2);font-size:13px}
+#map .mp-goal .t{flex:1 1 160px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+#map .mp-goal .bar{flex:0 1 120px;min-width:60px}
+#map .mp-goal .n{font:500 12px var(--font-mono);color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+#map .mp-stream{display:flex;flex-direction:column;gap:14px;padding:16px 14px;min-width:0}
+#map .mp-fold{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-size:13px;color:var(--ink-2)}
+#map .mp-fold .grow{flex:1 1 140px}
+#map .mp-dock{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:14px;background:var(--warn-bg);color:var(--warn-text);border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);font-size:13px}
+#map .mp-dock .btn{height:28px}
+#map .mp-dock .btn.go{background:var(--accent-fg);color:var(--on-accent);border-color:var(--accent-fg)}
+#map .mp-cbar .chip{height:26px;padding:0 8px;font-size:12px}
+#map .mp-cbar .chip.on{background:var(--accent-soft);color:var(--accent-fg);border-color:transparent}
+#map .mp-panel{display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);min-width:0}
+#map .mp-panel .hrow{padding:6px 0}
+#map .mp-rel{position:relative}
+#map .mp-sm{font-size:12px;color:var(--ink-2)}
+/* status model grid */
+#map .mp-tbl{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+#map .mp-tbl table{min-width:760px;font-size:13px}
+#map .mp-tbl th,#map .mp-tbl td{padding:9px 12px}
+#map .mp-tbl td:first-child{white-space:nowrap}
+#map .mp-tbl .status-pill{height:24px;padding:0 9px;font-size:12px;gap:6px}
+#map .mp-tbl code{font-size:11px}
+#map .mp-in{display:flex;flex-wrap:wrap;gap:4px}
+#map .mp-dotb{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--warn);color:var(--bg);font:700 10px var(--font-mono)}
+#map .mp-dotb.run{background:var(--accent-fg);color:var(--on-accent)}
+#map .mp-dotb.bad{background:var(--bad);color:var(--bg)}
+#map .mp-none{color:var(--ink-3)}
+#map .mp-order{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;color:var(--ink-2);margin-top:10px}
+#map .mp-order code{font-size:11px}
+/* what changed */
+#map .mp-diff{display:flex;flex-direction:column;gap:10px}
+#map .mp-grp{border:1px solid var(--line);border-radius:14px;background:var(--surface);overflow:hidden}
+#map .mp-grp h3{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface-2);border-bottom:1px solid var(--line);font:700 20px/1 var(--font-hand);letter-spacing:0}
+#map .mp-grp.k h3{color:var(--ok)} #map .mp-grp.c h3{color:var(--bad)} #map .mp-grp.a h3{color:var(--accent-fg)}
+#map .mp-row{display:grid;grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr);gap:10px;align-items:start;padding:9px 14px;border-top:1px solid var(--line);font-size:13px}
+#map .mp-row:has(> .pin){grid-template-columns:22px minmax(0,1fr) 20px minmax(0,1fr)}
+#map .mp-row:first-of-type{border-top:0}
+#map .mp-row .was{color:var(--ink-3);min-width:0}
+#map .mp-row .was s{text-decoration-color:color-mix(in srgb,var(--bad) 60%,transparent)}
+#map .mp-row .now{color:var(--ink);min-width:0}
+#map .mp-row .ar{color:var(--ink-3);text-align:center}
+@media (max-width:520px){#map .mp-row{grid-template-columns:minmax(0,1fr)}#map .mp-row .ar{display:none}}
+</style>
+
+  <div class="sec-head">
+    <span class="eyebrow">Overview</span>
+    <h2>The page at a glance</h2>
+    <p>One rule decides placement. Content (messages, work, answers and live requests) is inline in the stream. Status (turn state, goal, helpers) is pinned to the topbar, the goal strip and the session panel. Diagnostics (traces, tokens, limits) stay folded behind the receipt and the Insights tab. One derived turn state feeds every status surface, so they never disagree.</p>
+  </div>
+
+  <!-- Board 1: hero layout -->
+  <div class="board">
+    <div>
+      <div class="app mp-app" aria-label="Conversation page layout, desktop">
+        <div class="app-chrome"><i></i><i></i><i></i><span>truex · conversation</span></div>
+        <div class="mp-body">
+          <nav class="mp-rail" aria-label="Collapsed sidebar">
+            <span class="pin pin-at" style="top:-8px;left:-8px">1</span>
+            <b title="Expand sidebar (mod+B)"><svg class="ic"><use href="#i-sidebar"/></svg></b>
+            <b title="New chat (mod+J)"><svg class="ic"><use href="#i-plus"/></svg></b>
+            <b title="Search (mod+K)"><svg class="ic"><use href="#i-search"/></svg></b>
+            <b class="on" title="Chats"><svg class="ic"><use href="#i-history"/></svg></b>
+            <b title="Agents"><svg class="ic"><use href="#i-bot"/></svg></b>
+          </nav>
+
+          <div class="mp-main">
+            <div class="mp-top">
+              <div class="crumb"><span class="pin">2</span><span class="mp-crumb-p">Handbook</span><svg class="ic sm"><use href="#i-chev"/></svg><span class="t">Onboarding plan for new analysts</span></div>
+              <span class="status-pill"><span class="pin" style="margin-left:-6px">3</span><span class="pulse warn"></span>Qlik Analyst <span class="muted">· Waiting on you</span></span>
+              <span class="mp-need"><span class="pin" style="margin-left:-4px">4</span><svg class="ic sm"><use href="#i-alert"/></svg>Needs you · 2</span>
+            </div>
+            <div class="mp-goal">
+              <span class="pin">5</span><svg class="ic sm"><use href="#i-target"/></svg>
+              <span class="t">Goal: a 2-week onboarding plan from the analyst handbook</span>
+              <span class="n">2/4 steps</span>
+              <div class="bar"><i style="width:36%"></i></div>
+              <span class="n">18k of 50k</span>
+            </div>
+
+            <div class="mp-stream">
+              <div class="msg user"><div class="bubble-wrap"><div class="bubble">Build the onboarding plan from the handbook docs in Drive. Keep week 1 light.</div></div></div>
+              <div class="msg">
+                <div class="av">Q</div>
+                <div class="grow">
+                  <div class="msg-meta"><span class="strong">Qlik Analyst</span><span class="muted sm">now</span></div>
+                  <div class="mp-fold mp-rel">
+                    <span class="pin">6</span>
+                    <svg class="ic sm"><use href="#i-layers"/></svg>
+                    <span class="grow"><span>Thought · 212 words, read 4 Drive files, 2 helpers</span></span>
+                    <span class="pill">Atlas done</span><span class="pill accent">Juno drafting</span>
+                    <svg class="ic sm"><use href="#i-chevd"/></svg>
+                  </div>
+                  <div class="answer" style="margin-top:10px">Week 1 covers accounts, the data catalog and two shadowing sessions. Week 2 moves to a first dashboard review with a mentor<span class="caret"></span></div>
+                  <div class="msg-foot"><span class="pin">7</span>Streaming · Sonnet 5.5 · high · Details</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bottom">
+              <div class="mp-dock mp-rel" role="group" aria-label="Open request">
+                <div class="row"><span class="pin">8</span><svg class="ic sm"><use href="#i-shield"/></svg><span class="strong" style="color:inherit">Juno wants to create a doc in Google Drive</span><span class="spacer"></span><span class="sm">1 of 2</span></div>
+                <div class="row"><span class="btn go">Allow once</span><span class="btn">Always allow</span><span class="btn ghost">Decline</span></div>
+              </div>
+              <div class="composer">
+                <div class="ph">Add a thought to steer the current turn…</div>
+                <div class="composer-bar mp-cbar">
+                  <span class="pin">9</span>
+                  <span class="chip" title="Attach files (1 MB each)"><svg class="ic sm"><use href="#i-file"/></svg>Attach</span>
+                  <span class="chip"><svg class="ic sm"><use href="#i-lock"/></svg>Qlik Analyst</span>
+                  <span class="chip"><svg class="ic sm"><use href="#i-spark"/></svg>Sonnet 5.5 · high</span>
+                  <span class="chip"><svg class="ic sm"><use href="#i-shield"/></svg>Auto-allow read-only tools</span>
+                  <span class="chip on"><svg class="ic sm"><use href="#i-target"/></svg>Goal</span>
+                  <span class="spacer"></span>
+                  <span class="send" aria-label="Send">↑</span><span class="send stop" aria-label="Stop"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <aside class="mp-panel" aria-label="Session panel">
+            <div class="row"><span class="pin">10</span><span class="strong">Session</span><span class="spacer"></span><span class="muted sm">mod+.</span></div>
+            <div class="seg"><span class="on">This turn</span><span>Session</span></div>
+            <div class="tabs"><span class="tab is-active">Activity</span><span class="tab">Goal</span><span class="tab">Agents</span><span class="tab">Plan</span><span class="tab">Insights</span></div>
+            <div class="hcard" style="margin:0">
+              <div class="hcard-head"><span>Helpers</span><span>2</span></div>
+              <div class="hrow tone-0"><span class="h-av">A</span><span class="grow">Atlas · research</span><span class="pill ok">Finished</span></div>
+              <div class="hrow tone-1"><span class="h-av">J</span><span class="grow">Juno · drafting</span><span class="pill warn">Needs you</span></div>
+            </div>
+            <div class="card"><div class="row"><svg class="ic sm"><use href="#i-plug"/></svg><span class="grow mp-sm">Google Drive · 1 tool error</span><span class="pill bad">1</span></div></div>
+            <div class="row mp-sm"><span class="pin">11</span><svg class="ic sm"><use href="#i-chart"/></svg>Insights: tokens, context, limits</div>
+          </aside>
+        </div>
+      </div>
+      <p class="board-cap">Desktop, sidebar collapsed to its rail, panel open. Status lives on the edges, the stream stays content only.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Sidebar rail</b> <span class="tag data">data</span><span>Collapsed sidebar. mod+B expands it and mod+J starts a new chat, both global while typing. Rows disable while busy.</span></div></li>
+      <li><span class="pin">2</span><div><b>Title crumb</b> <span class="tag data">data</span><span>Project and session title from the session record. Truncates first on narrow screens.</span></div></li>
+      <li><span class="pin">3</span><div><b>Status pill</b> <span class="tag derive">derive</span><span>Renders the one turn state from board 2. Clicking opens the agent popover. Today it shows stateText; the new states come from client logic.</span></div></li>
+      <li><span class="pin">4</span><div><b>Needs you · 2</b> <span class="tag derive">derive</span><span class="tag new">new</span><span>Count of open requests, goal stops, failed helpers and tool problems. Here: Juno's Drive approval and one Drive tool error. Opens a tray.</span></div></li>
+      <li><span class="pin">5</span><div><b>Goal strip</b> <span class="tag data">data</span><span class="tag status">status</span><span>Objective, plan steps done and token use against the budget. 2/4 is plan steps, 18k of 50k is goal tokens.</span></div></li>
+      <li><span class="pin">6</span><div><b>Folded work group</b> <span class="tag data">data</span><span class="tag content">content</span><span>Thinking, tool steps and helpers fold into one line. "Thought" shows a word count only; there is no duration field.</span></div></li>
+      <li><span class="pin">7</span><div><b>Streaming answer and receipt</b> <span class="tag data">data</span><span class="tag diag">diag</span><span>Answer streams in place. The receipt line holds model, effort and Details, which opens the trace.</span></div></li>
+      <li><span class="pin">8</span><div><b>Docked request</b> <span class="tag data">data</span><span class="tag content">content</span><span>One PendingRequest docked above the composer so it can't scroll away. Buttons come from options[]. It is what turns the pill to Waiting on you.</span></div></li>
+      <li><span class="pin">9</span><div><b>Composer action bar</b> <span class="tag data">data</span><span>Attach (1 MB per file, uploadAccept), agent chip locked after start, model and effort, approval mode, Goal. Send sits beside Stop once you type.</span></div></li>
+      <li><span class="pin">10</span><div><b>Session panel</b> <span class="tag data">data</span><span class="tag status">status</span><span>Activity, Goal, Agents, Plan and Insights, scoped to This turn or Session. mod+. toggles it.</span></div></li>
+      <li><span class="pin">11</span><div><b>Insights</b> <span class="tag data">data</span><span class="tag diag">diag</span><span>Token rollup, context fill and rate limits. Folded by default; nothing here interrupts the stream.</span></div></li>
+    </ol>
+  </div>
+
+  <!-- Board 2: status model -->
+  <div class="board">
+    <div>
+      <div class="mp-tbl" role="region" aria-label="Turn state to surface mapping" tabindex="0">
+        <table>
+          <thead><tr><th>Turn state</th><th>Inputs</th><th>Status pill</th><th>Helper chip</th><th>Dock badge</th><th>Needs you</th><th>Tag</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pin">5</span> Idle</td><td><div class="mp-in"><code>!running</code><code>!busy</code></div></td><td><span class="status-pill"><span class="pulse idle"></span>Ready</span></td><td><span class="mp-none">hidden</span></td><td><span class="mp-none">none</span></td><td>open items only</td><td><span class="tag data">data</span></td></tr>
+            <tr><td><span class="pin">2</span> Sending <span class="muted sm">(starting)</span></td><td><div class="mp-in"><code>busy</code><code>!running</code></div></td><td><span class="status-pill"><span class="spinner"></span>Starting</span></td><td><span class="mp-none">hidden</span></td><td><span class="mp-none">none</span></td><td>unchanged</td><td><span class="tag derive">derive</span></td></tr>
+            <tr><td>Working</td><td><div class="mp-in"><code>running</code><code>goal.status</code></div></td><td><span class="status-pill"><span class="pulse"></span>Working on goal</span></td><td><span class="pill accent">2 helpers</span></td><td><span class="mp-dotb run">•</span></td><td>unchanged</td><td><span class="tag data">data</span></td></tr>
+            <tr><td><span class="pin">3</span> Waiting on you</td><td><div class="mp-in"><code>running</code><code>pending[0]</code></div></td><td><span class="status-pill"><span class="pulse warn"></span>Waiting on you</span></td><td><span class="pill warn">Juno needs you</span></td><td><span class="mp-dotb">1</span></td><td>+ each request</td><td><span class="tag derive">derive</span></td></tr>
+            <tr><td><span class="pin">4</span> Stopping <span class="muted sm">(interrupting)</span></td><td><div class="mp-in"><code>running</code><code>stop sent</code></div></td><td><span class="status-pill"><span class="spinner"></span>Stopping</span></td><td><span class="pill">Stopping</span></td><td><span class="mp-dotb run">•</span></td><td>unchanged</td><td><span class="tag derive">derive</span></td></tr>
+            <tr><td>Interrupted</td><td><div class="mp-in"><code>turn.completed</code><code>interrupted</code></div></td><td><span class="status-pill"><span class="pulse idle"></span>Stopped</span></td><td><span class="pill">Stopped</span></td><td><span class="mp-none">none</span></td><td>+1 if goal paused</td><td><span class="tag data">data</span></td></tr>
+            <tr><td>Failed</td><td><div class="mp-in"><code>failure</code><code>!retrying</code></div></td><td><span class="status-pill"><span class="pulse bad"></span>Failed</span></td><td><span class="pill bad">1 errored</span></td><td><span class="mp-dotb bad">!</span></td><td>+1 failure</td><td><span class="tag data">data</span></td></tr>
+            <tr><td><span class="pin">6</span> Reconnecting</td><td><div class="mp-in"><code>status</code><code>slowReconnect</code></div></td><td><span class="status-pill"><span class="pulse warn"></span>Reconnecting…</span></td><td><span class="mp-none">frozen</span></td><td><span class="mp-none">frozen</span></td><td>frozen</td><td><span class="tag data">data</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mp-order"><span class="pin">1</span><span class="strong">Priority when inputs overlap:</span><code>reconnecting</code>›<code>failed</code>›<code>stopping</code>›<code>waiting on you</code>›<code>working</code>›<code>starting</code>›<code>interrupted</code>›<code>idle</code></div>
+      <p class="board-cap">One function, one answer. The pill, chip, badge and count read the same derived state.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>One deriveTurnState()</b> <span class="tag derive">derive</span><span>Reads running, busy, status, pending, goal and stream state and returns one of eight states. Replaces the ad hoc stateText chain.</span></div></li>
+      <li><span class="pin">2</span><div><b>Starting</b> <span class="tag derive">derive</span><span>busy is true and no turn is running yet. Today this gap shows "ready" while the send is in flight.</span></div></li>
+      <li><span class="pin">3</span><div><b>Waiting on you</b> <span class="tag derive">derive</span><span>Any open PendingRequest. Beats Working so a blocked turn never looks busy. The helper chip names who is asking.</span></div></li>
+      <li><span class="pin">4</span><div><b>Stopping</b> <span class="tag derive">derive</span><span>Set locally when Stop pauses the goal and calls interrupt; cleared on turn.completed. A 409 means the turn already ended.</span></div></li>
+      <li><span class="pin">5</span><div><b>Existing states</b> <span class="tag data">data</span><span>Ready, working, working on goal, retrying and reconnecting map one to one onto today's stateText. Failed reads TurnFailure.reason for its copy.</span></div></li>
+      <li><span class="pin">6</span><div><b>Reconnecting freezes counts</b> <span class="tag data">data</span><span>While the stream resyncs, badge and count hold their last value instead of dropping to zero, then snapshot hydration updates them.</span></div></li>
+    </ol>
+  </div>
+
+  <!-- Board 3: what changed -->
+  <div class="board">
+    <div class="mp-diff">
+      <div class="mp-grp k">
+        <h3><span class="pin">1</span><svg class="ic"><use href="#i-check"/></svg>Keep</h3>
+        <div class="mp-row"><span class="was">Placement rule: content, status, diagnostics</span><span class="ar">→</span><span class="now">Same rule, now written on every board</span></div>
+        <div class="mp-row"><span class="was">Request pinned above the composer</span><span class="ar">→</span><span class="now">Kept, with a "1 of N" stack count</span></div>
+        <div class="mp-row"><span class="was">This turn / Session scope in the panel</span><span class="ar">→</span><span class="now">Kept on all five tabs</span></div>
+      </div>
+      <div class="mp-grp c">
+        <h3><span class="pin">2</span><svg class="ic"><use href="#i-x"/></svg>Correct</h3>
+        <div class="mp-row"><span class="was"><s>Per-helper tokens, plan v2 diffs, "recommended" option</s></span><span class="ar">→</span><span class="now">Invented fields removed or tagged backend</span></div>
+        <div class="mp-row"><span class="was"><s>Thought for 4s</s></span><span class="ar">→</span><span class="now">Thought · 212 words</span></div>
+        <div class="mp-row"><span class="pin">3</span><span class="was"><s>r2 Esc order</s></span><span class="ar">→</span><span class="now">Esc closes menu, then goal mode, then panel, then stops</span></div>
+        <div class="mp-row"><span class="was"><s>r2 approval mode labels</s></span><span class="ar">→</span><span class="now">Ask, Auto-allow read-only tools, Autopilot</span></div>
+      </div>
+      <div class="mp-grp a">
+        <h3><svg class="ic"><use href="#i-plus"/></svg>Add</h3>
+        <div class="mp-row"><span class="pin">4</span><span class="was">Uploads hidden in the Tools sheet</span><span class="ar">→</span><span class="now">Attach chip in the composer bar</span></div>
+        <div class="mp-row"><span class="was">Model and agent in the pill popover</span><span class="ar">→</span><span class="now">Agent, model and effort chips before send</span></div>
+        <div class="mp-row"><span class="pin">5</span><span class="was">No overview of open items</span><span class="ar">→</span><span class="now">Needs you count and tray, one status model</span></div>
+        <div class="mp-row"><span class="was">Goal only in the panel</span><span class="ar">→</span><span class="now">Goal strip under the topbar</span></div>
+      </div>
+      <p class="board-cap">r3 builds on r2's layout. The fixes are mostly about what the data really says.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Keep the frame</b> <span class="tag data">data</span><span>r2's layout and placement rule hold up. Nothing moves between regions except uploads and agent settings.</span></div></li>
+      <li><span class="pin">2</span><div><b>True to the contract</b> <span class="tag data">data</span><span>About 20 fields r2 drew don't exist. Each is removed, or kept with a visible backend tag naming the missing field.</span></div></li>
+      <li><span class="pin">3</span><div><b>Esc has one order</b> <span class="tag data">data</span><span>Slash or @ menu, goal mode, popover or panel, then stop turn. Stop is last so a stray Esc never kills work.</span></div></li>
+      <li><span class="pin">4</span><div><b>Composer owns inputs</b> <span class="tag data">data</span><span class="tag new">new</span><span>Attach, agent, model and effort, mode and Goal sit in one bar. The Tools sheet keeps only slash-command mirrors.</span></div></li>
+      <li><span class="pin">5</span><div><b>Status in one place</b> <span class="tag derive">derive</span><span class="tag new">new</span><span>Needs you tray and deriveTurnState() are client logic over existing fields. No API change.</span></div></li>
+    </ol>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Element</th><th>Source field or event</th><th>Data tag</th></tr></thead>
+      <tbody>
+        <tr><td>Title crumb</td><td>Session title, project from <code>useProjects</code></td><td><span class="tag data">data</span></td></tr>
+        <tr><td>Status pill</td><td><code>running</code>, <code>busy</code>, <code>status</code>, <code>retrying</code>, <code>slowReconnect</code>, <code>goal</code></td><td><span class="tag derive">derive</span></td></tr>
+        <tr><td>Starting, Stopping, Waiting on you</td><td><code>busy</code>, local stop flag, <code>pending</code></td><td><span class="tag derive">derive</span></td></tr>
+        <tr><td>Needs you count and tray</td><td><code>pending</code>, <code>goal.status</code>, <code>SubAgentStatus</code> errored, tool errors</td><td><span class="tag derive">derive</span></td></tr>
+        <tr><td>Goal strip</td><td><code>Goal</code> objective, <code>tokensUsed</code>, <code>tokenBudget</code>; <code>plan.updated</code> steps</td><td><span class="tag data">data</span></td></tr>
+        <tr><td>Folded work group</td><td><code>Entry</code> union: thinking, tool items, helpers</td><td><span class="tag data">data</span></td></tr>
+        <tr><td>Streaming answer, receipt</td><td>message deltas, <code>TurnTrace</code></td><td><span class="tag data">data</span></td></tr>
+        <tr><td>Docked request</td><td><code>PendingRequest</code> with <code>options[]</code></td><td><span class="tag data">data</span></td></tr>
+        <tr><td>Composer chips</td><td><code>uploadAccept</code>, agent <code>model</code> and effort, approval mode, <code>goalMode</code></td><td><span class="tag data">data</span></td></tr>
+        <tr><td>Session panel, Insights</td><td><code>subagent.*</code>, <code>mcp.status</code>, <code>TraceSummary</code></td><td><span class="tag data">data</span></td></tr>
+        <tr><td>Request age in tray</td><td>needs <code>PendingRequest.createdAt</code></td><td><span class="tag backend">backend</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="qs">
+    <div class="q"><b>Should a helper request change the pill?</b><span>This board treats any open PendingRequest as Waiting on you, even while the main answer streams. Telling helper and main-agent requests apart needs a thread id on the request. Recommendation: keep one rule for now and let the helper chip name who is asking.</span></div>
+  </div>
+</section>

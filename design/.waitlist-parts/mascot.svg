@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 160" fill="none" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Pluto, a happy retro computer mascot">
+  <!-- ground shadow -->
+  <ellipse cx="70" cy="150" rx="38" ry="5" fill="#E6E4DD" opacity="0.9"/>
+  <!-- excited lines -->
+  <g stroke="#F5C451" stroke-width="4.5">
+    <path d="M12 34 L21 39"/>
+    <path d="M25 17 L28 27"/>
+    <path d="M114 14 L108 23"/>
+    <path d="M128 30 L118 34"/>
+  </g>
+  <!-- body / legs -->
+  <g stroke="#1B1F2E" stroke-width="4">
+    <path d="M40 106 C38 122 40 134 46 143 L65 144 L67 134 L73 134 L75 144 L94 143 C100 133 101 120 99 106 Z" fill="#4A4F60"/>
+    <path d="M67 134 L70 124 L73 134" stroke-width="3"/>
+    <!-- arm -->
+    <path d="M32 84 C22 92 21 110 27 118 C31 123 37 120 38 114 L40 92 Z" fill="#9A9DA8"/>
+  </g>
+  <!-- head (slightly tilted) -->
+  <g transform="rotate(6 70 66)" stroke="#1B1F2E" stroke-width="4">
+    <!-- depth: right side + top, drawn as one back shell -->
+    <path d="M40 26 L48 20 L106 20 Q112 20 112 26 L112 98 Q112 104 106 106 L100 110 L100 30 Z" fill="#CFCDC6"/>
+    <path d="M100 30 L100 110" stroke-width="0"/>
+    <!-- front face -->
+    <rect x="30" y="26" width="72" height="84" rx="11" fill="#EFEDE6"/>
+    <!-- bezel -->
+    <rect x="37" y="33" width="58" height="47" rx="8" fill="#1E3A8A"/>
+    <!-- screen -->
+    <rect x="42" y="38" width="48" height="37" rx="5" fill="#2E6BF0" stroke-width="0"/>
+    <!-- glare -->
+    <path d="M50 46 L58 42 L66 47 L74 42 L83 45 L81 52 L72 50 L63 53 L54 51 Z" fill="#FFFFFF" stroke-width="0"/>
+    <!-- happy eyes -->
+    <path d="M50 67 Q55.5 57 61 67" stroke-width="4"/>
+    <path d="M71 67 Q76.5 57 82 67" stroke-width="4"/>
+    <!-- LED -->
+    <rect x="40" y="88" width="8" height="6" rx="1.5" fill="#4CC66A" stroke-width="2.5"/>
+    <!-- floppy slot -->
+    <rect x="58" y="88" width="34" height="5.5" rx="2.75" fill="#1B1F2E" stroke-width="0"/>
+    <path d="M40 102 L92 102" stroke="#CFCDC6" stroke-width="3"/>
+  </g>
+</svg>

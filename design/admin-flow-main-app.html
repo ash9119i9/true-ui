@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tenant Invite Flow</title>
+<style>
+    /* Blue Brand System — light-mode-first.
+       Primary blue #3691CD carries actions, focus and progress (white content on it).
+       Pastel #BCDEE8 is the soft companion: signature, mist borders, glows (graphite content on it). */
+    :root {
+      --brand-50: #F8FCFD; --brand-100: #F4FAFC; --brand-200: #EAF5F8; --brand-300: #D8EBF0;
+      --brand-400: #BCDEE8; --brand-500: #3691CD; --brand-600: #2A7DB4; --brand-700: #226A9B;
+
+      --bg: #FFFFFF;
+      --surface: #FFFFFF;
+      --surface-2: #FFFFFF;
+      --surface-3: #F6F9FA;     /* soft surface */
+      --line: #E3ECEF;
+      --line-strong: #D8E0E4;
+      --border-control: #D8E0E4;
+      --ink: #1F2A30;           /* graphite */
+      --ink-2: #5F6D73;         /* secondary */
+      --ink-3: #849198;         /* muted */
+      --ink-disabled: #B4BEC3;
+
+      --accent: #3691CD;        /* primary action: buttons, active controls */
+      --accent-2: #2A7DB4;      /* strong: hover, dots, progress, focus */
+      --accent-hover: #2A7DB4;
+      --accent-pressed: #226A9B;
+      --accent-soft: #EAF5F8;   /* ice: selected + secondary */
+      --accent-soft-2: #BCDEE8; /* pastel companion border */
+      --signature: #BCDEE8;
+      --accent-fg: #2A72A3;     /* blue text/icons, AA on white and ice */
+      --accent-text: #2A72A3;
+      --accent-ink: #1F2A30;    /* content on pastel fills */
+      --on-accent: #FFFFFF;     /* content on #3691CD fills */
+      --warn: #7D5D1D;
+
+      --success-bg: #E7F4ED; --success-text: #35624E;
+      --warning-bg: #FFF3D9; --warning-text: #7D5D1D;
+      --error-bg: #FBE7E7;   --error-text: #8D4545;
+      --info-bg: #EAF5F8;    --info-text: #2A72A3;
+      --neutral-bg: #F6F9FA; --neutral-text: #5F6D73;
+
+      --glow-1: rgb(188 222 232 / 60%);
+      --glow-2: rgb(234 245 248 / 90%);
+      --shadow-sm: 0 1px 2px rgb(31 42 48 / 5%);
+      --shadow-md: 0 1px 2px rgb(31 42 48 / 4%), 0 8px 24px -8px rgb(31 42 48 / 10%);
+      --shadow-lg: 0 2px 4px rgb(31 42 48 / 4%), 0 10px 35px rgb(31 42 48 / 8%);
+      --radius: 16px;
+
+      --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+      --font-display: "Figtree", ui-sans-serif, system-ui, sans-serif;
+      --font-accent: "Newsreader", ui-serif, Georgia, serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+      --display-weight: 600; --display-track: -.035em;
+      --accent-style: italic; --accent-weight: 400; --accent-scale: 1.04;
+      color-scheme: light;
+    }
+    /* Dark theme is not in the brand system (light-mode-first); derived from graphite with #3691CD / #BCDEE8 accents. */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #171717; --surface: #171717; --surface-2: #171717; --surface-3: #242424;
+        --line: #2A2A2A; --line-strong: #363636; --border-control: #404040;
+        --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F; --ink-disabled: #4E5C62;
+        --accent: #3691CD; --accent-2: #5AA8DC; --accent-hover: #2A7DB4; --accent-pressed: #226A9B;
+        --accent-soft: #14283A; --accent-soft-2: #1F4461; --accent-fg: #BCDEE8; --accent-text: #BCDEE8; --accent-ink: #1F2A30; --on-accent: #FFFFFF;
+        --warn: #E6C27A;
+        --success-bg: #16291F; --success-text: #A8D8BE; --warning-bg: #2E2512; --warning-text: #E6C27A;
+        --error-bg: #2F1A1A; --error-text: #EDB0B0; --info-bg: #14283A; --info-text: #BCDEE8;
+        --neutral-bg: #242424; --neutral-text: #8B999F;
+        --glow-1: rgb(54 145 205 / 16%); --glow-2: rgb(188 222 232 / 6%);
+        --shadow-md: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -8px rgb(0 0 0 / 50%);
+        --shadow-lg: 0 2px 4px rgb(0 0 0 / 30%), 0 24px 48px -16px rgb(0 0 0 / 70%);
+        color-scheme: dark;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #171717; --surface: #171717; --surface-2: #171717; --surface-3: #242424;
+      --line: #2A2A2A; --line-strong: #363636; --border-control: #404040;
+      --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F; --ink-disabled: #4E5C62;
+      --accent: #3691CD; --accent-2: #5AA8DC; --accent-hover: #2A7DB4; --accent-pressed: #226A9B;
+      --accent-soft: #14283A; --accent-soft-2: #1F4461; --accent-fg: #BCDEE8; --accent-text: #BCDEE8; --accent-ink: #1F2A30; --on-accent: #FFFFFF;
+      --warn: #E6C27A;
+      --success-bg: #16291F; --success-text: #A8D8BE; --warning-bg: #2E2512; --warning-text: #E6C27A;
+      --error-bg: #2F1A1A; --error-text: #EDB0B0; --info-bg: #14283A; --info-text: #BCDEE8;
+      --neutral-bg: #242424; --neutral-text: #8B999F;
+      --glow-1: rgb(54 145 205 / 16%); --glow-2: rgb(188 222 232 / 6%);
+      --shadow-md: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -8px rgb(0 0 0 / 50%);
+      --shadow-lg: 0 2px 4px rgb(0 0 0 / 30%), 0 24px 48px -16px rgb(0 0 0 / 70%);
+      color-scheme: dark;
+    }
+
+    /* Base rules (spec appendix). The app body is overflow:hidden; this standalone page scrolls. */
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body {
+      background: var(--bg); color: var(--ink);
+      font: 14px/1.5 var(--font-sans);
+      -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    }
+    button { font: inherit; color: inherit; cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; border-radius: 8px; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; }
+    }
+    @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+
+    /* Utility classes (spec 8) */
+    .muted { color: var(--ink-3); }
+    .strong { font-weight: 500; color: var(--ink); }
+    .sm { font-size: 12px; }
+    .mono { font-family: var(--font-mono); }
+    .grow { flex: 1; min-width: 0; }
+    .eyebrow { font: 500 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); padding: 0 10px 6px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+    /* Page */
+    .page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 20px 16px 48px; }
+
+    /* Prototype controls (not part of the product) */
+    .proto { width: 100%; max-width: 720px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
+    .proto-row { width: 100%; display: flex; justify-content: center; }
+    .seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; padding: 3px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-3); }
+    .seg-btn { height: 32px; padding: 0 12px; border: 0; border-radius: 8px; background: none; color: var(--ink-2); font: inherit; font-size: 13px; font-weight: 500; }
+    .seg-btn.is-active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+    .icon-btn { width: 34px; height: 34px; display: grid; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink-2); transition: background .15s, color .15s; }
+    .icon-btn:hover { color: var(--ink); background: var(--surface-3); }
+
+    /* Frame: dialog frame (spec s-dialog) as a single centred card */
+    .frame { width: 100%; max-width: 440px; }
+    .route { display: block; text-align: center; }
+    .card { width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow-lg); padding: 24px; animation: rise .18s ease-out; }
+    @media (max-width: 420px) { .card { padding: 20px 18px; } }
+
+    /* Brand (spec l-sidebar) */
+    .brand { display: flex; align-items: center; gap: 6px; padding: 0 0 20px; }
+    .brand-mark { width: 24px; height: 24px; border-radius: 7px; background: var(--ink); color: var(--bg); display: grid; place-items: center; }
+    .brand-word { font-family: var(--font-display); font-size: 17px; font-weight: 700; letter-spacing: -.03em; }
+
+    /* Heading: hero h1 pattern at a smaller size */
+    .title { margin: 0; font-family: var(--font-display); font-size: 28px; line-height: 1.08; font-weight: var(--display-weight); letter-spacing: var(--display-track); text-wrap: balance; }
+    .title em { font-family: var(--font-accent); font-style: var(--accent-style); font-weight: var(--accent-weight); font-size: calc(var(--accent-scale) * 1em); letter-spacing: -.01em; color: var(--accent-fg); padding-right: .04em; }
+    .lede { margin: 8px 0 0; font-size: 13.5px; color: var(--ink-2); max-width: 52ch; }
+
+    /* Invite details */
+    .meta { margin: 20px 0 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; }
+    .meta-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; padding: 8px 12px; font-size: 13px; }
+    .meta-row + .meta-row { border-top: 1px solid var(--line); }
+    .meta-row dt { color: var(--ink-3); flex: none; }
+    .meta-row dd { margin: 0; min-width: 0; text-align: right; overflow-wrap: anywhere; }
+    /* Role tag: .goal-tag pattern (spec c-chips) */
+    .tag { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-fg); font-size: 12px; font-weight: 500; }
+
+    /* Notices: semantic pairs, r12, 13px */
+    .notice { display: flex; gap: 10px; align-items: flex-start; margin: 20px 0 0; padding: 10px 12px; border-radius: 12px; font-size: 13px; }
+    .notice svg { flex: none; margin-top: 2px; }
+    .notice p { margin: 0; }
+    .notice b { font-weight: 600; }
+    .notice.error { background: var(--error-bg); color: var(--error-text); }
+    .notice.warning { background: var(--warning-bg); color: var(--warning-text); }
+    .notice.success { background: var(--success-bg); color: var(--success-text); }
+    .notice.info { background: var(--info-bg); color: var(--info-text); }
+
+    /* Buttons (spec c-buttons) */
+    .actions { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; }
+    .btn-solid, .btn-soft, .btn-ghost { height: 32px; padding: 0 12px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; font-weight: 500; }
+    .btn-solid { border: 0; background: var(--accent); color: var(--on-accent); }
+    .btn-solid:hover:not(:disabled) { background: var(--accent-hover); }
+    .btn-solid:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-soft { border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+    .btn-soft:hover { background: var(--surface-3); }
+    .btn-ghost { border: 0; background: none; color: var(--ink-3); }
+    .btn-ghost:hover { color: var(--ink); }
+    .btn-solid.lg, .btn-soft.lg { height: 38px; padding: 0 16px; font-size: 14px; }
+    .actions .lg { width: 100%; }
+
+    .foot { margin: 16px 0 0; font-size: 12px; color: var(--ink-3); }
+    .foot + .foot { margin-top: 6px; }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,6..72,400..500&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="page">
+  <div class="proto" aria-label="Prototype controls">
+    <div class="seg" role="tablist" aria-label="Screen" id="pageSeg">
+      <button type="button" class="seg-btn is-active" role="tab" aria-selected="true" data-page="invite">Invite page</button>
+      <button type="button" class="seg-btn" role="tab" aria-selected="false" data-page="login">Login page</button>
+    </div>
+    <button type="button" class="icon-btn" id="themeBtn" aria-label="Switch to dark theme"></button>
+    <div class="proto-row"><div class="seg" role="radiogroup" aria-label="State" id="stateSeg"></div></div>
+  </div>
+
+  <main class="frame">
+    <span class="route eyebrow" id="route">/invite/••••••••</span>
+    <section class="card" id="card" aria-live="polite"></section>
+  </main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // Icon paths from the spec (section 5). One 24x24 stroke path each.
+  var PATHS = {
+    spark: "M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z",
+    check: "M20 6 9 17l-5-5",
+    user: "M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10z",
+    lock: "M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4",
+    x: "M18 6 6 18M6 6l12 12",
+    pause: "M8 5v14M16 5v14",
+    logout: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",
+    sun: "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4",
+    moon: "M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"
+  };
+  function icon(name, size, stroke) {
+    return '<svg width="' + (size || 18) + '" height="' + (size || 18) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (stroke || 1.75) +
+      '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + PATHS[name] + '"/></svg>';
+  }
+
+  // Sample data (placeholders)
+  var T = "Northwind Labs", INVITED = "ana@gmail.com", OTHER = "ana.rivera@gmail.com", ADMIN = "Maya Chen";
+
+  function notice(kind, ic, html) {
+    return '<div class="notice ' + kind + '" role="' + (kind === "error" ? "alert" : "status") + '">' + icon(ic, 16) + "<p>" + html + "</p></div>";
+  }
+  function meta(rows) {
+    return '<dl class="meta">' + rows.map(function (r) {
+      return '<div class="meta-row"><dt>' + r[0] + "</dt><dd>" + r[1] + "</dd></div>";
+    }).join("") + "</dl>";
+  }
+  function btn(cls, label, ic) {
+    return '<button type="button" class="' + cls + '">' + (ic ? icon(ic, 16) : "") + label + "</button>";
+  }
+  function actions(list) { return '<div class="actions">' + list.join("") + "</div>"; }
+  function foot(text) { return '<p class="foot">' + text + "</p>"; }
+  function head(h, lede) { return '<h1 class="title">' + h + "</h1>" + (lede ? '<p class="lede">' + lede + "</p>" : ""); }
+
+  var inviteMeta = function (sent) {
+    return meta([
+      ["Workspace", '<span class="strong">' + T + "</span>"],
+      ["Invited by", ADMIN],
+      ["Role", '<span class="tag">User</span>'],
+      ["Invite for", '<span class="mono sm">' + INVITED + "</span>"],
+      ["Sent", sent || "Sep 29 · expires Oct 6"]
+    ]);
+  };
+
+  var SCREENS = {
+    invite: {
+      route: "/invite/••••••••",
+      states: [
+        ["valid", "Valid"], ["wrong", "Wrong account"], ["accepted", "Accepted"], ["member", "Already member"],
+        ["expired", "Expired"], ["revoked", "Revoked"], ["invalid", "Invalid link"], ["disabled", "Tenant disabled"]
+      ],
+      render: {
+        valid: function () {
+          return head("Join <em>" + T + "</em>", ADMIN + " invited you to work with the team on truex.") +
+            inviteMeta() +
+            actions([btn("btn-solid lg", "Continue with Google")]) +
+            foot("Sign in with <span class=\"strong\">" + INVITED + "</span>. Other Google accounts can't accept this invite.") +
+            foot("Your name and photo come from your Google account. Workspace admins can read all chats, read-only.");
+        },
+        wrong: function () {
+          return head("Wrong <em>Google account</em>") +
+            notice("warning", "user", "This invite is for <b>" + INVITED + "</b>. You're signed in as <b>" + OTHER + "</b>.") +
+            inviteMeta() +
+            actions([btn("btn-solid lg", "Switch account")]) +
+            foot("Sign in as " + INVITED + " to accept. If this is the wrong address, ask " + ADMIN + " to invite the account you use.");
+        },
+        accepted: function () {
+          return head("You're <em>in</em>", "Welcome to " + T + ".") +
+            notice("success", "check", "You joined <b>" + T + "</b> as a user, signed in as " + INVITED + ".") +
+            actions([btn("btn-solid lg", "Open " + T)]);
+        },
+        member: function () {
+          return head("Already <em>a member</em>") +
+            notice("info", "check", "You're already in <b>" + T + "</b> as " + INVITED + ". There's nothing to accept.") +
+            actions([btn("btn-solid lg", "Open " + T)]);
+        },
+        expired: function () {
+          return head("This invite <em>expired</em>") +
+            notice("warning", "pause", "Invites last 7 days, and this one ended on Sep 23. Ask " + ADMIN + " or another admin of " + T + " to send a new invite.") +
+            inviteMeta("Sep 16 · expired Sep 23");
+        },
+        revoked: function () {
+          return head("This invite <em>was withdrawn</em>") +
+            notice("error", "lock", "An admin of <b>" + T + "</b> withdrew this invite, so it can't be used. If you still need access, ask an admin to invite you again.");
+        },
+        invalid: function () {
+          return head("This link <em>doesn't work</em>") +
+            notice("error", "x", "This invite link is invalid or has been replaced by a newer one. If an admin resent your invite, open the link in the most recent email.") +
+            foot("Still stuck? Ask your workspace admin to send a new invite.");
+        },
+        disabled: function () {
+          return head(T + " is <em>unavailable</em>") +
+            notice("warning", "pause", "An admin turned off <b>" + T + "</b>, so invites can't be accepted right now. Contact your admin to turn it back on.");
+        }
+      }
+    },
+    login: {
+      route: "/login",
+      states: [["default", "Default"], ["noaccess", "No access"], ["disabled", "Tenant disabled"], ["session", "Session expired"]],
+      render: {
+        "default": function () {
+          return head("Sign in to <em>truex</em>", "Use the Google account your invite was sent to.") +
+            actions([btn("btn-solid lg", "Continue with Google")]) +
+            foot("New here? You need an invite from a workspace admin.");
+        },
+        noaccess: function () {
+          return head("Sign in to <em>truex</em>") +
+            notice("error", "lock", "<b>" + OTHER + "</b> isn't a member of any workspace. Sign in with the Gmail your invite was sent to, or ask an admin to invite this address.") +
+            actions([btn("btn-solid lg", "Use a different account")]) +
+            foot("If you were removed from a workspace, an admin can invite you again.");
+        },
+        disabled: function () {
+          return head("Sign in to <em>truex</em>") +
+            notice("warning", "pause", "<b>" + T + "</b> was turned off by an admin, so you were signed out. Contact your admin to turn it back on.") +
+            actions([btn("btn-soft lg", "Continue with Google")]);
+        },
+        session: function () {
+          return head("Sign in to <em>truex</em>") +
+            notice("info", "logout", "Your session ended and you were signed out. Sign in again to pick up where you left off.") +
+            actions([btn("btn-solid lg", "Continue with Google")]);
+        }
+      }
+    }
+  };
+
+  var page = "invite", state = "valid";
+  var card = document.getElementById("card");
+  var route = document.getElementById("route");
+  var stateSeg = document.getElementById("stateSeg");
+  var pageSeg = document.getElementById("pageSeg");
+
+  function brand() {
+    return '<div class="brand"><span class="brand-mark">' + icon("spark", 14, 2) + '</span><span class="brand-word">truex</span></div>';
+  }
+
+  function renderStates() {
+    stateSeg.innerHTML = SCREENS[page].states.map(function (s) {
+      var on = s[0] === state;
+      return '<button type="button" class="seg-btn' + (on ? " is-active" : "") + '" role="radio" aria-checked="' + on + '" data-state="' + s[0] + '">' + s[1] + "</button>";
+    }).join("");
+  }
+
+  function render() {
+    route.textContent = SCREENS[page].route;
+    card.innerHTML = brand() + SCREENS[page].render[state]();
+    // Replay the spec's rise entrance on each state change.
+    card.style.animation = "none"; void card.offsetWidth; card.style.animation = "";
+  }
+
+  pageSeg.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-page]");
+    if (!b || b.dataset.page === page) return;
+    page = b.dataset.page;
+    state = SCREENS[page].states[0][0];
+    pageSeg.querySelectorAll(".seg-btn").forEach(function (x) {
+      var on = x === b; x.classList.toggle("is-active", on); x.setAttribute("aria-selected", String(on));
+    });
+    renderStates(); render();
+  });
+
+  stateSeg.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-state]");
+    if (!b) return;
+    state = b.dataset.state;
+    renderStates(); render();
+    var active = stateSeg.querySelector('[data-state="' + state + '"]');
+    if (active) active.focus();
+  });
+
+  // Theme toggle sets data-theme on <html>.
+  var themeBtn = document.getElementById("themeBtn");
+  var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+  function isDark() {
+    var t = document.documentElement.getAttribute("data-theme");
+    return t ? t === "dark" : !!(mq && mq.matches);
+  }
+  function paintTheme() {
+    var dark = isDark();
+    themeBtn.innerHTML = icon(dark ? "sun" : "moon", 16);
+    themeBtn.setAttribute("aria-label", dark ? "Switch to light theme" : "Switch to dark theme");
+  }
+  themeBtn.addEventListener("click", function () {
+    document.documentElement.setAttribute("data-theme", isDark() ? "light" : "dark");
+    paintTheme();
+  });
+
+  paintTheme(); renderStates(); render();
+})();
+</script>
+</body>
+</html>

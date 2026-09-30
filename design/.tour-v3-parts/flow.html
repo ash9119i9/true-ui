@@ -1,0 +1,212 @@
+<section class="sec" id="flow">
+<style>
+/* route map: three chapter cards joined by a dashed path; stacks to one column on narrow screens */
+#flow .sec-head + .board{grid-template-columns:minmax(0,1fr)}
+#flow .sec-head + .board > .notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px 28px}
+#flow .sec-head + .board > .notes li{border-top:0;padding-top:10px}
+#flow .route{display:grid;grid-template-columns:minmax(0,1fr) 52px minmax(0,1fr) 52px minmax(0,1fr);align-items:start}
+#flow .hop{align-self:stretch;display:flex;flex-direction:column;align-items:center;padding-top:34px;color:var(--doodle)}
+#flow .hop svg{width:52px;height:40px;overflow:visible;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#flow .hop svg .dash{stroke-dasharray:5 6}
+#flow .chap{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:6px 6px 16px 6px;box-shadow:var(--shadow-card);padding:24px 16px 16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+#flow .chap::before{content:"";position:absolute;top:-11px;left:50%;width:84px;height:22px;transform:translateX(-50%) rotate(-2deg);background:var(--tape);border-radius:2px}
+#flow .chap:nth-child(1){transform:rotate(-.6deg)}
+#flow .chap:nth-child(3){transform:rotate(.4deg);margin-top:18px}
+#flow .chap:nth-child(5){transform:rotate(-.3deg);margin-top:6px}
+#flow .chap-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+#flow .chap-head .hand{font:700 25px/1 var(--font-hand);color:var(--accent);display:flex;align-items:baseline;gap:6px}
+#flow .chap-head .hand small{font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+#flow .time{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:999px;background:var(--surface-3);color:var(--ink-2);font:500 11px var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+#flow .stops{list-style:none;margin:0;padding:0;position:relative;display:flex;flex-direction:column;gap:12px}
+#flow .stops::before{content:"";position:absolute;left:13px;top:16px;bottom:16px;border-left:2px dashed color-mix(in srgb,var(--doodle) 45%,transparent)}
+#flow .stop{position:relative;display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:start}
+#flow .sn{position:relative;z-index:1;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--paper);border:2px solid var(--accent);color:var(--accent-fg);font:700 12px/1 var(--font-mono);font-variant-numeric:tabular-nums}
+#flow .stop.is-try .sn{background:var(--accent);color:var(--on-accent)}
+#flow .stop.is-wait .sn{border-style:dashed}
+#flow .sb{min-width:0;display:flex;flex-direction:column;gap:3px;padding:3px 0 0}
+#flow .sb-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+#flow .sb-top b{font-size:14px;font-weight:600;color:var(--ink);margin-right:auto}
+#flow .surf{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-2);min-width:0}
+#flow .surf code{font-size:11px}
+#flow .prep{font:11.5px/1.5 var(--font-mono);color:var(--ink-2);overflow-wrap:anywhere}
+#flow .prep em{font-style:normal;color:var(--accent-fg)}
+#flow .route-sum{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 12px;margin-top:22px;font:500 12px var(--font-mono);color:var(--ink-2);font-variant-numeric:tabular-nums}
+#flow .route-sum .hand{font:700 22px/1 var(--font-hand);color:var(--accent)}
+#flow .route-sum .legend-i{display:inline-flex;align-items:center;gap:6px}
+#flow .route-sum .sn{width:18px;height:18px;font-size:0}
+#flow .route-sum .sn.try{background:var(--accent)}
+#flow .route-sum .sn.wait{border-style:dashed}
+@media (max-width:900px){
+  #flow .route{grid-template-columns:minmax(0,1fr);gap:26px}
+  #flow .hop{display:none}
+  #flow .chap:nth-child(n){margin-top:0}
+}
+@media (max-width:520px){#flow .chap:nth-child(n){transform:none}}
+
+/* state diagram */
+#flow .sm-wrap{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:6px 6px 18px 6px;box-shadow:var(--shadow-card);padding:28px 18px 20px}
+#flow .sm-wrap::before{content:"";position:absolute;top:-11px;left:30%;width:90px;height:22px;transform:rotate(-3deg);background:var(--tape);border-radius:2px}
+#flow .sm{display:grid;grid-template-columns:minmax(0,1fr) 92px minmax(0,1.15fr) 92px minmax(0,1fr);grid-template-areas:"ns e1 run e2 fin" "ns e1 run e3 skp" ". . e4 . ." ". min min min ." ". fl fl fl .";gap:12px 0;align-items:center}
+#flow .st{position:relative;border:1px solid var(--line-strong);border-radius:12px;background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;gap:5px;min-width:0;font-size:12.5px;color:var(--ink-2)}
+#flow .st-name{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:var(--ink)}
+#flow .st-name .dot{width:8px;height:8px;border-radius:50%;background:var(--ink-3);flex:none}
+#flow .st .kv{font:11px/1.45 var(--font-mono);color:var(--ink-2);overflow-wrap:anywhere}
+#flow .st .ret{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--accent-fg);border-top:1px dashed var(--line-strong);padding-top:5px;margin-top:2px}
+#flow .st.run{border:2px solid var(--accent);box-shadow:0 0 0 5px var(--accent-soft)}
+#flow .st.run .dot{background:var(--accent);animation:pulse 1.6s infinite}
+#flow .st.fin .dot{background:var(--ok)}
+#flow .st.skp .dot{background:var(--warn)}
+#flow .st.min .dot{background:var(--t0)}
+#flow .st.ns{border-style:dashed;background:var(--surface-2)}
+#flow .st .pin{position:absolute;top:-10px;right:-8px}
+#flow .a-ns{grid-area:ns} #flow .a-run{grid-area:run} #flow .a-fin{grid-area:fin} #flow .a-skp{grid-area:skp} #flow .a-min{grid-area:min;justify-self:center;width:min(100%,250px)}
+#flow .a-e1{grid-area:e1} #flow .a-e2{grid-area:e2} #flow .a-e3{grid-area:e3} #flow .a-e4{grid-area:e4}
+#flow .edge{display:flex;flex-direction:column;align-items:center;gap:5px;padding:0 6px;font:700 16px/1.05 var(--font-hand);color:var(--ink-2);text-align:center;min-width:0}
+#flow .edge .from{display:none}
+#flow .edge i{position:relative;display:block;width:100%;border-top:2px dashed var(--doodle)}
+#flow .edge i::after{content:"";position:absolute;right:0;top:-6px;width:8px;height:8px;border-top:2px solid var(--doodle);border-right:2px solid var(--doodle);transform:rotate(45deg)}
+#flow .edge.v{flex-direction:row;justify-content:center;gap:10px}
+#flow .edge.v i{width:0;height:34px;border-top:0;border-left:2px dashed var(--doodle)}
+#flow .edge.v i::after{right:auto;top:auto;left:-5px;bottom:0;transform:rotate(135deg)}
+#flow .edge.v i::before{content:"";position:absolute;left:-5px;top:0;width:8px;height:8px;border-top:2px solid var(--doodle);border-right:2px solid var(--doodle);transform:rotate(-45deg)}
+#flow .edge.v span{flex:1;min-width:0}
+#flow .edge.v span:first-child{text-align:right}
+#flow .edge.v span:last-child{text-align:left}
+#flow .sm-foot{margin-top:18px;padding-top:12px;border-top:1px dashed var(--line-strong);display:flex;flex-wrap:wrap;gap:6px 14px;font:11.5px var(--font-mono);color:var(--ink-2)}
+#flow .sm-foot b{color:var(--ink-2);font-weight:500}
+@media (max-width:760px){
+  #flow .sm{grid-template-columns:minmax(0,1fr);grid-template-areas:"ns" "e1" "run" "e4" "min" "e2" "fin" "e3" "skp" "fl";gap:6px}
+  #flow .a-min{justify-self:stretch;width:auto}
+  #flow .edge{flex-direction:row;justify-content:flex-start;gap:10px;padding:4px 0 4px 18px;text-align:left}
+  #flow .edge .from{display:inline;font:500 11px var(--font-mono);color:var(--ink-2)}
+  #flow .edge i{width:0;height:28px;flex:none;border-top:0;border-left:2px dashed var(--doodle)}
+  #flow .edge i::after{right:auto;top:auto;left:-5px;bottom:0;transform:rotate(135deg)}
+  #flow .edge.v span:first-child{text-align:left;flex:none}
+  #flow .edge.v{justify-content:flex-start}
+}
+@media (prefers-reduced-motion:reduce){#flow .st.run .dot{animation:none}}
+#flow .a-fl{grid-area:fl;margin-top:10px}
+#flow .branches{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px;margin-top:30px;padding-top:26px;border-top:2px dashed color-mix(in srgb,var(--doodle) 40%,transparent);position:relative}
+#flow .branches > .lbl{position:absolute;top:-13px;left:18px;padding:0 8px;background:var(--board);font:700 20px/1 var(--font-hand);color:var(--doodle)}
+#flow .chap.side{border-style:dashed;box-shadow:var(--shadow-sm);transform:none;margin-top:0}
+#flow .chap.side::before{display:none}
+#flow .from-line{font:11.5px/1.5 var(--font-mono);color:var(--ink-2)}
+#flow .from-line b{color:var(--ink);font-weight:500}
+#flow .flags{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border:1px dashed var(--line-strong);border-radius:12px;padding:10px 12px;background:var(--surface-2);font-size:12.5px;color:var(--ink-2);min-width:0}
+#flow .flags code{font-size:11.5px;overflow-wrap:anywhere}
+#flow .flags .lb{font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin-right:4px}
+#flow .wn{margin-top:18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+#flow .wn > div{position:relative;border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:10px 12px;font-size:12.5px;color:var(--ink-2);min-width:0}
+#flow .wn b{display:block;color:var(--ink);font-size:13.5px;margin-bottom:2px}
+#flow .wn .pin{position:absolute;top:-10px;right:-8px}
+@media (max-width:520px){#flow .chap.side{transform:none}}
+</style>
+<div class="sec-head">
+  <span class="eyebrow">The route</span>
+  <h2>Twelve stops, then two short tours</h2>
+  <p>The main tour walks one real chat from an empty hero to a running goal. The Team and Create tours branch off later and run on their own.</p>
+</div>
+
+<div class="board">
+  <div>
+    <div class="route" role="group" aria-label="Tour route: 12 stops in 3 chapters, plus the Team and Create tours as side branches">
+      <div class="chap">
+        <div class="chap-head"><span class="hand"><small>Ch 1</small>First look <span class="pin">1</span></span><span class="time"><svg class="ic sm" aria-hidden="true"><use href="#i-clock"/></svg>~45s</span></div>
+        <ol class="stops">
+          <li class="stop"><span class="sn">1</span><div class="sb"><div class="sb-top"><b>Welcome</b><span class="tag look">Look</span></div><div class="surf"><svg class="ic sm" aria-hidden="true"><use href="#i-spark"/></svg>Centered hero · <code>hero-starters</code></div><div class="prep">prepare: <em>closes popovers, opens the empty hero</em></div></div></li>
+          <li class="stop"><span class="sn">2</span><div class="sb"><div class="sb-top"><b>Sidebar and ⌘K</b><span class="tag look">Look</span></div><div class="surf"><svg class="ic sm" aria-hidden="true"><use href="#i-sidebar"/></svg><code>sidebar</code> · <code>palette</code></div><div class="prep">prepare: <em>opens the sidebar</em></div></div></li>
+          <li class="stop"><span class="sn">3</span><div class="sb"><div class="sb-top"><b>Composer action bar</b><span class="tag look">Look</span></div><div class="surf"><svg class="ic sm" aria-hidden="true"><use href="#i-layers"/></svg><code>composer-bar</code></div><div class="prep">prepare: <em>scrolls composer into view</em></div></div></li>
+          <li class="stop"><span class="sn">4</span><div class="sb"><div class="sb-top"><b>Approval modes</b><span class="tag look">Look</span></div><div class="surf"><svg class="ic sm" aria-hidden="true"><use href="#i-shield"/></svg><code>approval-mode</code></div><div class="prep">prepare: <em>opens the picker, no change</em><br>skip: picker hidden when disabled</div></div></li>
+        </ol>
+      </div>
+      <div class="hop" aria-hidden="true"><svg viewBox="0 0 52 40"><path class="dash" d="M4 26C16 6 34 4 46 16"/><path d="M40 11l6 5-7 3"/></svg></div>
+      <div class="chap">
+        <div class="chap-head"><span class="hand"><small>Ch 2</small>See it work</span><span class="time"><svg class="ic sm" aria-hidden="true"><use href="#i-clock"/></svg>~100s <span class="pin">2</span></span></div>
+        <ol class="stops">
+          <li class="stop is-try"><span class="sn">5</span><div class="sb"><div class="sb-top"><b>@ mention picker</b><span class="tag try">Try</span></div><div class="surf"><svg class="ic sm" aria-hidden="true"><use href="#i-users"/></svg><code>mention-picker</code></div><div class="prep">prepare: <em>focuses composer</em><br>advanceOn: picker opens</div></div></li>
+          <li class="stop is-try"><span class="sn">6</span><div class="sb"><div class="sb-top"><b>Send the demo prompt</b><span class="tag try">Try</span></div><div class="surf"><svg class="ic sm" aria-hidden="true"><use href="#i-send"/></svg><code>send</code> · beacon</div><div class="prep">prepare: <em>fills the demo prompt</em><br>advanceOn: message sent</div></div></li>
+          <li class="stop is-wait"><span class="sn">7</span><div class="sb"><div class="sb-top"><b>Handed off node</b><span class="tag wait">Wait</span><span class="tag look">Look</span><span class="pin">3</span></div><div class="surf"><svg class="ic sm" aria-hidden="true"><use href="#i-bot"/></svg><code>handoff</code></div><div class="prep">prepare: <em>scrolls to the live turn</em><br>waitFor: first hand-off</div></div></li>
+          <li class="stop is-try"><span class="sn">8</span><div class="sb"><div class="sb-top"><b>Request card</b><span class="tag try">Try</span><span class="pin">4</span></div><div class="surf"><svg class="ic sm" aria-hidden="true"><use href="#i-alert"/></svg><code>request-card</code></div><div class="prep">prepare: <em>scrolls the dock above the composer</em><br>advanceOn: request answered</div></div></li>
+          <li class="stop"><span class="sn">9</span><div class="sb"><div class="sb-top"><b>Needs-you count and tray</b><span class="tag look">Look</span></div><div class="surf"><svg class="ic sm" aria-hidden="true"><use href="#i-alert"/></svg><code>needs-you</code></div><div class="prep">prepare: <em>opens the tray</em></div></div></li>
+        </ol>
+      </div>
+      <div class="hop" aria-hidden="true"><svg viewBox="0 0 52 40"><path class="dash" d="M4 26C16 6 34 4 46 16"/><path d="M40 11l6 5-7 3"/></svg></div>
+      <div class="chap">
+        <div class="chap-head"><span class="hand"><small>Ch 3</small>Keep it going</span><span class="time"><svg class="ic sm" aria-hidden="true"><use href="#i-clock"/></svg>~40s</span></div>
+        <ol class="stops">
+          <li class="stop is-try"><span class="sn">10</span><div class="sb"><div class="sb-top"><b>Queue and Steer</b><span class="tag try">Try</span></div><div class="surf"><svg class="ic sm" aria-hidden="true"><use href="#i-steer"/></svg><code>queue</code></div><div class="prep">prepare: <em>needs a running turn</em><br>advanceOn: message queued</div></div></li>
+          <li class="stop"><span class="sn">11</span><div class="sb"><div class="sb-top"><b>Goal strip</b><span class="tag look">Look</span><span class="pin">5</span></div><div class="surf"><svg class="ic sm" aria-hidden="true"><use href="#i-target"/></svg><code>goal-strip</code></div><div class="prep">prepare: <em>goal set: the strip. No goal: goal-chip</em></div></div></li>
+          <li class="stop"><span class="sn">12</span><div class="sb"><div class="sb-top"><b>Finish</b><span class="tag look">Look</span></div><div class="surf"><svg class="ic sm" aria-hidden="true"><use href="#i-check"/></svg>Centered · <code>tour-replay</code></div><div class="prep">prepare: <em>marks done, points to Account</em></div></div></li>
+        </ol>
+      </div>
+    </div>
+    <div class="branches">
+      <span class="lbl">side branches <span class="pin">6</span></span>
+      <div class="chap side">
+        <div class="chap-head"><span class="hand"><small>Team</small>4 stops</span><span class="time"><svg class="ic sm" aria-hidden="true"><use href="#i-clock"/></svg>~35s</span></div>
+        <div class="from-line">starts: <b>first visit to Agents</b>, or "Meet your team" on the finish card</div>
+        <ol class="stops">
+          <li class="stop"><span class="sn">1</span><div class="sb"><div class="sb-top"><b>Agents in the nav</b><span class="tag look">Look</span></div><div class="surf"><code>nav-agents</code></div></div></li>
+          <li class="stop"><span class="sn">2</span><div class="sb"><div class="sb-top"><b>All / Yours / Built-in</b><span class="tag look">Look</span></div><div class="surf"><code>team-filters</code></div></div></li>
+          <li class="stop"><span class="sn">3</span><div class="sb"><div class="sb-top"><b>A pinned card</b><span class="tag look">Look</span></div><div class="surf"><code>team-card</code> · red pin, in chat</div></div></li>
+          <li class="stop is-try"><span class="sn">4</span><div class="sb"><div class="sb-top"><b>New agent</b><span class="tag try">Try</span></div><div class="surf"><code>new-agent</code></div><div class="prep">advanceOn: form opens, hands to Create</div></div></li>
+        </ol>
+      </div>
+      <div class="chap side">
+        <div class="chap-head"><span class="hand"><small>Create</small>5 stops</span><span class="time"><svg class="ic sm" aria-hidden="true"><use href="#i-clock"/></svg>~60s</span></div>
+        <div class="from-line">starts: <b>first open of the create form</b>, or Team stop 4</div>
+        <ol class="stops">
+          <li class="stop is-try"><span class="sn">1</span><div class="sb"><div class="sb-top"><b>Name and handle</b><span class="tag try">Try</span></div><div class="surf"><code>agent-name</code> · Handbook Coach</div></div></li>
+          <li class="stop"><span class="sn">2</span><div class="sb"><div class="sb-top"><b>Look and tint</b><span class="tag look">Look</span></div><div class="surf"><code>agent-look</code></div></div></li>
+          <li class="stop"><span class="sn">3</span><div class="sb"><div class="sb-top"><b>Model and effort</b><span class="tag look">Look</span></div><div class="surf"><code>agent-model</code></div></div></li>
+          <li class="stop is-try"><span class="sn">4</span><div class="sb"><div class="sb-top"><b>Create</b><span class="tag try">Try</span></div><div class="surf"><code>agent-create</code></div><div class="prep">advanceOn: 201, or stay on 409</div></div></li>
+          <li class="stop is-wait"><span class="sn">5</span><div class="sb"><div class="sb-top"><b>Celebrate</b><span class="tag wait">Wait</span></div><div class="surf"><code>agent-celebrate</code></div></div></li>
+        </ol>
+      </div>
+    </div>
+    <div class="route-sum"><span class="hand">about 3 min</span><span class="legend-i"><span class="sn"></span>Look</span><span class="legend-i"><span class="sn try"></span>Try</span><span class="legend-i"><span class="sn wait"></span>Wait</span></div>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Tell first</b> <span class="tag look">Look</span> <span class="tag derive">derive</span><span>Four Look stops name the fixed parts before anything runs. Nothing is sent and no setting changes. prepare() only opens or scrolls.</span></div></li>
+    <li><span class="pin">2</span><div><b>Then show</b> <span class="tag try">Try</span> <span class="tag data">data</span><span>Chapter 2 runs one real prompt as Qlik Analyst, so the hand-off, the request and the count come from the live stream, not a fake. The tool list in the @ picker is per session.</span></div></li>
+    <li><span class="pin">3</span><div><b>Wait, then Look</b> <span class="tag wait">Wait</span> <span class="tag data">data</span><span>waitFor watches for the first "Handed off" node. After 3s with no node the card centers with the same copy and Next unlocks.</span></div></li>
+    <li><span class="pin">4</span><div><b>Answer for real</b> <span class="tag try">Try</span> <span class="tag data">data</span><span>Buttons come from options[]. If no request shows up in 3s, stop 8 centers and says requests will appear here. Stop 9 still counts whatever is open.</span></div></li>
+    <li><span class="pin">5</span><div><b>Goal is optional</b> <span class="tag derive">derive</span><span>The tour never runs /goal for the user. With a goal it spots the strip (2/4 steps, 42k / 50k). Without one it spots the Goal chip and names the token budget.</span></div></li>
+    <li><span class="pin">6</span><div><b>Side branches</b> <span class="tag derive">derive</span> <span class="tag new">new</span><span>Team and Create run on their own and are saved in parts.team and parts.create. Edit and delete agents come later with PATCH and DELETE /api/agents/:id, so no stop covers them.</span></div></li>
+  </ol>
+</div>
+
+<div class="board">
+  <div>
+    <div class="sm-wrap" role="group" aria-label="Tour state diagram: Not started, Running, Minimized, Finished and Skipped, with per-part flags and a What's new path for v1 users">
+      <div class="sm">
+        <div class="st ns a-ns"><span class="pin">1</span><span class="st-name"><span class="dot"></span>Not started</span><span>No key, or a v1 key.</span><span class="kv">truex-tour missing<br>or v &lt; 3</span></div>
+        <div class="edge a-e1"><span class="from">Not started →</span>first sign-in<br>or v1 user<i></i></div>
+        <div class="st run a-run"><span class="pin">2</span><span class="st-name"><span class="dot"></span>Running</span><span>A coach is on screen. Tour Esc runs before the v3 Esc order. mod+K, mod+B, mod+. and mod+J pause.</span><span class="kv">{v:3, done:false, step:6}</span><span class="ret">↻ replay from Account restarts at 1</span></div>
+        <div class="edge a-e2"><span class="from">Running →</span>Done on step 12<i></i></div>
+        <div class="st fin a-fin"><span class="pin">3</span><span class="st-name"><span class="dot"></span>Finished</span><span>Esc closes the finish card. Replay lives under Account.</span><span class="kv">done:"finished"</span></div>
+        <div class="edge a-e3"><span class="from">Running →</span>Skip tour<i></i></div>
+        <div class="st skp a-skp"><span class="pin">4</span><span class="st-name"><span class="dot"></span>Skipped</span><span>Never auto-starts again. Replay still works.</span><span class="kv">done:"skipped", step kept</span></div>
+        <div class="edge v a-e4"><span>Esc or close</span><i></i><span>chip click</span></div>
+        <div class="st min a-min"><span class="pin">5</span><span class="st-name"><span class="dot"></span>Minimized</span><span>Resume tour · 6 of 12. A reload lands here too.</span><span class="kv">{v:3, done:false, step:6}</span></div>
+        <div class="flags a-fl"><span class="pin">6</span><span class="lb">Per-part flags</span><code>parts.team: null | "finished" | "skipped"</code><code>parts.create: same</code><span>Each agent tour keeps its own flag, so finishing Team never touches the main tour.</span></div>
+      </div>
+      <div class="wn">
+        <div><span class="pin">7</span><b>What's new, for v1 users</b>A stored v:1 key with done set gets a 6-stop subset instead of all 12: composer bar, @ picker, handed off, request card, needs-you, goal strip. Eyebrow: "What's new · 2 of 6".</div>
+        <div><b>New users</b>No key at all. The full 12 stops run from Welcome. Team and Create wait for their own first visit.</div>
+      </div>
+      <div class="sm-foot"><span><b>key</b> truex-tour</span><span><b>shape</b> {v:3, done, step, parts:{team, create}}</span><span><b>storage</b> localStorage in try/catch, falls back to Not started</span></div>
+    </div>
+    <p class="board-cap">Five states and two flags. Nothing ends the tour by accident: Esc and close always land on Minimized.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Entry</b> <span class="tag derive">derive</span><span>Auto-starts once, on the first empty hero after sign-in. A key with v below 3 counts as not started, but its done value picks the What's new path.</span></div></li>
+    <li><span class="pin">2</span><div><b>Running</b> <span class="tag derive">derive</span><span>step is written on every Next and Back. The tour key handler runs in the capture phase, so the v3 Esc order (menu, goal mode, popover, stop turn) only runs when no coach is open.</span></div></li>
+    <li><span class="pin">3</span><div><b>Finished</b> <span class="tag look">Look</span> <span class="tag derive">derive</span><span>The only card where Esc closes. It spots tour-replay under Account and offers "Meet your team" to start the Team tour.</span></div></li>
+    <li><span class="pin">4</span><div><b>Skipped</b> <span class="tag derive">derive</span><span>Skip tour sits on the Welcome card. "Skip this" on a Try stop only skips that stop. The step is kept so Replay can offer to continue.</span></div></li>
+    <li><span class="pin">5</span><div><b>Minimized</b> <span class="tag derive">derive</span><span>Running is in memory only, so a reload with done:false shows the chip, never a coach. The chip reopens at step and reruns its prepare(). A Wait stop whose event already passed turns into a Look.</span></div></li>
+    <li><span class="pin">6</span><div><b>Per-part flags</b> <span class="tag derive">derive</span> <span class="tag new">new</span><span>parts.team and parts.create start on first visit to Agents and first open of the create form. Create stop 4 stays put on 409 AGENT_HANDLE_TAKEN until the handle is unique.</span></div></li>
+    <li><span class="pin">7</span><div><b>Progress across devices</b> <span class="tag backend">backend</span><span>localStorage is per browser, so a new laptop starts from stop 1. Syncing needs a tour field on /api/me (read and PATCH). Until then the key stays local.</span></div></li>
+  </ol>
+</div>
+</section>

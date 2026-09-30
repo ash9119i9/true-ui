@@ -1,0 +1,1031 @@
+<meta charset="utf-8">
+<title>Conversation v2 Wireframe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,6..72,400..500&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: the truex pinboard. Each surface is a grid-paper board; a mock is pinned on the left,
+   its annotations sit on a taped index card to the right, with handwritten captions. Stacks on phones.
+   Tokens match design/truex-design-spec.html and the Agent Team Board page. */
+:root{
+  --page:#F6F9FA; --bg:#FFFFFF; --surface:#FFFFFF; --surface-2:#F8FCFD; --surface-3:#F6F9FA;
+  --line:#E3ECEF; --line-strong:#D8E0E4;
+  --ink:#1F2A30; --ink-2:#5F6D73; --ink-3:#849198;
+  --accent:#3691CD; --accent-2:#2A7DB4; --accent-fg:#2A72A3; --accent-soft:#EAF5F8; --on-accent:#FFFFFF;
+  --warn:#C58A1E; --warn-bg:#FFF3D9; --warn-text:#7D5D1D;
+  --bad:#C2452D; --bad-bg:#FCECE7; --ok:#0f7a55; --ok-bg:#E6F5EE;
+  --t0:#2872b8; --ts0:#eef5fc; --t1:#0f7a55; --ts1:#e6f5ee; --t2:#b84a1b; --ts2:#fcece4; --tm:#6b6b6b; --tsm:#f0f0f0;
+  --board:#FFFFFF; --grid:rgb(54 145 205 / 9%); --grid-major:rgb(54 145 205 / 16%);
+  --paper:#FFFFFF; --tape:rgb(188 222 232 / 70%); --sticky:#FFF3D9; --sticky-ink:#5E4716; --doodle:#3691CD;
+  --shadow-sm:0 1px 2px rgb(31 42 48 / 6%);
+  --shadow-md:0 4px 14px rgb(31 42 48 / 8%);
+  --shadow-card:0 1px 2px rgb(31 42 48 / 6%), 0 14px 28px -12px rgb(31 42 48 / 28%);
+  --shadow-lift:0 2px 4px rgb(31 42 48 / 6%), 0 26px 44px -16px rgb(31 42 48 / 34%);
+  --font-sans:"Figtree",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-accent:"Newsreader",ui-serif,Georgia,serif;
+  --font-hand:"Caveat","Segoe Print","Bradley Hand",cursive;
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:16px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --page:#111213; --bg:#171717; --surface:#171717; --surface-2:#1C1C1C; --surface-3:#242424;
+  --line:#2A2A2A; --line-strong:#363636; --ink:#EEF4F6; --ink-2:#B7C3C8; --ink-3:#8B999F;
+  --accent-2:#5AA8DC; --accent-fg:#BCDEE8; --accent-soft:#14283A;
+  --warn:#E6C27A; --warn-bg:#2E2512; --warn-text:#E6C27A;
+  --bad:#E07A63; --bad-bg:#2C1712; --ok:#4FC79B; --ok-bg:#0E211A;
+  --t0:#3691cd; --ts0:#0f1f2c; --t1:#199e70; --ts1:#0e211a; --t2:#d95926; --ts2:#24120a; --tm:#8f8f8f; --tsm:#262626;
+  --board:#161718; --grid:rgb(188 222 232 / 5%); --grid-major:rgb(188 222 232 / 9%);
+  --paper:#1B1C1D; --tape:rgb(90 168 220 / 28%); --sticky:#2E2512; --sticky-ink:#E6C27A; --doodle:#5AA8DC;
+  --shadow-sm:0 1px 2px rgb(0 0 0 / 40%); --shadow-md:0 4px 14px rgb(0 0 0 / 45%);
+  --shadow-card:0 1px 2px rgb(0 0 0 / 35%), 0 14px 28px -12px rgb(0 0 0 / 70%);
+  --shadow-lift:0 2px 4px rgb(0 0 0 / 35%), 0 26px 44px -16px rgb(0 0 0 / 80%);
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --page:#111213; --bg:#171717; --surface:#171717; --surface-2:#1C1C1C; --surface-3:#242424;
+  --line:#2A2A2A; --line-strong:#363636; --ink:#EEF4F6; --ink-2:#B7C3C8; --ink-3:#8B999F;
+  --accent-2:#5AA8DC; --accent-fg:#BCDEE8; --accent-soft:#14283A;
+  --warn:#E6C27A; --warn-bg:#2E2512; --warn-text:#E6C27A;
+  --bad:#E07A63; --bad-bg:#2C1712; --ok:#4FC79B; --ok-bg:#0E211A;
+  --t0:#3691cd; --ts0:#0f1f2c; --t1:#199e70; --ts1:#0e211a; --t2:#d95926; --ts2:#24120a; --tm:#8f8f8f; --tsm:#262626;
+  --board:#161718; --grid:rgb(188 222 232 / 5%); --grid-major:rgb(188 222 232 / 9%);
+  --paper:#1B1C1D; --tape:rgb(90 168 220 / 28%); --sticky:#2E2512; --sticky-ink:#E6C27A; --doodle:#5AA8DC;
+  --shadow-sm:0 1px 2px rgb(0 0 0 / 40%); --shadow-md:0 4px 14px rgb(0 0 0 / 45%);
+  --shadow-card:0 1px 2px rgb(0 0 0 / 35%), 0 14px 28px -12px rgb(0 0 0 / 70%);
+  --shadow-lift:0 2px 4px rgb(0 0 0 / 35%), 0 26px 44px -16px rgb(0 0 0 / 80%);
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--ink);font:15px/1.55 var(--font-sans);-webkit-font-smoothing:antialiased}
+.page{max-width:1280px;margin:0 auto;padding-inline:16px;padding-block:28px 96px;display:flex;flex-direction:column;gap:40px}
+h1,h2,h3{text-wrap:balance;margin:0;letter-spacing:-.025em}
+h2{font-size:clamp(24px,3.2vw,32px);font-weight:800;line-height:1.1;letter-spacing:-.035em}
+h3{font-size:15px;font-weight:600}
+p{margin:0;max-width:68ch}
+a{color:var(--accent-fg)}
+code,.mono{font-family:var(--font-mono);font-size:.86em}
+code{background:var(--surface-3);border:1px solid var(--line);border-radius:5px;padding:0 4px;color:var(--ink-2);overflow-wrap:anywhere}
+.muted{color:var(--ink-3)} .sm{font-size:12px} .strong{font-weight:600;color:var(--ink)}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-fg)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.script{font-family:var(--font-hand);font-weight:700;color:var(--accent);letter-spacing:0}
+
+/* header */
+.topline{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font:12px var(--font-mono);color:var(--ink-3);letter-spacing:.02em}
+.hero{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:32px 48px;align-items:end;padding-block:24px 4px}
+@media (max-width:860px){.hero{grid-template-columns:minmax(0,1fr)}}
+.hero-copy{display:flex;flex-direction:column;gap:16px;min-width:0}
+.hero h1{font-size:clamp(38px,6.4vw,76px);line-height:.98;font-weight:800;letter-spacing:-.045em}
+.hero h1 .script{position:relative;display:inline-block;font-size:1.22em;transform:rotate(-4deg) translateY(4px);margin-left:.06em}
+.hero h1 .squiggle{position:absolute;left:4%;right:-2%;bottom:-.08em;width:98%;height:.26em;color:var(--doodle);overflow:visible}
+.hero p{color:var(--ink-2);font-size:17px;line-height:1.6}
+.counts{display:flex;flex-wrap:wrap;gap:6px 18px;font:500 13px var(--font-mono);color:var(--ink-2);font-variant-numeric:tabular-nums}
+.counts b{color:var(--ink);font-weight:500}
+.legend-card{position:relative;background:var(--sticky);color:var(--sticky-ink);border-radius:4px 4px 14px 4px;padding:22px 20px 18px;box-shadow:var(--shadow-card);transform:rotate(1.4deg);display:flex;flex-direction:column;gap:10px;font-size:14px}
+.legend-card::before{content:"";position:absolute;top:-10px;left:50%;width:84px;height:22px;transform:translateX(-50%) rotate(-3deg);background:var(--tape);border-radius:2px}
+.legend-card .hand{font:700 24px/1 var(--font-hand)}
+.legend{display:flex;flex-direction:column;gap:7px}
+.legend span{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.02em;vertical-align:2px;white-space:nowrap}
+.tag.exists{background:var(--surface-3);color:var(--ink-2);box-shadow:inset 0 0 0 1px var(--line)}
+.tag.changed{background:var(--accent-soft);color:var(--accent-fg)}
+.tag.new{background:var(--warn-bg);color:var(--warn-text);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--warn) 40%,transparent)}
+.tag.content{background:var(--ts1);color:var(--t1)}
+.tag.status{background:var(--ts0);color:var(--t0)}
+.tag.diag{background:var(--ts2);color:var(--t2)}
+
+/* sticky section nav */
+.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:20;align-self:center;display:flex;gap:2px;padding:4px;border-radius:999px;border:1px solid var(--line);background:color-mix(in srgb,var(--surface) 82%,transparent);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);box-shadow:var(--shadow-card);max-width:100%;overflow-x:auto;scrollbar-width:none}
+.toc a{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--ink-2);text-decoration:none;border-radius:999px;padding:6px 12px;white-space:nowrap}
+.toc a i{font:500 11px var(--font-mono);font-style:normal;color:var(--ink-3)}
+.toc a:hover{background:var(--surface-3);color:var(--ink)}
+
+/* boards: grid paper */
+.sec{position:relative;display:flex;flex-direction:column;gap:32px;scroll-margin-top:72px;border:1px solid var(--line);border-radius:24px;padding:clamp(20px,3.4vw,44px);
+  background-color:var(--board);
+  background-image:linear-gradient(var(--grid-major) 1px,transparent 1px),linear-gradient(90deg,var(--grid-major) 1px,transparent 1px),linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:96px 96px,96px 96px,24px 24px,24px 24px;background-position:-1px -1px}
+.sec-head{display:flex;flex-direction:column;gap:10px;max-width:760px}
+.sec-head .eyebrow{font:700 26px/1 var(--font-hand);letter-spacing:0;text-transform:none;color:var(--accent);transform:rotate(-2deg);transform-origin:left center;align-self:flex-start}
+.sec-head p{color:var(--ink-2);font-size:16px}
+.board{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:28px 40px;align-items:start}
+@media (max-width:960px){.board{grid-template-columns:minmax(0,1fr)}}
+.board > div:first-child > .wf{box-shadow:var(--shadow-lift)}
+.board-cap{font:600 21px/1.2 var(--font-hand);color:var(--ink-2);margin-top:16px;display:flex;gap:8px;align-items:flex-start;max-width:60ch}
+.board-cap::before{content:"";flex:none;width:28px;height:18px;margin-top:2px;background:var(--doodle);-webkit-mask:var(--arrow) no-repeat center/contain;mask:var(--arrow) no-repeat center/contain}
+:root{--arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 18'%3E%3Cpath d='M2 15C8 4 17 2 25 5M20 1l5 4-6 3' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+
+/* annotation pins: blue thumbtacks */
+.pin{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;flex:none;vertical-align:middle;
+  background:radial-gradient(circle at 34% 30%,color-mix(in srgb,var(--accent) 45%,white) 0 18%,var(--accent) 60%,var(--accent-2));
+  color:var(--on-accent);font:700 11px/1 var(--font-mono);box-shadow:0 2px 3px rgb(31 42 48 / 25%),0 0 0 2px var(--bg)}
+.pin-at{position:absolute;z-index:3}
+
+/* annotations: a taped index card */
+.board > .notes{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:6px 6px 18px 6px;padding:30px 22px 22px;box-shadow:var(--shadow-card);transform:rotate(.5deg);
+  background-image:linear-gradient(transparent 0 30px,color-mix(in srgb,var(--bad) 22%,transparent) 30px 31px,transparent 31px);background-size:100% 100%}
+.board:nth-of-type(even) > .notes{transform:rotate(-.6deg)}
+.board > .notes::before{content:"";position:absolute;top:-11px;left:50%;width:96px;height:24px;transform:translateX(-50%) rotate(2deg);background:var(--tape);border-radius:2px}
+.notes{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:16px}
+.notes li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:12px;align-items:start;padding-top:14px;border-top:1px dashed var(--line-strong)}
+.notes li:first-child{border-top:0;padding-top:10px}
+.notes li > div{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--ink-2);min-width:0}
+.notes b{color:var(--ink);font-weight:700;font-size:15px}
+.notes .src{font-size:12px;color:var(--ink-3)}
+.notes li > div > .tag{align-self:flex-start}
+.page,.hero-copy,.sec{min-width:0}
+
+@keyframes pin-in{from{opacity:0;transform:translateY(-12px) rotate(3deg)}}
+.board > .notes,.legend-card{animation:pin-in .55s cubic-bezier(.2,.9,.3,1.2) both}
+
+/* ============ truex mock primitives (scaled from the spec) ============ */
+.wf{position:relative;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden;font-size:14px;min-width:0}
+.wf-top{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;height:48px;padding:0 12px 0 16px;border-bottom:1px solid var(--line);gap:8px}
+.crumb{display:flex;gap:8px;align-items:center;min-width:0;font-weight:500}
+.crumb .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.status-pill{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-sm);font-size:13px;font-weight:500;white-space:nowrap}
+.pulse{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none;animation:pulse 1.6s infinite}
+.pulse.idle{animation:none;background:var(--ink-3);opacity:.7}
+.pulse.warn{background:var(--warn)} .pulse.bad{background:var(--bad);animation:none}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 60%,transparent)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.wf-split{display:grid;grid-template-columns:minmax(0,1fr) 300px}
+@media (max-width:640px){.wf-split{grid-template-columns:minmax(0,1fr)}}
+.wf-stage{padding:20px 18px;display:flex;flex-direction:column;gap:18px;min-width:0}
+.wf-panel{border-left:1px solid var(--line);background:var(--surface);padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+@media (max-width:640px){.wf-panel{border-left:0;border-top:1px solid var(--line)}}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:-2px -2px 4px;overflow-x:auto}
+.tab{font-size:13px;font-weight:500;color:var(--ink-3);padding:6px 9px;border-bottom:2px solid transparent;white-space:nowrap}
+.tab.is-active{color:var(--ink);border-bottom-color:var(--accent)}
+
+.msg{display:flex;gap:12px;min-width:0}
+.msg.user{justify-content:flex-end}
+.bubble-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:6px;max-width:80%}
+.bubble{background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:16px 16px 4px 16px;line-height:1.5}
+.goal-tag{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent-fg);font-size:12px;font-weight:500}
+.av{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-fg);flex:none;font-size:12px;font-weight:700}
+.grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.msg-meta{display:flex;gap:8px;align-items:baseline;margin-bottom:6px}
+.steps{list-style:none;margin:0 0 10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:12px;font-size:13px;color:var(--ink-3)}
+.steps li{display:flex;align-items:center;gap:8px;min-width:0}
+.steps li.is-done{color:var(--ink-2)}
+.mark{width:16px;height:16px;border-radius:50%;background:var(--surface-3);color:var(--accent-fg);display:grid;place-items:center;flex:none;font-size:9px;font-weight:700}
+.mark.done{background:var(--accent-soft)} .mark.done::before{content:"✓"}
+.mark.fail{background:var(--bad-bg);color:var(--bad)} .mark.fail::before{content:"!"}
+.spinner{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--line-strong);border-top-color:var(--accent);animation:spin .7s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.step-body{margin:2px 0 2px 24px;padding:8px 10px;border-radius:8px;background:var(--surface-3);font:12px/1.5 var(--font-mono);color:var(--ink-2);white-space:pre-wrap;overflow-x:auto}
+.hcard{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:12px}
+.hcard-head{display:flex;justify-content:space-between;padding:8px 12px;font-size:12px;color:var(--ink-3);background:var(--surface-2);border-bottom:1px solid var(--line)}
+.hrow{display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:13px;border-top:1px solid var(--line)}
+.hrow:first-of-type{border-top:0}
+.h-av{width:18px;height:18px;border-radius:6px;display:grid;place-items:center;font-size:10px;font-weight:700;flex:none}
+.tone-0{--t:var(--t0);--ts:var(--ts0)} .tone-1{--t:var(--t1);--ts:var(--ts1)} .tone-2{--t:var(--t2);--ts:var(--ts2)} .tone-main{--t:var(--tm);--ts:var(--tsm)}
+.h-av{background:var(--ts);color:var(--t)}
+.answer{line-height:1.65;color:var(--ink)}
+.caret{display:inline-block;width:7px;height:15px;margin-left:2px;vertical-align:-2px;background:var(--accent);border-radius:2px;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.msg-foot{margin-top:10px;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.card{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card.warn{background:var(--warn-bg);border-color:color-mix(in srgb,var(--warn) 35%,transparent);color:var(--warn-text)}
+.card.bad{background:var(--bad-bg);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.row{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
+.spacer{flex:1}
+.btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 13px var(--font-sans);white-space:nowrap}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.soft{background:var(--accent-soft);color:var(--accent-fg);border-color:transparent}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--ink-2)}
+.pill{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;background:var(--surface-3);color:var(--ink-2);font-size:12px;font-weight:500;white-space:nowrap}
+.pill.accent{background:var(--accent-soft);color:var(--accent-fg)}
+.pill.warn{background:var(--warn-bg);color:var(--warn-text)}
+.pill.bad{background:var(--bad-bg);color:var(--bad)}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}
+.bar{height:6px;border-radius:999px;background:var(--surface-3);overflow:hidden}
+.bar > i{display:block;height:100%;background:var(--accent);border-radius:inherit}
+.bar.warn > i{background:var(--warn)}
+.tile{width:32px;height:32px;border-radius:9px;background:var(--accent-soft);color:var(--accent-fg);display:grid;place-items:center;flex:none;font-size:14px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.kpi{border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:2px}
+.kpi .v{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.25}
+.kpi .l,.kpi .s{font-size:11px;color:var(--ink-3)}
+.bottom{padding:0 18px 16px;display:flex;flex-direction:column;gap:10px}
+.composer{border:1px solid var(--line);border-radius:18px;background:var(--surface);box-shadow:var(--shadow-md);padding:12px 10px 8px 12px;display:flex;flex-direction:column;gap:8px}
+.composer .ph{color:var(--ink-3);min-height:40px;padding:2px 4px}
+.composer-bar{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.send{width:32px;height:32px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-size:14px;flex:none}
+.send.stop::before{content:"";width:10px;height:10px;border-radius:2px;background:var(--bg)}
+.pop{border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow-md);padding:6px;display:flex;flex-direction:column;gap:2px;font-size:13px}
+.pop .it{display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:8px}
+.pop .it.is-active{background:var(--surface-3)}
+.field{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.input{height:32px;border:1px solid var(--line-strong);border-radius:9px;background:var(--surface);padding:0 10px;display:flex;align-items:center;color:var(--ink-3);font-size:13px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--line);border-radius:10px;font-size:13px}
+.opt.is-rec{border-color:var(--accent);background:var(--accent-soft)}
+.radio{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--line-strong);flex:none;margin-top:2px}
+.opt.is-rec .radio{border:4px solid var(--accent)}
+.diff{font:12px/1.55 var(--font-mono);border:1px solid var(--line);border-radius:10px;overflow-x:auto}
+.diff div{padding:0 10px;white-space:pre}
+.diff .add{background:var(--ok-bg);color:var(--ok)} .diff .del{background:var(--bad-bg);color:var(--bad)}
+.diff .hd{background:var(--surface-3);color:var(--ink-3);padding:4px 10px}
+.tl{display:flex;flex-direction:column;gap:5px;font-size:12px}
+.tl-row{display:grid;grid-template-columns:96px minmax(0,1fr) 44px;gap:8px;align-items:center}
+.tl-row .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink-2)}
+.tl-track{position:relative;height:10px;background:var(--surface-3);border-radius:3px}
+.tl-track i{position:absolute;top:0;bottom:0;border-radius:3px;background:var(--accent)}
+.tl-track i.k-think{background:var(--t0);opacity:.55} .tl-track i.k-tool{background:var(--t1)} .tl-track i.k-agent{background:var(--t2)}
+.tl-row .d{text-align:right;color:var(--ink-3);font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+
+/* summary tables */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:var(--shadow-card)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:620px}
+th,td{text-align:left;padding:12px 16px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--surface-2)}
+td:first-child{font-weight:600;color:var(--ink)}
+td{color:var(--ink-2)}
+.steps-list{margin:0;padding:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:14px;color:var(--ink-2)}
+.steps-list li{counter-increment:s;display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px}
+.steps-list li::before{content:counter(s);font:700 30px/0.9 var(--font-hand);color:var(--accent)}
+.steps-list b{color:var(--ink)}
+.qs{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:22px}
+.q{position:relative;background:var(--sticky);color:var(--sticky-ink);border-radius:4px 4px 14px 4px;padding:22px 18px 18px;display:flex;flex-direction:column;gap:6px;font-size:14px;box-shadow:var(--shadow-card);transform:rotate(-1deg)}
+.q:nth-child(2){transform:rotate(1.2deg)} .q:nth-child(3){transform:rotate(-.4deg)}
+.q::before{content:"";position:absolute;top:-10px;left:50%;width:70px;height:20px;transform:translateX(-50%) rotate(-2deg);background:var(--tape);border-radius:2px}
+.q b{font:700 23px/1.05 var(--font-hand);color:inherit}
+.q code{background:color-mix(in srgb,var(--paper) 55%,transparent);color:inherit}
+#gaps .board > .card{box-shadow:var(--shadow-card);padding:20px;gap:14px}
+#gaps .board > .card h3{font:700 26px/1 var(--font-hand);color:var(--accent);letter-spacing:0}
+.foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font:12px var(--font-mono);color:var(--ink-3)}
+@media (max-width:520px){.board > .notes,.legend-card,.q,.q:nth-child(n){transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+
+<div class="page">
+<div class="topline"><span>truex / design review</span><span>Conversation v2 · 30 Sep 2026</span></div>
+<header class="hero">
+  <div class="hero-copy">
+    <h1>Conversation v2, <span class="script">annotated<svg class="squiggle" viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 9C32 2 52 13 84 7S146 2 197 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg></span></h1>
+    <p>Every piece of data a conversation carries today, pinned to the new truex surfaces. Content stays inline in the stream, status is pinned to the topbar and session panel, and diagnostics stay folded away until someone asks.</p>
+    <div class="counts"><span><b>12</b> boards</span><span><b>66</b> annotations</span><span><b>8</b> new components</span><span><b>3</b> open questions</span></div>
+  </div>
+  <aside class="legend-card" aria-label="Legend">
+    <span class="hand">How to read the tags</span>
+    <div class="legend">
+      <span><span class="tag exists">Exists</span> in the truex spec as is</span>
+      <span><span class="tag changed">Changed</span> existing part, new data</span>
+      <span><span class="tag new">New</span> needs design and a spec entry</span>
+    </div>
+    <div class="legend">
+      <span><span class="tag content">Content</span><span class="tag status">Status</span><span class="tag diag">Diagnostics</span> where it lives</span>
+    </div>
+  </aside>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <a href="#map"><i>00</i>Map</a><a href="#stream"><i>01</i>Stream</a><a href="#requests"><i>02</i>Requests</a><a href="#chrome"><i>03</i>Chrome</a><a href="#obs"><i>04</i>Observability</a><a href="#gaps"><i>05</i>Next</a>
+</nav>
+
+<section class="sec" id="map">
+  <div class="sec-head">
+    <span class="eyebrow">Overview</span>
+    <h2>Where everything lives</h2>
+    <p>One rule decides placement. Content (the stream and live requests) is always inline. Status is pinned to the topbar and the session panel. Diagnostics stay collapsed behind the receipt and the Insights tab.</p>
+  </div>
+
+  <div class="board">
+    <div>
+      <div class="wf" aria-label="Layout map mock">
+        <div class="wf-top">
+          <div class="crumb"><span class="pin">1</span><span class="t">Onboarding plan for new analysts</span></div>
+          <span class="status-pill"><span class="pulse"></span>Qlik Analyst <span class="muted">· Working</span></span>
+          <div></div>
+        </div>
+        <div class="wf-split">
+          <div class="wf-stage">
+            <div class="row"><span class="pin">2</span><span class="pill ok">Content · stream</span></div>
+            <div class="msg user"><div class="bubble-wrap"><div class="bubble">Draft a 2-week onboarding plan for new analysts from the handbook</div></div></div>
+            <div class="msg">
+              <div class="av">Q</div>
+              <div class="grow">
+                <div class="msg-meta"><span class="strong">Qlik Analyst</span></div>
+                <ul class="steps">
+                  <li class="is-done"><span class="mark done"></span>Thought for 4s</li>
+                  <li class="is-done"><span class="mark done"></span>Read 3 workspace documents</li>
+                  <li><span class="spinner"></span>Drafting the answer</li>
+                </ul>
+                <div class="answer">Here is a two-week plan built from the analyst handbook<span class="caret"></span></div>
+                <div class="msg-foot"><span class="pin">4</span>2.6s · 26.6k tokens · Sonnet 5.5 · Details</div>
+              </div>
+            </div>
+          </div>
+          <div class="wf-panel">
+            <div class="row"><span class="pin">3</span><span class="pill accent">Status · session panel</span></div>
+            <div class="tabs"><span class="tab is-active">Activity</span><span class="tab">Goal</span><span class="tab">Agents</span><span class="tab">Plan</span><span class="tab">Insights</span></div>
+            <div class="card">
+              <div class="row"><span class="tile">▤</span><div class="grow"><span class="strong">Reading workspace sources</span><span class="muted sm">3 documents · 2 helpers</span></div></div>
+              <div class="bar"><i style="width:62%"></i></div>
+            </div>
+            <div class="row sm muted"><span class="pin">5</span>Insights tab holds the full trace</div>
+          </div>
+        </div>
+        <div class="bottom">
+          <div class="row"><span class="pin">6</span><span class="pill warn">Live request · pinned above composer</span></div>
+          <div class="composer">
+            <div class="ph">Ask, or type / for commands</div>
+            <div class="composer-bar"><span class="chip">Goal</span><span class="chip">Ask</span><span class="spacer"></span><span class="send">↑</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">Desktop layout with the session panel open. On phones the panel becomes an overlay and the stream takes the full width.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Topbar</b> <span class="tag status">Status</span><span>Title and the agent status pill. Turn state and session health show here first.</span></div></li>
+      <li><span class="pin">2</span><div><b>Stream</b> <span class="tag content">Content</span><span>User messages, thinking, tool steps, helpers, the answer, audit rows and errors, in turn order.</span></div></li>
+      <li><span class="pin">3</span><div><b>Session panel</b> <span class="tag status">Status</span><span>Activity, Goal, Agents, Plan and Insights tabs. Everything that describes the session rather than a single turn.</span></div></li>
+      <li><span class="pin">4</span><div><b>Receipt</b> <span class="tag diag">Diagnostics</span><span>One line under each response. Details opens the trace for that turn.</span></div></li>
+      <li><span class="pin">5</span><div><b>Insights</b> <span class="tag diag">Diagnostics</span><span>Session rollup, context fill, rate limits and privacy. Model context is dev mode only.</span></div></li>
+      <li><span class="pin">6</span><div><b>Live requests</b> <span class="tag content">Content</span><span>Anything that blocks the turn sits directly above the composer so it can never scroll out of view.</span></div></li>
+    </ol>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Data today</th><th>Source</th><th>v2 surface</th><th>Bucket</th></tr></thead>
+      <tbody>
+        <tr><td>Messages, thinking, tool items, helpers</td><td><code>Entry</code> union</td><td>Stream: bubble, <code>.steps</code>, <code>.hcard</code>, <code>.answer</code></td><td><span class="tag content">Content</span></td></tr>
+        <tr><td>Approval and question records</td><td><code>ApprovalRecord</code></td><td>Quiet audit row in <code>.steps</code></td><td><span class="tag content">Content</span></td></tr>
+        <tr><td>Blocking requests</td><td><code>PendingRequest</code></td><td>Request card above the composer</td><td><span class="tag content">Content</span></td></tr>
+        <tr><td>Turn state, session status, title</td><td>session events</td><td>Topbar crumb and status pill</td><td><span class="tag status">Status</span></td></tr>
+        <tr><td>Goal, plan, diff, MCP, errors</td><td><code>goal.*</code>, <code>plan.updated</code>, <code>diff.updated</code>, <code>mcp.status</code></td><td>Session panel tabs, agent popover</td><td><span class="tag status">Status</span></td></tr>
+        <tr><td>Trace, tokens, limits, privacy</td><td><code>TurnTrace</code>, <code>TraceSummary</code></td><td>Receipt, trace card, Insights tab</td><td><span class="tag diag">Diagnostics</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="sec" id="stream">
+<style>
+.st-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-3)}
+.st-status.fail{color:var(--warn-text)}
+.st-status .btn{height:22px;padding:0 8px;font-size:12px}
+.st-cmd{display:inline-flex;align-items:center;height:20px;padding:0 7px;margin-right:6px;border-radius:6px;background:color-mix(in srgb,var(--bg) 18%,transparent);font:500 12px var(--font-mono)}
+.st-res{width:100%;font-size:13px;color:var(--ink-2)}
+.st-lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-ms{font:12px var(--font-mono);color:var(--ink-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.st-sub{margin-left:24px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.st-chart{display:flex;align-items:flex-end;gap:10px;height:84px;padding:4px 2px 0;border-bottom:1px solid var(--line)}
+.st-chart div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%;font:11px var(--font-mono);color:var(--ink-3)}
+.st-chart i{display:block;width:100%;max-width:34px;background:var(--accent);border-radius:4px 4px 0 0}
+.st-axis{display:flex;gap:10px;font-size:11px;color:var(--ink-3)}
+.st-axis span{flex:1;text-align:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-pinrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+</style>
+
+<div class="sec-head">
+  <span class="eyebrow">1 · Content, inline</span>
+  <h2>Conversation stream</h2>
+  <p>Everything a turn produces stays in the stream where it happened: what the user sent, how the agent worked, and what it answered. Work collapses into one quiet steps list so the answer reads first.</p>
+</div>
+
+<!-- Board 1: user messages -->
+<div class="board">
+  <div>
+    <div class="wf">
+      <div class="wf-stage">
+        <div class="msg user">
+          <div class="bubble-wrap">
+            <div class="bubble">Draft a 2-week onboarding plan for new analysts from the handbook</div>
+            <span class="st-status"><span class="pin">1</span> 10:42 · Delivered</span>
+          </div>
+        </div>
+
+        <div class="msg user">
+          <div class="bubble-wrap">
+            <span class="st-pinrow"><span class="pin">2</span><span class="goal-tag">Steered</span></span>
+            <div class="bubble">Keep it to one page</div>
+            <span class="st-status"><span class="spinner"></span> Sending…</span>
+          </div>
+        </div>
+
+        <div class="msg user">
+          <div class="bubble-wrap">
+            <div class="bubble">Can you add a shadowing schedule?</div>
+            <span class="st-status fail"><span class="pin">3</span> Failed · <span class="btn ghost">Retry</span></span>
+          </div>
+        </div>
+
+        <div class="msg user">
+          <div class="bubble-wrap">
+            <div class="bubble"><span class="st-cmd">/goal</span>Ship a one-page onboarding plan analysts can follow on day 1</div>
+            <div class="card st-res">
+              <div class="row"><span class="pin">4</span><span class="mark done"></span><b class="strong">Goal set</b><span class="spacer"></span><span class="pill ok">Succeeded</span></div>
+              <span>Shown in the topbar until you clear it.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="msg user">
+          <div class="bubble-wrap">
+            <div class="bubble"><span class="st-cmd">/export</span>pdf</div>
+            <div class="card bad st-res">
+              <div class="row"><span class="pin">5</span><span class="mark fail"></span><b class="strong">Command failed</b><span class="spacer"></span><span class="pill bad">Failed</span></div>
+              <span>Export needs a finished answer in this chat.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">User side of the stream. One bubble per message; delivery, steer and command state sit inside the same bubble-wrap.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Message and timestamp</b> <span class="tag exists">Exists</span><span>Plain bubble. The status line shows the time once the message is accepted and stays quiet after that.</span><span class="src">Data: <code>message.text</code> <code>message.createdAt</code> <code>delivery.state = accepted</code></span></div></li>
+    <li><span class="pin">2</span><div><b>Steer tag</b> <span class="tag new">New</span><span>A message sent while a turn is running redirects it. Tagged "Steered" above the bubble so the change of course is visible in the history.</span><span class="src">Data: <code>message.steer</code></span></div></li>
+    <li><span class="pin">3</span><div><b>Delivery state</b> <span class="tag new">New</span><span>"Sending…" with a spinner while pending. Failed shows warn text and Retry, which resends the same text. Unknown reads "Not confirmed" with Retry.</span><span class="src">Data: <code>delivery.state</code> pending / accepted / failed / unknown</span></div></li>
+    <li><span class="pin">4</span><div><b>Slash command</b> <span class="tag new">New</span><span>The command renders as a mono chip inside the bubble. A compact card under it carries state and the result. Running shows a spinner in place of the pill.</span><span class="src">Data: <code>command.name</code> <code>command.state</code> <code>command.result</code></span></div></li>
+    <li><span class="pin">5</span><div><b>Command error</b> <span class="tag new">New</span><span>Same card in the bad tone with the error message. No retry here; the user edits and resends.</span><span class="src">Data: <code>command.state = failed</code> <code>command.error</code></span></div></li>
+  </ol>
+</div>
+
+<!-- Board 2: agent working -->
+<div class="board">
+  <div>
+    <div class="wf">
+      <div class="wf-stage">
+        <div class="msg">
+          <div class="av">Q</div>
+          <div class="grow">
+            <div class="msg-meta"><b class="strong">Qlik Analyst</b><span class="muted sm">working</span></div>
+            <ul class="steps">
+              <li class="is-done"><span class="pin">1</span><span class="mark done"></span><span class="st-lbl">Thought for 4s</span></li>
+              <li class="is-done"><span class="pin">2</span><span class="mark done"></span><span class="st-lbl mono">grep -ril "onboarding" docs/handbook</span><span class="st-ms">1.2s</span></li>
+              <li style="display:block"><div class="step-body">docs/handbook/week-one.md
+docs/handbook/access-requests.md
+docs/handbook/shadowing.md
+exit 0</div></li>
+              <li class="is-done"><span class="pin">3</span><span class="mark done"></span><span class="st-lbl">Edited 2 files</span><span class="st-ms">+6 −2</span></li>
+              <li style="display:block"><div class="st-sub"><div class="diff">
+<div class="hd">plans/onboarding.md</div>
+<div class="del">- Week 2: TBD</div>
+<div class="add">+ Week 2: Shadow a live dashboard review</div>
+<div class="add">+ Day 9: Publish a first sheet to the sandbox</div>
+</div></div></li>
+              <li class="is-done"><span class="pin">4</span><span class="mark done"></span><span class="st-lbl"><span class="mono">qlik</span> · list_spaces</span><span class="pill ok">Done</span></li>
+              <li class="is-done"><span class="mark done"></span><span class="st-lbl">Searched the web · "Qlik Sense analyst certification"</span></li>
+              <li class="is-done"><span class="pin">5</span><span class="mark done"></span><span class="st-lbl">Allowed once · auto: run <span class="mono">npm test</span></span></li>
+              <li class="is-done"><span class="mark done"></span><span class="st-lbl">Answered: API key <span class="mono">••••••</span></span></li>
+              <li><span class="pin">6</span><span class="spinner"></span><span class="st-lbl">Thinking about week 2 milestones…</span></li>
+            </ul>
+
+            <div class="hcard">
+              <div class="hcard-head"><span><span class="pin">7</span> 3 helpers</span><span>1 running</span></div>
+              <div class="hrow tone-0"><span class="h-av">A</span><span class="st-lbl"><b class="strong">Atlas</b> · Docs</span><span class="spinner"></span><span class="st-ms">0:38</span><span class="btn ghost">Open</span></div>
+              <div class="hrow tone-1"><span class="h-av">B</span><span class="st-lbl"><b class="strong">Birch</b> · Access</span><span class="pill warn">Limited access</span><span class="st-ms">0:12</span><span class="btn ghost">Open</span></div>
+              <div class="hrow tone-2"><span class="h-av">C</span><span class="st-lbl"><b class="strong">Cedar</b> · Shadowing</span><span class="pill ok">Done</span><span class="st-ms">0:21</span><span class="btn ghost">Open</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">One turn in progress. Steps collapse to a single "Worked for 1m 12s" row when the answer lands; the helper card stays.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Thinking</b> <span class="tag changed">Changed</span><span>Live row with spinner and the reasoning summary while streaming. Collapses to "Thought for 4s" when done; opening it shows the summary, then raw reasoning if present.</span><span class="src">Data: <code>thinking.summary</code> <code>thinking.raw</code> <code>thinking.done</code></span></div></li>
+    <li><span class="pin">2</span><div><b>Command execution</b> <span class="tag changed">Changed</span><span>Row shows the command in mono and duration. Expands to a step-body with output and the exit status. Non-zero exit swaps the mark to fail.</span><span class="src">Data: <code>item.type = commandExecution</code> <code>command</code> <code>output</code> <code>exitCode</code></span></div></li>
+    <li><span class="pin">3</span><div><b>File change</b> <span class="tag changed">Changed</span><span>"Edited 2 files" with a line count. Opens a diff per file.</span><span class="src">Data: <code>item.type = fileChange</code> <code>files[]</code> <code>diff</code></span></div></li>
+    <li><span class="pin">4</span><div><b>MCP, web search, other</b> <span class="tag changed">Changed</span><span>MCP calls read "server · tool" with a status pill. Web search shows the query. Unknown item types fall back to a generic row with the type name. Today .steps only has static labels.</span><span class="src">Data: <code>item.type = mcpToolCall</code> <code>server</code> <code>tool</code> <code>status</code> · <code>webSearch.query</code></span></div></li>
+    <li><span class="pin">5</span><div><b>Approval record</b> <span class="tag new">New</span><span>One quiet row per decision, after the fact. Leads with the decision (Allowed once / session / chat / always, Declined, Expired) and the mode. Answered questions show the question; secret answers are always masked.</span><span class="src">Data: <code>ApprovalRecord.outcome</code> <code>autoMode</code> <code>toolApprovals[].action</code> <code>.decision</code> <code>questions[].answer</code> <code>.secret</code></span></div></li>
+    <li><span class="pin">6</span><div><b>Live step</b> <span class="tag exists">Exists</span><span>The last row is the only one with a spinner. It carries the current step until the next event replaces it.</span><span class="src">Data: latest stream event</span></div></li>
+    <li><span class="pin">7</span><div><b>Helper agents</b> <span class="tag changed">Changed</span><span>One row per helper: tone avatar, name · role, spinner or status, elapsed time, Open. Status maps to Starting, spinner, Done, Error, Stopped, Shut down; Birch shows the warn state for limited access. Open goes to HelperDetail in the session panel Agents tab and replaces SubAgentTranscript.</span><span class="src">Data: <code>SubAgent.nickname</code> <code>role</code> <code>task</code> <code>depth</code> <code>status</code> <code>lastMessage</code> <code>startedAt</code> <code>endedAt</code> <code>transcript</code></span></div></li>
+  </ol>
+</div>
+
+<!-- Board 3: response -->
+<div class="board">
+  <div>
+    <div class="wf">
+      <div class="wf-stage">
+        <div class="msg">
+          <div class="av">Q</div>
+          <div class="grow">
+            <div class="msg-meta"><b class="strong">Qlik Analyst</b></div>
+            <ul class="steps"><li class="is-done"><span class="mark done"></span><span class="st-lbl">Worked for 1m 12s · 7 steps · 3 helpers</span></li></ul>
+            <div class="answer">
+              <p><span class="pin">1</span> Here is a one-page plan built from the handbook. Week 1 covers access and core datasets; week 2 moves to shadowing and a first published sheet.</p>
+              <div class="card" style="margin-top:12px">
+                <div class="row"><span class="pin">2</span><b class="strong">Hours by focus area</b><span class="spacer"></span><span class="muted sm">Weeks 1 and 2</span></div>
+                <div class="st-chart" role="img" aria-label="Bar chart of onboarding hours: Access 6, Datasets 14, Shadowing 12, Build 10">
+                  <div><span>6</span><i style="height:30%"></i></div>
+                  <div><span>14</span><i style="height:70%"></i></div>
+                  <div><span>12</span><i style="height:60%"></i></div>
+                  <div><span>10</span><i style="height:50%"></i></div>
+                </div>
+                <div class="st-axis"><span>Access</span><span>Datasets</span><span>Shadowing</span><span>Build</span></div>
+              </div>
+              <p style="margin-top:12px">Day 1 starts with the access checklist so Birch's request can clear before Datasets<span class="caret"></span></p>
+            </div>
+            <div class="msg-foot"><span class="pin">3</span> 2.6s · 26.6k tokens · Sonnet 5.5 · <span class="btn ghost" style="height:22px;padding:0 6px">Details</span></div>
+            <div class="chips" style="margin-top:8px"><span class="pin">4</span><span class="chip">Add a checklist per day</span><span class="chip">Who owns access requests?</span><span class="chip">Export as PDF</span></div>
+          </div>
+        </div>
+
+        <div class="card bad">
+          <div class="row"><span class="pin">5</span><span class="mark fail"></span><b class="strong">The Qlik connection dropped before the answer finished.</b></div>
+          <div class="row"><span class="mono muted">err_7f3a91c2</span><span class="spacer"></span><span class="btn">Retry</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">Caret shows while streaming; receipt and follow-ups appear only on the final message. The error card is a separate turn shown for comparison.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Response text</b> <span class="tag exists">Exists</span><span>Streams with the caret, then settles to the final text in place. No re-render jump between the two.</span><span class="src">Data: <code>message.role = assistant</code> <code>parts[].text</code> <code>streaming</code></span></div></li>
+    <li><span class="pin">2</span><div><b>Visualization part</b> <span class="tag new">New</span><span>Rich parts render as cards inside the answer at the position they arrive, with a title and a text label for screen readers.</span><span class="src">Data: <code>part.type = "visualization"</code> <code>part.spec</code></span></div></li>
+    <li><span class="pin">3</span><div><b>Receipt</b> <span class="tag changed">Changed</span><span>Duration, tokens and model in one line. Details opens the trace card for this turn. See Observability.</span><span class="src">Data: <code>usage.durationMs</code> <code>usage.totalTokens</code> <code>model</code></span></div></li>
+    <li><span class="pin">4</span><div><b>Suggested follow-ups</b> <span class="tag new">New placement</span><span>Chips under the receipt, final message only. Tapping one sends it as a new user message.</span><span class="src">Data: <code>suggestedQuestions[]</code></span></div></li>
+    <li><span class="pin">5</span><div><b>Stream error</b> <span class="tag new">New</span><span>Inline bad card with the message and a short mono ref for support. Retry reruns the turn. The full ref copies on click.</span><span class="src">Data: <code>error.message</code> <code>error.ref</code></span></div></li>
+  </ol>
+</div>
+</section>
+
+<section class="sec" id="requests">
+<div class="sec-head"><span class="eyebrow">2 · Content, blocking</span><h2>Live requests and the composer</h2><p>A pending request stops the turn until someone answers it, so it can't sit in the scroll where it's easy to miss. It docks above the composer, the stream keeps a quiet placeholder, and the topbar says who the turn is waiting on. The composer picks up slash commands, an approval mode and a Steer action. Model settings move into the agent popover.</p></div>
+
+<div class="board">
+<div>
+<div class="wf">
+  <div class="wf-top">
+    <div class="crumb"><span class="av">QA</span><span class="t">Onboarding plan for new analysts</span></div>
+    <span class="status-pill"><span class="pulse warn"></span>Waiting on you <span class="pin">1</span></span>
+    <span></span>
+  </div>
+  <div class="wf-stage">
+    <div class="msg user"><div class="bubble-wrap"><div class="bubble">Check the onboarding scripts still pass before you draft the plan.</div></div></div>
+    <div class="msg"><span class="av">QA</span><div class="grow">
+      <ul class="steps">
+        <li class="is-done"><span class="mark done"></span>Read package.json in true-ui</li>
+        <li><span class="spinner"></span>Waiting for your answer <span class="spacer"></span><span class="pin">3</span></li>
+      </ul>
+    </div></div>
+  </div>
+  <div class="bottom">
+    <div class="card">
+      <div class="row"><span class="pill warn">Tool approval</span> <span class="pin">4</span><span class="spacer"></span><span class="muted sm">Auto-declines in 0:42</span> <span class="pin">5</span></div>
+      <div class="strong">Run <code>npm test</code> in true-ui</div>
+      <div class="muted sm">Shell command, working directory ~/true-ui. Reads files and runs the test suite. No network.</div>
+      <div class="bar warn" aria-label="42 seconds left"><i style="width:70%"></i></div>
+      <div class="row"><span class="btn primary">Allow once</span><span class="btn">Allow for this chat</span><span class="btn">Always allow</span><span class="btn ghost">Decline</span> <span class="pin">6</span></div>
+    </div>
+    <div class="composer">
+      <div class="ph">Answer the request above to continue</div>
+      <div class="composer-bar"><span class="chip">Goal</span><span class="spacer"></span><span class="send" style="opacity:.35">&uarr;</span></div>
+    </div>
+    <div class="row" style="justify-content:center"><span class="chip">Qlik Analyst</span><span class="chip">Activity <span class="pill warn">1</span></span> <span class="pin">2</span></div>
+  </div>
+</div>
+<p class="board-cap">Tool approval docked in <code>.bottom</code>, between the scroll area and the composer. It never scrolls away.</p>
+</div>
+<ol class="notes">
+  <li><span class="pin">1</span><div><b>Status pill: Waiting on you</b> <span class="tag changed">Changed</span><span>While any request is open the pill switches to a warn pulse and this copy. It goes back to Working once the request is answered.</span><span class="src">Data: <code>pendingRequests.length &gt; 0</code></span></div></li>
+  <li><span class="pin">2</span><div><b>Dock Activity badge</b> <span class="tag new">New</span><span>Count of open requests on the dock Activity item, so a request stays visible when the chat is off screen or the panel is closed.</span><span class="src">Data: <code>pendingRequests.length</code></span></div></li>
+  <li><span class="pin">3</span><div><b>Stream placeholder</b> <span class="tag new">New</span><span>A quiet row where the request was raised. After an answer the card collapses into this spot as an audit row, for example "Allowed once: npm test, by you, 0:18".</span><span class="src">Data: <code>request.id</code>, <code>request.resolution</code></span></div></li>
+  <li><span class="pin">4</span><div><b>Request card</b> <span class="tag new">New</span><span>Pinned above the composer. The label names the method: Tool approval, Question or Plan approval. The title and detail come from the request. Several open requests stack oldest first.</span><span class="src">Data: <code>PendingRequest.method</code>, <code>detail</code></span></div></li>
+  <li><span class="pin">5</span><div><b>Countdown</b> <span class="tag new">New</span><span>Time left from expiry, with a thin bar draining. At zero the request auto-declines and the audit row says so. No countdown when there's no expiry.</span><span class="src">Data: <code>expiresAt</code></span></div></li>
+  <li><span class="pin">6</span><div><b>Decisions</b> <span class="tag new">New</span><span>Allow once is primary. Allow for this chat and Always allow widen the grant. Decline sends a refusal and the turn keeps going. Buttons come from the schema, not hard-coded.</span><span class="src">Data: <code>responseSchema</code>, <code>decisions[]</code></span></div></li>
+</ol>
+</div>
+<div class="board">
+<div>
+<div class="wf">
+  <div class="wf-stage">
+    <div class="card">
+      <div class="row"><span class="pill accent">Question</span> <span class="pin">1</span><span class="spacer"></span><span class="muted sm">Auto-declines in 4:10</span></div>
+      <div class="strong">Which analysts should the plan cover first?</div>
+      <div class="opt is-rec"><span class="radio"></span><div class="grow"><div class="row"><span class="strong">New hires starting in October</span><span class="pill accent">Recommended</span> <span class="pin">2</span></div><span class="muted sm">Six people, all on the Sales app.</span></div></div>
+      <div class="opt"><span class="radio"></span><div class="grow"><span class="strong">Everyone without a Qlik licence</span><span class="muted sm">Larger group, mixed apps.</span></div></div>
+      <div class="field"><span>Anything else? (optional)</span><div class="input">Add a note</div> <span class="pin">3</span></div>
+      <div class="row"><span class="btn primary">Send answer</span><span class="btn ghost">Skip</span></div>
+    </div>
+    <div class="card">
+      <div class="row"><span class="pill warn">Question</span><span class="pill">Secret</span> <span class="pin">4</span><span class="spacer"></span><span class="muted sm">Always asks</span></div>
+      <div class="strong">Paste the Qlik API key</div>
+      <div class="field"><span>API key</span><div class="input mono">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</div></div>
+      <div class="muted sm">Sent to the tool only. Never stored in the transcript.</div>
+      <div class="row"><span class="btn primary">Submit</span><span class="btn ghost">Decline</span></div>
+    </div>
+    <div class="card">
+      <div class="row"><span class="pill warn">Plan approval</span><span class="spacer"></span><span class="muted sm">Always asks</span></div>
+      <div class="strong">Onboarding plan, 4 steps</div>
+      <ol class="muted sm" style="margin:0;padding-left:18px"><li>Licence and space access</li><li>Sales app walkthrough</li><li>First dashboard exercise</li><li>Review with a lead</li></ol>
+      <div class="row"><span class="btn primary">Approve plan</span><span class="btn">Edit</span><span class="btn ghost">Reject</span></div>
+    </div>
+  </div>
+</div>
+<p class="board-cap">Same card, other methods. Each renders its body from the request's schema.</p>
+</div>
+<ol class="notes">
+  <li><span class="pin">1</span><div><b>Clarifying question</b> <span class="tag new">New</span><span>Uses the same docked card with a Question label. Options render as radio rows. The agent keeps waiting until someone answers, skips it or it expires.</span><span class="src">Data: <code>method: "question"</code>, <code>options[]</code></span></div></li>
+  <li><span class="pin">2</span><div><b>Recommended option</b> <span class="tag new">New</span><span>The agent's pick is preselected, outlined in accent and tagged Recommended. Only one option can carry it.</span><span class="src">Data: <code>options[].recommended</code></span></div></li>
+  <li><span class="pin">3</span><div><b>Schema fields</b> <span class="tag new">New</span><span>Extra inputs come from the response schema: text, number, select, boolean. Required fields block Send until filled.</span><span class="src">Data: <code>responseSchema.properties</code>, <code>required[]</code></span></div></li>
+  <li><span class="pin">4</span><div><b>Secret question and plan approval</b> <span class="tag new">New</span><span>Always asks, whatever the approval mode. Even on Auto these two never auto-resolve. Secret input is masked, the value never reaches the stream, and the audit row only says "Key provided".</span><span class="src">Data: <code>method: "secret" | "plan_approval"</code>, <code>field.secret</code></span></div></li>
+</ol>
+</div>
+
+<div class="board">
+<div>
+<div class="wf">
+  <div class="wf-stage">
+    <div class="msg"><span class="av">QA</span><div class="grow">
+      <div class="answer">Drafting step 3, the first dashboard exercise<span class="caret"></span></div>
+    </div></div>
+  </div>
+  <div class="bottom">
+    <div class="pop" role="listbox" aria-label="Slash commands">
+      <div class="it is-active"><code>/goal</code><span class="muted sm">Set a goal with a budget</span></div>
+      <div class="it"><code>/plan</code><span class="muted sm">Ask for a plan before acting</span></div>
+      <div class="it"><code>/help</code><span class="muted sm">Show commands and shortcuts</span></div>
+      <div class="it"><code>/clear</code><span class="muted sm">Start a new conversation</span></div>
+    </div>
+    <div class="composer">
+      <div class="ph" style="color:var(--ink)">/<span class="caret"></span> <span class="pin">1</span></div>
+      <div class="composer-bar">
+        <span class="chip">Goal</span><span class="chip">Budget: 20 min</span> <span class="pin">2</span>
+        <span class="chip">Ask &#9662;</span> <span class="pin">3</span>
+        <span class="spacer"></span>
+        <span class="btn soft">Steer</span><span class="send stop" aria-label="Stop"></span> <span class="pin">4</span>
+      </div>
+    </div>
+    <div class="row"><span class="btn" style="opacity:.5">Stopping&hellip;</span> <span class="pin">5</span><span class="muted sm">Interrupting state</span></div>
+    <div class="pop" style="max-width:300px;align-self:center">
+      <div class="it"><span class="eyebrow">Qlik Analyst settings</span> <span class="pin">6</span></div>
+      <div class="it"><span>Model</span><span class="spacer"></span><span class="muted">Sonnet 5.5</span></div>
+      <div class="it"><span>Effort</span><span class="spacer"></span><span class="muted">Medium</span></div>
+      <div class="it"><span>Reasoning summary</span><span class="spacer"></span><span class="muted">Auto</span></div>
+      <div class="it"><span>Service tier</span><span class="spacer"></span><span class="muted">Default</span></div>
+      <div class="it"><span>Personality</span><span class="spacer"></span><span class="muted">Friendly</span></div>
+    </div>
+    <div class="row" style="justify-content:center"><span class="status-pill"><span class="pulse"></span>Qlik Analyst &middot; Working</span></div>
+  </div>
+</div>
+<p class="board-cap">Composer while a turn runs, with the slash menu open. The settings popover opens from the dock pill, not the composer.</p>
+</div>
+<ol class="notes">
+  <li><span class="pin">1</span><div><b>Slash commands</b> <span class="tag new">New</span><span>Typing / at the start opens a popover above the composer. Arrow keys move, Enter picks, Esc closes. The list filters as you type.</span><span class="src">Data: <code>commands[]</code> (name, description)</span></div></li>
+  <li><span class="pin">2</span><div><b>Goal chip and budget</b> <span class="tag exists">Exists</span><span>Unchanged from the spec. The budget select shows only in goal mode.</span><span class="src">Data: <code>goal</code>, <code>goal.budget</code></span></div></li>
+  <li><span class="pin">3</span><div><b>Approval mode</b> <span class="tag new">New</span><span>Ask, Read-only or Auto, per conversation. Behind a feature flag, hidden when it's off. Plan approval and secret questions ignore it.</span><span class="src">Data: <code>approvalMode</code>, flag <code>composer.approvalMode</code></span></div></li>
+  <li><span class="pin">4</span><div><b>Steer and Stop</b> <span class="tag changed">Changed</span><span>While running, send becomes Steer and stays enabled: the text joins the current turn. A separate stop button interrupts. Today busy swaps send for stop.</span><span class="src">Data: <code>turn.state === "running"</code></span></div></li>
+  <li><span class="pin">5</span><div><b>Stopping</b> <span class="tag changed">Changed</span><span>After Stop, the control shows Stopping&hellip; and is disabled until the turn settles. Steer is disabled too.</span><span class="src">Data: <code>turn.state === "interrupting"</code></span></div></li>
+  <li><span class="pin">6</span><div><b>Agent settings popover</b> <span class="tag changed">Changed</span><span>Model, effort, reasoning summary, service tier and personality live in the agent popover opened from the dock status pill. The composer stays about the message.</span><span class="src">Data: <code>model</code>, <code>effort</code>, <code>reasoningSummary</code>, <code>serviceTier</code>, <code>personality</code></span></div></li>
+</ol>
+</div>
+</section>
+
+<style>
+.ch-dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--ok)}
+.ch-dot.warn{background:var(--warn)} .ch-dot.bad{background:var(--bad)}
+.ch-variants{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.ch-banner{margin:12px 16px 0}
+.ch-kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 12px;padding:6px 8px;font-size:13px}
+.ch-kv dt{color:var(--ink-3)} .ch-kv dd{margin:0;color:var(--ink);overflow-wrap:anywhere}
+.ch-ta{min-height:64px;border:1px solid var(--line-strong);border-radius:9px;background:var(--surface);padding:8px 10px;color:var(--ink-3);font-size:13px}
+.ch-tl{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--line);display:flex;flex-direction:column;gap:10px;font-size:13px}
+.ch-tl li{position:relative;display:flex;gap:8px;flex-wrap:wrap;align-items:baseline;color:var(--ink-2)}
+.ch-tl li::before{content:"";position:absolute;left:-19px;top:6px;width:8px;height:8px;border-radius:50%;background:var(--line-strong)}
+.ch-tl time{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3);min-width:56px}
+.ch-file{display:flex;align-items:center;gap:8px;font-size:13px;min-width:0}
+.ch-file code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ch-add{color:var(--ok);font-family:var(--font-mono);font-size:12px} .ch-del{color:var(--bad);font-family:var(--font-mono);font-size:12px}
+.ch-top{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)} .ch-top .crumb{overflow:hidden}
+</style>
+<section class="sec" id="chrome">
+  <div class="sec-head">
+    <span class="eyebrow">3 · Status, pinned</span>
+    <h2>Session chrome</h2>
+    <p>Status lives in two fixed places. The topbar shows who is working and whether the session is healthy. The session panel holds the goal, the plan, file changes and errors. None of it scrolls away with the stream.</p>
+  </div>
+
+  <!-- Board A: topbar + status -->
+  <div class="board">
+    <div>
+      <div class="wf">
+        <div class="wf-top ch-top">
+          <div class="crumb"><span class="muted">/</span><span class="t">Onboarding plan for new analysts</span><span class="pin">1</span><span class="pill">Archived</span><span class="pin">2</span></div>
+          <span class="status-pill"><span class="pulse"></span>Qlik Analyst <span class="muted">·</span> <span class="muted">Working</span></span>
+          <div class="row" style="justify-content:flex-end"><span class="pin">3</span></div>
+        </div>
+        <div class="ch-variants" aria-label="Status pill states">
+          <span class="status-pill"><span class="pulse idle"></span>Qlik Analyst <span class="muted">· Idle</span></span>
+          <span class="status-pill"><span class="spinner"></span>Qlik Analyst <span class="muted">· Starting…</span></span>
+          <span class="status-pill"><span class="pulse"></span>Qlik Analyst <span class="muted">· Working</span></span>
+          <span class="status-pill"><span class="pulse warn"></span>Qlik Analyst <span class="muted">· Stopping…</span></span>
+        </div>
+        <div class="card warn ch-banner"><div class="row"><span class="pin">4</span><span class="strong" style="color:inherit">This session lost its runner. Reconnect or start a new chat.</span><span class="spacer"></span><button class="btn" type="button">Reconnect</button><button class="btn ghost" type="button">New chat</button></div></div>
+        <div class="card bad ch-banner"><div class="row"><span class="pin">5</span><span class="strong">This session has ended. You can read it, but it can no longer run.</span><span class="spacer"></span><button class="btn" type="button">Start a new chat</button></div></div>
+        <div style="padding:12px 16px 16px;display:flex;justify-content:center">
+          <div class="pop" style="width:min(320px,100%)">
+            <div class="it"><span class="tile">Q</span><div class="grow"><span class="strong">Qlik Analyst</span><span class="muted sm">Edit agent</span></div><span class="pin">6</span></div>
+            <dl class="ch-kv">
+              <dt>Model</dt><dd>Sonnet 5.5</dd>
+              <dt>Provider</dt><dd>Anthropic</dd>
+              <dt>Sandbox</dt><dd>Workspace write</dd>
+              <dt>Folder</dt><dd><code>~/true-ui</code></dd>
+            </dl>
+            <div class="row" style="padding:4px 8px 2px"><span class="eyebrow">Connected tools</span><span class="pin">7</span></div>
+            <div class="it"><span class="ch-dot"></span>Qlik Cloud<span class="spacer"></span><span class="muted sm">12 tools</span></div>
+            <div class="it"><span class="ch-dot"></span>GitHub<span class="spacer"></span><span class="muted sm">8 tools</span></div>
+            <div class="it"><span class="ch-dot warn"></span>Google Drive<span class="spacer"></span><span class="pill warn">Needs auth</span></div>
+            <div class="it"><span class="ch-dot bad"></span>Jira<span class="spacer"></span><span class="pill bad">Failed</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">One topbar with the four pill states listed below it, the two health banners, and the agent popover opened from the pill.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Crumb title</b> <span class="tag exists">Exists</span><span>Conversation title, cut short with an ellipsis. Falls back to "New conversation".</span><span class="src">Data: <code>session.title</code></span></div></li>
+      <li><span class="pin">2</span><div><b>Archived pill</b> <span class="tag new">New</span><span>Shows after the title when the session is archived. The composer is replaced by an "Unarchive" action.</span><span class="src">Data: <code>session.archived</code></span></div></li>
+      <li><span class="pin">3</span><div><b>Status pill, turn state</b> <span class="tag changed">Changed</span><span>Agent name plus the real turn state: idle "Idle", starting "Starting…", running "Working", interrupting "Stopping…". The same state drives the composer stop button, which is disabled while stopping.</span><span class="src">Data: <code>turn.state</code>, <code>agent.name</code></span></div></li>
+      <li><span class="pin">4</span><div><b>Orphaned banner</b> <span class="tag new">New</span><span>Warn card under the topbar when the runner is gone. Reconnect retries the attach, New chat forks the transcript.</span><span class="src">Data: <code>session.status = "orphaned"</code></span></div></li>
+      <li><span class="pin">5</span><div><b>Dead banner</b> <span class="tag new">New</span><span>Bad card. The session is read only: the composer hides and history stays readable.</span><span class="src">Data: <code>session.status = "dead"</code></span></div></li>
+      <li><span class="pin">6</span><div><b>Agent popover</b> <span class="tag changed">Changed</span><span>Clicking the pill opens a summary before the editor: model, provider, sandbox mode and project folder.</span><span class="src">Data: <code>agent.model</code>, <code>agent.provider</code>, <code>session.sandbox</code>, <code>session.cwd</code></span></div></li>
+      <li><span class="pin">7</span><div><b>Connected tools</b> <span class="tag new">New</span><span>One row per MCP server with a dot: green connected, amber needs auth, red failed. Needs auth and failed rows open the server settings. If any server fails, the pill gets a small amber dot.</span><span class="src">Data: <code>mcp.status</code></span></div></li>
+    </ol>
+  </div>
+  <!-- Board B: Goal tab -->
+  <div class="board">
+    <div>
+      <div class="wf">
+        <div class="wf-panel" style="border-left:0">
+          <div class="tabs"><span class="tab">Activity</span><span class="tab is-active">Goal</span><span class="tab">Agents</span><span class="tab">Plan</span><span class="tab">Insights</span></div>
+          <div class="row"><span class="pill accent"><span class="pulse"></span>Active</span><span class="pin">1</span><span class="spacer"></span><span class="mono sm muted">Started 9:42 AM</span></div>
+          <h3>Build a two-week onboarding plan for the three new analysts joining in October</h3>
+          <div class="row sm muted" style="gap:6px"><span>Other states</span><span class="pill warn">Paused</span><span class="pill bad">Blocked</span><span class="pill warn">Usage limit</span><span class="pill warn">Budget reached</span><span class="pill ok">Complete</span></div>
+          <div class="card">
+            <div class="row"><span class="strong sm">Tokens</span><span class="pin">2</span><span class="spacer"></span><span class="mono sm">412k of 500k tokens</span></div>
+            <div class="bar warn"><i style="width:82%"></i></div>
+            <div class="row sm muted"><span>Time used</span><span class="spacer"></span><span class="mono">38m</span></div>
+          </div>
+          <div class="card">
+            <div class="row"><span class="tile">&#10003;</span><div class="grow"><span class="strong">Agent marked this goal complete</span><span class="muted sm">Plan saved to onboarding/analyst-plan.md with 10 days of sessions.</span></div><span class="pin">3</span></div>
+            <div class="row"><button class="btn primary" type="button">Accept</button><button class="btn ghost" type="button">Reopen with feedback</button></div>
+            <label class="field"><span class="muted sm">What is missing?</span><div class="ch-ta">Add a Qlik certification checkpoint in week two.</div></label>
+            <div class="row"><span class="spacer"></span><button class="btn soft" type="button">Reopen goal</button></div>
+          </div>
+          <div class="row"><span class="eyebrow">Timeline</span><span class="pin">4</span></div>
+          <ol class="ch-tl">
+            <li><time>9:42 AM</time>Goal set</li>
+            <li><time>9:43 AM</time>Budget set to 500k tokens</li>
+            <li><time>9:58 AM</time>Objective edited: added "joining in October"</li>
+            <li><time>10:11 AM</time>Status: Paused</li>
+            <li><time>10:14 AM</time>Status: Active</li>
+            <li><time>10:20 AM</time>Marked complete by agent</li>
+            <li><time>10:24 AM</time>Reopened with feedback</li>
+          </ol>
+        </div>
+      </div>
+      <p class="board-cap">Goal tab while a completion is waiting for review. Accepted and cleared entries join the same timeline.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Goal status</b> <span class="tag changed">Changed</span><span>GOAL_STATUS today has running, paused, done and ended. v2 needs six: active "Active" (pulse), paused "Paused", blocked "Blocked", usageLimited "Usage limit", budgetLimited "Budget reached", complete "Complete". Limit states show a Resume action once the limit clears.</span><span class="src">Data: <code>goal.status</code>, <code>goal.objective</code></span></div></li>
+      <li><span class="pin">2</span><div><b>Budget and time</b> <span class="tag new">New</span><span>Replaces the fake dollar meta. Tokens used against the budget, with the bar turning amber past 80%. Time used sits under it. With no budget, only the count shows.</span><span class="src">Data: <code>goal.tokensUsed</code>, <code>goal.tokenBudget</code>, <code>goal.timeUsedMs</code></span></div></li>
+      <li><span class="pin">3</span><div><b>Goal review</b> <span class="tag new">New</span><span>Shows when the agent marks the goal complete. Accept closes it. Reopen with feedback opens a textarea and sends the text back as the next turn.</span><span class="src">Data: <code>goal.status = "complete"</code>, <code>goal.accepted</code></span></div></li>
+      <li><span class="pin">4</span><div><b>Goal timeline</b> <span class="tag new">New</span><span>Vertical list, oldest first, one row per history entry: set, objective, budget, status, accepted, reopened, cleared. Local time on the left.</span><span class="src">Data: <code>GoalHistoryEntry[]</code></span></div></li>
+    </ol>
+  </div>
+  <!-- Board C: Activity + Plan tabs -->
+  <div class="board">
+    <div>
+      <div class="wf"><div class="wf-split">
+        <div class="wf-panel" style="border-left:0">
+          <div class="tabs"><span class="tab is-active">Activity</span><span class="tab">Goal</span><span class="tab">Agents</span><span class="tab">Plan</span><span class="tab">Insights</span></div>
+          <div class="row"><span class="eyebrow">Changes</span><span class="pin">1</span><span class="spacer"></span><span class="mono sm muted">3 files</span></div>
+          <div class="ch-file"><code>onboarding/analyst-plan.md</code><span class="ch-add">+84</span><span class="ch-del">-0</span></div>
+          <div class="diff" role="group" aria-label="Diff for onboarding/analyst-plan.md">
+            <div class="hd">@@ -0,0 +1,84 @@</div>
+            <div class="add">+## Week 1: Tools and data</div>
+            <div class="add">+- Day 1: Qlik Cloud access, workspace tour</div>
+            <div class="add">+- Day 2: Shadow Priya on the sales dashboard</div>
+          </div>
+          <div class="ch-file"><code>onboarding/checklist.csv</code><span class="ch-add">+12</span><span class="ch-del">-3</span></div>
+          <div class="ch-file"><code>README.md</code><span class="ch-add">+2</span><span class="ch-del">-1</span></div>
+          <div class="row"><span class="eyebrow">Errors</span><span class="pin">2</span></div>
+          <div class="card bad">
+            <div class="row"><span class="mark fail"></span><span class="strong sm">Google Drive search failed: token expired</span></div>
+            <div class="row mono sm muted"><span>ref err_7f3a21</span><span class="spacer"></span><span>10:06 AM</span></div>
+          </div>
+        </div>
+        <div class="wf-panel">
+          <div class="tabs"><span class="tab">Activity</span><span class="tab">Goal</span><span class="tab">Agents</span><span class="tab is-active">Plan</span><span class="tab">Insights</span></div>
+          <div class="row"><span class="strong sm">2 of 5 done</span><span class="pin">3</span><span class="spacer"></span><span class="mono sm muted">40%</span></div>
+          <div class="bar"><i style="width:40%"></i></div>
+          <ul class="steps">
+            <li class="is-done"><span class="mark done"></span>List the tools each analyst needs</li>
+            <li class="is-done"><span class="mark done"></span>Pull the team handbook and past plans</li>
+            <li style="color:var(--ink)"><span class="mark"><span class="spinner"></span></span>Draft week one sessions</li>
+            <li><span class="mark"></span>Draft week two sessions</li>
+            <li><span class="mark"></span>Write the checklist file</li>
+          </ul>
+        </div>
+      </div>
+      </div>
+      <p class="board-cap">Activity and Plan tabs side by side. On phones they stack.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Changes</b> <span class="tag new">New</span><span>File list with added and removed line counts, newest diff first. Each row expands to its diff. Long paths are cut short; the diff scrolls sideways.</span><span class="src">Data: <code>diff.updated</code> (path, additions, deletions, hunks)</span></div></li>
+      <li><span class="pin">2</span><div><b>Errors</b> <span class="tag new">New</span><span>Every error event gets a row: message, error ref in mono so support can find it, and the time. The same ref appears on the inline error in the stream.</span><span class="src">Data: <code>error.message</code>, <code>error.ref</code>, <code>error.at</code></span></div></li>
+      <li><span class="pin">3</span><div><b>Plan</b> <span class="tag exists">Exists</span><span>Same Plan tab, now fed by real data instead of sample steps. Marks for done, current and pending, with a "2 of 5 done" bar. Updates replace the whole list.</span><span class="src">Data: <code>plan.updated</code> (steps, status)</span></div></li>
+    </ol>
+  </div>
+</section>
+
+<style>
+.ob-stack{display:flex;gap:2px;height:14px}
+.ob-stack i{flex-basis:0;min-width:2px;background:var(--t,var(--accent))}
+.ob-stack i:first-child{border-radius:4px 0 0 4px}
+.ob-stack i:last-child{border-radius:0 4px 4px 0}
+.ob-sw{width:10px;height:10px;border-radius:3px;background:var(--t,var(--accent));flex:none}
+.ob-mono{font:12px/1.6 var(--font-mono);color:var(--ink-2);font-variant-numeric:tabular-nums;display:flex;flex-wrap:wrap;gap:4px 10px}
+.ob-num{font-variant-numeric:tabular-nums}
+.ob-tok{display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:6px}
+.ob-tok div{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;display:flex;flex-direction:column;font-size:11px;color:var(--ink-3)}
+.ob-tok b{font-size:14px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.ob-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;font-size:12px}
+.ob-list li{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line);min-width:0;flex-wrap:wrap}
+.ob-list li:first-child{border-top:0}
+.ob-ctx summary{cursor:pointer;font-size:12px;color:var(--ink-2);padding:6px 0;border-top:1px solid var(--line)}
+.ob-ctx:first-of-type summary{border-top:0}
+.ob-ctx pre{margin:0 0 6px;padding:8px 10px;border-radius:8px;background:var(--surface-3);font:11px/1.5 var(--font-mono);color:var(--ink-2);white-space:pre-wrap;overflow-wrap:anywhere}
+</style>
+<section class="sec" id="obs">
+  <div class="sec-head">
+    <span class="eyebrow">4 · Diagnostics, collapsed</span>
+    <h2>Observability</h2>
+    <p>Every turn records a trace: steps, tokens, timings, rate limits and privacy findings. By default a response shows one quiet receipt line. The full trace opens behind Details, and session-wide numbers live in the Insights tab.</p>
+  </div>
+
+  <!-- Board A: per-turn receipt and trace -->
+  <div class="board">
+    <div>
+      <div class="wf">
+        <div class="wf-stage">
+          <div class="msg">
+            <div class="av">t</div>
+            <div class="grow">
+              <div class="answer">Here is a two-week onboarding plan built from the analyst handbook. Week one covers access and shadowing. Week two ends with each analyst publishing a first sheet.</div>
+              <div class="msg-foot"><span class="pin">1</span> <span class="ob-num">2.6s</span> · <span class="ob-num">26.6k tokens</span> · Sonnet 5.5 · <span class="pill warn">1 privacy finding</span> · <span class="btn ghost">Details</span> <span class="pin">2</span></div>
+
+              <div class="card" style="margin-top:10px">
+                <div class="row"><span class="pin">3</span><span class="pill ok">Completed</span><span class="muted sm ob-num">2.6s · Sonnet 5.5</span><span class="spacer"></span><span class="btn ghost">Hide</span></div>
+
+                <div class="row"><span class="pin">4</span><span class="strong sm">Steps</span></div>
+                <div style="overflow-x:auto">
+                  <div class="tl" style="min-width:300px">
+                    <div class="tl-row"><span class="lbl">Thinking</span><span class="tl-track"><i class="k-think" style="left:0;width:15.4%"></i></span><span class="d">0.4s</span></div>
+                    <div class="tl-row"><span class="lbl">Reading 3 documents</span><span class="tl-track"><i class="k-tool" style="left:15.4%;width:34.6%"></i></span><span class="d">0.9s</span></div>
+                    <div class="tl-row"><span class="lbl">Atlas</span><span class="tl-track"><i class="k-agent" style="left:19.2%;width:57.7%"></i></span><span class="d">1.5s</span></div>
+                    <div class="tl-row"><span class="lbl">Drafting answer</span><span class="tl-track"><i style="left:50%;width:50%"></i></span><span class="d">1.3s</span></div>
+                  </div>
+                </div>
+                <div class="row sm muted"><span class="ob-sw tone-0"></span>Thinking <span class="ob-sw tone-1"></span>Tool <span class="ob-sw tone-2"></span>Agent <span class="ob-sw"></span>Message</div>
+
+                <div class="row"><span class="pin">5</span><span class="strong sm">Tokens</span><span class="spacer"></span><span class="muted sm ob-num">26.6k total</span></div>
+                <div class="ob-tok">
+                  <div>Input<b>14.1k</b></div>
+                  <div>Cached<b>9.8k</b></div>
+                  <div>Output<b>1.9k</b></div>
+                  <div>Reasoning<b>0.6k</b></div>
+                  <div>Helpers<b>0.2k</b></div>
+                </div>
+
+                <div class="row"><span class="pin">6</span><span class="strong sm">Timing</span></div>
+                <div class="ob-mono"><span>accept 42ms</span><span>TTFT 610ms</span><span>stream 1.9s</span><span>max gap 180ms</span><span>38 tok/s</span><span>finalize 55ms</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">Receipt is the default. The trace card opens inline under the response, one turn at a time. On narrow screens it can open in the session panel instead.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Receipt line</b> <span class="tag changed">Changed</span><span>The existing footer grows from time only to time, total tokens, model and a privacy count. Privacy shows only when the count is above zero, in warn tone.</span><span class="src">Data: <code>TurnTrace.durationMs</code> <code>usage.total</code> <code>model</code> <code>privacy.length</code></span></div></li>
+      <li><span class="pin">2</span><div><b>Details</b> <span class="tag new">New</span><span>Ghost button that toggles the trace card for this turn. Opening one closes any other open trace.</span><span class="src">Data: <code>TurnTrace.id</code></span></div></li>
+      <li><span class="pin">3</span><div><b>Trace status</b> <span class="tag new">New</span><span>Status pill (Completed, Failed, Stopped) with total duration and model. Failed uses the bad tone and names the failing step.</span><span class="src">Data: <code>TurnTrace.status</code> <code>durationMs</code> <code>model</code></span></div></li>
+      <li><span class="pin">4</span><div><b>Step timeline</b> <span class="tag new">New</span><span>One row per step, labelled in plain words. Bars are placed by start offset and length as a share of the turn, so overlap with helper agents is visible. Colour follows kind; helper rows carry the agent name. Scrolls sideways on phones.</span><span class="src">Data: <code>StepSpan[]</code>: <code>kind</code> <code>label</code> <code>agent</code> <code>startMs</code> <code>durationMs</code> <code>status</code></span></div></li>
+      <li><span class="pin">5</span><div><b>Token breakdown</b> <span class="tag new">New</span><span>Input, cached input, output, reasoning, and tokens used by helper agents, summed to the total on the receipt.</span><span class="src">Data: <code>usage.input</code> <code>usage.cachedInput</code> <code>usage.output</code> <code>usage.reasoning</code> <code>usage.total</code> <code>helperTokens</code></span></div></li>
+      <li><span class="pin">6</span><div><b>Timing row</b> <span class="tag new">New</span><span>Mono line for people debugging latency: accept, time to first token, stream time, longest gap between deltas, delta rate and finalize.</span><span class="src">Data: <code>TurnTiming.acceptMs</code> <code>ttftMs</code> <code>streamMs</code> <code>maxGapMs</code> <code>deltaRate</code> <code>finalizeMs</code></span></div></li>
+    </ol>
+  </div>
+
+  <!-- Board B: Insights tab -->
+  <div class="board">
+    <div>
+      <div class="wf">
+        <div class="wf-panel" style="border-left:0">
+          <div class="tabs"><span class="tab">Activity</span><span class="tab">Goal</span><span class="tab">Agents</span><span class="tab">Plan</span><span class="tab is-active">Insights</span></div>
+
+          <div class="row"><span class="pin">1</span><span class="muted sm">Existing</span></div>
+          <div class="kpis">
+            <div class="kpi"><span class="l">Average time</span><span class="v">3.1s</span><span class="s">6 responses</span></div>
+            <div class="kpi"><span class="l">Slowest</span><span class="v">7.8s</span></div>
+            <div class="kpi"><span class="l">Tokens</span><span class="v">142k</span><span class="s">31k from helpers</span></div>
+            <div class="kpi"><span class="l">Helpers</span><span class="v">2</span><span class="s">2 finished</span></div>
+          </div>
+          <div class="card">
+            <div class="row"><span class="strong sm">Tokens by agent</span><span class="spacer"></span><span class="muted sm ob-num">142k total</span></div>
+            <div class="ob-stack"><i class="tone-main" style="flex-grow:111"></i><i class="tone-0" style="flex-grow:22"></i><i class="tone-2" style="flex-grow:9"></i></div>
+            <div class="row sm ob-num"><span class="ob-sw tone-main"></span>Main agent 111k <span class="ob-sw tone-0"></span>Atlas 22k <span class="ob-sw tone-2"></span>Cedar 9k</div>
+          </div>
+
+          <div class="card">
+            <div class="row"><span class="pin">2</span><span class="strong sm">Main agent context</span><span class="spacer"></span><span class="muted sm ob-num">61.4k of 258k · 24%</span></div>
+            <div class="bar"><i style="width:24%"></i></div>
+          </div>
+
+          <div class="card">
+            <div class="row"><span class="pin">3</span><span class="strong sm">Rate limits</span></div>
+            <div class="row sm ob-num"><span>Primary · 5h window</span><span class="spacer"></span><span class="muted">72% · resets 3:40 PM</span></div>
+            <div class="bar warn"><i style="width:72%"></i></div>
+            <div class="row sm ob-num"><span>Secondary · weekly</span><span class="spacer"></span><span class="muted">18%</span></div>
+            <div class="bar"><i style="width:18%"></i></div>
+          </div>
+
+          <div class="card">
+            <div class="row"><span class="pin">4</span><span class="strong sm">Privacy findings</span><span class="spacer"></span><span class="pill warn ob-num">2</span></div>
+            <ul class="ob-list">
+              <li><span class="pill">Email</span><span class="muted">in Reading 3 documents</span><span class="spacer"></span><code>j•••@acme.com</code><span class="ob-num muted">×1</span></li>
+              <li><span class="pill">Card</span><span class="muted">in your message</span><span class="spacer"></span><code>•••• 4242</code><span class="ob-num muted">×1</span></li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="row"><span class="pin">5</span><span class="strong sm">This session</span></div>
+            <div class="ob-mono"><span>6 turns</span><span>avg 3.1s</span><span>p95 7.8s</span><span>142k tokens</span><span>2 privacy</span></div>
+          </div>
+
+          <div class="card">
+            <div class="row"><span class="pin">6</span><span class="strong sm">Model context</span><span class="pill accent">Dev mode</span><span class="spacer"></span><span class="muted sm">masked</span></div>
+            <div>
+              <details class="ob-ctx"><summary>System · 1.2k</summary><pre>You are truex, a data assistant for •••••…</pre></details>
+              <details class="ob-ctx"><summary>Tools · 3.4k</summary><pre>read_document, search_workspace, run_query …</pre></details>
+              <details class="ob-ctx" open><summary>Workspace docs · 38.9k</summary><pre>handbook/week-one.md, access-requests.md · Contact: j•••@acme.com …</pre></details>
+              <details class="ob-ctx"><summary>Conversation · 17.9k</summary><pre>6 turns, oldest first. Card •••• 4242 …</pre></details>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">Insights stacks existing tiles on top, then live meters, then session detail. Model context appears only in dev mode.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>KPI tiles and Tokens by agent</b> <span class="tag exists">Exists</span><span>Average time, Slowest, Tokens, Helpers, and the stacked bar with legend stay as specified. Values now come from real traces instead of the 8,200-per-response estimate.</span><span class="src">Data: <code>TraceSummary</code> <code>usage.total</code> <code>helperTokens</code></span></div></li>
+      <li><span class="pin">2</span><div><b>Context window fill</b> <span class="tag changed">Changed</span><span>The spec already has a context meter. It switches to the reported used tokens over the 258k window. Warn at 75%, critical at 90%, as today.</span><span class="src">Data: <code>contextUsedTokens</code> <code>contextWindow</code></span></div></li>
+      <li><span class="pin">3</span><div><b>Rate limits</b> <span class="tag new">New</span><span>Two bars, primary and secondary, each with window and reset time. At 70% or more the bar turns warn. When reached, the row shows a bad pill "Limit reached · resets 3:40 PM", and the composer explains why sending is paused.</span><span class="src">Data: <code>rateLimits.primary.usedPercent</code> <code>windowMinutes</code> <code>resetsAt</code> <code>reached</code>, same for <code>secondary</code></span></div></li>
+      <li><span class="pin">4</span><div><b>Privacy findings</b> <span class="tag new">New</span><span>One row per finding: kind, where it came from, a masked sample and how many times it appeared. Raw values never reach the UI. Hidden when the list is empty.</span><span class="src">Data: <code>privacy[]</code>: <code>kind</code> <code>source</code> <code>count</code> <code>maskedSample</code></span></div></li>
+      <li><span class="pin">5</span><div><b>Session rollup</b> <span class="tag new">New</span><span>One mono line summarising the session: turns, average and p95 latency, total tokens and privacy count.</span><span class="src">Data: <code>TraceSummary.turns</code> <code>avgMs</code> <code>p95Ms</code> <code>tokens</code> <code>privacyCount</code></span></div></li>
+      <li><span class="pin">6</span><div><b>Model context</b> <span class="tag new">New, dev only</span><span>Collapsible list of what the model was fed on the latest turn, one section each for System, Tools, Workspace docs and Conversation, with token counts. Masked, and only available for live turns.</span><span class="src">Data: <code>TurnContext.sections[]</code>: <code>name</code> <code>tokens</code> <code>maskedText</code></span></div></li>
+    </ol>
+  </div>
+</section>
+
+<section class="sec" id="gaps">
+  <div class="sec-head">
+    <span class="eyebrow">5 · Next</span>
+    <h2>Gaps and build order</h2>
+    <p>These are the pieces the truex spec does not cover yet. Each one needs a design pass, tokens for both themes, and an entry in <code>truex-design-spec.html</code>.</p>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Component</th><th>Covers</th><th>Section</th></tr></thead>
+      <tbody>
+        <tr><td>Live request card</td><td>Tool approval, clarifying question, plan approval, secret input, countdown, <code>responseSchema</code> forms</td><td><a href="#requests">Live requests</a></td></tr>
+        <tr><td>Message delivery states</td><td>Sending, failed with retry, unknown, steered tag</td><td><a href="#stream">Stream</a></td></tr>
+        <tr><td>Slash commands</td><td>Command popover, command chip, result and error card</td><td><a href="#stream">Stream</a>, <a href="#requests">Composer</a></td></tr>
+        <tr><td>Approval mode picker</td><td>Ask, Read-only, Auto, behind a feature flag</td><td><a href="#requests">Composer</a></td></tr>
+        <tr><td>Goal statuses and review</td><td>Blocked, usage limit, budget reached, complete; accept or reopen; goal timeline</td><td><a href="#chrome">Session chrome</a></td></tr>
+        <tr><td>Errors and session health</td><td>Inline error with ref, orphaned and dead banners</td><td><a href="#chrome">Session chrome</a></td></tr>
+        <tr><td>Changes view</td><td>File list and diff from <code>diff.updated</code></td><td><a href="#chrome">Session chrome</a></td></tr>
+        <tr><td>Insights additions</td><td>Step timeline, context fill, rate limits, privacy, rollup, model context</td><td><a href="#obs">Observability</a></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="board">
+    <div class="card">
+      <h3>Build order</h3>
+      <ol class="steps-list">
+        <li><b>Adapter.</b> One function maps <code>Entry</code>, <code>PendingRequest</code>, <code>TurnTrace</code> and session events into the view model <code>app.tsx</code> renders. Components never read contracts directly.</li>
+        <li><b>Stream.</b> Messages, steps, helper card and receipt. Most of the visible value lands here.</li>
+        <li><b>Live requests and composer.</b> Request card, steer, stop and the mode picker.</li>
+        <li><b>Panel tabs.</b> Real data for Goal, Plan and Activity, including changes, MCP and errors.</li>
+        <li><b>Insights and dev mode.</b> Timeline, limits, privacy and model context.</li>
+        <li><b>Spec update.</b> Every new component added to the truex spec with light and dark values.</li>
+      </ol>
+    </div>
+    <div class="qs">
+      <div class="q"><b>Where do live requests go?</b><span>This page pins them above the composer. The other option is the end of the stream, which keeps the history in one place but can scroll away.</span></div>
+      <div class="q"><b>Which repo is the target?</b><span>This repo's <code>app.tsx</code> runs on sample data. The contracts live in the main app, so the adapter probably belongs there.</span></div>
+      <div class="q"><b>How much trace is public?</b><span>The receipt shows for everyone. Model context is dev mode only. Should the timeline and privacy findings also sit behind dev mode?</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="foot"><span>Built from shared/contracts.ts, lib/chat.ts and truex-design-spec.html</span><span>truex</span></div>
+</div>

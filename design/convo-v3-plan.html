@@ -1,0 +1,243 @@
+<title>Conversation v3 Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: one reading column, plan first, then phases as board lists, then the data contract table. TrueX v2 tokens, with ink-3 and accent text darkened for AA. */
+:root{
+  --page:#F6F9FA; --surface:#FFFFFF; --surface-2:#F8FCFD;
+  --line:#E3ECEF; --line-strong:#D8E0E4;
+  --ink:#1F2A30; --ink-2:#5F6D73; --ink-3:#67757C;
+  --accent:#3691CD; --accent-fg:#2A72A3; --accent-soft:#EAF5F8;
+  --ok:#0f7a55; --ok-bg:#E6F5EE;
+  --warn:#7D5D1D; --warn-bg:#FFF3D9;
+  --bad:#A63A25; --bad-bg:#FCECE7;
+  --font-sans:"Figtree",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --page:#111213; --surface:#171717; --surface-2:#1C1C1C;
+  --line:#2A2A2A; --line-strong:#363636;
+  --ink:#EEF4F6; --ink-2:#B7C3C8; --ink-3:#98A6AC;
+  --accent:#5AA8DC; --accent-fg:#BCDEE8; --accent-soft:#14283A;
+  --ok:#4FC79B; --ok-bg:#0E211A; --warn:#E6C27A; --warn-bg:#2E2512; --bad:#E88C77; --bad-bg:#2C1712;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --page:#111213; --surface:#171717; --surface-2:#1C1C1C;
+  --line:#2A2A2A; --line-strong:#363636;
+  --ink:#EEF4F6; --ink-2:#B7C3C8; --ink-3:#98A6AC;
+  --accent:#5AA8DC; --accent-fg:#BCDEE8; --accent-soft:#14283A;
+  --ok:#4FC79B; --ok-bg:#0E211A; --warn:#E6C27A; --warn-bg:#2E2512; --bad:#E88C77; --bad-bg:#2C1712;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--ink);font:15px/1.6 var(--font-sans);padding-inline:16px;padding-block:40px 80px}
+main{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:44px}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.25}
+h1{font-size:34px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:22px;font-weight:700}
+h3{font-size:16px;font-weight:600}
+p{margin:0;max-width:68ch}
+.eyebrow{font:500 12px/1 var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--accent-fg)}
+.lede{font-size:17px;color:var(--ink-2)}
+section{display:flex;flex-direction:column;gap:16px}
+.head{display:flex;flex-direction:column;gap:12px}
+code,.mono{font-family:var(--font-mono);font-size:.86em}
+code{background:var(--accent-soft);color:var(--accent-fg);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+.verdict{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.verdict div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.verdict b{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:600}
+.verdict p{font-size:14px;color:var(--ink-2)}
+ol.rules{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;counter-reset:r}
+ol.rules li{counter-increment:r;display:grid;grid-template-columns:28px 1fr;gap:10px}
+ol.rules li::before{content:counter(r);font:500 13px/24px var(--font-mono);color:var(--accent-fg);text-align:center;background:var(--accent-soft);border-radius:6px;height:24px}
+.phase{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.phase>header{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px 14px;align-items:baseline}
+.phase>header .tag{font:500 12px/1 var(--font-mono);padding:5px 8px;border-radius:6px;background:var(--accent-soft);color:var(--accent-fg)}
+.phase>header p{flex-basis:100%;font-size:14px;color:var(--ink-2)}
+.item{padding:14px 20px;border-top:1px solid var(--line);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px}
+.phase>header+.item{border-top:0}
+.item h3{font-size:15px}
+.item p{grid-column:1;font-size:14px;color:var(--ink-2)}
+.item .src{grid-column:1;font:12px/1.4 var(--font-mono);color:var(--ink-3)}
+.st{grid-row:1;grid-column:2;font:500 11px/1 var(--font-mono);padding:5px 7px;border-radius:5px;white-space:nowrap;align-self:start;text-transform:uppercase;letter-spacing:.04em}
+.st.exists{background:var(--ok-bg);color:var(--ok)}
+.st.derive{background:var(--warn-bg);color:var(--warn)}
+.st.backend{background:var(--bad-bg);color:var(--bad)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:var(--ink-2);align-items:center}
+.legend span{display:inline-flex;gap:8px;align-items:center}
+.cut{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 20px}
+.cut ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--ink-2)}
+.cut ul b{color:var(--ink);font-weight:600}
+.twocol{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.twocol .cut h3{margin-bottom:10px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:620px;font-size:14px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 12px/1.2 var(--font-sans);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:600}
+td.pri{font-family:var(--font-mono);font-size:12px;white-space:nowrap}
+.parts{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.parts div{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.parts b{font-family:var(--font-mono);font-size:13px;color:var(--accent-fg);font-weight:500}
+.parts span{font-size:13px;color:var(--ink-2)}
+.q{border-left:3px solid var(--accent);padding:4px 0 4px 14px;display:flex;flex-direction:column;gap:4px}
+.q p{font-size:14px;color:var(--ink-2)}
+footer{font-size:13px;color:var(--ink-3)}
+@media (max-width:720px){.verdict,.twocol{grid-template-columns:1fr} h1{font-size:28px}}
+</style>
+
+<main>
+  <header class="head">
+    <span class="eyebrow">TrueX · Conversation page · r2 → r3</span>
+    <h1>Conversation v3 plan</h1>
+    <p class="lede">r2 is a strong base. It gets progress, approvals and usage right. Three kinds of work turn it into the page customers live in: correct the boards that promise data we don't have, draw the daily-use surfaces r2 skipped, and add the safety nets that hours-long sessions need.</p>
+    <p style="font-size:13px;color:var(--ink-3)">Sources: <code>chat-ui-schema.md</code> §1–8, <code>design/convo-v2-wireframe-r2.html</code> (7 sections), and a scan of current agent chat products (Cursor 3, Linear agents, ChatGPT, Claude, Copilot, Perplexity). Section numbers below refer to the schema.</p>
+  </header>
+
+  <section>
+    <h2>Where r2 stands</h2>
+    <div class="verdict">
+      <div><b>Keep</b><p>The placement rule (content inline, status pinned, diagnostics folded). Folded work groups with one live row. Requests docked above the composer with an audit row after. Receipt, trace waterfall, context ring. Plan history in the panel.</p></div>
+      <div><b>Correct</b><p>About 20 fields and states r2 draws that the contract doesn't have, like per-helper tokens, plan versions, a "recommended" option and "Thought for 4s". Also wrong mode labels, Esc order, request expiry copy and the visualization contract.</p></div>
+      <div><b>Add</b><p>No boards yet for the sidebar, ⌘K, empty state, attachments, @-mentions, message actions, code blocks, long-chat navigation, read-only viewers, streaming health, phone layout or accessibility.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Principles for r3</h2>
+    <ol class="rules">
+      <li><p><b>One place for "what needs me".</b> Pending requests, blocked goals, failed helpers and tools that need sign-in all roll into one count and one tray.</p></li>
+      <li><p><b>Outcome first, mechanics on demand.</b> Receipts say what happened and what to do next. Waterfalls, timing and model context stay one click away, or in developer mode.</p></li>
+      <li><p><b>Every board states its data.</b> Each board is tagged as existing data, derived on the client, or needing backend. Nothing new gets drawn from invented fields.</p></li>
+      <li><p><b>Keyboard-first and calm.</b> A global key reaches every action, Esc has one fixed order, and nothing jumps while text streams in.</p></li>
+      <li><p><b>Edge states are real states.</b> Read-only viewers, reconnecting streams, partial answers, phone width and screen readers each get a board.</p></li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Work by phase</h2>
+    <div class="legend">
+      <span><i class="st exists">exists</i> data is in the contract today</span>
+      <span><i class="st derive">derive</i> client-side logic, no API change</span>
+      <span><i class="st backend">backend</i> needs a new field or endpoint</span>
+    </div>
+
+    <div class="phase">
+      <header><span class="tag">P0</span><h3>Make r2 true to the contract</h3><p>This happens before new boards, so engineering can build from r3 without guessing.</p></header>
+      <div class="item"><h3>Remove or re-tag invented fields</h3><span class="st derive">derive</span><p>Remove <code>reasoningSummary</code>, <code>serviceTier</code>, <code>personality</code>, the "Limited access" helper status, <code>usageByAgent</code>, the privacy source file and agent, plan v2 diffs, "Thought for 4s" and the recommended option. Each one is either removed or kept behind a visible "needs backend" tag.</p><span class="src">§2.8 · §3.0.4 · §3.0.5 · §5.8 · §6</span></div>
+      <div class="item"><h3>Fix behavior copy</h3><span class="st exists">exists</span><p>Mode labels are Ask, Auto-allow read-only tools and Autopilot, and plans and secrets always ask. <code>/goal</code> takes a token budget only. Send already sits beside Stop. Esc order: slash menu, then goal mode, then popover or panel, then stop.</p><span class="src">§1 shortcuts · §2.2 · §2.9</span></div>
+      <div class="item"><h3>Request semantics</h3><span class="st exists">exists</span><p>Buttons come from <code>options[]</code>, and a plan is only Approve or Revise. On expiry, a non-secret question continues with its first option, while approvals and secrets are declined. Skip and Reject don't exist.</p><span class="src">§3.7 · §3.0.4</span></div>
+      <div class="item"><h3>Failure card by reason</h3><span class="st exists">exists</span><p><code>contextWindow</code> offers Compact. <code>quota</code> and <code>credentials</code> get fix copy and no Retry, and <code>providerTip</code> is shown. The ref is formatted as <code>code · requestId</code>.</p><span class="src">§3.12 · §3.13 · §7.5</span></div>
+      <div class="item"><h3>Visualization as a sandboxed frame</h3><span class="st exists">exists</span><p>A frame 160 to 900px tall with loading, error and 12s timeout states. Expand, Reload, Download and Ask go in an overflow menu, with a text alternative taken from the title and description.</p><span class="src">§3.9</span></div>
+    </div>
+
+    <div class="phase">
+      <header><span class="tag">P1</span><h3>Daily-use core</h3><p>These are the surfaces people touch every few minutes. This phase is where most of the experience gain comes from.</p></header>
+      <div class="item"><h3>Composer action bar</h3><span class="st exists">exists</span><p>Paperclip with file chips (1 MB each, <code>uploadAccept</code>), an agent chip that locks once the session starts, a model and effort chip, the approval mode picker and Goal with BudgetField. Uploads leave the hidden Tools sheet.</p><span class="src">§2.2 · §2.7 · §2.9 · §2.13</span></div>
+      <div class="item"><h3>@-mentions for files, agents and tools</h3><span class="st derive">derive</span><p>Typing <code>@</code> opens one picker that inserts chips for files, agents and connected tools. Tool mentions need a tool list per session.</p><span class="src">§2.4 pattern · §5.0</span></div>
+      <div class="item"><h3>Visible, editable queue next to Steer</h3><span class="st derive">derive</span><p>Messages typed while a turn runs line up as editable chips above the composer, and ↑ pulls the last one back. Steer stays a separate, explicit action. The ordering rule is written on the board.</p><span class="src">§2.2 steer matrix</span></div>
+      <div class="item"><h3>Message action bar</h3><span class="st backend">backend</span><p>Copy, Regenerate, Edit and resend, and Branch from here, shown on hover or focus once a message is <code>final</code>. Copy works today. The other three need endpoints.</p><span class="src">§3.2 · §3.18</span></div>
+      <div class="item"><h3>Code block</h3><span class="st exists">exists</span><p>Language label, highlighting, copy, a wrap toggle, and collapse past about 30 lines. It must stay fence-aware alongside <code>splitVisualizations</code>.</p><span class="src">§3.1 · §3.18</span></div>
+      <div class="item"><h3>"Needs you" tray and one status model</h3><span class="st derive">derive</span><p>One derived turn state drives the topbar pill, helper chip and dock badge. Its count opens a tray listing open requests, goal stops, failed helpers and tool problems, and one key jumps to the oldest item.</p><span class="src">§1 derived values · §3.7 · §4.4 · §5.8</span></div>
+      <div class="item"><h3>Goal strip, progress before cost</h3><span class="st exists">exists</span><p>"2/4 steps" first, the budget meter second, and the stop reason with its one fix (Extend, Resume, Provide input). Pause, the menu and review come back from GoalBar.</p><span class="src">§4.4–4.7 · §4.9</span></div>
+      <div class="item"><h3>Long-chat navigation</h3><span class="st derive">derive</span><p>A "Jump to latest · N new" pill, a turn outline built on the <code>turn-{id}</code> anchors, in-thread search, and older work groups collapsed by default.</p><span class="src">§3.2 · §3.16</span></div>
+      <div class="item"><h3>Sidebar, ⌘K and the empty state</h3><span class="st exists">exists</span><p>Sidebar: a running dot on each row, an archived filter, projects (mount <code>useProjects</code>), an empty state and the error state. ⌘K searches chats, commands and agents. The hero shows agent starters, recent chats and a no-agents state. The desktop sidebar is primary and the dock becomes the phone bottom bar.</p><span class="src">§1 Sidebar · SearchPalette · Hero</span></div>
+    </div>
+
+    <div class="phase">
+      <header><span class="tag">P2</span><h3>Multi-agent clarity and trust</h3><p>This phase makes the page show who is doing what, why, and what it cost.</p></header>
+      <div class="item"><h3>"Handed off" stream node</h3><span class="st exists">exists</span><p>Shows the helper, its task (the why), the delegation mode, a live status across all 7 values in 4 tones, and nesting by <code>depth</code>. An exact tree needs a parent thread id.</p><span class="src">§5.8 · §5.13</span></div>
+      <div class="item"><h3>All agents sheet and create flow</h3><span class="st backend">backend</span><p>A roster with a builtin badge, handle, model and tool count, and <code>AgentDialog</code> for creating an agent. Edit and delete wait for <code>PATCH</code> and <code>DELETE /api/agents/:id</code>.</p><span class="src">§5.6 · §5.7 · §5.17</span></div>
+      <div class="item"><h3>Tools shelf (MCP)</h3><span class="st backend">backend</span><p>Scope badge, warnings, shadowed and key-set state, with edit and delete through the existing <code>/api/mcp/:id</code> and a "new chats only" note. The live status LED and sign-in need a defined <code>mcp.status</code> payload and an OAuth endpoint.</p><span class="src">§5.0 · §5.14</span></div>
+      <div class="item"><h3>Plain-language receipt</h3><span class="st exists">exists</span><p>"Read 3 docs, asked 2 helpers, wrote the answer" above a problem-first line such as "Drive folder not shared" with its fix. The waterfall and timing move to Details or developer mode.</p><span class="src">§6 TurnReceipt · TraceCard</span></div>
+      <div class="item"><h3>Privacy as actions, limits in plain terms</h3><span class="st exists">exists</span><p>A privacy row says what was sent and to which model, with a way to stop it. Masked samples are shown only in developer mode. Limits read like "About 12 more turns like this before the 3:40 PM reset".</p><span class="src">§6 PrivacyCard · RateLimitView</span></div>
+      <div class="item"><h3>Streaming health states</h3><span class="st exists">exists</span><p>Reconnecting, Disconnected, a resync with snapshot hydration, Interrupting, and "Answer may be incomplete" with Retry. Transient errors (<code>willRetry</code>) are distinguished from fatal ones.</p><span class="src">§7.5</span></div>
+      <div class="item"><h3>Read-only viewer</h3><span class="st backend">backend</span><p>A "Started by X" banner, no dock or Retry, pending requests shown as "Waiting on owner", and Copy and refs kept. Whether a viewer sees traces needs a visibility rule.</p><span class="src">§7.4</span></div>
+    </div>
+
+    <div class="phase">
+      <header><span class="tag">P3</span><h3>Safety nets for long sessions</h3><p>These are drawn in r3 so the layout leaves room for them. They ship after the backend work.</p></header>
+      <div class="item"><h3>Checkpoint and restore per turn</h3><span class="st backend">backend</span><p>Restore reverts file changes and keeps the messages, following the Cursor model. It is the undo that makes Autopilot feel safe.</p><span class="src">new</span></div>
+      <div class="item"><h3>Citations on answers</h3><span class="st backend">backend</span><p>Numbered sources that preview on hover, plus a sources list, for answers grounded in workspace docs.</p><span class="src">new</span></div>
+      <div class="item"><h3>Side canvas for deliverables</h3><span class="st backend">backend</span><p>Plans, docs and generated files open beside the chat with version history. Conversation files (§3.10) are the first thing to show there.</p><span class="src">§3.0.7 · §3.10</span></div>
+      <div class="item"><h3>Batch review and tiled helpers</h3><span class="st derive">derive</span><p>"3 pending · Review all" when requests stack up, and a tiled view that shows parallel helper output side by side.</p><span class="src">§3.7 · §5.9</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Cross-cutting</h2>
+    <div class="twocol">
+      <div class="cut"><h3>Accessibility and motion</h3><ul>
+        <li><b>Status live region.</b> One polite region announces "Working", "Done" and "Approval needed". The streaming body never goes in a live region.</li>
+        <li><b>Reduced motion.</b> Shimmer and pulse get static fallbacks, and transitions are also turned off.</li>
+        <li><b>Contrast.</b> <code>--ink-3</code> darkens to about #67757C. Text-bearing buttons fill with #2A72A3, since white on #3691CD is about 3.4:1. Bad flags use the error text token.</li>
+        <li><b>Focus.</b> Messages get their outline back, the composer shows a ring on focus-within, and popovers trap focus.</li>
+      </ul></div>
+      <div class="cut"><h3>Design system</h3><ul>
+        <li><b>Tokens.</b> Spacing (2 to 40), z-index (base to menu-fixed) and motion (<code>--dur-1..5</code>, two easings), each taken from values already in the CSS.</li>
+        <li><b>One color vocabulary.</b> r2's <code>--ok</code>/<code>--bad</code> alias the app's <code>--success-*</code>/<code>--error-*</code> names. Chart series tokens are added for both themes.</li>
+        <li><b>CSS.</b> Legacy-only surfaces port to <code>styles/v2</code> one PR at a time. Then the duplicates go, and Tailwind is either adopted or dropped.</li>
+        <li><b>Icons.</b> Nine new v2 icons at stroke 1.75 replace lucide in 11 files.</li>
+      </ul></div>
+      <div class="cut"><h3>Responsive boards</h3><ul>
+        <li>At ≤900px the panel becomes a drawer. At ≤720px one drawer shows at a time and the dock becomes the bottom bar.</li>
+        <li>The composer bar collapses into one overflow button.</li>
+        <li>A docked request card still fits with the phone keyboard open (<code>fitPanel</code>).</li>
+      </ul></div>
+      <div class="cut"><h3>Bugs to fix alongside</h3><ul>
+        <li>HelperChip "View" targets <code>.helper-group</code>, but the rendered class is <code>.hcard</code>.</li>
+        <li>The sidebar Agents link never becomes active. <code>/help</code> leaves out <code>/agents</code>.</li>
+        <li>Share does nothing. UserMenu has no name or sign-out.</li>
+        <li><code>RuntimeItem</code>, <code>ProjectSidebar</code>, <code>ConnectedTools</code> and <code>Capabilities</code> are never mounted.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Backend asks</h2>
+    <p style="color:var(--ink-2)">These are ranked by what they unblock. The first one is a production risk on its own, separate from the redesign.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Change</th><th>Unblocks</th><th>Priority</th></tr></thead>
+      <tbody>
+        <tr><td>Send credentials on <code>fetch</code> and <code>EventSource</code>, and allow them in CORS for the exact origin</td><td>Google sign-in when the app and API are on different origins</td><td class="pri">now</td></tr>
+        <tr><td><code>turnId</code> and <code>createdAt</code> on <code>PendingRequest</code></td><td>Inline request anchors, oldest-first order, Needs-you tray</td><td class="pri">P1</td></tr>
+        <tr><td>Regenerate, edit-and-resend and branch endpoints</td><td>Message action bar</td><td class="pri">P1</td></tr>
+        <tr><td>Stream item and span events live; emit <code>diff.updated</code></td><td>Live waterfall, tool rows during a turn, Changes view</td><td class="pri">P1</td></tr>
+        <tr><td>A <code>TurnTrace.status</code> enum, per-step errors, resume and retry-step</td><td>"Completed with 1 error", Retry step, partial answers</td><td class="pri">P2</td></tr>
+        <tr><td>An <code>mcp.status</code> payload (state, tool count, auth required) and OAuth sign-in</td><td>Tools shelf, sign-in states in the tray</td><td class="pri">P2</td></tr>
+        <tr><td><code>PATCH</code> and <code>DELETE /api/agents/:id</code></td><td>Edit and delete agents</td><td class="pri">P2</td></tr>
+        <tr><td>Per-helper usage, a stable helper identity and a parent thread id</td><td>Helper cost, an exact delegation tree</td><td class="pri">P2</td></tr>
+        <tr><td>A trace visibility rule for non-owners, and delegation mode stored per session</td><td>Read-only viewer, the delegation label on helpers</td><td class="pri">P2</td></tr>
+        <tr><td>Cost in currency, thinking duration</td><td>Cost on receipts, "Thought for Ns"</td><td class="pri">P3</td></tr>
+        <tr><td>Checkpoints, citations and versioned files</td><td>Restore, sources, side canvas</td><td class="pri">P3</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>How r3 gets built</h2>
+    <p style="color:var(--ink-2)">It reuses r2's approach: section fragments joined by a stitch script into <code>design/convo-v3-wireframe.html</code>, with one sub-agent per fragment working in parallel. Each fragment ends with a data-status table like the one above.</p>
+    <div class="parts">
+      <div><b>map</b><span>Placement rule, the page at a glance, the one status model</span></div>
+      <div><b>nav</b><span>Sidebar, ⌘K, hero and empty states, user menu, Share</span></div>
+      <div><b>composer</b><span>Action bar, @-mentions, queue and Steer, goal mode, slash menu</span></div>
+      <div><b>stream</b><span>Message actions, code, work groups, failures, visuals, files</span></div>
+      <div><b>requests</b><span>Docked cards, Needs-you tray, batch review, expiry</span></div>
+      <div><b>agents</b><span>Handed-off node, roster, All agents, tools shelf, goal strip</span></div>
+      <div><b>obs</b><span>Plain-language receipt, trace, privacy actions, limits</span></div>
+      <div><b>states</b><span>Read-only, streaming health, phone and tablet, accessibility</span></div>
+      <div><b>system</b><span>Tokens, contrast fixes, icons, backend asks, open questions</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Decisions needed before building</h2>
+    <div class="q"><h3>Fidelity</h3><p>Keep r2's annotated wireframe style, or move r3 to high-fidelity screens built with the real tokens? Recommendation: stay in wireframe style and add one high-fidelity hero board for the main chat view.</p></div>
+    <div class="q"><h3>Where model and agent live</h3><p>Chips in the composer (recommended, so they're one tap away and visible before sending), or r2's status pill popover? The pill keeps the detail view either way.</p></div>
+    <div class="q"><h3>P3 in r3</h3><p>Draw checkpoints, citations and the canvas now so the layout leaves room for them, or leave them out until the backend commits?</p></div>
+    <div class="q"><h3>Developer mode scope</h3><p>Should the waterfall and masked privacy samples be developer-only, with every customer seeing the plain-language receipt and privacy actions?</p></div>
+  </section>
+
+  <footer>Compiled from five parallel reviews of the schema and the r2 wireframe on 1 October 2026. Wireframe and schema paths are relative to the true-ui repo.</footer>
+</main>

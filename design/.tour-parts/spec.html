@@ -1,0 +1,144 @@
+<section class="sec" id="spec">
+  <style>
+    #spec .board:last-of-type{grid-template-columns:minmax(0,1fr)}
+    #spec .spec-col{display:flex;flex-direction:column;gap:18px;min-width:0}
+    #spec .card h3{font:700 24px/1 var(--font-hand);color:var(--accent);letter-spacing:0;margin:0}
+    #spec .card{box-shadow:var(--shadow-card);padding:20px;gap:14px}
+    #spec pre{margin:0;overflow-x:auto;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;font:12.5px/1.6 var(--font-mono);color:var(--ink-2);tab-size:2}
+    #spec pre code{background:none;border:0;padding:0;font-size:inherit;color:inherit;overflow-wrap:normal}
+    #spec pre .k{color:var(--accent-fg)}
+    #spec pre .c{color:var(--ink-3)}
+    #spec .sw{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:8px;box-shadow:inset 0 0 0 1px var(--line-strong)}
+    #spec .tbl-wrap.tokens table{min-width:460px}
+    #spec .q span b{font:inherit;font-weight:700}
+    #spec .q .def{margin-top:4px;padding-top:8px;border-top:1px dashed color-mix(in srgb,var(--sticky-ink) 30%,transparent)}
+  </style>
+  <div class="sec-head">
+    <span class="eyebrow">Handoff</span>
+    <h2>What engineering needs</h2>
+    <p>The tour is one component and one hook in <code>app.tsx</code>. It reads <code>data-tour</code> anchors, so the only change to existing components is an attribute. Line numbers are from the current <code>v2</code> branch.</p>
+  </div>
+
+  <div class="board">
+    <div class="spec-col">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>data-tour</th><th>Element</th><th>Component · line</th><th>Step</th><th>Change</th></tr></thead>
+          <tbody>
+            <tr><td><code>composer</code></td><td><code>div.composer</code></td><td>Composer · 1734 (root 1758)</td><td>2, 6</td><td><span class="tag changed">Changed</span></td></tr>
+            <tr><td><code>status-pill</code></td><td><code>button.status-pill</code></td><td>App · 2041</td><td>3</td><td><span class="tag changed">Changed</span></td></tr>
+            <tr><td><code>dock</code></td><td><code>nav.dock</code></td><td>FloatingDock · 324 (nav 328)</td><td>4</td><td><span class="tag changed">Changed</span></td></tr>
+            <tr><td><code>dock-agent</code></td><td>Dock button, id <code>agent</code></td><td>dockItems · 2006</td><td>5</td><td><span class="tag changed">Changed</span></td></tr>
+            <tr><td><code>agent-menu</code></td><td><code>div.menu</code></td><td>AgentMenu · 602</td><td>5</td><td><span class="tag changed">Changed</span></td></tr>
+            <tr><td><code>send</code></td><td><code>button.send</code></td><td>Composer · 1790</td><td>6</td><td><span class="tag changed">Changed</span></td></tr>
+            <tr><td><code>helper-card</code></td><td><code>div.hcard</code></td><td>HelperCard · 1361 (root 1368)</td><td>7</td><td><span class="tag changed">Changed</span></td></tr>
+            <tr><td><code>panel-agents</code></td><td><code>button.tab</code> for Agents</td><td>ActivityPanel · 431 (tabs 460)</td><td>8</td><td><span class="tag changed">Changed</span></td></tr>
+            <tr><td><code>goal-chip</code></td><td><code>button.chip.goal-chip</code></td><td>Composer · 1774</td><td>9</td><td><span class="tag changed">Changed</span></td></tr>
+            <tr><td><code>nav-agents</code></td><td><code>button.side-link</code> Agents</td><td>Sidebar · 399</td><td>10</td><td><span class="tag changed">Changed</span></td></tr>
+            <tr><td><code>new-agent</code></td><td><code>button.polaroid.pol-new</code></td><td>AgentsView · 1222 (card 1297)</td><td>10</td><td><span class="tag changed">Changed</span></td></tr>
+            <tr><td><code>tour-replay</code></td><td>Take the tour menu item</td><td>UserMenu · 636</td><td>11</td><td><span class="tag new">New</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="board-cap">Twelve attributes and one menu item. Nothing else moves.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Dock items need a field</b>Dock buttons are rendered from data, so <code>DockItem</code> gets an optional <code>tour</code> string that FloatingDock spreads onto the button.<span class="tag changed">Changed</span><span class="src">app.tsx 324, 2002</span></div></li>
+      <li><span class="pin">2</span><div><b>Measure the dock wrapper</b>Dock icons scale with <code>transform</code> on hover. Measure <code>nav.dock</code>, not the icons, so the ring does not wobble.<span class="src">app.tsx 357</span></div></li>
+      <li><span class="pin">3</span><div><b>Pause app hotkeys</b><code>useHotkeys</code> checks a <code>tourActive</code> ref and returns early, so ⌘K or ⌘J cannot pull the app out from under a step.<span class="tag changed">Changed</span><span class="src">app.tsx 291</span></div></li>
+      <li><span class="pin">4</span><div><b>Clicks inside the coach</b><code>useClickOutside</code> ignores events from <code>[data-tour-layer]</code>, so pressing Next keeps the agent popover open in step 5.<span class="tag changed">Changed</span><span class="src">app.tsx 305</span></div></li>
+    </ol>
+  </div>
+
+  <div class="board">
+    <div class="spec-col">
+      <div class="card">
+        <h3>Step config</h3>
+<pre><code><span class="k">type</span> TourStep = {
+  id: string;
+  chapter: 1 | 2 | 3;
+  kind: "look" | "try" | "wait";
+  target?: string;          <span class="c">// data-tour value, none = centered card</span>
+  placement?: "below" | "above" | "left" | "right" | "center";
+  title: string;
+  body: string;
+  prepare?: (app: TourApi) =&gt; void;   <span class="c">// put the app in state first</span>
+  waitFor?: () =&gt; boolean;             <span class="c">// polled; 3s then centered card</span>
+  advanceOn?: "send" | "pick-agent" | "click";
+};
+
+<span class="k">const</span> steps: TourStep[] = [
+  { id: "agent", chapter: 2, kind: "try",
+    target: "agent-menu", placement: "above",
+    title: "Pick an agent",
+    body: "Each agent has its own skills. Try Qlik Analyst.",
+    prepare: app =&gt; app.openPop("agent"),
+    advanceOn: "pick-agent" },
+  { id: "helpers", chapter: 2, kind: "wait",
+    target: "helper-card", placement: "right",
+    title: "Helpers run in parallel",
+    body: "Atlas, Birch and Cedar each take one slice of the plan.",
+    prepare: app =&gt; app.closePop(),
+    waitFor: () =&gt; app.helpers.length &gt; 0 },
+];</code></pre>
+      </div>
+      <div class="card">
+        <h3>Saved progress</h3>
+<pre><code><span class="c">// localStorage "truex-tour"</span>
+{ v: 1, done: false, step: 6, skipped: false }
+
+<span class="k">function</span> readTour() {
+  <span class="k">try</span> { <span class="k">return</span> JSON.parse(localStorage.getItem("truex-tour") || "null"); }
+  <span class="k">catch</span> { <span class="k">return</span> null; }   <span class="c">// private window: act as first visit</span>
+}</code></pre>
+      </div>
+      <div class="tbl-wrap tokens">
+        <table>
+          <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th>Used by</th></tr></thead>
+          <tbody>
+            <tr><td><span class="sw" style="background:var(--scrim)"></span><code>--scrim</code></td><td><code>rgb(22 34 41 / 48%)</code></td><td><code>rgb(0 0 0 / 64%)</code></td><td>Spot box-shadow, dim layer</td></tr>
+            <tr><td><span class="sw" style="background:var(--spot-ring)"></span><code>--spot-ring</code></td><td><code>#3691CD</code></td><td><code>#5AA8DC</code></td><td>2px ring on the hole</td></tr>
+            <tr><td><span class="sw" style="background:var(--spot-glow)"></span><code>--spot-glow</code></td><td><code>rgb(54 145 205 / 22%)</code></td><td><code>rgb(90 168 220 / 26%)</code></td><td>Soft halo, beacon pulse</td></tr>
+            <tr><td><span class="sw" style="background:var(--coach)"></span><code>--coach</code></td><td><code>#FFFFFF</code></td><td><code>#1C1C1C</code></td><td>Coach card surface</td></tr>
+            <tr><td><span class="sw" style="background:var(--beam)"></span><code>--beam</code></td><td><code>#BCDEE8</code></td><td><code>#1F4461</code></td><td>Progress dots, hero wash</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="board-cap">Same try/catch shape as truex-theme and truex-type.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>prepare runs every time</b>Back and resume both call <code>prepare</code>, so a step never depends on the one before it.<span class="tag new">New</span></div></li>
+      <li><span class="pin">2</span><div><b>3 second fallback</b>If <code>waitFor</code> or the target is still missing after 3s, the coach shows centered with the same copy and a working Next.</div></li>
+      <li><span class="pin">3</span><div><b>Version the key</b>Bump <code>v</code> when steps change. An old value with a different <code>v</code> is ignored, not migrated.<span class="src">matches app.tsx 261-286</span></div></li>
+      <li><span class="pin">4</span><div><b>Tokens both themes</b>Defined on <code>:root</code>, redefined in the dark media query and under <code>[data-theme="dark"]</code>.<span class="tag new">New</span></div></li>
+    </ol>
+  </div>
+
+  <div class="board">
+    <div class="card">
+      <h3>Build phases</h3>
+      <ol class="steps-list">
+        <li><div><b>Anchors.</b> Add the twelve <code>data-tour</code> attributes and the <code>DockItem.tour</code> field. No visible change, safe to merge alone.</div></li>
+        <li><div><b>Engine.</b> <code>useTour</code>: step index, <code>truex-tour</code> storage, <code>prepare</code>, <code>waitFor</code>, <code>advanceOn</code>, the 3s fallback and the hotkey pause.</div></li>
+        <li><div><b>Layer.</b> <code>TourLayer</code>: spotlight from <code>getBoundingClientRect</code> with ResizeObserver and scroll updates, coach placement with flip, bottom sheet under 640px, the new tokens.</div></li>
+        <li><div><b>Content and entry.</b> Eleven steps of copy, auto-start on first visit, Take the tour in UserMenu, the resume chip, then a pass in light and dark at 400, 1024 and 1440 wide.</div></li>
+      </ol>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Coach is a dialog</b><code>role="dialog"</code> with <code>aria-labelledby</code> on the h4. Focus moves to it on each step and returns to the prior element on close.</div></li>
+      <li><span class="pin">2</span><div><b>Announce the step</b>A polite live region reads "Step 6 of 11, Send the demo prompt" so screen reader users keep their place.</div></li>
+      <li><span class="pin">3</span><div><b>Targets stay usable</b>The hole passes pointer and keyboard events through, so Try steps work with Tab and Enter, not only a mouse.</div></li>
+      <li><span class="pin">4</span><div><b>Keys are documented</b>→ and Enter next, ← back, Esc to the resume chip, except on the finish card, where it closes the tour. Listed in the coach footer as <code>.kbd</code> hints.</div></li>
+      <li><span class="pin">5</span><div><b>Reduced motion</b>Under <code>prefers-reduced-motion</code> the spot jumps instead of gliding, and the beacon and status pulse stop.</div></li>
+      <li><span class="pin">6</span><div><b>Contrast and size</b>Coach text meets 4.5:1 on <code>--coach</code> in both themes. Buttons are at least 44px tall under 640px.</div></li>
+    </ol>
+  </div>
+
+  <div class="board">
+    <div class="qs">
+      <div class="q"><b>Auto-start or menu only?</b><span>Starting on first visit reaches everyone, but it interrupts people who came to do one thing.</span><span class="def"><b>Default:</b> auto-start once with a clear Not now. That sets <code>skipped: true</code> and it never opens again on its own. Replay lives in Account.</span></div>
+      <div class="q"><b>Real demo send or empty states?</b><span>A real send shows helpers and the panel filling in for real. Canned states are faster and never fail, but they are not the app.</span><span class="def"><b>Default:</b> real send. Step 6 fills the composer with the demo prompt and the user presses Enter. If helpers do not appear in 3s, the fallback card explains them.</span></div>
+      <div class="q"><b>Keep or clear the demo chat?</b><span>Clearing leaves a tidy list. Keeping gives the user a finished example to come back to.</span><span class="def"><b>Default:</b> keep it as "Onboarding plan for new analysts" in the list, with the usual delete. Nothing is removed without asking.</span></div>
+    </div>
+  </div>
+</section>

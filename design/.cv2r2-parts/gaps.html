@@ -1,0 +1,44 @@
+<section class="sec" id="gaps">
+  <div class="sec-head">
+    <span class="eyebrow">5 · Next</span>
+    <h2>Gaps and build order</h2>
+    <p>These are the pieces the truex spec does not cover yet. Each one needs a design pass, tokens for both themes, and an entry in <code>truex-design-spec.html</code>.</p>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Component</th><th>Covers</th><th>Section</th></tr></thead>
+      <tbody>
+        <tr><td>Live request card</td><td>Tool approval, clarifying question, plan approval, secret input, countdown, <code>responseSchema</code> forms</td><td><a href="#requests">Live requests</a></td></tr>
+        <tr><td>Message delivery states</td><td>Sending, failed with retry, unknown, steered tag</td><td><a href="#stream">Stream</a></td></tr>
+        <tr><td>Slash commands</td><td>Command popover, command chip, result and error card</td><td><a href="#stream">Stream</a>, <a href="#requests">Composer</a></td></tr>
+        <tr><td>Approval mode picker</td><td>Ask, Read-only, Auto, behind a feature flag</td><td><a href="#requests">Composer</a></td></tr>
+        <tr><td>Goal statuses and review</td><td>Blocked, usage limit, budget reached, complete; accept or reopen; goal timeline</td><td><a href="#chrome">Session chrome</a></td></tr>
+        <tr><td>Errors and session health</td><td>Inline error with ref, orphaned and dead banners</td><td><a href="#chrome">Session chrome</a></td></tr>
+        <tr><td>Changes view</td><td>File list and diff from <code>diff.updated</code></td><td><a href="#chrome">Session chrome</a></td></tr>
+        <tr><td>Scoped session panel</td><td>This turn and Session scopes, turn rail, plan versions kept as history, per-turn contribution to goal and tokens</td><td><a href="#panel">Activity panel</a></td></tr>
+        <tr><td>Insights additions</td><td>Step timeline, context fill, rate limits, privacy, rollup, model context</td><td><a href="#obs">Observability</a></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="board">
+    <div class="card">
+      <h3>Build order</h3>
+      <ol class="steps-list">
+        <li><b>Adapter.</b> One function maps <code>Entry</code>, <code>PendingRequest</code>, <code>TurnTrace</code> and session events into the view model <code>app.tsx</code> renders. Components never read contracts directly.</li>
+        <li><b>Stream.</b> Messages, steps, helper card and receipt. Most of the visible value lands here.</li>
+        <li><b>Live requests and composer.</b> Request card, steer, stop and the mode picker.</li>
+        <li><b>Panel tabs.</b> Group every panel event by turn id first, then build the This turn and Session scopes on top. Plan versions, helpers, files and errors keep the turn that produced them.</li>
+        <li><b>Insights and dev mode.</b> Timeline, limits, privacy and model context.</li>
+        <li><b>Spec update.</b> Every new component added to the truex spec with light and dark values.</li>
+      </ol>
+    </div>
+    <div class="qs">
+      <div class="q"><b>Where do live requests go?</b><span>This page pins them above the composer. The other option is the end of the stream, which keeps the history in one place but can scroll away.</span></div>
+      <div class="q"><b>Which repo is the target?</b><span>This repo's <code>app.tsx</code> runs on sample data. The contracts live in the main app, so the adapter probably belongs there.</span></div>
+      <div class="q"><b>Which scope opens first?</b><span>This page defaults to This turn while a turn runs and Session when idle. The other option is to remember the last scope per tab.</span></div>
+      <div class="q"><b>How much trace is public?</b><span>The receipt shows for everyone. Model context is dev mode only. Should the timeline and privacy findings also sit behind dev mode?</span></div>
+    </div>
+  </div>
+</section>

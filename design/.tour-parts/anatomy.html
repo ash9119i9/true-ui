@@ -1,0 +1,203 @@
+<section class="sec" id="anatomy">
+  <style>
+    #anatomy .canvas{position:relative;display:grid;place-items:center;padding:64px 48px 48px;background:var(--surface-2);border:1px solid var(--line);border-radius:20px}
+    #anatomy .cwrap{position:relative;width:min(300px,100%)}
+    #anatomy .cwrap .coach,#anatomy .types .coach{width:100%;margin:0}
+    #anatomy .keys{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 14px;margin-top:22px;font-size:12.5px;color:var(--ink-3)}
+    #anatomy .keys span{display:inline-flex;align-items:center;gap:5px}
+    #anatomy .scribble.s1{top:92px;right:22px}
+    #anatomy .scribble.s1 svg{margin:4px 0 0 -6px}
+    #anatomy .dim-rule{position:absolute;left:0;right:0;top:-30px;display:flex;align-items:center;gap:8px;font:500 11px var(--font-mono);color:var(--ink-3);font-variant-numeric:tabular-nums}
+    #anatomy .dim-rule::before,#anatomy .dim-rule::after{content:"";flex:1;height:7px;border:1px solid var(--line-strong);border-top:0;border-bottom:0;background:linear-gradient(var(--line-strong),var(--line-strong)) center/100% 1px no-repeat}
+    #anatomy .cwrap > .pin-at.l{left:-11px}
+    #anatomy .cwrap > .pin-at.r{right:-11px}
+    #anatomy .tb[aria-disabled="true"]{opacity:.45}
+    #anatomy .spot-stage{padding:20px 24px 28px;display:flex;flex-direction:column;gap:14px}
+    #anatomy .spot-stage .bubble{max-width:100%}
+    #anatomy .kit{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px}
+    #anatomy .kit > div{position:relative;display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-sm);font-size:13px;color:var(--ink-2);min-width:0}
+    #anatomy .kit .beacon{position:relative;flex:none;margin:0 4px}
+    #anatomy .kit .sw{flex:none;width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:linear-gradient(var(--scrim),var(--scrim)),repeating-conic-gradient(var(--surface-3) 0 25%,var(--bg) 0 50%) 0 0/10px 10px}
+    #anatomy .kit b{display:block;color:var(--ink);font-weight:600}
+    #anatomy .kit code{font:11.5px var(--font-mono);color:var(--ink-3)}
+    #anatomy .types{display:grid;grid-template-columns:repeat(auto-fit,minmax(236px,1fr));gap:18px;align-items:start;width:100%}
+    #anatomy .types > div{display:flex;flex-direction:column;gap:10px;min-width:0}
+    #anatomy .types .coach{width:100%;font-size:13px}
+    #anatomy .types .coach h4{font-size:15.5px}
+    #anatomy .types .coach p{font-size:13px}
+    #anatomy .types .c-dots i{width:5px;height:5px}
+    #anatomy .types .c-dots i.on{width:14px}
+    #anatomy .chip-row{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;padding-top:18px;border-top:1px dashed var(--line-strong)}
+    #anatomy .chip-row .muted{font-size:13px}
+    #anatomy .canvas.wide{padding:28px}
+    #anatomy .spot-demo .app-stage{min-height:360px}
+    #anatomy .spot-demo .wf-top .rt{justify-self:end;display:flex;gap:6px;color:var(--ink-3)}
+    #anatomy .spot-demo .wf-top .rt span{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;border:1px solid var(--line)}
+    @media (max-width:640px){#anatomy .canvas{padding:48px 16px 24px}#anatomy .canvas.wide{padding:16px}}
+  </style>
+  <div class="sec-head">
+    <span class="eyebrow">Anatomy</span>
+    <h2>One spotlight, one card, one sentence</h2>
+    <p>Every step is built from the same three parts: a scrim with a hole cut around the target, a coach card that points at it, and a line or two of copy. Shown here at full size, with the numbers engineering needs.</p>
+  </div>
+
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Coach card for step 3 of 11, the status pill, shown at full size with six numbered markers on its parts">
+        <div class="canvas">
+          <div class="cwrap">
+            <span class="dim-rule" aria-hidden="true">300px</span>
+            <div class="coach static" data-side="below" style="--caret:136px">
+              <div class="c-eye"><span>Step 3 of 11 · First look</span><span class="c-x" aria-label="Close tour"><svg aria-hidden="true"><use href="#i-x"/></svg></span></div>
+              <h4>See who is <em>on it</em></h4>
+              <p>The pill shows your current agent and what it is doing right now. Click it any time to edit the agent.</p>
+              <div class="c-foot">
+                <span class="c-dots" aria-label="Step 3 of 11"><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                <span class="tb quiet">Back</span>
+                <span class="tb primary">Next</span>
+              </div>
+            </div>
+            <span class="pin pin-at l" style="top:15px">1</span>
+            <span class="pin pin-at r" style="top:15px">2</span>
+            <span class="pin pin-at l" style="top:48px">3</span>
+            <span class="pin pin-at r" style="top:92px">4</span>
+            <span class="pin pin-at l" style="bottom:16px">5</span>
+            <span class="pin pin-at r" style="bottom:16px">6</span>
+            <span class="pin pin-at" style="top:-11px;left:96px">7</span>
+          </div>
+          <div class="keys">
+            <span><span class="kbd">→</span><span class="kbd">Enter</span> next</span>
+            <span><span class="kbd">←</span> back</span>
+            <span><span class="kbd">Esc</span> minimize</span>
+          </div>
+          <span class="scribble s1" aria-hidden="true">one breath,<br>then Next
+            <svg width="54" height="26" viewBox="0 0 54 26"><path d="M50 3C38 4 20 9 6 21M5 12l1 9 9-1"/></svg>
+          </span>
+        </div>
+      </div>
+      <p class="board-cap">Shown at 1:1. The card is 300px wide on desktop and shrinks to fit narrow screens, with 12px to spare on each side.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Eyebrow and progress</b>Mono 11px caps, step number plus chapter name: "Step 3 of 11 · First look". Tabular numbers so the line does not shift between steps.<span class="src">.c-eye</span></div></li>
+      <li><span class="pin">2</span><div><b>Close</b>22px hit area in the corner. Closing does not end the tour, it minimizes to the resume chip, same as Esc.<span class="src">.c-x · aria-label "Close tour"</span></div></li>
+      <li><span class="pin">3</span><div><b>Title</b>Figtree 600 at 17px, one idea per step. One word may sit in Newsreader italic to give the line a voice. Never more than one.<span class="src">.coach h4 em</span></div></li>
+      <li><span class="pin">4</span><div><b>Body</b>13.5px in ink-2, one or two short sentences. If it needs a third, the step is doing too much and should split.<span class="src">.coach p</span></div></li>
+      <li><span class="pin">5</span><div><b>Dots</b>Eleven dots: done in beam, current stretched to 18px in accent, rest in line-strong. Read as progress, not as buttons.<span class="src">.c-dots i.done / i.on</span></div></li>
+      <li><span class="pin">6</span><div><b>Back and Next</b>Quiet Back, primary Next, both 30px tall. On the first step Back is hidden. Keys: <span class="kbd">→</span> or <span class="kbd">Enter</span> next, <span class="kbd">←</span> back, <span class="kbd">Esc</span> minimizes. App hotkeys pause while the card is open.<span class="src">.tb.quiet · .tb.primary</span></div></li>
+      <li><span class="pin">7</span><div><b>Shape</b>Radius 14, 1px line border, shadow-lift, padding 14 / 16 / 12, 8px gap between rows. The 12px caret is set by data-side and --caret so it always points at the target.<span class="tag new">New</span><span class="src">.coach · --coach token</span></div></li>
+    </ol>
+  </div>
+
+  <div class="board">
+    <div>
+      <div class="demo spot-demo" role="img" aria-label="Topbar with the status pill spotlighted: the rest of the app is dimmed and a blue ring with a soft glow sits around the pill, with a coach card below it">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex · Onboarding plan for new analysts</span></div>
+          <div class="app-body" style="grid-template-columns:minmax(0,1fr)">
+            <div class="app-stage">
+              <div class="wf-top">
+                <div class="crumb"><svg class="ic" aria-hidden="true"><use href="#i-sidebar"/></svg><span class="t">Onboarding plan for new analysts</span></div>
+                <span class="status-pill t-anchor" data-tour="status-pill"><span class="pulse"></span>Qlik Analyst <span class="muted">· Working</span><span class="spot round inset" aria-hidden="true"></span></span>
+                <div class="rt"><span><svg class="ic" aria-hidden="true"><use href="#i-eye"/></svg></span></div>
+              </div>
+              <div class="spot-stage">
+                <div class="msg user"><div class="bubble-wrap"><div class="bubble">Draft a 2-week onboarding plan for new analysts from the handbook</div></div></div>
+                <div class="msg"><span class="av"><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg></span><div style="flex:1;min-width:0;padding-top:3px;color:var(--ink-2)">Reading the analyst handbook. I will split the plan into access, docs and shadowing, and send three helpers.</div></div>
+              </div>
+            </div>
+          </div>
+          <span class="pin pin-at" style="top:44px;left:calc(50% + 86px)">1</span>
+          <span class="pin pin-at" style="top:78px;left:calc(50% - 104px)">2</span>
+          <span class="pin pin-at" style="top:250px;left:22px">4</span>
+        </div>
+        <div class="coach" data-side="below" style="top:112px;left:calc(50% - 150px);--caret:143px">
+          <div class="c-eye"><span>Step 3 of 11 · First look</span><span class="c-x" aria-label="Close tour"><svg aria-hidden="true"><use href="#i-x"/></svg></span></div>
+          <h4>See who is <em>on it</em></h4>
+          <p>The pill shows your current agent and what it is doing right now. Click it any time to edit the agent.</p>
+          <div class="c-foot">
+            <span class="c-dots" aria-label="Step 3 of 11"><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="tb quiet">Back</span>
+            <span class="tb primary">Next</span>
+          </div>
+        </div>
+      </div>
+      <div class="kit">
+        <div><span class="beacon" aria-hidden="true"></span><span><b>Beacon</b><code>12px · 4px glow · 1.8s</code></span><span class="pin" style="margin-left:auto">6</span></div>
+        <div><span class="sw" aria-hidden="true"></span><span><b>Scrim</b><code>--scrim</code></span><span class="pin" style="margin-left:auto">4</span></div>
+      </div>
+      <p class="board-cap">The hole follows the pill at any width. Everything else sits under one scrim, so the page still reads as the app.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Ring</b>2px in --spot-ring, 6px outside the target, same radius as the target (999px for pills, 14px for cards). It hugs the element so the user sees exactly what is being named.<span class="src">.spot.round.inset · data-tour="status-pill"</span></div></li>
+      <li><span class="pin">2</span><div><b>Glow</b>An 8px soft band in --spot-glow just outside the ring. It separates the target from the scrim on busy screens without adding a second border.<span class="src">box-shadow 0 0 0 8px var(--spot-glow)</span></div></li>
+      <li><span class="pin">3</span><div><b>Breathing pulse</b>A second ring grows to 106% and fades out over 2.4s, looping. Under prefers-reduced-motion it is off and the static ring stays.<span class="src">.spot::after · @keyframes breathe</span></div></li>
+      <li><span class="pin">4</span><div><b>Scrim</b>Light <code>rgb(22 34 41 / 48%)</code>, dark <code>rgb(0 0 0 / 64%)</code>. Dark goes deeper because the app surfaces are already close to black. Clicks on the scrim do nothing, so a stray click never ends the tour.<span class="src">--scrim token</span></div></li>
+      <li><span class="pin">5</span><div><b>Click-through</b>The hole is real. On Try steps the target stays clickable, so the user picks an agent or sends the prompt in the actual app. On Look steps clicking the target also works, it just does not advance.<span class="tag new">New</span><span class="src">TourLayer · pointer-events on the hole</span></div></li>
+      <li><span class="pin">6</span><div><b>Beacon</b>A 12px dot for small targets the ring would swamp, like the send button on step 6. Pulses at 1.8s, also off under reduced motion. If no target is found after 3s the spot and beacon drop and the card centers.<span class="src">.beacon</span></div></li>
+    </ol>
+  </div>
+
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Three coach cards side by side tagged Look, Try and Wait, and below them the minimized resume chip reading Resume tour, 5 of 11">
+        <div class="canvas wide">
+          <div class="types">
+            <div>
+              <span class="row"><span class="pin">1</span><span class="tag look">Look</span></span>
+              <div class="coach static">
+                <div class="c-eye"><span>Step 4 of 11 · First look</span><span class="c-x" aria-label="Close tour"><svg aria-hidden="true"><use href="#i-x"/></svg></span></div>
+                <h4>Everything is <em>one tap</em> away</h4>
+                <p>The dock holds sidebar, search, new chat, agent and activity. Each has a shortcut, like <span class="kbd">⌘K</span> for search.</p>
+                <div class="c-foot">
+                  <span class="c-dots" aria-label="Step 4 of 11"><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                  <span class="tb quiet">Back</span>
+                  <span class="tb primary">Next</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <span class="row"><span class="pin">2</span><span class="tag try">Try</span></span>
+              <div class="coach static">
+                <div class="c-eye"><span>Step 5 of 11 · See it work</span><span class="c-x" aria-label="Close tour"><svg aria-hidden="true"><use href="#i-x"/></svg></span></div>
+                <h4>Choose <em>who</em> helps</h4>
+                <p>Agents are specialists. Qlik Analyst knows your dashboards, Researcher digs through docs.</p>
+                <div class="c-try"><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg>Pick an agent to continue</div>
+                <div class="c-foot">
+                  <span class="c-dots" aria-label="Step 5 of 11"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                  <span class="tb quiet">Skip this</span>
+                  <span class="tb primary" aria-disabled="true">Next</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <span class="row"><span class="pin">3</span><span class="tag wait">Wait</span></span>
+              <div class="coach static">
+                <div class="c-eye"><span>Step 7 of 11 · See it work</span><span class="c-x" aria-label="Close tour"><svg aria-hidden="true"><use href="#i-x"/></svg></span></div>
+                <h4>Helpers work <em>in parallel</em></h4>
+                <p>Qlik Analyst splits the job. Atlas, Birch and Cedar each take a part and report back.</p>
+                <div class="c-wait"><span class="spinner" aria-hidden="true"></span>Waiting for helpers to start…</div>
+                <div class="c-foot">
+                  <span class="c-dots" aria-label="Step 7 of 11"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i></span>
+                  <span class="tb quiet">Back</span>
+                  <span class="tb primary" aria-disabled="true">Next</span>
+                </div>
+              </div>
+            </div>
+            <div class="chip-row">
+              <span class="pin">4</span>
+              <span class="tour-chip"><span class="mring" style="--p:45"></span>Resume tour · 5 of 11</span>
+              <span class="muted"><span class="kbd">Esc</span> or close puts the tour here. Click to pick up again.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">Same card, three jobs. The tag decides what Next does, the copy stays the same shape.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Look</b>Read and move on. Next is always live. Used when the target is already on screen and needs no action: composer, status pill, dock, session panel, goal chip, roster.<span class="tag look">Look</span><span class="src">steps 2, 3, 4, 8, 9, 10</span></div></li>
+      <li><span class="pin">2</span><div><b>Try</b>The user does the real thing. A soft accent strip says what to do, Next stays disabled, and Back becomes "Skip this" so nobody gets stuck. The step advances on its own when advanceOn fires.<span class="tag try">Try</span><span class="src">step 5 agent-menu, step 6 send</span></div></li>
+      <li><span class="pin">3</span><div><b>Wait</b>The tour holds while the app catches up. A spinner strip replaces the call to action, then the card turns into a Look once waitFor resolves. If the helper card is not there after 3s the card centers and Next unlocks.<span class="tag wait">Wait</span><span class="src">step 7 helper-card</span></div></li>
+      <li><span class="pin">4</span><div><b>Resume chip</b>Esc or close minimizes the tour instead of ending it. The chip shows a progress ring (45% at step 5) and the step. Click to pick up where you left off. Progress lives in localStorage <code>truex-tour</code>.<span class="tag new">New</span><span class="src">.tour-chip · .mring --p</span></div></li>
+    </ol>
+  </div>
+</section>

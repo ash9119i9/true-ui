@@ -1,0 +1,261 @@
+<section class="sec" id="keep-going">
+<style>
+/* Chapter 3 · Keep it going. Every selector prefixed #keep-going, shell tokens only. */
+#keep-going .k3-stream{padding:16px 18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+#keep-going .k3-dock{padding:0 14px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+#keep-going .cp-live{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);padding:0 4px;min-width:0}
+#keep-going .cp-queue{display:flex;flex-direction:column;gap:6px;min-width:0;padding:4px;border-radius:14px}
+#keep-going .cp-qhead{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2);flex-wrap:wrap}
+#keep-going .cp-qhead b{color:var(--ink)}
+#keep-going .cp-q{display:grid;grid-template-columns:16px 20px minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 6px 6px 8px;border:1px solid var(--line);border-radius:11px;background:var(--surface);font-size:13px;min-width:0}
+#keep-going .cp-q .grip{color:var(--ink-2);font:700 12px/1 var(--font-mono);letter-spacing:-2px}
+#keep-going .cp-q em{font:600 11px var(--font-mono);font-style:normal;color:var(--ink-2);text-align:center}
+#keep-going .cp-q > span:nth-child(3){white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#keep-going .cp-q.is-edit{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+#keep-going .cp-ib{width:26px;height:26px;border-radius:8px;display:inline-grid;place-items:center;color:var(--ink-2);border:0;background:transparent}
+#keep-going .cp-box{border:1px solid var(--line);border-radius:18px;background:var(--surface);box-shadow:var(--shadow-md);padding:10px 10px 8px 12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+#keep-going .cp-box.is-focus{border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+#keep-going .cp-ta{min-height:40px;padding:4px 4px 6px;font-size:14px;line-height:1.5;color:var(--ink);overflow-wrap:anywhere;min-width:0}
+#keep-going .cp-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+#keep-going .cp-chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface-3);font:500 13px var(--font-sans);color:var(--ink-2);white-space:nowrap}
+#keep-going .cp-kbd{font:500 11px var(--font-mono);color:var(--ink-2);border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:5px;padding:0 5px;background:var(--surface-2);white-space:nowrap}
+#keep-going .cp-send,#keep-going .cp-stop{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:none;border:0}
+#keep-going .cp-send{background:var(--accent-fg);color:var(--on-accent)}
+#keep-going .cp-stop{background:var(--ink);color:var(--bg)}
+#keep-going .cp-steer{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:11px;border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);background:var(--accent-soft);color:var(--accent-fg);font:600 13px var(--font-sans)}
+#keep-going .cp-rule{font-size:12px;color:var(--ink-2);padding:0 4px;display:flex;gap:6px;align-items:flex-start;margin:0}
+/* goal strip */
+#keep-going .ag-goal{border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:var(--shadow-sm);min-width:0}
+#keep-going .ag-strip{display:flex;align-items:center;gap:10px;padding:10px 12px;flex-wrap:wrap;min-width:0}
+#keep-going .ag-obj{flex:1 1 160px;min-width:0;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#keep-going .ag-prog{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+#keep-going .ag-dots{display:inline-flex;gap:3px}
+#keep-going .ag-dots i{width:14px;height:6px;border-radius:3px;background:var(--surface-3)}
+#keep-going .ag-dots i.on{background:var(--accent)}
+#keep-going .ag-meter{display:flex;align-items:center;gap:8px;flex:1 1 140px;min-width:0}
+#keep-going .ag-meter .bar{flex:1;min-width:60px}
+#keep-going .ag-mono{font:12px var(--font-mono);color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+#keep-going .ag-ib{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;color:var(--ink-2);border:1px solid transparent}
+#keep-going .ag-stops{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;min-width:0}
+#keep-going .ag-stop{border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);background:var(--warn-bg);color:var(--warn-text);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;font-size:12px;min-width:0}
+#keep-going .ag-stop.rev{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
+#keep-going .ag-stop b{font-size:13px}
+#keep-going .ag-stop .btn{height:26px;font-size:12px;align-self:flex-start}
+#keep-going .k3-inset-h{font:700 19px/1 var(--font-hand);color:var(--ink-2)}
+/* finish */
+#keep-going .hero-c{left:50%;top:42%;transform:translate(-50%,-50%)}
+#keep-going .confetti i{position:absolute;top:var(--y);left:var(--x);width:7px;height:11px;border-radius:2px;background:var(--c);transform:rotate(var(--r));animation:k3-fall 1.4s var(--ease-out) 1 both}
+#keep-going .confetti i:nth-child(3n){width:8px;height:8px;border-radius:50%}
+@keyframes k3-fall{from{top:-16px;transform:rotate(0deg);opacity:0}30%{opacity:1}}
+#keep-going .recap{margin:2px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--ink-2)}
+#keep-going .recap li{display:flex;gap:8px;align-items:flex-start;min-width:0}
+#keep-going .recap .ic{color:var(--ok);margin-top:2px}
+#keep-going .acct{position:absolute;z-index:6;right:16px;bottom:64px;width:224px}
+#keep-going .acct .it{min-height:32px}
+#keep-going .acct .it.hl{background:var(--accent-soft);color:var(--accent-fg);font-weight:600;box-shadow:0 0 0 2px var(--spot-ring)}
+#keep-going .acct hr{border:0;border-top:1px solid var(--line);margin:4px 2px}
+#keep-going .acct .it .tag{margin-left:auto}
+#keep-going .acct .chooser{margin:2px 0 4px 26px;padding-left:10px;border-left:2px solid var(--line-strong);display:flex;flex-direction:column;gap:1px}
+#keep-going .acct .chooser .it{min-height:28px;font-size:12.5px}
+#keep-going .acct .chooser small{margin-left:auto;font:11px var(--font-mono);color:var(--ink-3)}
+@media (max-width:640px){#keep-going .hero-c{transform:none}#keep-going .acct{position:relative;right:auto;bottom:auto;width:auto;margin:0 12px 12px}}
+@media (prefers-reduced-motion:reduce){#keep-going .confetti{display:none}}
+</style>
+<div class="sec-head">
+  <span class="eyebrow">Chapter 3</span>
+  <h2>Keep it going</h2>
+  <p>Three stops for longer work: queue or steer while a turn runs, read the goal strip and its stops, then a finish card that says where to replay the tour.</p>
+</div>
+<div class="board">
+  <div>
+    <div class="demo" role="img" aria-label="Step 10 of 12: a turn is running, two typed follow-ups wait as editable queue chips above the composer, which shows Steer, Send and Stop side by side">
+      <div class="app">
+        <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/c/onboarding-plan</span></div>
+        <div class="app-body">
+          <div class="app-stage">
+            <div class="wf-top">
+              <div class="crumb"><svg class="ic"><use href="#i-sidebar"/></svg><span class="t">Onboarding plan for new analysts</span></div>
+              <span class="status-pill"><span class="pulse"></span>Qlik Analyst · Working</span>
+              <span></span>
+            </div>
+            <div class="k3-stream">
+              <div class="msg user"><div class="bubble-wrap"><div class="bubble">Draft a 30-day onboarding plan for new analysts from the handbook</div></div></div>
+              <div class="msg"><span class="av">Q</span><div class="grow"><div class="msg-meta"><b>Qlik Analyst</b><span class="muted">gpt-5 · high</span></div>
+                <div class="answer">Week 1 covers accounts, the data catalog and a first Qlik Sense walkthrough. Juno is drafting the daily sessions<span class="caret"></span></div></div></div>
+              <div style="height:150px" aria-hidden="true"></div>
+            </div>
+            <div class="k3-dock">
+              <div class="cp-live"><span class="pulse"></span>Qlik Analyst is drafting week 1 with Juno</div>
+              <div class="cp-queue t-anchor" data-tour="queue" aria-label="Queued messages">
+                <div class="cp-qhead"><b>Queued · 2</b><span>Send in order after this turn</span></div>
+                <div class="cp-q"><span class="grip" aria-label="Drag to reorder">⋮⋮</span><em>1</em><span>Add a Qlik Sense certification checkpoint on day 8</span><span><span class="cp-ib" aria-label="Edit queued message 1"><svg class="ic sm"><use href="#i-list"/></svg></span><span class="cp-ib" aria-label="Remove queued message 1"><svg class="ic sm"><use href="#i-x"/></svg></span></span></div>
+                <div class="cp-q is-edit"><span class="grip" aria-label="Drag to reorder">⋮⋮</span><em>2</em><span>Then export the plan to the Onboarding folder in Drive</span><span><span class="cp-ib" aria-label="Edit queued message 2"><svg class="ic sm"><use href="#i-list"/></svg></span><span class="cp-ib" aria-label="Remove queued message 2"><svg class="ic sm"><use href="#i-x"/></svg></span></span></div>
+                <span class="spot inset" aria-hidden="true"></span>
+              </div>
+              <div class="cp-box is-focus">
+                <div class="cp-ta">Keep week 1 lighter, no more than 3 sessions a day<span class="caret"></span></div>
+                <div class="cp-bar">
+                  <span class="cp-chip"><svg class="ic sm"><use href="#i-lock"/></svg>Qlik Analyst</span>
+                  <span class="sm" style="color:var(--ink-2);white-space:nowrap"><span class="cp-kbd">↑</span> recall last queued</span>
+                  <span class="spacer"></span>
+                  <span class="cp-steer"><svg class="ic sm"><use href="#i-steer"/></svg>Steer</span>
+                  <span class="cp-send" aria-label="Queue message"><svg class="ic"><use href="#i-send"/></svg></span>
+                  <span class="cp-stop" aria-label="Stop"><svg class="ic sm"><use href="#i-stop"/></svg></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="coach" data-side="above" style="left:16px;top:150px;--caret:48px">
+        <div class="c-eye"><span>Step 10 of 12 · Keep it going</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+        <h4>Type while it <em>works</em></h4>
+        <p>Send adds your message to the queue, and it goes after this turn. Steer sends it now, into the running turn.</p>
+        <p class="sm">Edit or reorder a chip before it goes. <span class="kbd">↑</span> pulls the last one back into the box.</p>
+        <div class="c-foot">
+          <span class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i></span>
+          <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">Mid-turn with two follow-ups waiting. Send sits beside Stop once Nitin types, and Steer is its own button.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Queue and Steer</b> <span class="tag look">Look</span> <span class="tag derive">derive</span><span>Target <code>data-tour="queue"</code>, the queue list above the composer. Coach sits above it. Copy: "Send adds your message to the queue, and it goes after this turn. Steer sends it now, into the running turn."</span></div></li>
+    <li><span class="pin">2</span><div><b>Queue chips</b> <span class="tag derive">derive</span><span>Client-held list with a count, edit, remove and drag to reorder. Sent one at a time after the turn ends. ↑ with an empty draft recalls the last chip.</span></div></li>
+    <li><span class="pin">3</span><div><b>Send beside Stop, Steer apart</b> <span class="tag data">data</span><span>Stop shows for the whole turn, Send joins once text is typed (<code>running</code>, <code>canSend</code>). Steer is an explicit button, never the Enter default.</span></div></li>
+    <li><span class="pin">4</span><div><b>prepare()</b> <span class="tag derive">derive</span><span>Keeps the demo chat from step 6 and replays a scripted running state: two queued chips and a typed draft, written to the tour sandbox only. Nothing is sent to the agent. Esc minimizes the tour before the composer Esc order runs, so it never stops the turn.</span></div></li>
+    <li><span class="pin">5</span><div><b>Cleanup and fallback</b> <span class="tag derive">derive</span><span>On leave, clear the scripted chips and draft and restore the idle composer. If queue has not mounted after 3s, show a centered card with the same copy.</span></div></li>
+  </ol>
+</div>
+<div class="board">
+  <div>
+    <div class="demo" role="img" aria-label="Step 11 of 12: the goal strip for Onboarding plan for new analysts shows 2/4 steps, then a 42k of 50k budget meter, In progress and a menu button. Below it, four goal stops each show one fix">
+      <div class="app">
+        <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/c/onboarding-plan</span></div>
+        <div class="app-body">
+          <div class="app-stage">
+            <div class="wf-top">
+              <div class="crumb"><svg class="ic"><use href="#i-sidebar"/></svg><span class="t">Onboarding plan for new analysts</span></div>
+              <span class="status-pill"><span class="pulse"></span>Qlik Analyst · Working</span>
+              <span></span>
+            </div>
+            <div class="k3-stream">
+              <div class="ag-goal t-anchor" data-tour="goal-strip">
+                <div class="ag-strip">
+                  <svg class="ic" style="color:var(--accent-fg)"><use href="#i-target"/></svg>
+                  <span class="ag-obj" title="Onboarding plan for new analysts">Onboarding plan for new analysts</span>
+                  <span class="ag-prog"><span class="ag-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i></span>2/4 steps</span>
+                  <span class="ag-meter"><span class="bar warn" role="progressbar" aria-label="Token budget used" aria-valuenow="84" aria-valuemin="0" aria-valuemax="100"><i style="width:84%"></i></span><span class="ag-mono">42k / 50k</span></span>
+                  <span class="pill accent"><span class="pulse"></span>In progress</span>
+                  <span class="ag-ib" aria-label="Pause after this turn"><svg class="ic sm"><use href="#i-stop"/></svg></span>
+                  <span class="ag-ib" aria-label="Goal menu">⋯</span>
+                </div>
+                <span class="spot inset" aria-hidden="true"></span>
+              </div>
+              <div style="height:250px" aria-hidden="true"></div>
+              <span class="k3-inset-h">When a goal stops, one fix</span>
+              <div class="ag-stops">
+                <div class="ag-stop"><b>Needs input</b><span>Atlas couldn't find the security training doc</span><span class="btn soft">Provide input</span></div>
+                <div class="ag-stop"><b>Usage limit reached</b><span>Resets at 14:00</span><span class="btn soft">Wait until reset</span></div>
+                <div class="ag-stop"><b>Budget reached</b><span>50k of 50k used</span><span class="btn soft">Extend 25k</span></div>
+                <div class="ag-stop"><b>Context window full</b><span>The chat is too long to continue</span><span class="btn soft">Compact</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="coach" data-side="below" style="left:24px;top:200px;--caret:120px">
+        <div class="c-eye"><span>Step 11 of 12 · Keep it going</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+        <h4>Goals run <em>long</em></h4>
+        <p>A goal keeps working across turns until it's done or its token budget runs out. Progress reads first, budget second.</p>
+        <p class="sm">If it stops, the strip shows one fix for that stop.</p>
+        <div class="c-foot">
+          <span class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i></span>
+          <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">The goal from the demo chat, 2 of 4 steps done with 42k of its 50k budget spent. The row below is a static inset, not live UI.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Goal strip</b> <span class="tag look">Look</span> <span class="tag data">data</span><span>Target <code>data-tour="goal-strip"</code>. Coach below it. Copy: "A goal keeps working across turns until it's done or its token budget runs out. Progress reads first, budget second."</span></div></li>
+    <li><span class="pin">2</span><div><b>2/4 steps first</b> <span class="tag derive">derive</span><span>Counts done plan steps in the active turn's plan. Goal has no steps field, so with no plan the strip falls back to duration.</span></div></li>
+    <li><span class="pin">3</span><div><b>42k / 50k meter, status, ⋯</b> <span class="tag data">data</span><span><code>tokensUsed</code> over <code>tokenBudget</code>, warn tone past 80%. The menu holds Edit objective, Set budget, Mark complete and Clear goal. The tour does not open it.</span></div></li>
+    <li><span class="pin">4</span><div><b>One fix per stop</b> <span class="tag data">data</span><span>The inset shows the four v3 stops, each with one fix. blocked: Provide input. usageLimited: Wait until reset (the reset time is not forwarded yet, so that line needs backend). budgetLimited: Extend 25k via <code>extendedBudget</code>. contextWindow: Compact. Resume goal stays a secondary action, and a goal marked complete opens the review panel with Not yet and Accept result.</span></div></li>
+    <li><span class="pin">5</span><div><b>prepare(), cleanup, fallback</b> <span class="tag derive">derive</span><span>If the demo chat has no goal yet, render a scripted strip in the tour sandbox; never call <code>thread/goal/set</code>. The stops row is board illustration only; the live step spotlights just the strip. Cleanup removes the scripted strip and keeps the demo chat. Missing goal-strip after 3s: centered card, same copy.</span></div></li>
+  </ol>
+</div>
+<div class="board">
+  <div>
+    <div class="demo" role="img" aria-label="Step 12 of 12: the screen is dimmed, a centered finish card with confetti says You're set, Nitin, and the Account menu shows Take the tour opening a chooser for Full tour, Team page and Create an agent">
+      <div class="app">
+        <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/c/onboarding-plan</span></div>
+        <div class="app-body">
+          <div class="app-stage">
+            <div class="wf-top">
+              <div class="crumb"><svg class="ic"><use href="#i-sidebar"/></svg><span class="t">Onboarding plan for new analysts</span></div>
+              <span class="status-pill"><span class="pulse idle"></span>Qlik Analyst · Idle</span>
+              <span></span>
+            </div>
+            <div class="k3-stream">
+              <div class="msg user"><div class="bubble-wrap"><div class="bubble">Draft a 30-day onboarding plan for new analysts from the handbook</div></div></div>
+              <div class="msg"><span class="av">Q</span><div class="grow"><div class="msg-meta"><b>Qlik Analyst</b><span class="muted">3 helpers · 2m 10s</span></div><div class="answer">Here is a 30-day plan in four weeks, with a Qlik Sense certification checkpoint on day 8 and a first dashboard review on day 30.</div></div></div>
+              <div style="height:250px" aria-hidden="true"></div>
+            </div>
+            <div class="dock">
+              <b><svg class="ic"><use href="#i-sidebar"/></svg></b><b><svg class="ic"><use href="#i-search"/></svg></b><b><svg class="ic"><use href="#i-plus"/></svg></b><hr>
+              <b><svg class="ic"><use href="#i-bot"/></svg></b><hr>
+              <b><svg class="ic"><use href="#i-activity"/></svg></b><hr>
+              <b class="on"><svg class="ic"><use href="#i-user"/></svg></b>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tour-layer dim"></div>
+      <div class="coach hero hero-c" data-side="center">
+        <div class="c-art confetti" aria-hidden="true">
+          <i style="--x:8%;--y:22%;--r:18deg;--c:var(--ice)"></i><i style="--x:17%;--y:62%;--r:-30deg;--c:var(--peach)"></i><i style="--x:26%;--y:30%;--r:40deg;--c:var(--butter)"></i>
+          <i style="--x:35%;--y:72%;--r:-12deg;--c:var(--lilac)"></i><i style="--x:44%;--y:18%;--r:60deg;--c:var(--mint)"></i><i style="--x:53%;--y:56%;--r:-44deg;--c:var(--ice)"></i>
+          <i style="--x:62%;--y:26%;--r:22deg;--c:var(--peach)"></i><i style="--x:71%;--y:68%;--r:-60deg;--c:var(--butter)"></i><i style="--x:80%;--y:34%;--r:12deg;--c:var(--lilac)"></i>
+          <i style="--x:89%;--y:60%;--r:-26deg;--c:var(--mint)"></i><i style="--x:94%;--y:16%;--r:48deg;--c:var(--ice)"></i><i style="--x:4%;--y:78%;--r:-8deg;--c:var(--butter)"></i>
+        </div>
+        <div class="c-body">
+          <div class="c-eye"><span>Step 12 of 12 · Keep it going</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>You're set, <em>Nitin</em></h4>
+          <ul class="recap">
+            <li><svg class="ic"><use href="#i-check"/></svg>Set up the composer and pick how the agent asks</li>
+            <li><svg class="ic"><use href="#i-check"/></svg>Watch helpers work and answer what they ask</li>
+            <li><svg class="ic"><use href="#i-check"/></svg>Queue, steer and run goals on a budget</li>
+          </ul>
+          <p>Replay any time from Account.</p>
+          <div class="c-foot">
+            <span class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i></span>
+            <span class="tb quiet">Back</span><span class="tb primary">Done</span>
+          </div>
+        </div>
+      </div>
+      <div class="pop acct" aria-label="Account menu">
+        <span class="it"><svg class="ic"><use href="#i-user"/></svg>Nitin</span>
+        <hr>
+        <span class="it hl" data-tour="tour-replay"><svg class="ic"><use href="#i-history"/></svg>Take the tour<span class="tag new">New</span></span>
+        <div class="chooser" aria-label="Choose a tour">
+          <span class="it"><svg class="ic sm"><use href="#i-spark"/></svg>Full tour<small>12</small></span>
+          <span class="it"><svg class="ic sm"><use href="#i-users"/></svg>Team page<small>4</small></span>
+          <span class="it"><svg class="ic sm"><use href="#i-plus"/></svg>Create an agent<small>5</small></span>
+        </div>
+        <hr>
+        <span class="it"><svg class="ic"><use href="#i-eye"/></svg>Theme</span>
+      </div>
+    </div>
+    <p class="board-cap">The finish card over a dimmed screen, and beside it the Account menu where Take the tour opens a small chooser.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Centered finish</b> <span class="tag look">Look</span> <span class="tag derive">derive</span><span>No target for the card: dim layer plus hero coach. Copy: "You're set, Nitin", a 3-line recap, "Replay any time from Account." Done and Enter finish; Esc also closes here instead of minimizing.</span></div></li>
+    <li><span class="pin">2</span><div><b>Celebration</b> <span class="tag derive">derive</span><span>Twelve static confetti pieces in the five agent tints fall once, then rest. Hidden under prefers-reduced-motion.</span></div></li>
+    <li><span class="pin">3</span><div><b>Replay entry</b> <span class="tag derive">derive</span><span>Target <code>data-tour="tour-replay"</code> in the Account menu, tagged New until the next tour opens. The menu floats above the dim layer, so it gets a ring, not a second spotlight. Its chooser starts Full tour, Team page (4 stops) or Create an agent (5 stops).</span></div></li>
+    <li><span class="pin">4</span><div><b>Progress write</b> <span class="tag data">data</span><span>Done writes <code>truex-tour</code> {v:3, done:true, step:12, parts} to localStorage. Team and Create keep their own flags in <code>parts</code>.</span></div></li>
+    <li><span class="pin">5</span><div><b>prepare(), cleanup, fallback</b> <span class="tag derive">derive</span><span>prepare closes popovers and panels opened by earlier steps and opens the Account menu. Done restores panels and nav, closes the menu and keeps the demo chat. Missing tour-replay after 3s: the card shows alone with the same copy.</span></div></li>
+  </ol>
+</div>
+</section>

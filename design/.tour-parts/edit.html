@@ -1,0 +1,291 @@
+<section class="sec" id="edit-agent">
+<style>
+#edit-agent .ed-stage{position:relative;padding:18px;min-height:470px;display:flex;flex-direction:column;gap:12px;font-size:13.5px}
+#edit-agent .ed-stage .bubble{max-width:340px}
+#edit-agent .ed-menu{position:absolute;bottom:70px;left:calc(50% - 40px);width:250px;padding:6px}
+#edit-agent .ed-menu .hd{padding:4px 8px 2px;font:500 10px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+#edit-agent .mrow{display:flex;align-items:center;gap:4px;border-radius:8px}
+#edit-agent .mrow.hover{background:var(--surface-3)}
+#edit-agent .mrow .it{flex:1;min-width:0}
+#edit-agent .mrow .grow{display:flex;flex-direction:column;min-width:0;line-height:1.3}
+#edit-agent .mrow .grow b{font-weight:600;color:var(--ink)}
+#edit-agent .mrow .grow span{font-size:11.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#edit-agent .dot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--tint,var(--ice))}
+#edit-agent .pen{width:28px;height:28px;margin-right:4px;border-radius:8px;display:grid;place-items:center;color:var(--ink-2);flex:none}
+#edit-agent .pen.hid{visibility:hidden}
+#edit-agent .pen.on{background:var(--surface);box-shadow:inset 0 0 0 1px var(--line)}
+#edit-agent .ways{display:flex;gap:14px;margin-top:16px;flex-wrap:wrap;align-items:flex-start}
+#edit-agent .way{flex:1 1 170px;max-width:240px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:var(--shadow-card);display:flex;flex-direction:column;gap:8px;font-size:12.5px;color:var(--ink-2)}
+#edit-agent .way:nth-child(2){rotate:1.2deg}
+#edit-agent .way .lbl{font:700 19px/1 var(--font-hand);color:var(--doodle)}
+#edit-agent .pol{align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 6px 8px;rotate:-2deg;box-shadow:var(--shadow-sm);font-size:12px;font-weight:600;color:var(--ink)}
+#edit-agent .pol i{display:grid;place-items:center;width:96px;height:70px;border-radius:3px;background:var(--tint,var(--ice));margin-bottom:5px;color:var(--ink)}
+#edit-agent .over{padding:22px 16px;background:color-mix(in srgb,var(--scrim) 70%,var(--surface-2))}
+#edit-agent .dlg{position:relative;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow-lift);font-size:13px}
+#edit-agent .dlg-x{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:var(--ink-3)}
+#edit-agent .form{padding:20px 18px 16px;display:flex;flex-direction:column;gap:11px;min-width:0}
+#edit-agent .form h3{margin:0;font:600 18px/1.2 var(--font-sans);letter-spacing:-.02em;color:var(--ink)}
+#edit-agent .form .intro{margin:2px 0 0;color:var(--ink-3);font-size:12.5px;line-height:1.45}
+#edit-agent .fld{display:flex;flex-direction:column;gap:5px;border-radius:10px}
+#edit-agent .fl{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink-2)}
+#edit-agent .hint{margin-left:auto;font:500 11px var(--font-mono);color:var(--ink-3);display:inline-flex;align-items:center;gap:4px}
+#edit-agent .hint .ic{width:11px;height:11px}
+#edit-agent .in{min-height:34px;padding:7px 10px;border-radius:9px;border:1px solid var(--line-strong);background:var(--bg);color:var(--ink);line-height:1.4;overflow-wrap:anywhere}
+#edit-agent .in.off{background:var(--surface-3);border-color:var(--line);color:var(--ink-3)}
+#edit-agent .in.focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+#edit-agent .in.sel{display:flex;align-items:center;justify-content:space-between}
+#edit-agent .looks{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+#edit-agent .looks i{aspect-ratio:1;border-radius:8px;background:var(--tint);display:grid;place-items:center;color:var(--ink);border:2px solid transparent}
+#edit-agent .looks i.on{border-color:var(--ink)}
+#edit-agent .looks.off i{opacity:.5}#edit-agent .looks.off i.on{opacity:1}
+#edit-agent .tints{display:flex;align-items:center;gap:7px}
+#edit-agent .tints i{width:18px;height:18px;border-radius:50%;background:var(--tint);box-shadow:inset 0 0 0 1px var(--line)}
+#edit-agent .tints i.on{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)}
+#edit-agent .tints.off i:not(.on){opacity:.45}
+#edit-agent .acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px}
+#edit-agent .b{height:34px;padding:0 14px;border-radius:10px;display:inline-flex;align-items:center;gap:6px;font-weight:600;white-space:nowrap;border:1px solid transparent}
+#edit-agent .b.solid{background:var(--ink);color:var(--bg)}#edit-agent .b.solid.dis{opacity:.4}
+#edit-agent .b.soft{background:var(--surface-3);color:var(--ink)}
+#edit-agent .b.ghost{color:var(--ink-2)}#edit-agent .b.danger{color:var(--bad)}#edit-agent .b.red{background:var(--bad);color:var(--surface)}
+#edit-agent .nad{position:relative;border-left:1px solid var(--line);background:var(--surface-2);border-radius:0 20px 20px 0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 14px 16px;gap:10px;min-width:0}
+#edit-agent .strap{flex:1;width:14px;min-height:60px;background:repeating-linear-gradient(180deg,var(--accent) 0 8px,var(--beam) 8px 16px);border-radius:0 0 3px 3px}
+#edit-agent .badge{position:relative;overflow:hidden;width:min(170px,100%);margin-top:-6px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-md);padding:10px;display:flex;flex-direction:column;gap:3px;rotate:-2deg}
+#edit-agent .badge .ph{display:grid;place-items:center;height:92px;border-radius:9px;background:var(--tint);color:var(--ink);margin-bottom:5px}
+#edit-agent .badge b{font-size:14px;color:var(--ink)}#edit-agent .badge small{font:500 11px var(--font-mono);color:var(--ink-3)}
+#edit-agent .badge .tg{position:absolute;top:16px;left:16px;height:18px;padding:0 7px;border-radius:999px;background:var(--surface);color:var(--ink-2);font:600 10px/18px var(--font-mono);display:inline-flex;align-items:center;gap:3px}
+#edit-agent .badge.shine::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,color-mix(in srgb,var(--surface) 80%,transparent) 50%,transparent 65%);animation:ed-shine 1.2s var(--ease-out) 1 both}
+@keyframes ed-shine{from{transform:translateX(-80%)}to{transform:translateX(10%)}}
+#edit-agent .note{font:500 11px var(--font-mono);color:var(--ink-3)}
+#edit-agent .strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}
+#edit-agent .st{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;align-items:flex-start;min-width:0;box-shadow:var(--shadow-card)}
+#edit-agent .st .lbl{font:700 18px/1 var(--font-hand);color:var(--doodle)}
+@media (max-width:640px){#edit-agent .dlg{grid-template-columns:minmax(0,1fr)}#edit-agent .nad{border-left:0;border-top:1px solid var(--line);border-radius:0 0 20px 20px;padding-top:12px}#edit-agent .strap{display:none}#edit-agent .strip{grid-template-columns:minmax(0,1fr)}#edit-agent .ed-menu{left:auto;right:12px}}
+@media (prefers-reduced-motion:reduce){#edit-agent .badge.shine::after{animation:none;transform:translateX(0)}}
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ed-bot-a" viewBox="0 0 40 40"><path d="M20 4v6" style="stroke:var(--ink);stroke-width:2;stroke-linecap:round"/><circle cx="20" cy="4" r="2.4" style="fill:var(--ink)"/><rect x="7" y="10" width="26" height="22" rx="7" style="fill:var(--surface);stroke:var(--ink);stroke-width:2"/><circle cx="15" cy="20" r="2.6" style="fill:var(--ink)"/><circle cx="25" cy="20" r="2.6" style="fill:var(--ink)"/><path d="M16 26h8" style="stroke:var(--ink);stroke-width:2;stroke-linecap:round"/></symbol>
+  <symbol id="ed-bot-b" viewBox="0 0 40 40"><rect x="3" y="15" width="4" height="9" rx="2" style="fill:var(--ink)"/><rect x="33" y="15" width="4" height="9" rx="2" style="fill:var(--ink)"/><rect x="7" y="8" width="26" height="24" rx="12" style="fill:var(--surface);stroke:var(--ink);stroke-width:2"/><rect x="12" y="16" width="16" height="7" rx="3.5" style="fill:var(--ink)"/><circle cx="16" cy="19.5" r="1.4" style="fill:var(--surface)"/><circle cx="24" cy="19.5" r="1.4" style="fill:var(--surface)"/></symbol>
+  <symbol id="ed-pen" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z M13.5 6.5l4 4"/></symbol>
+</svg>
+  <div class="sec-head">
+    <span class="eyebrow">Agent tour 3</span>
+    <h2>Tune an agent without breaking it</h2>
+    <p>Three stops the first time someone opens an edit dialog. Where the edit doors are, what a built-in lets you change, and how saving and removing feel. Built-ins keep their name and look so every chat that mentions them stays recognisable.</p>
+  </div>
+
+  <!-- Edit 1 of 3: three ways in -->
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Edit tour stop 1 of 3: the agent menu is open above the dock, the Qlik Analyst row is hovered and its pencil button is spotlit, with a coach card above">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex · Weekly revenue by region</span></div>
+          <div class="app-body">
+            <div class="app-stage">
+              <div class="wf-top">
+                <div class="crumb"><span class="t">Weekly revenue by region</span></div>
+                <span class="status-pill" data-tour="status-pill"><span class="pulse idle"></span>Qlik Analyst</span>
+                <div class="row" style="justify-content:flex-end"><span class="btn ghost" aria-hidden="true">◐</span></div>
+              </div>
+              <div class="ed-stage">
+                <div class="msg user"><div class="bubble-wrap"><div class="bubble">Which region dropped most week over week?</div><span class="muted sm">Nitin · 4 min ago</span></div></div>
+                <div class="msg"><div class="bubble-wrap"><div class="bubble">EMEA fell 8.4%, from 1.92M to 1.76M. Most of it is two accounts in the Nordics that moved renewals into next quarter. APAC was flat, Americas up 3.1%.</div><span class="muted sm">Qlik Analyst · 3 min ago · 2.1k tokens</span></div></div>
+              </div>
+              <div class="bottom">
+                <div class="composer" data-tour="composer">
+                  <div class="ph">Ask, or type / for commands</div>
+                  <div class="composer-bar"><span class="chip" data-tour="goal-chip"><svg class="ic sm"><use href="#i-target"/></svg>Goal</span><span class="spacer"></span><span class="muted sm">Enter to send</span><span class="send" data-tour="send"><svg class="ic sm"><use href="#i-send"/></svg></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="position:relative">
+            <nav class="dock" data-tour="dock" aria-label="Dock">
+              <b title="Sidebar ⌘B"><svg class="ic"><use href="#i-sidebar"/></svg></b>
+              <b title="Search ⌘K"><svg class="ic"><use href="#i-search"/></svg></b>
+              <b title="New chat ⌘J"><svg class="ic"><use href="#i-plus"/></svg></b>
+              <hr>
+              <b class="on" data-tour="dock-agent" title="Agent"><svg class="ic"><use href="#i-bot"/></svg></b>
+              <hr>
+              <b title="Activity ⌘."><svg class="ic"><use href="#i-activity"/></svg></b>
+              <b title="Account"><svg class="ic"><use href="#i-user"/></svg></b>
+            </nav>
+            <div class="pop ed-menu" data-tour="agent-menu">
+              <span class="hd">Choose agent</span>
+              <div class="mrow hover">
+                <span class="it is-active"><span class="dot" style="--tint:var(--ice)"></span><span class="grow"><b>Qlik Analyst</b><span>Dashboards, metrics, BI queries</span></span><svg class="ic sm"><use href="#i-check"/></svg></span>
+                <span class="pen on t-anchor" data-tour="agent-edit" aria-label="Edit Qlik Analyst"><svg class="ic sm"><use href="#ed-pen"/></svg><span class="spot inset" aria-hidden="true"></span></span>
+              </div>
+              <div class="mrow"><span class="it"><span class="dot" style="--tint:var(--mint)"></span><span class="grow"><b>Researcher</b><span>Web research with citations</span></span></span><span class="pen hid"><svg class="ic sm"><use href="#ed-pen"/></svg></span></div>
+              <div class="mrow"><span class="it"><span class="dot" style="--tint:var(--butter)"></span><span class="grow"><b>Writer</b><span>Docs, release notes, briefs</span></span></span><span class="pen hid"><svg class="ic sm"><use href="#ed-pen"/></svg></span></div>
+              <div class="mrow"><span class="it"><span class="dot" style="--tint:var(--lilac)"></span><span class="grow"><b>Ops</b><span>Runbooks, tickets, on-call</span></span></span><span class="pen hid"><svg class="ic sm"><use href="#ed-pen"/></svg></span></div>
+              <span class="sep" style="height:1px;background:var(--line);margin:3px 4px"></span>
+              <span class="it"><svg class="ic sm"><use href="#i-layers"/></svg><b style="font-weight:600">All agents</b></span>
+              <span class="it"><svg class="ic sm"><use href="#i-plus"/></svg><b style="font-weight:600">New agent</b></span>
+            </div>
+          </div>
+        </div>
+        <span class="pin pin-at" style="top:44px;left:calc(50% + 70px)">4</span>
+        <div class="coach" data-side="above" style="bottom:348px;left:calc(50% - 110px);width:min(290px,calc(100% - 24px));--caret:268px">
+          <div class="c-eye"><span>Edit · 1 of 3</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Three ways <em>in</em></h4>
+          <p>Hover an agent here and a pencil appears. The status pill up top and any roster photo open the same editor.</p>
+          <div class="c-foot">
+            <div class="c-dots"><i class="on"></i><i></i><i></i></div>
+            <span class="tb quiet">Not now</span><span class="tb primary">Next</span>
+          </div>
+        </div>
+      </div>
+      <div class="ways" aria-label="The other two ways into the editor">
+        <div class="way"><span class="lbl">the pill</span><span class="status-pill" style="align-self:flex-start"><span class="pulse idle"></span>Qlik Analyst</span><span>Click the topbar status pill to edit the agent in this chat.</span></div>
+        <div class="way"><span class="lbl">the photo</span><span class="pol" style="--tint:var(--ice)"><i><svg width="44" height="44"><use href="#ed-bot-a"/></svg></i>Qlik Analyst</span><span>In the roster, click a polaroid photo.</span></div>
+      </div>
+      <p class="board-cap">the pencil hides until you need it. The tour holds it visible for one stop.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Trigger</b>The first time any edit dialog is about to open, from any of the three doors. <code>parts.edit</code> is false, so the tour runs this stop first from the menu, then lets the dialog open for stops 2 and 3. It ends on Save and sets <code>parts.edit</code> to true.<span class="tag new">New</span><span class="src">truex-tour · parts.edit</span></div></li>
+      <li><span class="pin">2</span><div><b>Target agent-edit, prepared by prepare()</b>prepare() opens AgentMenu from the dock Agent button and adds <code>is-tour-hover</code> to the current agent's row so its <code>.menu-edit</code> pencil stays visible under the spotlight. Look step: Next moves on, and so does clicking the pencil. If the pencil is not found after 3s, the same copy shows as a centered card.<span class="tag changed">Changed</span><span class="src">AgentMenu · 602, menu-edit · 617</span></div></li>
+      <li><span class="pin">3</span><div><b>Why the pencil only shows on hover or focus</b>The menu is a picker first. Eight pencils in a column would compete with the names people scan, so each row shows its pencil only on hover or keyboard focus, and it keeps <code>aria-label="Edit {name}"</code> for screen readers. That is exactly why the tour points it out once.<span class="tag exists">Exists</span><span class="src">AgentMenu · 617</span></div></li>
+      <li><span class="pin">4</span><div><b>The other two doors, shown as insets</b>The topbar status pill edits the agent in this chat, and clicking a polaroid photo in the roster edits that agent. The coach names both in one sentence rather than walking to each.<span class="tag exists">Exists</span><span class="src">status-pill · roster pol-photo · 1273</span></div></li>
+      <li><span class="pin">5</span><div><b>Copy</b>Eyebrow "Edit · 1 of 3", title "Three ways in", body as shown. "Not now" minimizes to the resume chip like Esc. 3 dots.<span class="tag new">New</span><span class="src">coach copy</span><span class="tag look">Look</span></div></li>
+    </ol>
+  </div>
+
+  <!-- Edit 2 of 3: built-in lock -->
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Edit tour stop 2 of 3: the Edit Qlik Analyst dialog with Name, Purpose, Look and Tint locked as built-in, the locked Name field spotlit, and a coach card to its right">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex · Weekly revenue by region</span></div>
+          <div class="app-body">
+            <div class="app-stage over">
+              <div class="dlg" aria-label="Edit Qlik Analyst">
+                <span class="dlg-x"><svg class="ic sm"><use href="#i-x"/></svg></span>
+                <div class="form">
+                  <div><h3>Edit Qlik Analyst</h3><p class="intro">A built-in specialist. Tune its instructions, model, servers and skills; its name and look stay fixed.</p></div>
+                  <div class="fld t-anchor" data-tour="agent-lock">
+                    <span class="fl">Name<span class="hint"><svg class="ic"><use href="#i-lock"/></svg>built-in</span></span>
+                    <span class="in off">Qlik Analyst</span>
+                    <span class="spot inset" aria-hidden="true"></span>
+                  </div>
+                  <div class="fld"><span class="fl">Purpose<span class="hint"><svg class="ic"><use href="#i-lock"/></svg>built-in</span></span><span class="in off">Dashboards, metrics, BI queries</span></div>
+                  <div class="fld"><span class="fl">Instructions</span><span class="in focus">Answer with the number first, then the sheet it came from. Flag any measure older than 24h.</span></div>
+                  <div class="fld">
+                    <span class="fl">Look<span class="hint"><svg class="ic"><use href="#i-lock"/></svg>built-in</span></span>
+                    <div class="looks off" style="--tint:var(--ice)">
+                      <i><svg width="26" height="26"><use href="#ed-bot-a"/></svg></i><i><svg width="26" height="26"><use href="#ed-bot-a"/></svg></i><i><svg width="26" height="26"><use href="#ed-bot-a"/></svg></i><i class="on"><svg width="26" height="26"><use href="#ed-bot-b"/></svg></i><i><svg width="26" height="26"><use href="#ed-bot-b"/></svg></i><i><svg width="26" height="26"><use href="#ed-bot-a"/></svg></i>
+                    </div>
+                    <div class="tints off"><span class="fl">Tint</span><i class="on" style="--tint:var(--ice)"></i><i style="--tint:var(--mint)"></i><i style="--tint:var(--butter)"></i><i style="--tint:var(--peach)"></i><i style="--tint:var(--lilac)"></i></div>
+                  </div>
+                  <div class="fld"><span class="fl">Model</span><span class="in sel">Claude Sonnet 5.5<svg class="ic sm"><use href="#i-chevd"/></svg></span></div>
+                  <div class="fld"><span class="fl">MCP servers<span class="hint">2 servers</span></span><div class="chips"><span class="chip"><svg class="ic sm"><use href="#i-plug"/></svg>Qlik Sense</span><span class="chip"><svg class="ic sm"><use href="#i-plug"/></svg>Postgres</span></div></div>
+                  <div class="fld"><span class="fl">Skills<span class="hint">2 skills</span></span><div class="chips"><span class="chip">SQL analyst</span><span class="chip">Chart builder</span></div></div>
+                  <div class="acts"><span class="spacer"></span><span class="b soft">Cancel</span><span class="b solid">Save changes</span></div>
+                </div>
+                <div class="nad">
+                  <span class="strap" aria-hidden="true"></span>
+                  <div class="badge" style="--tint:var(--ice)">
+                    <span class="tg"><svg class="ic sm"><use href="#i-lock"/></svg>built-in</span>
+                    <span class="ph"><svg width="64" height="64"><use href="#ed-bot-b"/></svg></span>
+                    <b>Qlik Analyst</b><small>@qlik · Sonnet 5.5</small><small>2 servers · 2 skills</small>
+                  </div>
+                  <span class="note">unsaved changes · drag it around</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <span class="pin pin-at" style="top:130px;left:34px">2</span>
+        <span class="pin pin-at" style="bottom:100px;right:40px">3</span>
+        <div class="coach" data-side="right" style="top:150px;right:14px;width:min(262px,calc(100% - 24px));--caret:40px">
+          <div class="c-eye"><span>Edit · 2 of 3</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Built-ins keep their <em>face</em></h4>
+          <p>Name, purpose and look are fixed so every chat still knows it. Instructions, model, servers and skills are yours to tune.</p>
+          <div class="c-foot">
+            <div class="c-dots"><i class="done"></i><i class="on"></i><i></i></div>
+            <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">greyed but readable. The lock says why, not just no.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Target agent-lock, prepared by prepare()</b>prepare() opens the editor for Qlik Analyst (the agent the user clicked, or the chat's agent if they skipped) and waits for <code>agent-lock</code> on the disabled Name field. Look step: Next or → moves on. If the field is missing after 3s, for example because the user opened a custom agent, the step is skipped and the tour goes straight to Save.<span class="tag changed">Changed</span><span class="src">AgentDialog · Name field · 1101</span></div></li>
+      <li><span class="pin">2</span><div><b>What locks</b>Name, Purpose, Look and Tint render with <code>disabled</code> and the small lock hint "built-in". The intro copy changes to "A built-in specialist. Tune its instructions, model, servers and skills; its name and look stay fixed." The coach repeats the split in plain words.<span class="tag exists">Exists</span><span class="src">lockHint · 1098, nad-head · 1106</span></div></li>
+      <li><span class="pin">3</span><div><b>What stays yours</b>Instructions (focused on open for built-ins), Model, MCP servers and Skills. The badge on the stage wears a "built-in" tag and updates live, with "unsaved changes · drag it around" under it.<span class="tag exists">Exists</span><span class="src">nad-stage · 1182</span></div></li>
+      <li><span class="pin">4</span><div><b>Focus is not stolen</b>The spotlight sits on Name but focus stays in Instructions, where the dialog put it. Typing there works during the tour, and the coach does not trap keys other than → ← and Esc.<span class="tag new">New</span><span class="src">TourLayer key handling</span></div></li>
+      <li><span class="pin">5</span><div><b>Copy</b>Eyebrow "Edit · 2 of 3", title "Built-ins keep their face", body as shown. 3 dots, first done.<span class="tag new">New</span><span class="src">coach copy</span><span class="tag look">Look</span></div></li>
+    </ol>
+  </div>
+
+  <!-- Edit 3 of 3: save, saved, remove -->
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Edit tour stop 3 of 3: the Edit Research Scout dialog after a change, with Remove agent on the left and the Save changes button spotlit, and a coach card to its right">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex · agents</span></div>
+          <div class="app-body">
+            <div class="app-stage over">
+              <div class="dlg" aria-label="Edit Research Scout">
+                <span class="dlg-x"><svg class="ic sm"><use href="#i-x"/></svg></span>
+                <div class="form">
+                  <div><h3>Edit Research Scout</h3><p class="intro">Changes apply from its next turn. The handle stays @research-scout so existing mentions keep working.</p></div>
+                  <div class="fld"><span class="fl">Name<span class="hint">@research-scout · fixed</span></span><span class="in">Research Scout</span></div>
+                  <div class="fld"><span class="fl">Purpose</span><span class="in">Competitor pricing and market scans</span></div>
+                  <div class="fld"><span class="fl">Instructions</span><span class="in focus">Cite every number with a link. Prefer sources from the last 90 days and say when a figure is older.</span></div>
+                  <div class="fld">
+                    <span class="fl">Look</span>
+                    <div class="looks" style="--tint:var(--mint)">
+                      <i><svg width="26" height="26"><use href="#ed-bot-b"/></svg></i><i><svg width="26" height="26"><use href="#ed-bot-a"/></svg></i><i><svg width="26" height="26"><use href="#ed-bot-b"/></svg></i><i><svg width="26" height="26"><use href="#ed-bot-a"/></svg></i><i class="on"><svg width="26" height="26"><use href="#ed-bot-a"/></svg></i><i><svg width="26" height="26"><use href="#ed-bot-b"/></svg></i>
+                    </div>
+                    <div class="tints"><span class="fl">Tint</span><i style="--tint:var(--ice)"></i><i class="on" style="--tint:var(--mint)"></i><i style="--tint:var(--butter)"></i><i style="--tint:var(--peach)"></i><i style="--tint:var(--lilac)"></i></div>
+                  </div>
+                  <div class="fld"><span class="fl">Model</span><span class="in sel">Claude Opus 5.5<svg class="ic sm"><use href="#i-chevd"/></svg></span></div>
+                  <div class="fld"><span class="fl">MCP servers<span class="hint">1 server</span></span><div class="chips"><span class="chip"><svg class="ic sm"><use href="#i-plug"/></svg>Notion</span></div></div>
+                  <div class="fld"><span class="fl">Skills<span class="hint">2 skills</span></span><div class="chips"><span class="chip">Web research</span><span class="chip">PDF &amp; files</span></div></div>
+                  <div class="acts">
+                    <span class="b ghost danger">Remove agent</span><span class="spacer"></span><span class="b soft">Cancel</span>
+                    <span class="b solid t-anchor" data-tour="agent-save">Save changes<span class="spot inset" aria-hidden="true"></span></span>
+                  </div>
+                </div>
+                <div class="nad">
+                  <span class="strap" aria-hidden="true"></span>
+                  <div class="badge" style="--tint:var(--mint)">
+                    <span class="ph"><svg width="64" height="64"><use href="#ed-bot-a"/></svg></span>
+                    <b>Research Scout</b><small>@research-scout · Opus 5.5</small><small>1 server · 2 skills</small>
+                  </div>
+                  <span class="note">unsaved changes · drag it around</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <span class="pin pin-at" style="bottom:36px;left:30px">3</span>
+        <div class="coach" data-side="right" style="bottom:24px;right:14px;width:min(262px,calc(100% - 24px));--caret:158px">
+          <div class="c-eye"><span>Edit · 3 of 3</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Save when it <em>reads right</em></h4>
+          <p>Changes apply from its next turn. The button turns to Saved and the badge catches the light.</p>
+          <div class="c-try"><svg class="ic sm"><use href="#i-check"/></svg>Save, or press Done to leave it as is</div>
+          <div class="c-foot">
+            <div class="c-dots"><i class="done"></i><i class="done"></i><i class="on"></i></div>
+            <span class="tb quiet">Back</span><span class="tb primary">Done</span>
+          </div>
+        </div>
+      </div>
+      <div class="strip" aria-label="The action row in three states">
+        <div class="st"><span class="lbl">after an edit</span><span class="b solid">Save changes</span><span class="note">unsaved changes</span></div>
+        <div class="st"><span class="lbl">saved</span><span class="b solid"><svg class="ic sm"><use href="#i-check"/></svg>Saved</span>
+          <div class="badge shine" style="--tint:var(--mint);width:120px;rotate:0deg;padding:6px"><span class="ph" style="height:48px;margin:0"><svg width="36" height="36"><use href="#ed-bot-a"/></svg></span></div></div>
+        <div class="st"><span class="lbl">remove, twice</span><span class="b ghost danger" style="padding:0">Remove agent</span>
+          <span class="row" role="group" aria-label="Confirm removal"><span class="muted sm">Remove Research Scout?</span><span class="b red">Remove</span><span class="b ghost">Keep</span></span></div>
+      </div>
+      <p class="board-cap">one click to save, two to remove. Built-ins only ever get the first.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Target agent-save, advances on save</b>prepare() only scrolls the action row into view. <code>agent-save</code> is the submit button. It stays disabled until something changes (<code>valid = dirty &amp;&amp; name</code>), so the Try line offers Done as the way out. The example edit switches the model from Claude Sonnet 5.5, set in the Create tour, to Claude Opus 5.5, which is what makes Save changes live. advanceOn: the button's label turns to "Saved". If the button is not found after 3s, the same copy shows as a centered card with Done.<span class="tag changed">Changed</span><span class="src">AgentDialog · nad-actions · 1165</span></div></li>
+      <li><span class="pin">2</span><div><b>Saved and the shine</b>After submit the label reads "Saved" with a check, the stage note says "saved" and a shine sweeps across the badge once. The tour waits for that moment, then closes itself, sets <code>parts.edit</code> to true and leaves the dialog open. Any further edit flips the label back to "Save changes".<span class="tag exists">Exists</span><span class="src">submit · 1062, Badge shine</span></div></li>
+      <li><span class="pin">3</span><div><b>Remove takes two clicks</b>Custom agents get "Remove agent" on the left. It turns into "Remove Research Scout?" with Remove and Keep, grouped as "Confirm removal", and Remove takes focus. The tour does not spotlight it, it only shows in the strip here.<span class="tag exists">Exists</span><span class="src">remove-confirm · 1158</span></div></li>
+      <li><span class="pin">4</span><div><b>Built-ins have no Remove</b>For Qlik Analyst, Researcher, Writer and Ops the row holds only Cancel and Save changes, so the coach copy never mentions removing. The tour ends on Save in both cases.<span class="tag exists">Exists</span><span class="src">editing &amp;&amp; !locked · 1156</span></div></li>
+      <li><span class="pin">5</span><div><b>Copy</b>Eyebrow "Edit · 3 of 3", title "Save when it reads right", body as shown, Try line "Save, or press Done to leave it as is". 3 dots, two done. Under reduced motion the shine is skipped and the label change carries it.<span class="tag new">New</span><span class="src">coach copy</span><span class="tag try">Try</span></div></li>
+    </ol>
+  </div>
+</section>

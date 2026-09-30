@@ -1,0 +1,71 @@
+
+/* ===== App tour layer (new). Coach card + spotlight + beacon, built on the app tokens. ===== */
+:root{
+  --scrim:rgb(22 34 41 / 48%); --spot-ring:#3691CD; --spot-glow:rgb(54 145 205 / 22%);
+  --coach:#FFFFFF; --beam:#BCDEE8;
+  --ice:#BCDEE8; --mint:#A9D5BE; --butter:#EBCB8B; --lilac:#C4BDE3; --peach:#F0B999;
+  --ease-out:cubic-bezier(.2,.8,.2,1); --ease-spring:cubic-bezier(.34,1.56,.64,1);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--scrim:rgb(0 0 0 / 64%);--spot-ring:#5AA8DC;--spot-glow:rgb(90 168 220 / 26%);--coach:#1C1C1C;--beam:#1F4461}}
+:root[data-theme="dark"]{--scrim:rgb(0 0 0 / 64%);--spot-ring:#5AA8DC;--spot-glow:rgb(90 168 220 / 26%);--coach:#1C1C1C;--beam:#1F4461}
+
+.demo{position:relative;isolation:isolate;border-radius:20px;overflow:hidden;min-width:0}
+.tour-layer{position:absolute;inset:0;z-index:5;pointer-events:none;border-radius:inherit}
+.tour-layer.dim{background:var(--scrim)}
+.spot{position:absolute;border-radius:14px;box-shadow:0 0 0 2px var(--spot-ring),0 0 0 8px var(--spot-glow),0 0 0 200vmax var(--scrim)}
+.spot.round{border-radius:999px}
+.spot::after{content:"";position:absolute;inset:-2px;border-radius:inherit;border:2px solid var(--spot-ring);animation:breathe 2.4s var(--ease-out) infinite}
+@keyframes breathe{0%{opacity:.55;transform:scale(1)}100%{opacity:0;transform:scale(1.06)}}
+
+.coach{position:absolute;z-index:6;width:min(300px,calc(100% - 24px));background:var(--coach);color:var(--ink);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-lift);padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px;font-size:13.5px;line-height:1.5;text-align:left}
+.coach.static{position:relative;inset:auto}
+.coach::before{content:"";position:absolute;width:12px;height:12px;background:inherit;border:1px solid var(--line);transform:rotate(45deg)}
+.coach[data-side="below"]::before{top:-7px;left:var(--caret,32px);border-right:0;border-bottom:0}
+.coach[data-side="above"]::before{bottom:-7px;left:var(--caret,32px);border-left:0;border-top:0}
+.coach[data-side="left"]::before{right:-7px;top:var(--caret,24px);border-left:0;border-bottom:0}
+.coach[data-side="right"]::before{left:-7px;top:var(--caret,24px);border-right:0;border-top:0}
+.coach[data-side="center"]::before,.coach:not([data-side])::before{display:none}
+.c-eye{display:flex;justify-content:space-between;align-items:center;gap:8px;font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.c-x{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;color:var(--ink-3)}
+.c-x svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
+.coach h4{margin:0;font:600 17px/1.25 var(--font-sans);letter-spacing:-.02em;color:var(--ink);text-wrap:balance}
+.coach h4 em{font-family:var(--font-accent);font-style:italic;font-weight:400;font-size:1.06em}
+.coach p{margin:0;color:var(--ink-2);font-size:13.5px;max-width:none}
+.c-foot{display:flex;align-items:center;gap:6px;margin-top:4px}
+.c-dots{display:flex;align-items:center;gap:4px;margin-right:auto}
+.c-dots i{width:6px;height:6px;border-radius:999px;background:var(--line-strong)}
+.c-dots i.done{background:var(--beam)}
+.c-dots i.on{width:18px;background:var(--accent)}
+.tb{height:30px;padding:0 12px;border-radius:9px;font:500 13px var(--font-sans);display:inline-flex;align-items:center;gap:6px;border:1px solid transparent;background:transparent;color:var(--ink-2);white-space:nowrap}
+.tb.primary{background:var(--accent);color:var(--on-accent)}
+.tb.soft{background:var(--accent-soft);color:var(--accent-fg)}
+.tb.line{border-color:var(--line-strong);color:var(--ink)}
+.tb.quiet{padding:0 6px;color:var(--ink-3)}
+.c-try{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:var(--accent-soft);color:var(--accent-fg);font-size:12.5px;font-weight:500}
+.c-wait{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:var(--surface-3);color:var(--ink-2);font-size:12.5px}
+.kbd{display:inline-block;font:500 11px/1.5 var(--font-mono);padding:0 5px;border-radius:5px;background:var(--surface-3);border:1px solid var(--line);color:var(--ink-2);white-space:nowrap}
+.coach.hero{width:min(380px,calc(100% - 24px));padding:0;overflow:hidden;gap:0}
+.coach.hero .c-art{height:120px;position:relative;overflow:hidden;background:var(--accent-soft);border-bottom:1px solid var(--line)}
+.coach.hero .c-body{padding:16px 18px 14px;display:flex;flex-direction:column;gap:8px}
+.coach.hero h4{font-size:22px;letter-spacing:-.03em}
+
+.beacon{position:absolute;z-index:6;width:12px;height:12px;border-radius:50%;background:var(--spot-ring);box-shadow:0 0 0 4px var(--spot-glow)}
+.beacon::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--spot-ring);animation:breathe 1.8s var(--ease-out) infinite}
+.scribble{position:absolute;z-index:7;font:700 20px/1.05 var(--font-hand);color:var(--doodle);pointer-events:none;white-space:nowrap}
+.scribble svg{display:block;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+
+.tour-chip{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px 0 6px;border-radius:999px;background:var(--ink);color:var(--bg);font:500 13px var(--font-sans);box-shadow:var(--shadow-lift);white-space:nowrap}
+.mring{--p:40;width:22px;height:22px;border-radius:50%;background:conic-gradient(var(--beam) calc(var(--p)*1%),color-mix(in srgb,var(--bg) 22%,transparent) 0);display:grid;place-items:center}
+.mring::after{content:"";width:14px;height:14px;border-radius:50%;background:var(--ink)}
+.tag.look{background:var(--ts1);color:var(--t1)}
+.tag.try{background:var(--ts0);color:var(--t0)}
+.tag.wait{background:var(--ts2);color:var(--t2)}
+@media (max-width:640px){
+  .demo .coach{position:relative;inset:auto!important;width:auto;margin:12px}
+  .demo .coach::before{display:none}
+  .scribble{display:none}
+}
+@media (prefers-reduced-motion:reduce){.spot::after,.beacon::after{animation:none;opacity:0}}
+.t-anchor{position:relative}
+.demo .app-stage,.demo .app-panel,.demo .hcard{overflow:visible}
+.spot.inset{inset:-6px}

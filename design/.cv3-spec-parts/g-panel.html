@@ -1,0 +1,1161 @@
+<section class="part" id="panel">
+<style>
+/* panel fragment: specimens only, tokens only */
+.ob-spec{display:flex;flex-direction:column;gap:8px;max-width:360px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.ob-spec-tabs{display:flex;gap:0;border-bottom:1px solid var(--line);overflow-x:auto}
+.ob-spec-tab{height:38px;padding:0 8px;display:inline-flex;align-items:center;font:500 13px var(--font-sans);color:var(--ink-2);white-space:nowrap}
+.ob-spec-tab.is-on{color:var(--ink);box-shadow:inset 0 -2px 0 var(--accent)}
+.ob-spec-seg{display:inline-flex;padding:2px;border-radius:999px;background:var(--surface-3);gap:2px;align-self:flex-start}
+.ob-spec-seg span{height:24px;padding:0 10px;display:inline-flex;align-items:center;border-radius:999px;font:500 12px var(--font-sans);color:var(--ink-2)}
+.ob-spec-seg span.is-on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-sm)}
+.ob-spec-rcpt{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:13px;color:var(--ink-2)}
+.ob-spec-rcpt b{color:var(--ink);font-weight:600}
+.ob-spec-mono{font:12px var(--font-mono);color:var(--ink-2)}
+.ob-spec-ghost{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;border:1px dashed var(--line-strong);color:var(--ink-2);font-size:12px;font-style:italic}
+.ob-spec-det{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:8px;border:1px solid var(--line);color:var(--ink);font:500 12px var(--font-sans)}
+.ob-spec-prob{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:12px;background:var(--warning-bg);color:var(--warning-text);font-size:13px}
+.ob-spec-stack{display:flex;height:12px;border-radius:999px;overflow:hidden;gap:2px;background:var(--surface-3)}
+.ob-spec-stack i{display:block;height:100%}
+.ob-spec-ring{width:56px;height:56px;border-radius:50%;background:conic-gradient(var(--warn) 78%,var(--surface-3) 0);display:grid;place-items:center;flex:none}
+.ob-spec-ring span{width:44px;height:44px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font:600 12px var(--font-mono);color:var(--ink)}
+.ob-spec-row{display:flex;gap:12px;align-items:center}
+</style>
+<h2>Session panel and insights</h2>
+<p>The session panel is the right-hand aside that holds the per-session views: Activity, Goal, Agents, Plan, Insights and a new Changes tab. This part also owns the three observability levels that live in the chat: the receipt under each answer (level 1), the trace card (level 2) and the developer details (level 3), plus every chart, meter and formatter they share. v3 keeps today's data and math, puts the plain-language outcome first, turns privacy findings and usage limits into actions, and adds a This turn / Session scope to the panel.</p>
+<p>Source of truth for today's values: <code>chat-ui-schema.md</code> §6 (observability) and §3.15 (SessionActivity). Target design: <code>design/.cv3-parts/obs.html</code>; the Activity and Plan tab designs come from the r2 panel boards (<code>design/.cv2r2-parts/panel.html</code>), which v3 kept. Existing spec values: <code>truex-design-spec.html</code> <code>#s-panel</code>, <code>#s-activity</code>, <code>#s-plan</code>, <code>#s-insights</code>. The Goal tab and goal strip are specified in <a href="#ag-goal-strip">Goal strip</a> and the Agents tab in <a href="#agents">Agents</a>. The turn state every status surface reads is <code>deriveTurnState()</code> in <a href="#shell">Shell</a>.</p>
+<div class="note">Token rules for this part: text under 13px uses <code>--ink-2</code>. Chart series use <code>--series-1..3</code> and <code>--series-other</code>; gridlines <code>--chart-grid</code>; axis text <code>--chart-axis</code>. Semantic states use <code>--warn</code>/<code>--warning-bg</code>/<code>--warning-text</code>, <code>--bad</code>/<code>--bad-bg</code> and <code>--ok</code>/<code>--ok-bg</code>. Motion uses <code>--dur-*</code> and <code>--ease-*</code>. All of these come from <a href="#foundations">Foundations</a>. Raw values quoted below are today's CSS; the named token replaces each at the same value.</div>
+
+<h3 id="ob-overview">Structure</h3>
+<pre><code>app/page.tsx
+  aside.panel.activity[.is-open][.is-overlay]            exists (frame, fitPanel)
+    SessionActivity                                      exists, v3 tabs + scope
+      p-head: title · Follow · size · close              exists
+      tabs[role=tablist]: Activity Goal Agents Plan Insights Changes
+      ScopeToggle "This turn | Session" + TurnRail       derive (new)
+      tabpanel:
+        activity → ActivityTab (WorkLog | SessionGroups)  derive
+        goal     → GoalTimeline                           see #ag-goal-tab
+        agents   → AgentsPanel                            see #ag-panel
+        plan     → PlanPanel + PlanHistory + PlanDiff     derive
+        insights → InsightsPanel                          exists, v3 answers
+        changes  → ChangesTab                             backend BE-04
+components/chat-messages.tsx (per assistant turn)
+  TurnReceipt → TraceCard → StepTimeline | Waterfall(dev) | TokenBar | ContextRing | PrivacyCard | DeveloperDetails(dev)
+  LiveUsage (running turn)
+app/page.tsx composer → PrivacyNote                      see #cp-privacy</code></pre>
+
+<h3 id="ob-frame-h">Panel frame</h3>
+
+<div class="comp" id="ob-frame">
+  <header><h4>SessionActivity frame</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/session-activity.tsx · frame in app/page.tsx aside.panel.activity · styles/v2/session.css</span></header>
+  <div class="body">
+    <p>The aside that holds the session tabs. Today it has five tabs and a two-size toggle. v3 adds the Changes tab, a drag handle between the two sizes, the scope control and remembers which panel is open.</p>
+    <div class="specimen" aria-hidden="true"><div class="ob-spec"><div class="ob-spec-tabs"><span class="ob-spec-tab is-on">Activity</span><span class="ob-spec-tab">Goal</span><span class="ob-spec-tab">Agents</span><span class="ob-spec-tab">Plan</span><span class="ob-spec-tab">Insights</span><span class="ob-spec-tab">Changes</span></div><div class="ob-spec-seg"><span class="is-on">This turn</span><span>Session</span></div></div></div>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td><code>.panel</code></td><td>closed: width 0, opacity 0, overflow hidden. Open: opacity 1, width <code>var(--pw, 360px)</code>. Transition width <code>--dur-4</code> <code>--ease-out</code>, opacity <code>--dur-3</code></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>.panel-inner</code></td><td>height 100%, flex column, 1px border, radius 16px, <code>--shadow-sm</code>; inner width fixed at <code>--pw</code> so content does not reflow while the outer width animates</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Width</td><td><code>PANEL_W = { min: 360, max: 560 }</code>; list mode defaults to min, helper detail to max. Effective width <code>min(PANEL_W[size], innerWidth − 20)</code></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Resize handle <code>.p-resize</code></td><td>8px wide hit area on the left edge, full height, cursor <code>col-resize</code>; visible 2px line <code>--line-strong</code> on hover, <code>--accent</code> while dragging. Drag clamps to 360..560 and snaps to the nearest of min/max within 24px</td><td><span class="tag proposal">proposal</span> D-NEW-G1</td></tr>
+    <tr><td><code>.p-head</code></td><td>min-height 48px, padding <code>8px 8px 0 16px</code>, gap 6px; pulse icon 15px, <code>h2.p-title</code> "Session activity" 14px/600, Follow, size toggle, close (<code>.icon-btn.ghost</code> 32×32, radius 10px)</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>.tabs</code></td><td>flex, padding <code>0 8px</code>, <code>overflow-x:auto</code>, scrollbar hidden, border-bottom 1px</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>.tab</code></td><td>height 38px, padding <code>0 8px</code>, 13px/500; active underline 2px, radius 2px, inset 10px each side, bottom −1px</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>.tab-count</code></td><td>min-width 18px, height 18px, margin-left 6px, padding <code>0 5px</code>, radius 999px, 600 10.5px mono</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>.tab-dot</code></td><td>6×6 circle, margin-left 6px</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Scope row</td><td>below tabs: padding <code>10px 14px</code>, gap 8px, border-bottom 1px, background <code>--surface-2</code>. See <a href="#ob-scope">ScopeToggle</a></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td><code>.activity-body</code></td><td>flex 1, overflow auto, padding 16px</td><td><span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <h4>Tabs and badges</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Tab</th><th>id</th><th>Badge</th><th>Scope default</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Activity</td><td><code>activity</code></td><td>none</td><td>This turn, follows live</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Goal</td><td><code>goal</code></td><td><code>.tab-dot</code> when goal running, aria-label "running"</td><td>Session, locked (see <a href="#ag-goal-tab">Goal tab</a>)</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Agents</td><td><code>agents</code></td><td><code>.tab-count</code>: running count with <code>.is-live</code>, else total helpers</td><td>This turn (see <a href="#ag-panel">AgentsPanel</a>)</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Plan</td><td><code>plan</code></td><td><code>.tab-count</code> "{done}/{total}", aria "N of M steps done"</td><td>Session</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Insights</td><td><code>insights</code></td><td><code>.tab-count.is-warn</code> with the finding count when the last turn has privacy findings</td><td>Session</td><td>tab <span class="tag exists">exists</span>, badge <span class="tag proposal">proposal</span> D-NEW-G2</td></tr>
+    <tr><td>Changes</td><td><code>changes</code></td><td><code>.tab-count</code> distinct files changed in the session</td><td>Session</td><td><span class="tag backend">BE-04</span></td></tr>
+    </tbody></table></div>
+    <p>Order is <code>SESSION_TABS = ["activity","goal","agents","plan","insights","changes"]</code>. Today the order is activity, agents, goal, plan, insights; v3 moves Goal before Agents to match the wireframe <span class="tag proposal">proposal</span> D-01. Changes is hidden until BE-04 ships (feature flag <code>changesTab</code>, D-03).</p>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>panel</dt><dd>bg <code>--surface</code>, border <code>--line</code>, shadow <code>--shadow-sm</code>; overlay <code>--shadow-lg</code>, <code>--z-drawer</code></dd><dt>title</dt><dd><code>--ink</code>; header buttons <code>--ink-2</code>, hover bg <code>--surface-3</code> + <code>--ink</code></dd><dt>tab</dt><dd><code>--ink-2</code>; hover and active <code>--ink</code>; underline <code>--accent</code></dd><dt>tab-count</dt><dd>bg <code>--surface-3</code>, text <code>--ink-2</code>; <code>.is-live</code> bg <code>--accent-soft</code>, text <code>--accent-fg</code>; <code>.is-warn</code> <code>--warning-bg</code>/<code>--warning-text</code></dd><dt>tab-dot</dt><dd><code>--accent-2</code></dd><dt>scrim at ≤900</dt><dd><code>color-mix(in srgb, var(--ink) 18%, transparent)</code>, <code>--z-scrim</code></dd></dl>
+    <p class="note">Today inactive tabs use <code>--ink-3</code> at 13px. v3 moves them to <code>--ink-2</code> to keep AA on <code>--surface</code>.</p>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Closed</td><td><code>panels.activity</code> false</td><td>width 0; header buttons and tabs <code>tabIndex=-1</code></td><td></td></tr>
+    <tr><td>Open, docked</td><td>vw &gt; 900 and <code>fitPanel</code> fits</td><td>in flow beside the stage</td><td></td></tr>
+    <tr><td>Overlay</td><td><code>fit.overlay</code> or vw ≤ 900</td><td>fixed right/top/bottom 10px, <code>--shadow-lg</code>, scrim behind at ≤900</td><td></td></tr>
+    <tr><td>Phone drawer</td><td>vw ≤ 720</td><td>right/top/bottom 0, width <code>min(var(--pw,360px), 100vw)</code>, size toggle and resize handle hidden</td><td></td></tr>
+    <tr><td>Wide</td><td>size <code>max</code></td><td>560px; toggle <code>aria-pressed=true</code></td><td>"Shrink panel"</td></tr>
+    <tr><td>Resizing</td><td>pointer down on <code>.p-resize</code></td><td>no width transition, handle line <code>--accent</code>, <code>user-select:none</code> on body</td><td></td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>export const SESSION_TABS = ["activity","goal","agents","plan","insights","changes"] as const; // v3 order
+export type SessionTab = (typeof SESSION_TABS)[number];
+export type PanelScope = "turn" | "session";                          // derive
+
+// proposal D-NEW-G1: what the page remembers per viewer (localStorage, try/catch)
+interface PanelPrefs {
+  open: boolean;                  // was the activity panel open
+  tab: SessionTab;                // last manual tab pick
+  size: "min" | "max";            // list-mode size
+  width?: number;                 // last dragged width, clamped 360..560
+  scope: Partial&lt;Record&lt;SessionTab, PanelScope&gt;&gt;;
+}
+const PANEL_PREFS_KEY = "truex:panel";                                 // proposal D-NEW-G1</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Width fitting stays <code>fitPanel(vw, PANEL_W[size], CHAT_MIN[size], …)</code> (see <a href="#shell">Shell</a>). A dragged width replaces <code>PANEL_W[size]</code> as input and is still capped by <code>innerWidth − 20</code>.</li>
+      <li>Crossing from &gt;900 to ≤900 closes the panel (exists). At ≤900 it opens only on a user action; Follow never auto-opens the drawer.</li>
+      <li>Persistence <span class="tag proposal">proposal</span> D-NEW-G1: write <code>PanelPrefs</code> on every open, close, manual tab pick, size toggle and drag end (debounced 300ms). On load, restore <code>tab</code>, <code>size</code>, <code>width</code> and <code>scope</code> always; restore <code>open</code> only when vw &gt; 900. Storage failures fall back to defaults silently.</li>
+      <li>A manual tab pick calls <code>follow.manual()</code> and holds for <code>MANUAL_HOLD_MS = 8000</code> (exists). Follow requests within <code>FOLLOW_BATCH_MS = 300</code> coalesce (exists).</li>
+      <li>Non-Activity tabs remount on switch (keyed by tab), as today.</li>
+      <li>Drawer at ≤900: focus moves into the panel on open and back to the opener on close. Tapping the scrim closes it.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>mod+. toggles the panel (global, fires while typing). Esc closes it after menus and goal mode (Esc order in <a href="#shell">Shell</a>).</li>
+      <li><code>div.tabs[role=tablist]</code>, <code>button.tab[role=tab][aria-selected][aria-controls=session-tabpanel]</code>; ArrowLeft/Right, Home, End move between tabs (exists). Roving <code>tabIndex</code>.</li>
+      <li><code>.p-resize</code> is <code>role=separator</code>, <code>aria-orientation=vertical</code>, <code>aria-valuemin=360</code>, <code>aria-valuemax=560</code>, <code>aria-valuenow</code>, <code>aria-label</code> "Resize panel", focusable; ArrowLeft/Right change width by 20px, Home/End jump to 560/360.</li>
+      <li>Drawer mode: <code>aria-modal=true</code> and focus trapped while open.</li>
+    </ul>
+    <h4>Copy</h4>
+    <dl class="kv"><dt>title</dt><dd>"Session activity"</dd><dt>buttons</dt><dd>"Follow activity", "Expand panel" / "Shrink panel", "Close panel", "Resize panel"</dd><dt>follow announce</dt><dd>"Session activity is showing the {Goal|Plan|Agents} tab." (exists)</dd></dl>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Dragging the handle never gives a width outside 360..560, and the chat never drops below <code>CHAT_MIN</code> without the panel becoming an overlay.</li>
+      <li>At 800px the panel opens as a drawer with a scrim; tapping the scrim closes it and focus returns to the opener.</li>
+      <li>Reloading keeps the last tab, size and width; the panel reopens only when vw &gt; 900.</li>
+      <li>With storage blocked the panel still opens, switches tabs and resizes.</li>
+      <li>With reduced motion the width changes without a transition.</li>
+      <li>Changes tab is absent when the <code>changesTab</code> flag is off.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="ob-scope">
+  <header><h4>ScopeToggle and TurnRail</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/panel-scope.tsx (new) · parent session-activity.tsx</span></header>
+  <div class="body">
+    <p>One segmented control under the tabs: "This turn" shows a slice of one turn, "Session" shows a sum or a history across all turns. In This turn a rail of turn chips picks the turn. Nothing in either scope overwrites earlier data.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>segmented</dt><dd>track padding 2px, radius 999px, gap 2px; option height 24px, padding <code>0 10px</code>, 12px/500</dd><dt>context text</dt><dd>12px, flex 1, ellipsis; e.g. "4 turns · since 10:02"</dd><dt>Back to live</dt><dd>height 24px, padding <code>0 9px</code>, radius 999px, 12px/600, 6px pulse dot</dd><dt>turn chip <code>.pn-tc</code></dt><dd>height 18px, padding <code>0 6px</code>, radius 6px, 600 10px/18px mono; label "T{n}" + start time</dd><dt>rail</dt><dd>flex, gap 4px, horizontal scroll past about six chips, scrollbar hidden, scroll-snap inline start</dd><dt>turn header</dt><dd>chip + the turn's prompt, one line, 12px, ellipsis; steer turns get a steer icon 12px</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>track</dt><dd><code>--surface-3</code>; selected option <code>--surface</code> + <code>--shadow-sm</code>, text <code>--ink</code>; others <code>--ink-2</code></dd><dt>chip</dt><dd><code>--surface-3</code>/<code>--ink-2</code>; selected <code>--accent-soft</code>/<code>--accent-fg</code>; live <code>--ink</code>/<code>--bg</code></dd><dt>Back to live</dt><dd>bg <code>--ink</code>, text <code>--bg</code>, dot <code>--accent</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>This turn, following</td><td>scope turn, no manual pick</td><td>live chip selected (pulses while running)</td><td></td></tr>
+    <tr><td>This turn, pinned</td><td>user clicked a past chip or a message</td><td>that chip selected; Back to live shows if another turn runs</td><td>"Back to live"</td></tr>
+    <tr><td>Session</td><td>scope session</td><td>rail hidden, context text shows totals</td><td>"{n} turns · since {time}"</td></tr>
+    <tr><td>Locked</td><td>tab is Goal</td><td>Session selected, This turn disabled with tooltip</td><td>"Goal spans all turns"</td></tr>
+    <tr><td>No turns</td><td><code>turns.length === 0</code></td><td>scope row hidden</td><td></td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>interface TurnRef {             // derive from events: turn.started / turn.completed
+  turnId: string;
+  index: number;                // 1-based "T{n}"
+  startedAt: string;
+  prompt: string;               // first user message text of the turn
+  kind: "turn" | "steer";       // steer = message sent with steer:true
+  status: "running" | "completed" | "failed" | "interrupted"; // from TurnTrace.status (free string today, BE-05 enum)
+}
+interface PanelScopeState {
+  scope: Record&lt;SessionTab, PanelScope&gt;;
+  selectedTurnId: string | null; // null = follow live / last
+  liveTurnId: string | null;     // running turn
+}</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Defaults: Activity and Agents → turn; Goal (locked), Plan, Insights, Changes → session. Choice is remembered per tab (<code>PanelPrefs.scope</code>).</li>
+      <li>Follow: with no manual pick, the selected turn is the live turn while one runs, else the last turn.</li>
+      <li>Clicking a message in the stream selects its turn (needs <code>turnId</code> on messages, which entries already carry as <code>item:{turnId}:{id}</code> keys). Clicking a chip scrolls the stream to the turn's first message.</li>
+      <li>The panel never moves away from a turn the user picked. Back to live clears the pick and scrolls the stream to the bottom.</li>
+      <li>Slicing rule: per-turn data is only events tagged with that <code>turnId</code>; session data is a sum (tokens, time, counts) or a history (plans, file edits).</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Segmented is <code>role=radiogroup</code> with <code>aria-label</code> "Scope"; options <code>role=radio</code>, arrow keys move.</li><li>Rail is <code>role=listbox</code> <code>aria-label</code> "Turns"; chips <code>role=option</code> with <code>aria-label</code> "Turn {n}, {time}, {status}".</li><li>Selecting a turn announces "Showing turn {n}" in a polite live region.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Picking T2 while T4 runs keeps T2 selected as new events arrive; Back to live shows and returns to T4.</li><li>Plan on Session and Activity on This turn persist independently across reloads.</li><li>Goal shows This turn disabled with "Goal spans all turns".</li></ul>
+  </div>
+</div>
+
+<h3 id="ob-activity-h">Activity tab</h3>
+
+<div class="comp" id="ob-activity">
+  <header><h4>ActivityTab</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/session-activity.tsx ActivityTab · replaces the flat Recent timeline</span></header>
+  <div class="body">
+    <p>This turn shows a typed work log for the selected turn with a stats strip. Session shows totals, one collapsible group per turn and a pointer to Changes. Event labels, icons and the live head keep today's logic.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td><code>.live-head</code></td><td>flex, gap 8px, margin-bottom 10px; <code>.pulse</code> 8×8; title 600; meta margin-left auto, 12px</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>.live-card</code></td><td>padding 12px, radius 12px, 1px border; <code>.tile</code> 32×32 radius 9px, icon 16px; <code>.bar</code> 4px, radius 4px</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Stats strip</td><td>flex wrap, gap <code>4px 12px</code>, 12px mono tabular; items time, tokens, tool calls, files, errors</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Work log <code>ol.pn-log</code></td><td>rail at left 13px, 1px; row flex gap 12px, padding <code>8px 0</code>; node 27×27 circle, icon 14px; title 13px; meta 12px; time 11px mono right</td><td>row metrics <span class="tag exists">exists</span></td></tr>
+    <tr><td>Live node</td><td>2px ring <code>--accent</code> around the node; progress bar 4px under the row when the item reports progress</td><td><span class="tag backend">BE-04</span></td></tr>
+    <tr><td>Helper rows</td><td>nested under the step that spawned them, indent 24px, 18px tone avatar</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Empty-slice row</td><td>12px, one line, link to Session: "No helpers in this turn · {n} earlier in session"</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Session totals</td><td><code>.pn-kv</code> grid <code>minmax(0,1fr) auto</code>, gap <code>6px 12px</code>, 12px; values 500 12px mono</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Turn group <code>details.pn-group</code></td><td>summary grid <code>auto minmax(0,1fr) auto</code>, gap <code>4px 8px</code>, padding <code>9px 10px</code>; mini stats 11px mono; body padding <code>4px 10px 8px</code>; groups share one 12px-radius box with 1px dividers</td><td><span class="tag derive">derive</span></td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>pulse</dt><dd><code>--accent-2</code>, idle <code>--ink-2</code></dd><dt>node</dt><dd>bg <code>--surface</code>, border <code>--line</code>, icon <code>--ink-2</code>; <code>.is-bad</code> <code>--bad</code>/<code>--bad-bg</code></dd><dt>rail</dt><dd><code>--line</code></dd><dt>meta, time, stats</dt><dd><code>--ink-2</code></dd><dt>group open</dt><dd>summary bg <code>--surface-2</code>, border-bottom <code>--line</code></dd><dt>summary error / warning</dt><dd><code>--bad</code> / <code>--warning-text</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Running</td><td><code>turn.state</code> working (from <a href="#shell">deriveTurnState</a>)</td><td>pulse animates; card shows current step; stats say "so far"</td><td>"Working"; meta "Goal in progress" / agent name</td></tr>
+    <tr><td>Idle, last run</td><td>no running turn, at least one completed</td><td>100% bar</td><td>"Last run: {label}", "Completed in {duration}" or "Finished {time}", " · X of N steps"</td></tr>
+    <tr><td>Idle, nothing yet</td><td>no events</td><td><code>p.tl-empty</code></td><td>"Business activity will appear here."</td></tr>
+    <tr><td>Stopping / reconnecting</td><td><code>turn.state</code></td><td>pulse static; <code>frozen</code> counts hold their last value</td><td>label from <code>turn.label</code></td></tr>
+    <tr><td>Failed step</td><td>step <code>status:"failed"</code></td><td>node <code>.is-bad</code>, meta shows error with fix button when <code>StepSpan.error</code> exists</td><td>today: "Request failed[: {label}. {hint}]"</td></tr>
+    <tr><td>Long log</td><td>&gt; 8 rows</td><td>list clipped</td><td>"View all" / "Show less"</td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>type LogKind = "thinking" | "tool" | "command" | "fileChange" | "plan" | "helper" | "error" | "turn";
+interface LogRow {                 // derive: DomainEvent[] filtered by turnId
+  id: string; turnId: string; kind: LogKind;
+  title: string;                   // today's event label rules
+  meta?: string;                   // duration via formatDuration, or "Helper agent"
+  at: string;                      // time label
+  status?: StepSpan["status"];
+  progress?: number | null;        // 0..1, BE-04 item progress
+  helperThreadId?: string;         // nests under its spawning row
+}
+interface TurnStats {              // derive
+  durationMs: number | null;       // TurnTrace.totalMs, or now − startedAt while running
+  tokens: number;                  // turnTokens(trace) or liveUsage main total
+  toolCalls: number;               // steps with kind command | tool | webSearch
+  files: number;                   // distinct paths in fileChange items
+  errors: number;                  // steps failed + error events
+}</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Rows are oldest first. Thinking shows "Thought" plus word count, never a duration (hard fact).</li>
+      <li>During a turn, only events already streamed appear. Live tool rows need <code>item.started</code>/<code>item.completed</code> for every item type streamed to the panel (<span class="tag backend">BE-04</span>); until then tool rows appear when the trace lands on <code>turn.completed</code>.</li>
+      <li>Session scope: totals first (turns, tokens main plus helpers, working time = sum of <code>totalMs</code>, not wall clock, files, errors); then groups, newest selected turn open. Clicking a group's chip switches to This turn with that turn selected.</li>
+      <li>Errors stay in their turn's group with their ref (<code>code · requestId</code>) and fix action. The session error count keeps them findable.</li>
+      <li>Session scope ends with a one-line pointer "{n} files changed · Open Changes" when Changes is enabled.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li><code>span.live-title[role=status]</code> (exists). Log is <code>ol</code> with <code>aria-label</code> "Work log for turn {n}".</li><li>Groups are native <code>details</code>/<code>summary</code>; summary <code>aria-label</code> includes the mini stats sentence.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Selecting T2 shows only T2 rows; no T1 or T3 helper appears.</li><li>A turn with no helpers shows the empty-slice row with the session helper count.</li><li>Session working time equals the sum of <code>totalMs</code>, not end minus start.</li><li>Thinking rows never show a duration.</li></ul>
+  </div>
+</div>
+
+<h3 id="ob-plan-h">Plan tab</h3>
+
+<div class="comp" id="ob-plan">
+  <header><h4>PlanPanel, PlanHistory and PlanDiff</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/session-activity.tsx PlanPanel · new lib/plan-history.ts · PlanSteps and StepMark reused</span></header>
+  <div class="body">
+    <p>The current plan with progress, plus every earlier version kept by the client, a version strip and a step-level diff between versions. The contract has no plan version or diff, so history is built in the browser from <code>plan.updated</code> events (hard fact: tag derive).</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td><code>section.pl</code></td><td>column, gap 10px. Head flex baseline space-between: "Plan" 14px/600; progress label 12px. Then <code>.bar</code> width <code>round(done/n·100)%</code>, <code>role=progressbar</code></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>.pl-item</code></td><td>grid <code>18px 1fr</code>, gap 10px, padding 8px, radius 8px, 13px/20px; list gap 2px, margin-top 6px</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Step mark</td><td>16×16 circle; done check 11px stroke 2.5; current spinner 10×10, 1.5px border, spin .7s linear; pending dot 5×5</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Version strip</td><td>flex wrap, gap 4px; chip "v{n} · T{m}" (turn chip metrics from ScopeToggle)</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Turn chip on step</td><td>right side of the row, "done T3"; tinted row bg for steps that advanced in the selected turn</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Superseded card</td><td><code>details</code>, 1px dashed border, radius 12px, padding <code>10px 12px</code>; summary "Plan v{n} · {done} of {total} done · superseded in T{m}"; step text struck through; collapsed by default</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Diff block</td><td>12.5px; head "v{a} to v{b} · {k} kept, {r} removed, {a} added"; rows prefixed "−" / "+" / none, 4px vertical padding</td><td><span class="tag derive">derive</span></td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>current step</dt><dd>bg <code>--accent-soft</code>, text <code>--ink</code>, mark bg <code>--surface</code></dd><dt>done mark</dt><dd>bg <code>--accent-soft</code>, check <code>--accent-fg</code></dd><dt>advanced-this-turn tint</dt><dd><code>--surface-3</code></dd><dt>superseded</dt><dd>border <code>--line-strong</code>, text <code>--ink-2</code></dd><dt>diff added / removed</dt><dd><code>--ok</code> on <code>--ok-bg</code> / <code>--bad</code> on <code>--bad-bg</code>, sign plus color so it is not color-only</dd><dt>Awaiting approval chip</dt><dd><code>.ag-chip.is-warn</code> (<code>--warning-bg</code>/<code>--warning-text</code>)</dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Empty</td><td>no plan versions</td><td><code>div.empty-tab</code>, tile.lg target 20</td><td>"No plan yet" / "When the assistant breaks a request into steps, they appear here."</td></tr>
+    <tr><td>Awaiting approval</td><td><code>awaitingApproval</code></td><td>warn chip in head live region</td><td>"Awaiting approval"</td></tr>
+    <tr><td>In progress</td><td>plan exists</td><td>bar + steps</td><td>"{done} of {total} done"</td></tr>
+    <tr><td>One version</td><td><code>history.length === 1</code></td><td>no strip, no diff</td><td></td></tr>
+    <tr><td>Several versions</td><td><code>history.length &gt; 1</code></td><td>strip + superseded cards + diff to previous</td><td></td></tr>
+    <tr><td>This turn, no change</td><td>selected turn created no version</td><td>active version outlined in strip</td><td>"No plan change in this turn"</td></tr>
+    <tr><td>History reset</td><td>page reload</td><td>only the current plan from <code>snapshot</code></td><td>"Earlier versions are kept only while this page is open." <span class="tag proposal">proposal</span> D-NEW-G3</td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>// existing
+export interface PlanStep { step: string; status: string } // stepStatus() → pending | inProgress | completed
+// derive: lib/plan-history.ts
+interface PlanVersion {
+  version: number;                 // 1-based, client counter
+  createdTurnId: string | null;    // turnId of the plan.updated event
+  steps: PlanStep[];
+  explanation?: string;            // plan.updated data.explanation
+  stepHistory: Record&lt;string, { status: string; turnId: string | null }[]&gt;; // key = normalized step title
+  supersededTurnId: string | null;
+}
+interface PlanDiffRow { op: "kept" | "removed" | "added"; step: string }
+function pushPlan(h: PlanVersion[], plan: PlanStep[], turnId: string | null): PlanVersion[];
+function diffPlans(a: PlanStep[], b: PlanStep[]): PlanDiffRow[];</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>New version rule: a <code>plan.updated</code> whose step titles (trimmed, case-folded) differ from the current version's set or order creates a version. A status-only change updates the current version and appends to <code>stepHistory</code>.</li>
+      <li><code>diffPlans</code> matches by normalized title; output order is kept steps in b order, then removed (a order), then added (b order), as in the r2 board.</li>
+      <li>History lives in page memory keyed by session id and is dropped on session change. <code>snapshot</code> seeds version 1 only.</li>
+      <li>This turn: steps whose status changed in the selected turn get the tint and "done T{n}" chip. Session: turn chip on every step, no tints.</li>
+      <li>Plan approval stays in the request dock (Approve / Revise).</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Progress live region announces "{done} of {total} done" (exists). Diff rows carry sr-only "Removed:" / "Added:" prefixes.</li><li>Version chips are buttons that expand the matching superseded card and move focus to its summary.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A reworded plan in T3 creates v2 and keeps v1 as a superseded card, collapsed.</li><li>Status changes alone never create a version.</li><li>The diff for the r2 example lists 1 kept, 4 removed, 3 added.</li></ul>
+  </div>
+</div>
+
+<h3 id="ob-changes-h">Changes tab</h3>
+
+<div class="comp" id="ob-changes">
+  <header><h4>ChangesTab</h4><span class="tag backend">BE-04</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/changes-tab.tsx (new) · parent session-activity.tsx panel === "changes"</span></header>
+  <div class="body">
+    <p>Every file changed in the session, with net lines and the turns that touched it, plus the diff for a selected turn. Needs the backend to emit <code>diff.updated</code> (BE-04). Today file diffs exist only inside <code>fileChange</code> items (<code>item.changes?: {path, diff?, kind}[]</code>), which are not streamed to the panel.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>list <code>ul.pn-files</code></dt><dd>one box, radius 12px, 1px border; row grid <code>auto minmax(0,1fr) auto</code>, gap <code>4px 8px</code>, padding <code>8px 10px</code>, 13px</dd><dt>row parts</dt><dd>file icon 14px; path (ellipsis from the start, full path in <code>title</code>); "+{added} −{removed}" 11px mono; turn chips below, first marked "created"</dd><dt>diff view</dt><dd><code>pre</code>, 11.5/1.5 mono, max-height 360px, scroll, radius 8px, padding 10px; line prefix column 16px</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>row</dt><dd>bg <code>--surface</code>, dividers <code>--line</code></dd><dt>added / removed counts</dt><dd><code>--ok</code> / <code>--bad</code></dd><dt>diff bg</dt><dd><code>--surface-3</code>; added line bg <code>--ok-bg</code>; removed <code>--bad-bg</code></dd><dt>writing</dt><dd>chip <code>--ink</code>/<code>--bg</code> "writing"</dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Hidden</td><td>flag <code>changesTab</code> off</td><td>no tab</td><td></td></tr>
+    <tr><td>Empty</td><td>no <code>diff.updated</code> yet</td><td><code>div.empty-tab</code>, tile.lg doc 20</td><td>"No file changes yet" / "Files the assistant creates or edits will appear here." <span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Writing</td><td>file changing in the running turn</td><td>"writing" chip, counts update in place</td><td>"writing"</td></tr>
+    <tr><td>Diff open</td><td>click a turn chip on a row</td><td>diff pre under the row</td><td></td></tr>
+    <tr><td>Diff missing</td><td><code>diff</code> absent</td><td>note</td><td>"The diff for this change was not recorded."</td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>// BE-04: new DomainEvent
+// { type: "diff.updated", turnId, data: { files: FileDiff[] } }
+interface FileDiff {             // BE-04
+  path: string;
+  kind: "add" | "update" | "delete";
+  added: number; removed: number;
+  diff?: string;                 // unified diff for this turn
+  itemId: string;                // fileChange item id
+}
+interface SessionFile {          // derive: fold diff.updated by path
+  path: string;
+  added: number; removed: number; // net over turns
+  edits: { turnId: string; added: number; removed: number; kind: FileDiff["kind"]; diff?: string }[];
+  writing: boolean;               // latest edit belongs to the running turn
+}</code></pre>
+    <h4>Behavior</h4>
+    <ul><li>Order: most recently edited first. This turn scope filters to files with an edit in the selected turn.</li><li>Diff text renders as text only, never as HTML.</li><li>The tab-count is <code>files.length</code>.</li></ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>List <code>aria-label</code> "Files changed in this session"; turn chips are buttons with <code>aria-expanded</code> and <code>aria-label</code> "Show changes to {path} in turn {n}".</li><li>Diff <code>pre</code> is <code>tabIndex=0</code> with <code>aria-label</code> "Diff of {path}".</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Two edits to one file in T1 and T3 show one row with chips T1 (created) and T3 and summed net lines.</li><li>A file being written in the live turn shows "writing" and its counts grow.</li></ul>
+  </div>
+</div>
+
+<h3 id="ob-model">Trace data model</h3>
+<p>Verbatim from <code>shared/contracts.ts</code> with v3 additions marked. Fields without a marker exist today. <code>threadId</code> is stripped from public responses. There is no cost or currency anywhere today; the only "cost" is token counts.</p>
+<pre><code>export type StepKind =
+  | "thinking" | "message" | "command" | "tool"
+  | "fileChange" | "webSearch" | "agent" | "other";
+
+export interface StepSpan {
+  id: string;
+  kind: StepKind;
+  label: string;                 // plain words, never raw args
+  agent: string;                 // "main" or helper nickname/role
+  agentThreadId: string;
+  startMs: number;               // offset from turn start
+  durationMs: number | null;     // null while running
+  status: "running" | "completed" | "failed" | "declined";
+  error?: StepError;             // BE-05
+  words?: number;                // BE-11: thinking word count (else derive from reasoning text)
+  thinkingMs?: number;           // BE-11: thinking duration; absent today, never show a thinking duration without it
+}
+export interface StepError {     // BE-05
+  code: string;                  // e.g. "notShared", "authExpired"; UI maps code → fix, never hard-codes names
+  message: string;               // plain-language, safe to show
+  resource?: { kind: "file" | "folder" | "tool" | "server"; name: string; id?: string };
+  ref?: string;                  // "code · requestId"
+  retryable?: boolean;           // BE-05 retry step
+}
+export interface TokenCounts {
+  inputTokens: number; cachedInputTokens: number;
+  outputTokens: number; reasoningOutputTokens: number; totalTokens: number;
+}
+export interface TurnUsage extends TokenCounts {
+  contextWindow: number | null;
+  contextUsedTokens: number | null;
+}
+export interface RateLimitView {
+  limitName: string | null;
+  primaryUsedPercent: number | null;
+  primaryWindowMins: number | null;
+  primaryResetsAt: number | null;    // BE-21: must be sent reliably (unix s or ms)
+  secondaryUsedPercent: number | null;
+  secondaryWindowMins: number | null;
+  secondaryResetsAt: number | null;  // BE-21
+  reached: string | null;
+  at: string;
+}
+export type PrivacyKind = "email"|"phone"|"card"|"iban"|"ssn"|"aadhaar"|"pan"|"ip"|"secret";
+export type PrivacySource = "userMessage"|"toolOutput"|"command"|"fileContent"|"assistant";
+export interface PrivacyFinding {
+  kind: PrivacyKind; source: PrivacySource; count: number;
+  sample: string;                  // masked; shown only in developer mode (D-04)
+  resource?: string;               // BE-20: file or tool name the text came from
+  agentThreadId?: string;          // BE-20: helper that read it
+  stepId?: string;                 // BE-20: StepSpan.id
+}
+export interface PrivacyReport { scannedChars: number; findings: PrivacyFinding[] }
+export type TurnStatus = "completed" | "failed" | "interrupted"; // BE-05 (free string today)
+export interface TurnTrace {
+  turnId: string;
+  threadId?: string;
+  startedAt: string;
+  totalMs: number | null;
+  status: string;                  // BE-05: narrow to TurnStatus
+  model?: string;
+  steps: StepSpan[];
+  usage: TurnUsage | null;         // main agent, "last" breakdown
+  helperUsage: TokenCounts | null; // summed helpers
+  helpers?: HelperUsage[];         // BE-08: per helper
+  cost?: TurnCost | null;          // BE-11
+  rateLimits: RateLimitView | null;
+  privacy: PrivacyReport;
+}
+export interface HelperUsage {     // BE-08
+  agentThreadId: string;           // stable helper identity
+  parentThreadId: string;
+  name: string;
+  usage: TokenCounts;
+}
+export interface TurnCost {        // BE-11
+  amount: number;                  // in currency units, e.g. 0.042
+  currency: string;                // ISO 4217
+  estimated: boolean;
+}
+export interface TurnContext {     // live only, dev mode
+  turnId: string; reconstructed: true;
+  sections: { kind: "user"|"toolOutput"|"command"|"fileContent"|"assistant"; label: string; text: string; chars: number }[];
+  truncated: boolean;
+}
+export interface TraceSummary {
+  turns: number; avgTotalMs: number | null; p95TotalMs: number | null;
+  inputTokens: number; cachedInputTokens: number; outputTokens: number;
+  reasoningOutputTokens: number; helperTokens: number; privacyFindings: number;
+}
+export interface SessionTraces { traces: TurnTrace[]; summary: TraceSummary }
+export interface TurnTiming {
+  turnId: string; acceptMs: number | null; ttftMs: number | null;
+  streamMs: number; adapterStreamMs: number; idleStreamMs: number; maxGapMs: number;
+  deltaRate: number; finalizeMs: number; totalMs: number; deltaCount: number;
+  nonStreaming: boolean; status: string;
+}
+// BE-04: live span events while a turn runs
+// { type: "step.started", turnId, data: { step: StepSpan } }        durationMs null, status running
+// { type: "step.ended",   turnId, data: { id, durationMs, status, error? } }</code></pre>
+<h4>Privacy vocabulary (shared/privacy.ts)</h4>
+<p>Exists, unchanged. <code>privacyLabels</code>: email "email address", phone "phone number", card "card number", iban "bank account (IBAN)", ssn "social security number", aadhaar "Aadhaar number", pan "PAN number", ip "IP address", secret "secret or access key". Source labels: userMessage "your message", toolOutput "a tool output", command "a command", fileContent "file content", assistant "the reply". <code>describeFinding(f)</code> gives "2 email addresses in a tool output". <code>scanText(text, source)</code> groups by kind with one masked sample (<code>j***@***.com</code>). <code>MAX_SCAN_CHARS = 200_000</code>. Raw values never reach the browser.</p>
+
+<h3 id="ob-lib">lib/observability.ts</h3>
+<div class="comp" id="ob-format">
+  <header><h4>Formatters and derived metrics</h4><span class="tag exists">exists</span><span class="tag phase">P0</span>
+    <span class="path">frontend/lib/observability.ts · formatTokens from lib/goal.ts · inPct, inShortK in insights-panel.tsx</span></header>
+  <div class="body">
+    <p>Pure helpers every observability component uses. v3 keeps all of them and adds four derive helpers. Unit tests cover every row below.</p>
+    <h4>Frontend-only types (exist)</h4>
+<pre><code>export interface TokenSplit { newInput: number; cached: number; output: number; reasoning: number; total: number }
+export interface PrivacyLine { tone: "ok" | "warn"; text: string }
+export interface Receipt { duration: string | null; tokens: string | null; privacy: PrivacyLine; label: string }
+export interface TimelineStep {
+  id: string; label: string; kind: StepKind; status: StepSpan["status"];
+  startMs: number; durationMs: number | null;
+  left: number; width: number;   // % of span
+  slowest: boolean; row: number;
+}
+export interface TimelineLane { id: string; label: string; helper: boolean; rows: number; steps: TimelineStep[] }
+export interface Timeline { spanMs: number; lanes: TimelineLane[]; slowest: TimelineStep | null }
+export interface LimitMeter { label: string; usedPercent: number; resets: string | null }
+export interface ObservabilityState { traces: TurnTrace[]; liveUsage: Record&lt;string, TurnUsage&gt;; rateLimits: RateLimitView | null }
+export const emptyObservability: ObservabilityState = { traces: [], liveUsage: {}, rateLimits: null };</code></pre>
+    <h4>Formatters</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Function</th><th>Input</th><th>Output</th><th>Rule</th></tr></thead><tbody>
+    <tr><td rowspan="5"><code>formatDuration(ms)</code></td><td>null, undefined, non-finite</td><td><code>"—"</code></td><td>negative clamps to 0</td></tr>
+    <tr><td>&lt; 1000</td><td><code>850ms</code></td><td>Math.round</td></tr>
+    <tr><td>&lt; 10 s</td><td><code>4.2s</code></td><td>floored to one decimal (4.29 s → 4.2s)</td></tr>
+    <tr><td>&lt; 60 s</td><td><code>42s</code></td><td>Math.round(v/1000)</td></tr>
+    <tr><td>≥ 60 s</td><td><code>1m 5s</code>, <code>2m</code></td><td>minutes floored, seconds rounded, "Nm" when seconds round to 0</td></tr>
+    <tr><td rowspan="3"><code>formatPercent(fraction)</code></td><td>null, non-finite</td><td><code>"—"</code></td><td>input 0..1</td></tr>
+    <tr><td>between 0% and 1%</td><td><code>"&lt;1%"</code></td><td></td></tr>
+    <tr><td>else</td><td><code>"78%"</code></td><td>Math.round, no upper clamp</td></tr>
+    <tr><td rowspan="3"><code>formatTokens(n)</code></td><td>&lt; 1000</td><td><code>"842"</code></td><td>integer</td></tr>
+    <tr><td>&lt; 100k</td><td><code>"12.3k"</code>, <code>"12k"</code></td><td>one decimal, trailing zero dropped</td></tr>
+    <tr><td>≥ 100k</td><td><code>"128k"</code></td><td>whole k; no M unit, 1.2M → <code>"1200k"</code>. v3 adds <code>"1.2M"</code> at ≥ 1,000,000 <span class="tag proposal">proposal</span> D-NEW-G4</td></tr>
+    <tr><td><code>inPct(part,total)</code></td><td>0 part or total / &lt;1% / else</td><td><code>"0%"</code> / <code>"&lt;1%"</code> / rounded</td><td>InsightsPanel local</td></tr>
+    <tr><td><code>inShortK(n)</code></td><td>≥ 10,000 / else</td><td><code>"13k"</code> / <code>formatTokens</code></td><td>InsightsPanel local</td></tr>
+    <tr><td><code>formatCost(c)</code></td><td><code>TurnCost</code></td><td><code>Intl.NumberFormat(locale,{style:"currency",currency})</code>, ≥ 2 significant digits; prefix "≈ " when <code>estimated</code></td><td><span class="tag backend">BE-11</span></td></tr>
+    </tbody></table></div>
+    <h4>Token math (exists)</h4>
+    <ul>
+      <li><code>splitTokens(u)</code>: <code>cached = clamp(cachedInputTokens, 0, inputTokens)</code>; <code>newInput = inputTokens − cached</code>; <code>reasoning = clamp(reasoningOutputTokens, 0, outputTokens)</code>; <code>output = outputTokens − reasoning</code>; <code>total</code> = sum of the four. Null gives zeros.</li>
+      <li><code>tokenSegments</code> order and labels: newInput "New input", cached "Cached input", output "Reply", reasoning "Reasoning".</li>
+      <li><code>turnCounts(t)</code> adds <code>usage</code> and <code>helperUsage</code> field by field. <code>turnTokens(t) = turnCounts(t)?.totalTokens ?? 0</code>.</li>
+      <li><code>contextFraction(u) = contextUsedTokens / contextWindow</code>, clamped 0..1; null when no window or <code>contextUsedTokens === null</code>.</li>
+    </ul>
+    <h4>Session summary (exists)</h4>
+    <ul>
+      <li><code>summarize(traces)</code>: <code>turns</code> = count; <code>avgTotalMs</code> = mean of numeric <code>totalMs</code>; <code>p95TotalMs = percentile(times, .95)</code> nearest rank (<code>sorted[ceil(p·n)−1]</code>); main token fields summed from <code>usage</code>; <code>helperTokens</code> sums <code>helperUsage.totalTokens</code>; <code>privacyFindings</code> sums counts.</li>
+      <li><code>cachedFraction(s) = cachedInputTokens / inputTokens</code>, null with no input. <code>totalTokens(s) = inputTokens + outputTokens + helperTokens</code> (reasoning is inside output).</li>
+    </ul>
+    <h4>Privacy lines (exist)</h4>
+    <ul>
+      <li><code>findingCount(f)</code> sums <code>f.count</code>.</li>
+      <li><code>privacyLine([])</code> = <code>{tone:"ok", text:"No personal data detected"}</code>. Never say "clean". Else <code>describeFinding(first)</code> + " and N more", N = summed count of the rest.</li>
+      <li><code>draftNote(findings)</code>: de-duplicated by kind, "a"/"an" by leading vowel, three or more joined "a, b and c"; "This looks like a phone number and an email address. It will be sent to the model."; empty gives <code>""</code>.</li>
+    </ul>
+    <h4>Receipt, timeline, limits (exist)</h4>
+    <ul>
+      <li><code>receipt(t)</code>: <code>duration = formatDuration(totalMs)</code> or null; <code>tokens = "{formatTokens(turnTokens)} tokens"</code> or null when 0; <code>privacy = privacyLine</code>; <code>label</code> "Took 4.2s, used 12.3k tokens, No personal data detected".</li>
+      <li><code>timelineLayout(t, nowMs?)</code>: see <a href="#ob-timeline">StepTimeline</a>.</li>
+      <li><code>windowLabel(mins)</code>: null or 0 "Usage limit"; 10080 "Weekly limit", multiples "N-week limit"; 1440 "Daily limit", multiples "N-day limit"; multiples of 60 "N-hour limit"; else "N-minute limit".</li>
+      <li><code>resetsIn(resetsAt, now)</code>: unix seconds below 1e12, else ms; past "resets now"; &lt; 1h "resets in 23m" (minutes rounded up); &lt; 1d "resets in 3h 5m"; else "resets in 2d 4h".</li>
+      <li><code>limitMeters(r, now)</code>: 0 to 2 meters, primary then secondary, only when <code>*UsedPercent !== null</code>, clamped 0..100.</li>
+    </ul>
+    <h4>Reducer (exists; v3 adds two events)</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Event</th><th>Effect</th><th>Tag</th></tr></thead><tbody>
+    <tr><td><code>snapshot</code></td><td>merge <code>d.traces</code> by turnId (incoming wins, sorted by <code>startedAt</code>), drop liveUsage entries that now have traces, replace <code>rateLimits</code> when present</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>usage.updated</code></td><td><code>liveUsage[turnId] = d.usage</code></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>limits.updated</code></td><td><code>rateLimits = d.rateLimits</code>; also push to <code>limitHistory</code> (last 10)</td><td>event <span class="tag exists">exists</span>, history <span class="tag derive">derive</span></td></tr>
+    <tr><td><code>turn.completed</code></td><td>merge <code>d.trace</code>, drop its liveUsage and liveSteps, <code>rateLimits = trace.rateLimits ?? previous</code></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>step.started</code> / <code>step.ended</code></td><td>upsert into <code>liveSteps[turnId]</code></td><td><span class="tag backend">BE-04</span></td></tr>
+    <tr><td><code>diff.updated</code></td><td>fold into <code>files</code> (see <a href="#ob-changes">Changes</a>)</td><td><span class="tag backend">BE-04</span></td></tr>
+    </tbody></table></div>
+    <h4>v3 derive helpers</h4>
+<pre><code>// outcome sentence for TurnReceipt, see #ob-receipt
+export function outcomeLine(t: TurnTrace): string;
+// first failed step with an error, for the problem line
+export function firstProblem(t: TurnTrace): { step: StepSpan; fix: FixAction | null } | null;
+// session answers for InsightsPanel
+export function timeByKind(traces: TurnTrace[]): { kind: StepKind; label: string; ms: number }[]; // sum durationMs per kind, desc
+export function contextSeries(traces: TurnTrace[]): (number | null)[];                             // contextFraction per trace
+// turns left before reset, see #ob-limits
+export function turnsLeft(history: RateLimitView[]): number | null;
+interface ObservabilityStateV3 extends ObservabilityState {
+  liveSteps: Record&lt;string, StepSpan[]&gt;;   // BE-04
+  limitHistory: RateLimitView[];           // derive, capped at 10
+}</code></pre>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li><code>formatDuration(4290)</code> is "4.2s"; <code>formatDuration(120000)</code> is "2m"; <code>formatDuration(-5)</code> is "0ms".</li><li><code>formatPercent(0.004)</code> is "&lt;1%"; <code>formatPercent(null)</code> is "—".</li><li><code>formatTokens(12000)</code> is "12k".</li><li><code>resetsIn(now − 1, now)</code> is "resets now"; a value below 1e12 is read as seconds.</li><li><code>privacyLine</code> never returns the word "clean".</li></ul>
+  </div>
+</div>
+
+<h3 id="ob-levels">Receipt and trace card</h3>
+
+<div class="comp" id="ob-receipt">
+  <header><h4>TurnReceipt</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">frontend/components/observability/receipt.tsx · parent chat-messages.tsx at receiptAt</span></header>
+  <div class="body">
+    <p>Level 1: the line under a finished answer. v3 reads like a sentence: what the agent did first, then duration and tokens, then a Details button. A problem line with its fix sits under it when a step failed. A ghost cost chip holds the place for BE-11.</p>
+    <div class="specimen" aria-hidden="true"><div class="ob-spec"><div class="ob-spec-rcpt"><b>Read 3 docs, asked 2 helpers, wrote the answer</b><span class="ob-spec-mono">2.6s · 26.6k tokens</span><span class="ob-spec-ghost">≈ cost</span><span class="ob-spec-det">Details</span></div><div class="ob-spec-prob"><b>Example: Drive folder not shared</b><span>One source could not be read, so the answer uses the others.</span></div></div></div>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td><code>.msg-foot</code></td><td>margin-top 10px, 13px, tabular nums; flex wrap, gap <code>6px 10px</code>, align center</td><td>margin <span class="tag exists">exists</span>, layout <span class="tag derive">derive</span></td></tr>
+    <tr><td>Outcome <code>.ob-out</code></td><td>13px/600, min-width 0, wraps</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Meta <code>.ob-meta</code></td><td>12px mono, nowrap: "{duration} · {tokens}", null parts dropped</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Privacy</td><td>12px shield icon + privacy text, only when tone is warn; ok state moves into the card</td><td><span class="tag proposal">proposal</span> D-NEW-G5</td></tr>
+    <tr><td>Cost chip <code>.ob-ghost</code></td><td>height 22px, padding <code>0 8px</code>, radius 999px, 1px dashed border, 12px italic, gap 5px</td><td><span class="tag backend">BE-11</span></td></tr>
+    <tr><td>Details <code>.ob-det</code></td><td>height 24px, padding <code>0 6px 0 10px</code>, radius 8px, 1px border, 500 12px; chevron 12px rotates 180° when open (<code>--dur-2</code>)</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Problem line <code>.ob-prob</code></td><td>flex wrap, gap 10px, padding <code>10px 12px</code>, radius 12px, 1px border; alert icon 16px margin-top 2px; body min-width 180px, column gap 2px, title 14px/600, text 13px; action buttons height 28px</td><td><span class="tag backend">BE-05</span></td></tr>
+    <tr><td>Expand</td><td>height 0 → auto and opacity 0 → 1 over <code>--dur-3</code> <code>--ease-out</code>; reduced motion fades only; overflow hidden</td><td><span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>outcome</dt><dd><code>--ink</code></dd><dt>meta, ghost, privacy ok</dt><dd><code>--ink-2</code></dd><dt>ghost border</dt><dd><code>--line-strong</code></dd><dt>Details</dt><dd>bg <code>--surface</code>, border <code>--line</code>, text <code>--ink</code>; open: bg <code>--ink</code>, text <code>--bg</code></dd><dt>privacy warn</dt><dd><code>--warning-text</code></dd><dt>problem</dt><dd>bg <code>--warning-bg</code>, text <code>--warning-text</code>, border <code>color-mix(in srgb, var(--warn) 35%, transparent)</code>, icon <code>--warn</code>. A failed turn (<code>status</code> failed) uses <code>--bad-bg</code>/<code>--bad</code>.</dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Collapsed</td><td>default</td><td>one line</td><td><code>aria-label</code> "{r.label}. Show details"</td></tr>
+    <tr><td>Expanded</td><td>Details pressed</td><td>TraceCard below; Details filled</td><td>"{r.label}. Hide details"</td></tr>
+    <tr><td>Missing parts</td><td>duration or tokens null</td><td>that part and its "·" drop out</td><td></td></tr>
+    <tr><td>No outcome</td><td>no steps</td><td>outcome falls back to the meta line only</td><td></td></tr>
+    <tr><td>Privacy warn</td><td><code>r.privacy.tone === "warn"</code></td><td>ShieldAlert + text in warning color</td><td><code>privacyLine</code> text</td></tr>
+    <tr><td>Problem</td><td>a step failed with <code>StepSpan.error</code> (BE-05)</td><td>problem line under the receipt, above the card</td><td><code>error.message</code> + fix buttons</td></tr>
+    <tr><td>Failed, no reason</td><td>step failed, no <code>error</code> (today)</td><td>problem line with generic copy, no fix button</td><td>"A step failed: {step.label}." </td></tr>
+    <tr><td>Cost ghost</td><td><code>cost</code> absent</td><td>dashed chip, not interactive, hidden from AT</td><td>"≈ cost"</td></tr>
+    <tr><td>Cost</td><td><code>cost</code> present (BE-11)</td><td>solid chip, 12px mono</td><td><code>formatCost(cost)</code></td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>interface TurnReceiptProps { trace: TurnTrace; sessionId?: string }
+// derive: outcomeLine(t)
+//  group steps by kind in first-start order; each group → phrase:
+//   fileChange/command/tool/webSearch → step.label when one step, else "{verb} {n} {noun}"
+//   agent → "asked {n} helper(s)"; message → "wrote the answer"; thinking → omitted
+//  join phrases with ", " (wireframe form "A, B, C"); capitalize the first letter;
+//  at most 3 phrases, then ", and more" (proposal D-NEW-G7)
+interface FixAction { label: string; kind: "openUrl" | "reconnect" | "retryStep" | "share"; target?: string } // mapped from StepError.code</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Renders when <code>traceByTurn.has(turnId) &amp;&amp; !active</code> (exists). Order: receipt line, problem line, card.</li>
+      <li>Fix buttons come from a client map of <code>error.code</code> to actions. Unknown codes show no button and the ref in 12px mono. Resource names come from <code>error.resource.name</code>, never hard-coded.</li>
+      <li>A problem line also raises the Needs-you count (see <a href="#shell">Shell</a>) <span class="tag proposal">proposal</span> D-NEW-G6.</li>
+      <li><code>cardId = "trace-" + turnId</code>, non-word characters replaced with "-" (exists).</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Details is a <code>button</code> with <code>aria-expanded</code> and <code>aria-controls={cardId}</code> while open. The outcome and meta are inside its accessible name via <code>aria-label</code>.</li><li>Problem line is <code>role=status</code> when it first appears; fix buttons follow it in tab order.</li><li>The ghost chip is <code>aria-hidden</code>.</li></ul>
+    <h4>Copy</h4>
+    <dl class="kv"><dt>outcome</dt><dd>Example: "Read 3 docs, asked 2 helpers, wrote the answer"</dd><dt>meta</dt><dd>"4.2s · 12.3k tokens"</dd><dt>button</dt><dd>"Details"</dd><dt>label</dt><dd>"Took 4.2s, used 12.3k tokens, No personal data detected"</dd><dt>ghost</dt><dd>"≈ cost"</dd></dl>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>The outcome sentence renders before duration and tokens.</li><li>With <code>totalMs</code> null the meta line shows only tokens with no leading "·".</li><li>No currency value appears until <code>cost</code> exists.</li><li>With reduced motion the card fades in without a height animation.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ob-live">
+  <header><h4>LiveUsage</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">receipt.tsx · parent chat-messages.tsx when active &amp;&amp; liveUsage[turnId]</span></header>
+  <div class="body">
+    <p>The running-turn placeholder for the receipt. Only a live token count is known.</p>
+    <h4>Anatomy and tokens</h4>
+    <dl class="kv"><dt>element</dt><dd><code>p.msg-foot.live[aria-live=off]</code>, 12px mono tabular, <code>--ink-2</code></dd><dt>content</dt><dd><code>&lt;span&gt;{formatTokens(total)} tokens so far&lt;/span&gt;</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th></tr></thead><tbody>
+    <tr><td>Hidden</td><td><code>total === 0</code></td><td>renders nothing</td></tr>
+    <tr><td>Counting</td><td><code>usage.updated</code></td><td>count updates in place, no animation</td></tr>
+    <tr><td>Frozen</td><td><code>turn.frozen</code> (reconnecting)</td><td>holds the last value</td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>{ usage: TurnUsage }   // total = turnTokens({usage, helperUsage:null}): main agent only</code></pre>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Not interactive and has no duration.</li><li>Replaced by TurnReceipt on <code>turn.completed</code> without a layout jump taller than one line.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ob-trace">
+  <header><h4>TraceCard</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">frontend/components/observability/trace-card.tsx · parent TurnReceipt</span></header>
+  <div class="body">
+    <p>Level 2. Normal mode: a plain step list, the privacy card and limits. Developer mode (D-04) adds the waterfall, token stack and context ring, then DeveloperDetails.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td><code>section.tc</code></td><td>margin-top 8px, 1px border, radius 14px, overflow hidden, 13px</td><td>radius 12 today <span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td><code>.ob-sec</code></td><td>padding <code>12px 14px</code>, column gap 10px, border-top 1px (none on first)</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Section head <code>.ob-h</code></td><td>12px/700, gap 8px; right meta 500 11px mono margin-left auto</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Dev switch <code>.ob-sw</code></td><td>12px label; track 30×18 radius 999px; knob 14×14 at 2px, moves to left 14px when on</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Locked hint <code>.ob-locked</code></td><td>padding <code>10px 12px</code>, radius 10px, 1px dashed border, 12px</td><td><span class="tag derive">derive</span></td></tr>
+    </tbody></table></div>
+    <h4>Sections</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Mode</th><th>Section</th><th>Right meta</th><th>Content</th></tr></thead><tbody>
+    <tr><td>both</td><td>"What happened"</td><td>"{n} steps"</td><td>plain step list (<a href="#ob-timeline">StepTimeline</a> list)</td></tr>
+    <tr><td>both</td><td>"Your data"</td><td></td><td><a href="#ob-privacy">PrivacyCard</a></td></tr>
+    <tr><td>normal</td><td>Developer mode hint</td><td>switch</td><td>"Turn on developer mode to see the timing waterfall, token breakdown and context window."</td></tr>
+    <tr><td>dev</td><td>"Where the time went"</td><td>"{formatDuration(totalMs)} total"</td><td>waterfall</td></tr>
+    <tr><td>dev</td><td>"Tokens"</td><td>"{formatTokens(main)} main" · <code>trace.model</code></td><td><a href="#ob-tokenbar">TokenBar</a> + <a href="#ob-ring">ContextRing</a></td></tr>
+    <tr><td>dev</td><td>DeveloperDetails</td><td></td><td><a href="#ob-dev">ids, context, JSON</a></td></tr>
+    </tbody></table></div>
+    <p class="note">This moves the waterfall and token split out of normal mode, where they are today. That is D-04 (default: dev only). The receipt still shows duration and tokens for everyone.</p>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>card</dt><dd>bg <code>--surface</code>, border <code>--line</code></dd><dt>head</dt><dd><code>--ink</code>; meta <code>--ink-2</code></dd><dt>switch</dt><dd>off track <code>--line-strong</code>; on <code>--accent-fg</code>; knob <code>--surface</code> + <code>--shadow-sm</code></dd><dt>locked hint</dt><dd>border <code>--line-strong</code>, text <code>--ink-2</code></dd></dl>
+    <h4>Data</h4>
+<pre><code>{ trace: TurnTrace; sessionId?: string; id: string }
+const [developer, setDeveloper] = useDeveloperMode();</code></pre>
+    <h4>Keyboard and a11y</h4>
+    <ul><li><code>section[aria-label="Turn details"]</code>. The switch is <code>button[role=switch][aria-checked]</code> labelled "Developer mode".</li><li>Turning it on moves no focus; the new sections follow the switch in order.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>In normal mode no waterfall, token stack or ring renders.</li><li>Turning on the switch in one card opens dev sections in every open card.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ob-dev">
+  <header><h4>DeveloperDetails</h4><span class="tag exists">exists</span><span class="tag phase">P2</span>
+    <span class="path">private to trace-card.tsx · dev mode only (D-04)</span></header>
+  <div class="body">
+    <p>Level 3: ids, the reconstructed prompt ("What the model saw") and the raw trace JSON. Logic and copy are unchanged.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt><code>.tc-dev</code></dt><dd>column, gap 10px</dd><dt><code>dl.tc-ids</code></dt><dd>2-column grid, 12px; <code>code</code> 11.5px mono</dd><dt><code>.tc-dev-actions</code></dt><dd>flex wrap, gap <code>4px 14px</code>, <code>button.link</code></dd><dt><code>.tc-context pre</code>, <code>.tc-json</code></dt><dd>max-height 280px scroll, padding 10px, radius 8px, 11.5/1.5 mono, pre-wrap</dd><dt><code>.tc-tag</code></dt><dd>18px pill, 11px/500</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>dt</dt><dd><code>--ink-2</code> (was <code>--ink-3</code>, under 13px)</dd><dt>pre bg</dt><dd><code>--surface-3</code></dd><dt>json focus</dt><dd>outline <code>--accent-2</code></dd><dt>tag</dt><dd><code>--warning-bg</code>/<code>--warning-text</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>idle</td><td>default</td><td>"What the model saw"</td></tr>
+    <tr><td>loading</td><td><code>loadContext()</code></td><td>"Loading…", button disabled</td></tr>
+    <tr><td>gone</td><td>no <code>sessionId</code>, 404, or no <code>sections</code> array</td><td>"No longer available, context is kept only while the session is live."</td></tr>
+    <tr><td>error</td><td>other error</td><td>error message</td></tr>
+    <tr><td>ready</td><td>context loaded</td><td>"Reconstructed" tag + "Rebuilt from the turn's events with personal data masked. It may differ from the exact prompt."; empty: "Nothing was recorded for this turn."; truncated: "Long sections were shortened."</td></tr>
+    <tr><td>copied</td><td>copy succeeds</td><td>"Copied" for 1500ms; sr-only status "Trace JSON copied"</td></tr>
+    <tr><td>copy fallback</td><td>clipboard fails</td><td>raw JSON shown</td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>type ContextState =
+  | { state: "idle" } | { state: "loading" } | { state: "gone" }
+  | { state: "error"; message: string } | { state: "ready"; context: TurnContext };
+// json = JSON.stringify(trace, null, 2); showRaw: boolean; copied: boolean (1500ms)</code></pre>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Actions carry <code>aria-expanded</code>. <code>pre.tc-json[tabIndex=0][aria-label="Trace JSON"]</code>. Status notes are <code>role=status</code>.</li><li>Each context section is a <code>details</code>; summary "{label}" + "{chars.toLocaleString()} chars".</li></ul>
+    <h4>Copy</h4>
+    <dl class="kv"><dt>ids</dt><dd>"Turn", "Thread", "Status"</dd><dt>actions</dt><dd>"What the model saw", "Show trace JSON" / "Hide trace JSON", "Copy trace JSON" / "Copied"</dd></dl>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>An empty <code>threadId</code> renders an empty code cell, not "undefined".</li><li>A 404 shows the gone copy, not the error copy.</li></ul>
+  </div>
+</div>
+
+<h3 id="ob-charts">Timeline and charts</h3>
+
+<div class="comp" id="ob-timeline">
+  <header><h4>StepTimeline and Waterfall</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">frontend/components/observability/step-timeline.tsx · parent TraceCard · live version BE-04</span></header>
+  <div class="body">
+    <p>Two parts. The step list ("What happened") shows in both modes and doubles as the text alternative. The waterfall ("Where the time went") is dev-only (D-04): one lane per agent, bars placed by <code>startMs</code> and <code>durationMs</code> against the turn span.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Step list <code>ol.tc-steps</code></td><td>li 12.5px, top border, 5px vertical padding; name ellipsis; time 12px mono right</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Waterfall scroll <code>.ob-wf-scroll</code></td><td><code>overflow-x:auto</code>, margin <code>0 -14px</code>, padding <code>0 14px 4px</code></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td><code>.ob-wf</code></td><td>min-width 520px, column gap 2px; <code>--lab:136px</code>, <code>--dur:40px</code></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Row <code>.ob-row</code></td><td>grid <code>var(--lab) minmax(0,1fr) var(--dur)</code>, gap 8px, height 22px. Lane row 24px, margin-top 6px (0 on first)</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Label</td><td>12px, padding-left 24px, ellipsis; lane label padding 0, 600, with 18px agent avatar</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Track</td><td>full row height; quarter gridlines as a 1px background every 25%</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Bar <code>.ob-bar</code></td><td>absolute, top/bottom 5px (12px tall), min-width 3px, radius 4px; lane summary bar top/bottom 9px with 1.5px inset stroke</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Thinking bar</td><td>135° stripes 3px/3px</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Duration</td><td>11px mono right</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Axis <code>.ob-axis</code></td><td>5 ticks at 0, 25, 50, 75, 100% of <code>spanMs</code>, 10px mono, inset to the track columns</td><td>today 2 ticks <span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Inline error <code>.ob-err</code></td><td>margin-left <code>calc(var(--lab) + 8px)</code>, padding <code>6px 10px</code>, radius 8px, 12px</td><td><span class="tag backend">BE-05</span></td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Mark</th><th>Token</th><th>Today</th></tr></thead><tbody>
+    <tr><td>Main lane bars</td><td><code>--series-other</code> (= <code>--tone-main</code>)</td><td><code>--tone-main</code></td></tr>
+    <tr><td>Helper lane i</td><td><code>--series-{(i % 3)+1}</code>; lane summary bar fill <code>--ts</code> with stroke <code>--t</code></td><td><code>--tone-0</code> for all helpers</td></tr>
+    <tr><td>Slowest</td><td><code>--warn</code> bar, time <code>--warning-text</code>, "Slowest" tag</td><td><code>--warning-text</code></td></tr>
+    <tr><td>Failed / declined</td><td><code>--bad</code>; row label and duration <code>--bad</code> 600; error box <code>--bad-bg</code>/<code>--bad</code></td><td><code>--error-text</code></td></tr>
+    <tr><td>Running</td><td><code>ag-pulse</code> 1.4s, opacity .55 at 50%; static under reduced motion</td><td>same</td></tr>
+    <tr><td>Gridlines</td><td><code>--chart-grid</code></td><td>none</td></tr>
+    <tr><td>Axis, labels, durations</td><td><code>--chart-axis</code></td><td><code>--ink-3</code></td></tr>
+    </tbody></table></div>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Empty</td><td><code>steps.length === 0</code></td><td><code>p.tc-empty</code></td><td>"No steps were recorded for this turn."</td></tr>
+    <tr><td>Single lane</td><td>no helper steps</td><td>one lane, "Assistant"</td><td></td></tr>
+    <tr><td>Helpers</td><td>helper steps</td><td>one lane per <code>agentThreadId || agent</code> after main</td><td>lane label <code>agent</code> or "Helper"</td></tr>
+    <tr><td>Overlap</td><td>steps overlap in a lane</td><td>extra sub-rows by greedy first-fit</td><td></td></tr>
+    <tr><td>Running step</td><td><code>durationMs === null</code></td><td>bar runs to span end, pulses</td><td>"Running…"</td></tr>
+    <tr><td>Failed</td><td><code>status:"failed"</code></td><td>bad bar; error line when <code>error</code> exists</td><td>"Failed after {dur}"; error: <code>error.message</code></td></tr>
+    <tr><td>Declined</td><td><code>status:"declined"</code></td><td>bad bar</td><td>"Declined"</td></tr>
+    <tr><td>Thinking</td><td><code>kind:"thinking"</code></td><td>striped bar in dev; list row shows words, never a duration</td><td>"Thought" + "{words} words" when known; "Thought for {thinkingMs}" only with BE-11</td></tr>
+    <tr><td>Live</td><td>turn running and <code>liveSteps</code> present (BE-04)</td><td>waterfall rendered from <code>liveSteps</code> with <code>nowMs</code>; span grows each second</td><td></td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>{ trace: TurnTrace; nowMs?: number; mode: "list" | "waterfall" }
+// timelineLayout(t, nowMs?) (exists)
+//  spanMs = max(1, totalMs, nowMs, every start + duration)
+//  lanes keyed by "main" | agentThreadId || agent; main first, label "Assistant"
+//  left  = start / spanMs · 100
+//  width = min(100 − left, max(1.5, dur / spanMs · 100))   // min 1.5%
+//  running step (durationMs null) extends to span end
+//  slowest = completed step with largest duration, only when steps.length &gt; 1
+// stepKindLabels fallback: thinking "Thinking", message "Writing the reply", command "Ran a command",
+//  tool "Used a tool", fileChange "Changed files", webSearch "Searched the web",
+//  agent "Worked with a helper", other "Other step"; final fallback "Step"</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>List is sorted by start time. Helper steps add " · {lane label}".</li>
+      <li>Live waterfall (<span class="tag backend">BE-04</span>): a trace card for the running turn exists only when the backend streams <code>step.started</code>/<code>step.ended</code>. It ticks via <code>useClock</code> (1s) while any step runs. On <code>turn.completed</code> the final trace replaces it in place. Without BE-04, no card shows until completion, as today.</li>
+      <li>Colour is used only for meaning: slow, failed, running. Helper tone comes from helper order, never from a name.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>The waterfall is <code>aria-hidden</code>; <code>ol.tc-steps[aria-label="Steps in order"]</code> is the text alternative (exists). Bars keep a native <code>title</code> "{label} · {duration}".</li><li>The scroll wrapper is <code>tabIndex=0</code> with <code>aria-label</code> "Timing waterfall, scrolls sideways" so keyboard users can scroll it.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A 3px step at the end of a long turn is still visible (min-width 1.5%, 3px).</li><li>Two overlapping helper steps never cover each other.</li><li>At 400px wide the waterfall scrolls inside its wrapper; the page does not.</li><li>Thinking never shows a duration unless <code>thinkingMs</code> is present.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ob-tokenbar">
+  <header><h4>TokenBar</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">frontend/components/observability/token-bar.tsx · parent TraceCard (dev)</span></header>
+  <div class="body">
+    <p>The turn's token split plus the helper note. v3 replaces its inline context Meter with the <a href="#ob-ring">ContextRing</a>.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>stack</dt><dd>StackedBar, height 12px, radius 999px, gap 2px (today 14px, radius 4px) <span class="tag proposal">proposal</span> D-01</dd><dt>legend</dt><dd>grid <code>repeat(auto-fit, minmax(120px,1fr))</code>, gap <code>4px 12px</code>, 12px; value 500 12px mono right</dd><dt>helper note</dt><dd><code>p.tc-note</code> 12px</dd></dl>
+    <h4>Tokens</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Segment</th><th>Class</th><th>v3 token</th><th>Today</th></tr></thead><tbody>
+    <tr><td>Cached input</td><td><code>seg-cached</code></td><td><code>--accent-soft-2</code></td><td><code>--accent-soft-2</code></td></tr>
+    <tr><td>New input</td><td><code>seg-new</code></td><td><code>--accent</code></td><td><code>--accent</code></td></tr>
+    <tr><td>Reply</td><td><code>seg-output</code></td><td><code>--series-2</code></td><td><code>--ink-2</code></td></tr>
+    <tr><td>Reasoning</td><td><code>seg-reasoning</code></td><td><code>color-mix(in srgb, var(--series-2) 45%, var(--surface-3))</code></td><td><code>--ink-3</code></td></tr>
+    </tbody></table></div>
+    <p class="note">Segment colours are a <span class="tag proposal">proposal</span> (D-01) taken from the wireframe. Order in the bar and legend stays <code>tokenSegments</code> order.</p>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Not reported</td><td><code>usage === null</code></td><td>"Token usage was not reported for this turn."</td></tr>
+    <tr><td>Bar only</td><td>usage, no helpers, no context</td><td></td></tr>
+    <tr><td>Helper note</td><td><code>helperUsage.totalTokens &gt; 0</code></td><td>"Helpers used another {n} tokens."</td></tr>
+    <tr><td>Per-helper list</td><td><code>helpers[]</code> present (BE-08)</td><td>one legend row per helper name with its total</td></tr>
+    <tr><td>Context</td><td><code>contextFraction(usage) !== null</code></td><td>ContextRing below</td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>{ usage: TurnUsage | null; helperUsage?: TokenCounts | null; helpers?: HelperUsage[] /* BE-08 */ }</code></pre>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Helper tokens are never part of the bar.</li><li>Legend lists all four segments, zero values in <code>--ink-2</code> with <code>.is-zero</code>.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ob-stacked">
+  <header><h4>StackedBar</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">frontend/components/observability/charts.tsx · parent TokenBar</span></header>
+  <div class="body">
+    <p>A horizontal part-to-whole bar with a legend that always shows values.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt><code>div.in-stack[role=img]</code></dt><dd>flex, gap 2px, height 12px (v3) / 14px (today); segments <code>flex-grow:value</code>, min-width 2px, rounded ends on first, last and only</dd><dt>empty</dt><dd>single <code>i.in-seg.is-empty</code> in <code>--surface-3</code></dd><dt><code>ul.in-keys[aria-hidden]</code></dt><dd>wrapping flex, 12px, gap <code>4px 12px</code>; swatch 10×10 radius 3px; <code>&lt;b&gt;{format(value)}&lt;/b&gt;</code></dd></dl>
+    <h4>Data</h4>
+<pre><code>export interface Segment { key: string; label: string; value: number; tone: string /* "seg-new" */ }
+{ segments: Segment[]; label: string; format: (n: number) =&gt; string }</code></pre>
+    <h4>Behavior</h4>
+    <ul><li>Only segments with value &gt; 0 render in the bar; the legend lists every segment.</li><li>Each segment has <code>title</code> "{label}: {v}".</li></ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li><code>aria-label</code> "{label}: New input 1.2k, Cached input 8k, …" or "{label}: none".</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>All-zero input renders the empty track and aria "none".</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ob-meter">
+  <header><h4>Meter</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">charts.tsx · parents InsightsPanel (limits) · TokenBar context moves to ContextRing</span></header>
+  <div class="body">
+    <p>A single 0-1 gauge with a caption.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt><code>div.in-meter-block</code></dt><dd>column, gap 6px</dd><dt>head</dt><dd><code>&lt;span&gt;{label}&lt;/span&gt;&lt;b&gt;{caption}&lt;/b&gt;</code>, space-between</dd><dt>track</dt><dd>8px high, radius 4px; fill min-width 2px, width <code>v·100%</code>, transition <code>--dur-5</code> <code>--ease-std</code></dd><dt>detail</dt><dd><code>span.muted.sm</code> 12px</dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Condition</th><th>Track</th><th>Fill</th></tr></thead><tbody>
+    <tr><td>normal</td><td>below <code>high</code> (0.75)</td><td><code>--accent-soft</code></td><td><code>--accent-2</code></td></tr>
+    <tr><td><code>is-warn</code></td><td>≥ <code>high</code></td><td><code>--warning-bg</code></td><td><code>--warning-text</code></td></tr>
+    <tr><td><code>is-crit</code></td><td>≥ <code>critical</code> (0.9)</td><td><code>--error-bg</code></td><td><code>--error-text</code></td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>{ value: number; label: string; caption: string; detail?: string | null; high?: number /*0.75*/; critical?: number /*0.9*/ }</code></pre>
+    <h4>Keyboard and a11y</h4>
+    <ul><li><code>role=meter</code>, <code>aria-valuenow</code> rounded percent, <code>aria-valuemin=0</code>, <code>aria-valuemax=100</code>, <code>aria-valuetext</code> "{caption}, {detail}".</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Value 1.3 renders at 100% and <code>is-crit</code>.</li><li>Reduced motion: width jumps.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ob-columns">
+  <header><h4>ColumnChart</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">charts.tsx · parent InsightsPanel (Time per response, Tokens per turn)</span></header>
+  <div class="body">
+    <p>A vertical column chart with one column per turn and optional stacking. v3 adds turn labels under the columns and marks the selected and live turns.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt><code>svg.in-cols</code></dt><dd><code>viewBox="0 0 (n·12) height"</code>, <code>preserveAspectRatio="none"</code>, full width; <code>height</code> default 64 (v3 Insights passes 110 <span class="tag proposal">proposal</span> D-01)</dd><dt>slot</dt><dd>12 units wide, 8-unit bar centred</dd><dt>scale</dt><dd>linear 0 to <code>max(1, max column total)</code> over <code>height − 2</code></dd><dt>segments</dt><dd>stack bottom-up, 1-unit gap, <code>rx=1</code>, min height 0.5</dd><dt>baseline</dt><dd><code>line.in-base</code>, non-scaling stroke</dd><dt>x labels</dt><dd>HTML grid below the SVG, same column count, 10px mono, centred; label every column when n ≤ 12, else every <code>ceil(n/12)</code>th <span class="tag derive">derive</span></dd><dt>hit</dt><dd>full-height transparent <code>rect.in-hit</code> per column</dd></dl>
+    <h4>Tokens</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Class</th><th>Fill</th></tr></thead><tbody>
+    <tr><td><code>.in-col</code> default</td><td><code>--accent-2</code></td></tr>
+    <tr><td><code>seg-new</code> / <code>seg-cached</code></td><td><code>--accent</code> / <code>--accent-soft-2</code></td></tr>
+    <tr><td><code>seg-main</code> (v3 tokens chart)</td><td><code>--series-other</code></td></tr>
+    <tr><td><code>seg-helpers</code> (v3 tokens chart)</td><td><code>--series-1</code></td></tr>
+    <tr><td><code>seg-time</code></td><td><code>--accent-soft-2</code>; <code>g.is-high .seg-time</code> <code>--warn</code></td></tr>
+    <tr><td>selected turn <code>g.is-sel</code></td><td>segments at full strength; others at opacity .7</td></tr>
+    <tr><td>live turn <code>g.is-live</code></td><td>135° stripes of the segment fill and <code>--surface-3</code></td></tr>
+    <tr><td>baseline, labels</td><td><code>--chart-grid</code>, <code>--chart-axis</code></td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>export interface Column {
+  id: string;
+  label: string;                  // "Turn 3" / "Response 3"
+  segments: { value: number; tone: string; label: string }[];
+  highlight?: boolean;
+  selected?: boolean;             // derive
+  live?: boolean;                 // derive
+}
+{ columns: Column[]; title: string; summary: string; format: (n: number) =&gt; string; height?: number; onSelect?: (id: string) =&gt; void }</code></pre>
+    <h4>Behavior</h4>
+    <ul><li>Tooltip is the SVG <code>&lt;title&gt;</code>: "{label}: {total}", plus " (seg v, seg v)" with several segments.</li><li>Hover sets <code>.in-col</code> opacity .8. Clicking a column calls <code>onSelect</code>, which selects that turn in the scope rail.</li></ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Chart <code>aria-label</code> and <code>&lt;title&gt;</code> "{title}. {summary}". With <code>onSelect</code>, each column <code>g</code> is <code>role=button</code>, <code>tabIndex=0</code>, <code>aria-label</code> "{label}: {total}"; Enter selects.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>One trace draws one column with no highlight.</li><li>All-zero data still draws a baseline and does not divide by zero.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ob-ring">
+  <header><h4>ContextRing</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">charts.tsx (new) · parents TokenBar (dev) and InsightsPanel "Main agent context"</span></header>
+  <div class="body">
+    <p>How full the main agent's context window is. Warns at 75%, turns bad at 90%, with the fix in words.</p>
+    <div class="specimen" aria-hidden="true"><div class="ob-spec"><div class="ob-spec-row"><div class="ob-spec-ring"><span>78%</span></div><div><b>Example: Getting full</b><br><span class="ob-spec-mono">100k of 128k</span></div></div></div></div>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>ring</dt><dd>56×56 conic gradient, inner disc 44×44 (6px stroke), value 600 12px mono centred</dd><dt>text</dt><dd>flex 1, min-width 160px, 12px, column gap 2px: status line 600, "{used} of {window}", hint</dd><dt>scale</dt><dd>6px bar, radius 999px, three bands 0-75, 75-90, 90-100, opacity .8</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>track</dt><dd><code>--surface-3</code></dd><dt>below 75%</dt><dd><code>--accent</code></dd><dt>75 to 90%</dt><dd><code>--warn</code></dd><dt>90% and up</dt><dd><code>--bad</code></dd><dt>disc</dt><dd><code>--surface</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Condition</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Hidden</td><td><code>contextFraction(usage) === null</code></td><td></td></tr>
+    <tr><td>OK</td><td>&lt; 0.75</td><td>"{pct} of context"</td></tr>
+    <tr><td>Warn</td><td>≥ 0.75</td><td>"Getting full" / "Warns at 75%, turns red at 90%. Compact soon to keep answers sharp."</td></tr>
+    <tr><td>Bad</td><td>≥ 0.9</td><td>"Almost full" / "Compact now so the next turn does not fail." <span class="tag proposal">proposal</span> D-01</td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>{ usage: TurnUsage | null; onCompact?: () =&gt; void }  // value = contextFraction(usage)</code></pre>
+    <h4>Behavior</h4>
+    <ul><li>In Warn and Bad, a "Compact" button shows when <code>onCompact</code> is given (it sends the existing compact command, as for <code>TurnFailure.reason === "contextWindow"</code>).</li><li>Only the main agent's context is shown.</li></ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li><code>role=meter</code>, <code>aria-label</code> "Context window", <code>aria-valuetext</code> "{pct} of context, {used} of {window} tokens". The status word is text, not colour only.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>0.749 is accent; 0.75 is warn; 0.9 is bad.</li><li>Null window hides the ring and its section.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ob-chart-rules">
+  <header><h4>Chart rules</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">applies to StackedBar, ShareBar, Meter, ColumnChart, ContextRing, waterfall, Insights bar lists</span></header>
+  <div class="body">
+    <ul>
+      <li>Colour only for meaning. Series: main agent <code>--series-other</code>; helpers by spawn order <code>--series-1..3</code>; four or more helpers fold into "Other" (<code>--series-other</code>) when a chart shows them as separate series.</li>
+      <li>Semantic colours: <code>--warn</code> for slow and near-limit, <code>--bad</code> for failed and critical, <code>--ok</code> for "no personal data". Never use them as series colours.</li>
+      <li>Gridlines <code>--chart-grid</code> 1px; axis text <code>--chart-axis</code> at 10-11px mono. Never a literal colour in chart CSS or SVG attributes; SVG fills use <code>fill: var(--token)</code> in CSS.</li>
+      <li>Every chart has a text alternative: <code>role=img</code> + <code>aria-label</code>, SVG <code>&lt;title&gt;</code>, or an adjacent list. Legends always show values.</li>
+      <li>Numbers are tabular (<code>font-variant-numeric: tabular-nums</code>) and use the formatters in <a href="#ob-format">lib/observability.ts</a>.</li>
+      <li>Width transitions use <code>--dur-5</code> <code>--ease-std</code>; reduced motion sets them to 0s through the Foundations override.</li>
+      <li>Charts never set a width over 360px; wide content (waterfall) scrolls inside its own wrapper.</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="ob-insights-h">Insights tab</h3>
+
+<div class="comp" id="ob-insights">
+  <header><h4>InsightsPanel</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">frontend/components/observability/insights-panel.tsx · parent session-activity.tsx panel === "insights"</span></header>
+  <div class="body">
+    <p>Session-level answers to "how fast, how much, how safe, how close to limits". v3 keeps today's KPIs and cards and adds scope: This turn shows the selected turn's privacy finding, limits and trace numbers; Session adds "Slowest step types", "Helper time vs main", tokens per turn by main and helpers, and context fill over time.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td><code>.in</code></td><td>column, gap 12px</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>dl.in-kpis</code></td><td>grid <code>repeat(auto-fit, minmax(130px,1fr))</code>, gap 8px; tile padding <code>10px 12px</code>, 1px border, <code>--radius</code>; label 12px; value 20px/600 lh 1.25 tabular; sub 12px</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>section.in-card</code></td><td>column, gap 12px, padding 12px, 1px border, <code>--radius</code>; <code>h3.in-card-title</code> 13px/600; right meta 12px nowrap</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Bar list <code>.in-rows</code></td><td>row grid <code>minmax(56px,32%) 1fr auto</code>, gap 8px, 12px; track 10px; bar radius <code>0 4px 4px 0</code>, width <code>max(1%, v/max·100%)</code>; value mono, min-width 40px right</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Context fill line</td><td>100px tall, left and bottom axis 1px; polyline 2px non-scaling stroke; area fill; dashed guides at 75% and 90% with 10px mono labels right</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td><code>.in-note</code></td><td>padding <code>8px 10px</code>, radius 8px, 12px/1.45</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>details.in-details</code></td><td>summary 13/600, pointer; <code>.in-timing-bar</code> 6px, three parts</td><td><span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>tiles, cards</dt><dd>bg <code>--surface</code>, border <code>--line</code>; KPI <code>.is-warn</code> <code>--warning-bg</code>/<code>--warning-text</code>, border transparent</dd><dt>labels, subs, meta</dt><dd><code>--ink-2</code> (today <code>--ink-3</code>)</dd><dt>bar rows</dt><dd><code>--t</code> from tone class: main <code>--series-other</code>, helper i <code>--series-{(i%3)+1}</code>; kind rows <code>--series-1</code></dd><dt>fill line</dt><dd>stroke <code>--accent</code>, area <code>--accent-soft</code>; guides <code>--warn</code>/<code>--warning-text</code> and <code>--bad</code>; label bg <code>--surface</code></dd><dt>note</dt><dd><code>--surface-2</code>, <code>--ink-2</code>; <code>.is-warn</code> warning pair</dd><dt>timing bar</dt><dd>track <code>--surface-3</code>; parts <code>--accent-soft-2</code>, <code>--accent-2</code>, <code>--ink-3</code></dd></dl>
+    <h4>Sections (Session scope, in order)</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>#</th><th>Card</th><th>Condition</th><th>Content</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>1</td><td>KPI row</td><td>always</td><td>Average time <code>formatDuration(avgTotalMs)</code> / "{n} response(s)"; Slowest <code>formatDuration(slowestMs)</code> / "Slowest 5% {p95}" when &gt; 1 turn; Tokens <code>formatTokens(total)</code> / "{helperTokens} from helpers" or "{formatPercent(cached)} cached"; Helpers (only with helpers) <code>helpers.length</code> / "{n} finished"; Personal data count or "None" / "Pattern checks on sent text", <code>.is-warn</code> when &gt; 0</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>2</td><td>"Slowest step types"</td><td>traces with steps</td><td>bar list from <code>timeByKind(traces)</code>, labels from <code>stepKindLabels</code>, meta "all turns"</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>3</td><td>"Tokens by agent"</td><td><code>total &gt; 0</code></td><td>meta "{total} total"; <a href="#ob-sharebar">ShareBar</a>; <code>table.in-legend</code> (swatch, name, tokens, <code>inPct</code>)</td><td><span class="tag exists">exists</span>; per-helper rows <span class="tag backend">BE-08</span></td></tr>
+    <tr><td>4</td><td>"Helper time vs main" (today "Time by agent")</td><td>traces</td><td>Main = sum of <code>totalMs</code>; helpers by <code>spawnOrder</code> with <code>elapsedMs(a, now, skewMs)</code>; note "Helpers run in parallel, so their times overlap."</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>5</td><td>"Main agent context"</td><td><code>context !== null</code></td><td>meta "{inShortK(used)} of {inShortK(window)} · {formatPercent}"; <a href="#ob-ring">ContextRing</a>; note "Only the main agent's context is shown." + " Helpers use their own context windows, so their tokens don't fill this one." when helpers used tokens</td><td>ring <span class="tag derive">derive</span> (replaces inline meter)</td></tr>
+    <tr><td>6</td><td>"Context fill over time"</td><td>≥ 2 traces with a context value</td><td>line of <code>contextSeries(traces)</code>, meta "now {pct}"; null points break the line</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>7</td><td>"Time per response"</td><td>traces</td><td>ColumnChart <code>seg-time</code>, labels "Response {i+1}", slowest highlighted when &gt; 1 trace and &gt; 0; summary "Average {avg}, slowest {max}"</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>8</td><td>"Tokens per turn"</td><td>traces</td><td>meta "{max turnTokens} max"; ColumnChart stacked <code>seg-main</code> (<code>usage.totalTokens</code>) and <code>seg-helpers</code> (<code>helperUsage.totalTokens</code>); latest selected; summary "{total} tokens in total, {cached%} of input cached"; legend "Main agent {n}" / "Helpers {n}"</td><td><span class="tag derive">derive</span>; today stacked new/cached/output</td></tr>
+    <tr><td>9</td><td>Usage limits</td><td>≥ 1 meter</td><td>see <a href="#ob-limits">Limits in plain terms</a></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>10</td><td>"Streaming details"</td><td>timings</td><td>collapsed; per timing "Turn {i+1} · {status}" + " · non-streaming"; bar widths <code>ttftMs/totalMs</code>, <code>streamMs/totalMs</code>, <code>finalizeMs/totalMs</code>; caption "First output {ttft} · stream {stream} · total {total}". v3 gates it behind developer mode <span class="tag proposal">proposal</span> D-04</td><td><span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <h4>Sections (This turn scope)</h4>
+    <ul>
+      <li>Privacy finding card for the selected turn (<a href="#ob-privacy">PrivacyCard</a>, insights variant) when it has findings.</li>
+      <li>Limits card (<a href="#ob-limits">Limits</a>) using that turn's <code>rateLimits</code>.</li>
+      <li>Trace numbers as <code>.pn-kv</code>: "Tokens in / out" <code>{inputTokens} / {outputTokens}</code>, "Of session" <code>inPct(turnTokens, total)</code>, "Duration" <code>formatDuration(totalMs)</code>, "Tool calls" "{n} · {failed} failed", "Helpers" <code>helperUsage.totalTokens</code>.</li>
+    </ul>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th></tr></thead><tbody>
+    <tr><td>Empty</td><td>no traces, no meters, <code>context === null</code></td><td><code>div.empty-tab</code>: <code>span.tile.lg</code> chart 20px, "No insights yet", "Timing and usage for each response will appear here."</td></tr>
+    <tr><td>Limits or context only</td><td>first turn running with <code>liveUsage</code></td><td>only cards 5 and 9</td></tr>
+    <tr><td>One turn</td><td><code>traces.length === 1</code></td><td>no p95 sub-line, no slowest highlight, no fill line</td></tr>
+    <tr><td>Several turns</td><td>&gt; 1</td><td>all cards</td></tr>
+    <tr><td>Helpers running</td><td><code>agents.some(isRunning)</code></td><td>clock ticks, helper rows grow</td></tr>
+    <tr><td>Privacy warn</td><td>findings &gt; 0</td><td>KPI <code>.is-warn</code>; tab badge</td></tr>
+    <tr><td>Context warn / crit</td><td>≥ 0.75 / ≥ 0.9</td><td>ring states</td></tr>
+    <tr><td>Limit reached</td><td><code>rateLimits.reached</code></td><td>bad limit card</td></tr>
+    </tbody></table></div>
+    <p>There is no loading or error state; data comes from the page reducer.</p>
+    <h4>Data</h4>
+<pre><code>{
+  traces: TurnTrace[];
+  summary?: TraceSummary | null;
+  rateLimits: RateLimitView | null;
+  liveUsage?: TurnUsage | null;
+  timings: TurnTiming[];
+  agents?: SubAgent[];            // default []
+  skewMs?: number;
+  scope?: PanelScope;             // derive
+  selectedTurnId?: string | null; // derive
+  limitHistory?: RateLimitView[]; // derive
+  onSelectTurn?: (turnId: string) =&gt; void;
+}
+// now = useClock(!!rateLimits || agents.some(isRunning))  // shared 1s interval
+// s = summary?.turns === traces.length ? summary : summarize(traces)
+// contextUsage = liveUsage ?? traces.at(-1)?.usage ?? null
+// slowest = traces.length &gt; 1 ? max(times) : -1
+// helpers: agents in spawnOrder, name = helperName(a, agents), tone = i % 3, elapsed = elapsedMs(a, now, skewMs)</code></pre>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Each card <code>section[aria-labelledby]</code> its title. Bar lists are <code>ul</code> with visible values. The fill line is <code>role=img</code> with <code>aria-label</code> "Context fill by turn: {pct list}. Now {pct}."</li><li>Limit reached note is <code>role=status</code>.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A stale server summary (turns ≠ traces.length) is ignored for the live one.</li><li>The empty state shows only when there are no traces, no meters and no context.</li><li>Clicking a column in Tokens per turn selects that turn in the rail.</li><li>No chart uses a literal colour.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ob-sharebar">
+  <header><h4>ShareBar</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">private, insights-panel.tsx · "Tokens by agent"</span></header>
+  <div class="body">
+    <p>An interactive part-to-whole bar with a tooltip that never overflows.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt><code>div.in-stack-wrap</code></dt><dd>position relative</dd><dt><code>div.in-stack[role=img][tabIndex=0]</code></dt><dd>flex, gap 2px, height 14px, radius 4px; segments min-width 2px, <code>flex-basis:0</code></dd><dt><code>.in-tip</code></dt><dd>absolute, bottom <code>calc(100% + 6px)</code>, padding <code>6px 8px</code>, 1px border, radius 8px, <code>--shadow-md</code>, 12px/16px, nowrap, <code>pointer-events:none</code></dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>segments</dt><dd>Main agent <code>--series-other</code>; Helpers <code>--series-1</code>; per-helper (BE-08) <code>--series-1..3</code> by spawn order, then "Other"</dd><dt>dimmed</dt><dd>others at opacity .55 while one is selected</dd><dt>tip</dt><dd>bg <code>--surface</code>, border <code>--line</code>, name 600 <code>--ink</code></dd><dt>focus</dt><dd>2px <code>--ink</code> outline</dd></dl>
+    <h4>Data</h4>
+<pre><code>interface Share { key: string; label: string; value: number; tone: string }
+{ shares: Share[]; total: number }   // state: hover: number | null</code></pre>
+    <h4>Behavior</h4>
+    <ul><li>Tooltip placement from segment midpoint: &lt; 25% anchor <code>left: start%</code>; &gt; 75% <code>right: (100−end)%</code>; else <code>left: mid%</code> + <code>translateX(-50%)</code>.</li><li>Tip content <code>&lt;b&gt;{label}&lt;/b&gt;</code> + "{tokens} · {pct}".</li></ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Focus selects the first segment; ArrowLeft/Right cycle with wrap; blur or mouse leave clears. Tip is <code>aria-hidden</code>.</li><li><code>aria-label</code> "Tokens by agent: Main agent 12k, 80%; Helpers 3k, 20%".</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A 2% segment at the right edge shows its tip fully inside the card.</li></ul>
+  </div>
+</div>
+
+<h3 id="ob-privacy-h">Privacy and limits</h3>
+
+<div class="comp" id="ob-privacy">
+  <header><h4>PrivacyCard</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">frontend/components/observability/privacy-card.tsx · parents TraceCard "Your data" and InsightsPanel This turn</span></header>
+  <div class="body">
+    <p>What the pattern checks detected in text the model saw. v3 leads with a headline that names the model, adds where it came from (BE-20) and two actions, and moves the masked sample and scanned-characters note into developer mode (D-04).</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>ok <code>.tc-privacy</code></dt><dd>column, gap 6px, padding <code>10px 12px</code>, radius 10px; head 13/600 with ShieldCheck 15px</dd><dt>warn <code>.ob-find</code></dt><dd>column, gap 8px, padding 12px, radius 12px, 1px border, 13px; headline 14px/600 with ShieldAlert 15px</dd><dt>source line</dt><dd>13px, one sentence</dd><dt>actions</dt><dd>flex wrap, gap 8px; buttons height 28px, radius 8px, 12.5px/500</dd><dt>dev view <code>.ob-dev</code></dt><dd>column, gap 6px, padding <code>10px 12px</code>, radius 10px, 12px; sample <code>code</code> 12px mono, align-self start</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>ok</dt><dd><code>--ok-bg</code>/<code>--ok</code> (= success pair)</dd><dt>warn</dt><dd><code>--warning-bg</code>/<code>--warning-text</code>, border <code>color-mix(in srgb, var(--warn) 35%, transparent)</code></dd><dt>primary action</dt><dd>fill <code>--accent-fg</code>, text <code>--on-accent</code></dd><dt>secondary action</dt><dd>bg <code>--surface</code>, border <code>--line</code>, text <code>--ink</code></dd><dt>dev view</dt><dd>bg <code>--surface-3</code>, text <code>--ink-2</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Copy</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>OK</td><td>no findings</td><td>"No personal data detected"; note "Checked {scannedChars.toLocaleString()} characters for emails, phone numbers, card and account numbers, IDs and access keys. Pattern checks can miss things."</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Warn, headline</td><td>findings</td><td>"{count} {label}{s} were sent to {trace.model}"; without model: "Personal data detected"</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Warn, source</td><td>findings</td><td>today: <code>describeFinding(f)</code> per finding + "This was sent to the model as part of the turn. Samples are masked."; with BE-20: "Found {count} times in {source label} this turn. From "{resource}", read by {helper name}."</td><td>list <span class="tag exists">exists</span>, names <span class="tag backend">BE-20</span></td></tr>
+    <tr><td>Actions</td><td>findings with BE-20</td><td>"Don't send files like this" (primary) · "That's fine" (secondary)</td><td><span class="tag backend">BE-20</span></td></tr>
+    <tr><td>Excluded</td><td>rule saved</td><td>"Files like this will be skipped from now on." + "Undo"</td><td><span class="tag backend">BE-20</span></td></tr>
+    <tr><td>Acknowledged</td><td>"That's fine"</td><td>card collapses to headline; tab badge clears for this turn</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Dev view</td><td>developer mode</td><td>"Masked sample" + <code>&lt;code&gt;{f.sample}&lt;/code&gt;</code>; scanned-characters note</td><td><span class="tag proposal">proposal</span> D-04</td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>{ report: PrivacyReport; model?: string; variant?: "card" | "insights"; onExclude?: (f: PrivacyFinding) =&gt; Promise&lt;void&gt;; onAcknowledge?: () =&gt; void }
+// BE-20: POST /api/privacy/exclusions { match: { resource?: string; kind: PrivacyKind; source: PrivacySource } }
+//        DELETE /api/privacy/exclusions/:id   // scanner applies rules before the model call
+// acknowledged turnIds kept in page memory (derive)</code></pre>
+    <h4>Behavior</h4>
+    <ul><li>Headline uses the first finding; more findings list below as <code>describeFinding</code> lines. Key per finding <code>kind:source</code>.</li><li>Actions appear only when <code>resource</code> is present, since the rule needs something to match. A failed exclusion shows "Could not save that rule. Try again." as <code>role=status</code> <span class="tag proposal">proposal</span> D-01.</li><li>The masked sample never renders outside developer mode. Raw values never reach the browser.</li></ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Card is a <code>section</code> labelled by its headline. Sample <code>code[aria-label="Masked sample {sample}"]</code>. Results announce via <code>role=status</code>.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>The copy never says "clean".</li><li>No masked sample is in the DOM with developer mode off.</li><li>The model name comes from <code>trace.model</code>.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ob-privacynote">
+  <header><h4>PrivacyNote</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">frontend/components/observability/privacy-note.tsx · composer side specified in Composer</span></header>
+  <div class="body">
+    <p>The composer warning is specified in <a href="#cp-privacy">Composer · PrivacyNote</a>. This part owns only its shared logic: <code>draftNote(scanText(draft, "userMessage"))</code> (see <a href="#ob-format">Privacy lines</a>), 250ms debounce, client-side scanning, and dismissal that holds until the note text changes or the draft is cleared. Its tokens match the warn state of PrivacyCard (<code>--warning-bg</code>/<code>--warning-text</code>). When BE-20 exists, the note gains no exclusion action: rules apply to files and tool output, not to what the user types.</p>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>The same draft never produces different text in the note and in the turn's PrivacyCard headline kind.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ob-limits">
+  <header><h4>Limits in plain terms</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">insights-panel.tsx Usage limits card · limitMeters, windowLabel, resetsIn · new turnsLeft</span></header>
+  <div class="body">
+    <p>Usage limits as turns left and a reset time, with the percent meter underneath.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt><code>.ob-lim</code></dt><dd>column, gap 8px, padding 12px, radius 12px, 1px border, 13px</dd><dt>headline</dt><dd>14px/600</dd><dt>meter</dt><dd><a href="#ob-meter">Meter</a>, 8px, one per window</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>card</dt><dd>border <code>--line</code>; reached: <code>--bad-bg</code>, text <code>--bad</code></dd><dt>meter</dt><dd>Meter thresholds .75 / .9</dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Copy</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Hidden</td><td><code>limitMeters()</code> empty</td><td></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Turns left</td><td>two snapshots with a positive delta and a reset time</td><td>"About {n} more turns like this before the {time} reset"</td><td><span class="tag derive">derive</span>; time <span class="tag backend">BE-21</span></td></tr>
+    <tr><td>Turns left, no reset</td><td>delta known, <code>primaryResetsAt</code> null</td><td>"About {n} more turns like this"</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>One snapshot</td><td><code>limitHistory.length &lt; 2</code></td><td>percent line only</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Meter line</td><td>per meter</td><td>label <code>windowLabel(mins)</code>; caption "{round}% used"; detail <code>resetsIn(resetsAt, now)</code>, ticks each second</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Reached</td><td><code>rateLimits.reached</code> truthy</td><td>"Usage limit reached. New requests may wait until it resets." (<code>role=status</code>)</td><td><span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>// turnsLeft(history): uses the last two RateLimitView with non-null primaryUsedPercent
+//   delta = last.primaryUsedPercent − prev.primaryUsedPercent
+//   null when delta ≤ 0, fewer than 2 snapshots, or the window reset between them (primaryResetsAt changed)
+//   n = floor((100 − last.primaryUsedPercent) / delta)
+// reset clock: new Date(primaryResetsAt &lt; 1e12 ? s·1000 : ms).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})</code></pre>
+    <h4>Behavior</h4>
+    <ul><li>Never guess turns left from token counts; fall back to the percent line (wireframe recommendation).</li><li>Show turns left only for the primary window. <code>n</code> above 50 reads "More than 50 turns" <span class="tag proposal">proposal</span> D-01.</li><li>Quota failures get fix copy and no Retry (hard fact); the reached note never offers Retry.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>With one snapshot at 64% the card shows "5-hour limit · 64% used" and no turns-left line (example values).</li><li>Unix seconds and ms resets both produce the same clock time.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ob-devmode">
+  <header><h4>useDeveloperMode</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">frontend/components/observability/use-developer-mode.ts</span></header>
+  <div class="body">
+    <p>A global, persisted developer-mode preference shared by every TraceCard and, in v3, by InsightsPanel.</p>
+    <h4>Data</h4>
+<pre><code>export function useDeveloperMode(): readonly [boolean, (next: boolean) =&gt; void]
+// localStorage key "truex:observability:developer": "1" = on, missing = off
+// module-level listeners: Set&lt;(on: boolean) =&gt; void&gt; broadcasts changes</code></pre>
+    <h4>Behavior</h4>
+    <ul><li><code>on</code> starts false so server and client markup match; read from storage after mount. All storage access in try/catch; without storage it works for the page view.</li><li>What it gates in v3 (D-04): waterfall, token stack, context ring inside TraceCard; masked privacy samples and the scanned-characters note; DeveloperDetails; "Streaming details" in Insights (<span class="tag proposal">proposal</span> D-04, not gated today). The receipt, step list, privacy headline, limits and the Insights KPIs and charts are the same in both modes.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Toggling in one card updates all open cards without a reload.</li><li>First paint never shows dev sections, even when stored on.</li></ul>
+  </div>
+</div>
+
+<h3 id="ob-empty">Empty fallbacks</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Where</th><th>Condition</th><th>Exact string</th></tr></thead><tbody>
+<tr><td>StepTimeline</td><td>no steps</td><td>"No steps were recorded for this turn."</td></tr>
+<tr><td>TokenBar</td><td><code>usage === null</code></td><td>"Token usage was not reported for this turn."</td></tr>
+<tr><td>Formatters</td><td>null or non-finite</td><td>"—"</td></tr>
+<tr><td>InsightsPanel</td><td>no traces, meters or context</td><td>"No insights yet" / "Timing and usage for each response will appear here."</td></tr>
+<tr><td>Privacy ok</td><td>no findings</td><td>"No personal data detected"</td></tr>
+<tr><td>DeveloperDetails</td><td>gone / empty</td><td>"No longer available, context is kept only while the session is live." / "Nothing was recorded for this turn."</td></tr>
+<tr><td>Activity</td><td>no events</td><td>"Business activity will appear here."</td></tr>
+<tr><td>Plan</td><td>no plan</td><td>"No plan yet" / "When the assistant breaks a request into steps, they appear here."</td></tr>
+</tbody></table></div>
+
+<h3 id="ob-cross">Cross-cutting rules</h3>
+<ul>
+  <li>Colour only for meaning: <code>--warn</code> slow steps, privacy findings, near limits; <code>--bad</code> failed steps and critical meters; <code>--ok</code> no personal data. Everything else neutral, accent or series tokens.</li>
+  <li>Text alternatives on every chart, legends with values, <code>role=meter</code> with value text, <code>role=status</code> for copied and error messages, keyboard ShareBar (all kept).</li>
+  <li>Motion: receipt expand <code>--dur-3</code>; chevron <code>--dur-2</code>; meter and row widths <code>--dur-5</code>; running steps <code>ag-pulse</code> 1.4s. Delete the unused <code>@keyframes obs-running</code> in <code>app/observability.css</code>.</li>
+  <li>Data that does not exist is never drawn as if it did: currency cost (BE-11), per-helper tokens (BE-08), per-step tokens (none planned), a live timeline (BE-04).</li>
+</ul>
+
+<h3 id="ob-coverage">Coverage</h3>
+<div class="tw"><table class="tbl cov"><thead><tr><th>Schema heading</th><th>Covered in</th></tr></thead><tbody>
+<tr><td data-schema="Data model (shared/contracts.ts, verbatim)">Data model (shared/contracts.ts, verbatim)</td><td><a href="#ob-model">Trace data model</a></td></tr>
+<tr><td data-schema="Privacy vocabulary (shared/privacy.ts)">Privacy vocabulary (shared/privacy.ts)</td><td><a href="#ob-model">Trace data model · Privacy vocabulary</a></td></tr>
+<tr><td data-schema="lib/observability.ts: derived metrics and formatters">lib/observability.ts: derived metrics and formatters</td><td><a href="#ob-format">Formatters and derived metrics</a></td></tr>
+<tr><td data-schema="Frontend-only types">Frontend-only types</td><td><a href="#ob-format">Formatters and derived metrics</a></td></tr>
+<tr><td data-schema="Formatters (units and rounding)">Formatters (units and rounding)</td><td><a href="#ob-format">Formatters and derived metrics</a></td></tr>
+<tr><td data-schema="Token math">Token math</td><td><a href="#ob-format">Formatters and derived metrics</a></td></tr>
+<tr><td data-schema="Session summary">Session summary</td><td><a href="#ob-format">Formatters and derived metrics</a></td></tr>
+<tr><td data-schema="Privacy lines">Privacy lines</td><td><a href="#ob-format">Formatters and derived metrics</a></td></tr>
+<tr><td data-schema="Receipt">Receipt</td><td><a href="#ob-format">Formatters</a> and <a href="#ob-receipt">TurnReceipt</a></td></tr>
+<tr><td data-schema="Timeline layout">Timeline layout</td><td><a href="#ob-timeline">StepTimeline and Waterfall</a></td></tr>
+<tr><td data-schema="Rate limits">Rate limits</td><td><a href="#ob-format">Formatters</a> and <a href="#ob-limits">Limits in plain terms</a></td></tr>
+<tr><td data-schema="Reducer">Reducer</td><td><a href="#ob-format">Formatters and derived metrics · Reducer</a></td></tr>
+<tr><td data-schema="TurnReceipt">TurnReceipt</td><td><a href="#ob-receipt">TurnReceipt</a></td></tr>
+<tr><td data-schema="LiveUsage">LiveUsage</td><td><a href="#ob-live">LiveUsage</a></td></tr>
+<tr><td data-schema="TraceCard">TraceCard</td><td><a href="#ob-trace">TraceCard</a></td></tr>
+<tr><td data-schema="DeveloperDetails (private to trace-card.tsx)">DeveloperDetails (private to trace-card.tsx)</td><td><a href="#ob-dev">DeveloperDetails</a></td></tr>
+<tr><td data-schema="StepTimeline">StepTimeline</td><td><a href="#ob-timeline">StepTimeline and Waterfall</a></td></tr>
+<tr><td data-schema="TokenBar">TokenBar</td><td><a href="#ob-tokenbar">TokenBar</a></td></tr>
+<tr><td data-schema="StackedBar (charts.tsx)">StackedBar (charts.tsx)</td><td><a href="#ob-stacked">StackedBar</a></td></tr>
+<tr><td data-schema="Meter (charts.tsx)">Meter (charts.tsx)</td><td><a href="#ob-meter">Meter</a></td></tr>
+<tr><td data-schema="ColumnChart (charts.tsx)">ColumnChart (charts.tsx)</td><td><a href="#ob-columns">ColumnChart</a></td></tr>
+<tr><td data-schema="InsightsPanel">InsightsPanel</td><td><a href="#ob-insights">InsightsPanel</a></td></tr>
+<tr><td data-schema="ShareBar (private, insights-panel.tsx)">ShareBar (private, insights-panel.tsx)</td><td><a href="#ob-sharebar">ShareBar</a></td></tr>
+<tr><td data-schema="PrivacyCard">PrivacyCard</td><td><a href="#ob-privacy">PrivacyCard</a></td></tr>
+<tr><td data-schema="PrivacyNote">PrivacyNote</td><td><a href="#ob-privacynote">PrivacyNote</a> (shared logic); composer UI in <a href="#cp-privacy">Composer</a></td></tr>
+<tr><td data-schema="useDeveloperMode (hook)">useDeveloperMode (hook)</td><td><a href="#ob-devmode">useDeveloperMode</a></td></tr>
+<tr><td data-schema="Cross-cutting notes for the redesign">Cross-cutting notes for the redesign</td><td><a href="#ob-cross">Cross-cutting rules</a>, <a href="#ob-chart-rules">Chart rules</a>, <a href="#ob-empty">Empty fallbacks</a></td></tr>
+</tbody></table></div>
+
+<h3 id="ob-new-d">New decisions</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>id</th><th>Question</th><th>Default chosen</th></tr></thead><tbody>
+<tr><td>D-NEW-G1</td><td>Should the panel be freely resizable, and should its open state, tab, size, width and per-tab scope persist?</td><td>Drag handle 360-560px with snap to min/max within 24px; persist all in <code>localStorage["truex:panel"]</code>; restore <code>open</code> only above 900px</td></tr>
+<tr><td>D-NEW-G2</td><td>Does the Insights tab get a badge for privacy findings?</td><td>Yes, a warn count for the latest turn, cleared by "That's fine"</td></tr>
+<tr><td>D-NEW-G3</td><td>How is client-kept plan history explained after a reload?</td><td>One muted line: "Earlier versions are kept only while this page is open."</td></tr>
+<tr><td>D-NEW-G4</td><td>Add an M unit to <code>formatTokens</code>?</td><td>Yes, "1.2M" at 1,000,000 and up</td></tr>
+<tr><td>D-NEW-G5</td><td>Does the receipt line keep the privacy text in the ok state?</td><td>No; show it only when warn. The ok text stays in the card and in the receipt's <code>aria-label</code></td></tr>
+<tr><td>D-NEW-G6</td><td>Does a problem line raise the Needs-you count?</td><td>Yes, until the fix runs or the user dismisses it</td></tr>
+<tr><td>D-NEW-G7</td><td>How long can the outcome sentence get?</td><td>At most 3 phrases, then ", and more"</td></tr>
+</tbody></table></div>
+<p>No new backend items. Everything maps to BE-04, BE-05, BE-08, BE-11, BE-20 and BE-21.</p>
+</section>

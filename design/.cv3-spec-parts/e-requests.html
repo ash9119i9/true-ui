@@ -1,0 +1,700 @@
+<section class="part" id="requests">
+<style>
+/* requests fragment: specimens only, tokens only */
+.rq-spec{display:flex;flex-direction:column;gap:var(--sp-3);max-width:360px;padding:var(--sp-3);border:1px solid color-mix(in srgb,var(--warn) 45%,var(--line));border-radius:var(--r-panel);background:var(--surface);box-shadow:var(--shadow-md)}
+.rq-spec-head{display:flex;gap:var(--sp-3);align-items:flex-start;min-width:0}
+.rq-spec-tile{width:36px;height:36px;border-radius:var(--r-ctl);display:grid;place-items:center;flex:none;background:var(--warn-bg);color:var(--warning-text);font:600 15px var(--font-sans)}
+.rq-spec-ttl{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.rq-spec-kind{font:700 11px/1.3 var(--font-sans);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2)}
+.rq-spec-ttl b{font:700 15px/1.3 var(--font-sans);color:var(--ink)}
+.rq-spec-clock{font:600 12px var(--font-mono);color:var(--ink-2);white-space:nowrap}
+.rq-spec-cmd{padding:var(--sp-2) 10px;border-radius:var(--r-ctl);background:var(--surface-3);border:1px solid var(--line);font:12.5px/1.6 var(--font-mono);color:var(--ink);overflow-x:auto;white-space:pre}
+.rq-spec-acts{display:flex;gap:var(--sp-1_5);flex-wrap:wrap}
+.rq-spec-btn{display:inline-flex;align-items:center;gap:var(--sp-1_5);height:32px;padding:0 var(--sp-3);border-radius:var(--r-btn);font:600 13px var(--font-sans);border:1px solid var(--line);background:var(--surface-2);color:var(--ink)}
+.rq-spec-btn.is-solid{background:var(--accent-fg);color:var(--on-accent);border-color:transparent}
+.rq-spec-btn.is-ghost{background:transparent}
+.rq-spec-audit{display:flex;flex-direction:column;gap:var(--sp-1);max-width:360px;padding:var(--sp-2) 10px;border-radius:var(--r-ctl);border:1px solid var(--line);background:var(--surface-2);font-size:12.5px;color:var(--ink-2)}
+.rq-spec-row{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;min-width:0}
+.rq-spec-dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--ok)}
+.rq-spec-dot.is-muted{background:var(--ink-3)}
+.rq-spec-badge{display:inline-flex;align-items:center;height:20px;padding:0 var(--sp-2);border-radius:var(--r-pill);font:600 11.5px var(--font-sans);background:var(--ok-bg);color:var(--ok)}
+.rq-spec-badge.is-muted{background:var(--surface-3);color:var(--ink-2)}
+.rq-spec-hold{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;max-width:360px;padding:7px 10px;border:1px dashed color-mix(in srgb,var(--warn) 55%,transparent);border-radius:var(--r-ctl);background:color-mix(in srgb,var(--warn-bg) 55%,transparent);font-size:12.5px;color:var(--warning-text)}
+</style>
+<h2>Requests and Needs you</h2>
+<p>A request is anything the agent cannot continue without: a tool approval, a question or a plan review. Today one <code>RequestCard</code> per pending request renders after <code>&lt;ChatMessages&gt;</code> in <code>.thread</code>, so it scrolls with the transcript. v3 docks the head request above the composer, leaves a placeholder in the stream where the turn paused, and folds each answered request into an audit row. A topbar tray, Needs you, gathers every item blocking the chat with one fix per row. Two or more open requests can be reviewed in one sheet.</p>
+<p>Source of truth for today's values: <code>chat-ui-schema.md</code> §3.0.3, §3.0.4, §3.5, §3.7 and §7.3.8. The answer helpers in §2.14 (<code>lib/request-input.ts</code>) are reused unchanged; their coverage row lives in the Composer part. Target design: <code>design/.cv3-parts/requests.html</code>. In this section <b>page</b> means <code>Home</code> in <code>frontend/app/page.tsx</code>, and <b>pending</b> means the page's list of open <code>PendingRequest</code>s.</p>
+<div class="note">Hard facts that shape this part: buttons come only from <code>options[]</code> (<code>{label, description}</code>, no recommended flag). Plan approval is Approve or Revise. On expiry a non-secret question continues with its first option, while approvals and secret questions are declined. <code>PendingRequest</code> has no <code>turnId</code>, <code>createdAt</code> or <code>threadId</code> today (BE-02). Plans and secrets always ask, in every approval mode. Contrast: text under 13px uses <code>--ink-2</code>; filled buttons with light text use <code>--accent-fg</code>.</div>
+
+<h3 id="rq-structure">Structure</h3>
+<pre><code>.stage
+  .thread
+    ChatMessages
+      ... entries ...
+      RequestAnchor        one per pending request (placeholder)          derive; in-turn placement BE-02
+      ApprovalRecordView   entry kind "approval", after resolution         exists
+  .bottom                  (b-shell: error banner, docked request, HelperChip, composer, dock)
+    RequestDock            head request, or BatchBar when pending.length ≥ 2   derive
+      RequestCard → ToolApprovalCard | QuestionCard | PlanApprovalCard    exists, restyled
+    HelperChip
+    composer form
+topbar
+  NeedsYouButton → NeedsYouTray (popover)                                  derive
+BatchReviewSheet (Sheet, bottom form on phones)                            derive</code></pre>
+<p>Routing is today's rule: <code>method === "item/tool/requestUserInput"</code> with exactly one question whose id is <code>plan_approval</code> goes to <code>PlanApprovalCard</code>. Otherwise <code>QuestionCard</code>, which renders <code>null</code> for any other method. v3 splits the tool-approval variant of <code>QuestionCard</code> into its own presentational block (<code>ToolApprovalCard</code>) because its layout and keys differ. It is chosen when any question has <code>kind === "toolApproval"</code>. The submit logic stays in one hook.</p>
+
+<h4>Page state that drives this part</h4>
+<div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Type</th><th>Controls</th><th>Tag</th></tr></thead><tbody>
+<tr><td><code>pending</code></td><td><code>PendingRequest[]</code></td><td>Dock, anchors, tray rows. Added on <code>approval.requested</code>, removed on <code>approval.resolved</code> and on history snapshot</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>entries</code> (kind <code>approval</code>)</td><td><code>ApprovalRecord</code></td><td>Audit rows, via <code>addApprovals</code> with <code>data.audit</code></td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>firstSeen</code></td><td><code>Map&lt;requestId, number&gt;</code></td><td>Client arrival time (<code>Date.now()</code> on first sight). Countdown ring total and tray order tie-break until BE-02</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td><code>seenTurn</code></td><td><code>Map&lt;requestId, string | null&gt;</code></td><td>Id of the live turn when the request first arrived. Anchor placement until BE-02</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td><code>batchOpen</code>, <code>batchIndex</code></td><td><code>boolean</code>, <code>number</code></td><td>BatchReviewSheet</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td><code>pop === "needs"</code></td><td>shell popover key</td><td>NeedsYouTray open</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td><code>dockCompact</code></td><td><code>boolean</code></td><td>One-line dock when the keyboard is open and the card does not fit</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td><code>mcpAuth</code></td><td><code>Record&lt;mcpName, { authRequired: boolean }&gt;</code></td><td>MCP rows in the tray</td><td><span class="tag backend">backend</span> BE-06</td></tr>
+</tbody></table></div>
+
+<h3 id="rq-data-h">Data</h3>
+<div class="comp" id="rq-data">
+  <header><h4>PendingRequest, ApprovalRecord and derived views</h4><span class="tag exists">exists</span><span class="tag backend">backend</span><span class="tag phase">P1</span>
+    <span class="path">shared/contracts.ts · lib/request-input.ts · lib/approval-mode.ts · new lib/requests.ts (derive helpers)</span></header>
+  <div class="body">
+    <p>The contract types stay as they are. BE-02 adds three optional fields to <code>PendingRequest</code>. Every rule below has a fallback for when they are absent, so P1 ships without them.</p>
+    <h4>Data</h4>
+<pre><code>// shared/contracts.ts (exists, BE-02 additions marked)
+export interface PendingRequest {
+  requestId: string;
+  method: string;                  // only "item/tool/requestUserInput" is rendered
+  detail: Record&lt;string, unknown&gt;; // detail.questions: InputQuestion[]
+  expiresAt: string;               // ISO; unanswered requests auto-resolve
+  responseSchema: string | null;   // always null publicly
+  turnId?: string;                 // BE-02: turn that paused on this request
+  createdAt?: string;              // BE-02: ISO, when the runtime raised it
+  threadId?: string;               // BE-02: helper thread that asked (absent = main agent)
+}
+export interface InputOption { label: string; description?: string; }
+export interface InputQuestion {
+  id: string;
+  kind?: "toolApproval";           // MCP tool permission prompt
+  header?: string;                 // "Permission needed" for tool approvals
+  question: string;
+  action?: string;                 // humanised tool name, e.g. "Create sales order"
+  isOther?: boolean;               // allows free text
+  isSecret?: boolean;              // masked input; answer never echoed back
+  options?: InputOption[] | null;
+}
+
+// shared/contracts.ts (exists, unchanged)
+export interface ApprovalRecord {
+  requestId: string;
+  at?: string;
+  turnId?: string;
+  outcome: "answered" | "auto" | "expired" | "interrupted";
+  autoMode?: "readOnly" | "auto" | "grant";
+  items: (
+    | { kind: "toolApproval"; action?: string;
+        decision: "allowedOnce" | "allowedSession" | "allowedChat" | "allowedAlways"
+                | "declined" | "expired" | "interrupted" }
+    | { kind: "question"; question: string; answer?: string; note?: string; secret?: true }
+  )[];
+}
+
+// Answer payload (exists) → POST /api/sessions/:id/approvals/:requestId { result }
+type AnswerPayload = { answers: { [questionId: string]: { answers: string[] } } };
+// plan: { answers: { plan_approval: { answers: ["Approve"] | ["Revise", "user_note: &lt;feedback&gt;"] } } }
+
+// lib/requests.ts (new, derive)
+export type RequestKind = "tool" | "question" | "plan";
+export interface RequestView {
+  request: PendingRequest;
+  questions: InputQuestion[];      // detail.questions, [] if not an array
+  kind: RequestKind;               // plan: single question id "plan_approval"; tool: any kind "toolApproval"
+  secret: boolean;                 // any question.isSecret === true
+  expiryOutcome: "declined" | { continuesWith: string } | "server";  // see Expiry rule
+  orderKey: number;                // Date.parse(createdAt) if BE-02, else Date.parse(expiresAt)
+  totalMs: number;                 // expiresAt − (createdAt ?? firstSeen), floor 1000
+  anchorTurnId: string | null;     // turnId (BE-02) ?? seenTurn.get(requestId) ?? null
+}
+export function requestViews(pending: PendingRequest[], seen: SeenMaps): RequestView[]; // sorted
+export function expiryOutcome(v: Omit&lt;RequestView, "expiryOutcome"&gt;): RequestView["expiryOutcome"];</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li><code>detail.questions</code> is <code>unknown</code> in the type. Parse it once in <code>requestViews</code>: keep entries with a string <code>id</code> and string <code>question</code>, drop the rest. A request with zero valid questions is not docked and not counted.</li>
+      <li>Sort order: <code>orderKey</code> ascending, then <code>firstSeen</code> ascending, then <code>requestId</code>. Until BE-02 the key is <code>expiresAt</code>, so the request that expires soonest leads. This is a stand-in for arrival order and is labelled "oldest first" only once <code>createdAt</code> exists. <span class="tag derive">derive</span></li>
+      <li><code>expiryOutcome</code>: <code>kind === "tool"</code> or <code>secret</code> → <code>"declined"</code>. Otherwise, if the current question has options → <code>{ continuesWith: options[0].label }</code>. Plan → <code>{ continuesWith: "Approve" }</code>. A free-text-only question → <code>"server"</code> (copy stays generic). <span class="tag derive">derive</span></li>
+      <li><code>msLeft(expiresAt, now)</code> from <code>lib/request-input.ts</code> drives every countdown. Do not add a second timer.</li>
+      <li><code>firstSeen</code> and <code>seenTurn</code> are filled on <code>approval.requested</code> and on history load. They are dropped when the request leaves <code>pending</code>. After a reload, <code>firstSeen</code> is the reload time, so the ring may start part-way: that is accepted until BE-02.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>A request whose <code>detail.questions</code> is missing or not an array renders nothing and does not change the Needs-you count.</li>
+      <li>Two requests with <code>expiresAt</code> 10:30 and 10:25 dock the 10:25 one first. With BE-02 <code>createdAt</code> present, the earlier <code>createdAt</code> leads regardless of <code>expiresAt</code>.</li>
+      <li>The answer payload for a tool approval sends the original option label ("Allow"), never the display label ("Allow once").</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="rq-dock-h">Dock and stream anchor</h3>
+<div class="comp" id="rq-dock">
+  <header><h4>RequestDock</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/request-dock.tsx (new) · styles/v2/requests.css · mounted in .bottom by page · replaces the RequestCard list after ChatMessages</span></header>
+  <div class="body">
+    <p>Holds the head request's card directly above the composer so it never scrolls away. It shows one card at a time. With two or more open requests, a batch bar sits above the card.</p>
+    <div class="specimen" aria-hidden="true"><div class="rq-spec"><div class="rq-spec-head"><span class="rq-spec-tile">⛨</span><div class="rq-spec-ttl"><span class="rq-spec-kind">Permission needed · 1 of 3</span><b>Example: Create sales order</b></div><span class="rq-spec-clock">0:42</span></div><div class="rq-spec-cmd">Example: Create sales order</div><div class="rq-spec-acts"><span class="rq-spec-btn is-solid">Allow once</span><span class="rq-spec-btn">Allow for this chat</span><span class="rq-spec-btn is-ghost">Don't allow</span></div></div></div>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Placement</td><td>In <code>.bottom</code>, after the error banner and before <code>HelperChip</code> and the composer (order fixed by the Shell part). Same width as the composer: 100%, max-width <code>--thread-max</code> (740px)</td><td><span class="tag exists">exists</span> order</td></tr>
+    <tr><td><code>div.request-dock[role=region]</code></td><td>flex column, gap <code>--sp-2</code>, <code>position:relative</code>, <code>z-index: var(--z-composer)</code> so it sits over the scrolled stream fade</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Batch bar (pending ≥ 2)</td><td>see <a href="#rq-batch">BatchReviewSheet</a>; height 40, above the card</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Card shell <code>form.request-card</code></td><td>radius <code>--r-panel</code> (16), padding <code>--sp-3</code>+2 (14), gap <code>--sp-3</code>, 1px <code>--line</code>, <code>--surface</code>, <code>--shadow-md</code></td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Tool approval shell <code>.request-card-approval</code></td><td>border <code>color-mix(in srgb, var(--warn) 45%, var(--line))</code>, extra ring <code>0 0 0 4px color-mix(in srgb, var(--warn-bg) 70%, transparent)</code></td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Head <code>header.request-card-head</code></td><td>flex, align start, gap 12. Icon tile 36×36, radius <code>--r-ctl</code>. Kind line 11/700 uppercase, letter-spacing .07em, <code>--ink-2</code>. Title 15/700/1.3 <code>--ink</code>. Subtitle 12.5 <code>--ink-2</code>. Countdown at the end</td><td><span class="tag proposal">proposal</span> D-01; today icon 28px</td></tr>
+    <tr><td>Count "1 of N"</td><td>in the kind line after a middle dot, <code>--font-mono</code> 11/600, only when <code>pending.length ≥ 2</code></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Countdown</td><td>see <a href="#rq-expiry">ExpiryCountdown</a></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Max height (keyboard closed)</td><td><code>min(52dvh, 460px)</code>; body scrolls inside, head and action row stay pinned</td><td><span class="tag proposal">proposal</span> D-NEW: dock height budget</td></tr>
+    <tr><td>Compact form</td><td>one row, height 48: icon 24, title (one line, ellipsis), countdown text, primary button, "Show"</td><td><span class="tag proposal">proposal</span> D-NEW: dock height budget</td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>card</dt><dd><code>--surface</code>, <code>--line</code>, <code>--shadow-md</code>, <code>--r-panel</code></dd><dt>tool tile</dt><dd><code>--warn-bg</code> / <code>--warning-text</code></dd><dt>question and plan tile</dt><dd><code>--accent-soft</code> / <code>--accent-fg</code></dd><dt>kind and subtitle</dt><dd><code>--ink-2</code></dd><dt>title</dt><dd><code>--ink</code></dd><dt>spacing</dt><dd><code>--sp-2</code>, <code>--sp-3</code></dd><dt>layer</dt><dd><code>--z-composer</code></dd><dt>motion</dt><dd>Rise (<code>--dur-3</code>, <code>--ease-out</code>) on first dock; none on reduced motion</dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Hidden</td><td><code>views.length === 0</code></td><td>not rendered</td><td></td></tr>
+    <tr><td>One request</td><td>1 view</td><td>full card, no count</td><td></td></tr>
+    <tr><td>Several</td><td>≥ 2 views</td><td>batch bar + head card with "1 of N"</td><td>"{n} pending"</td></tr>
+    <tr><td>Compact</td><td>keyboard open and full card exceeds the budget</td><td>one-line form</td><td>"Show" (expands and scrolls the stage)</td></tr>
+    <tr><td>Resolving</td><td>answer sent, waiting for <code>approval.resolved</code></td><td>card stays, fieldset disabled, <code>aria-busy</code></td><td>"Sending…" on the pressed button</td></tr>
+    <tr><td>Advancing</td><td>head request resolved, another pending</td><td>next card replaces it in place; no exit animation</td><td>announced, see Timing</td></tr>
+    <tr><td>Frozen</td><td><code>turn.frozen</code> (reconnecting)</td><td>card stays, controls disabled</td><td>"Reconnecting. Your answer will be sent when the connection is back." <span class="tag proposal">proposal</span> D-NEW: answer while offline</td></tr>
+    <tr><td>Read-only viewer</td><td>BE-09</td><td>see <a href="#rq-viewer">Viewer</a></td><td>"Waiting on {ownerName}"</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Stacking order: the dock shows <code>views[0]</code> (sorted by <code>orderKey</code>, see Data). Until BE-02 that is soonest <code>expiresAt</code> first. The count reads "{index+1} of {views.length}", where index is the head's position, always 1 outside the batch sheet. <span class="tag derive">derive</span></li>
+      <li>New requests never replace the card the user is looking at. If a request arrives with a lower <code>orderKey</code> than the head while the head card has focus or a typed draft, it joins the queue behind it and the count grows. The order is applied again when focus leaves the card. <span class="tag proposal">proposal</span> D-NEW: keep head stable</li>
+      <li>Height budget with the phone keyboard open (<code>visualViewport.height &lt; 0.75 × innerHeight</code>, from the Shell part): the bottom bar hides. The budget is <code>visualViewport.height − --topbar-h − composerHeight − 16</code>. If the full card is taller than <code>0.45 ×</code> budget, render compact. Measure with ResizeObserver on the card and a <code>visualViewport</code> resize listener, throttled to one rAF. <span class="tag proposal">proposal</span> D-NEW: dock height budget</li>
+      <li>Compact keeps the primary action live: for tool approvals the first option, for plans Approve, for questions "Show" only (options need room). Keys still work on a focused compact card.</li>
+      <li>The composer stays usable. Enter queues while the turn runs; the queue pauses with reason <code>request</code> (Composer part). Suggestions are hidden while a request is docked.</li>
+      <li>The stage's follow logic treats the dock as part of <code>.bottom</code>: its height is added to the scroll padding, so the last message is never hidden behind it.</li>
+      <li>Answers only happen in the dock or the batch sheet. The anchor and tray rows focus the dock; they never render controls.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li><code>div.request-dock[role=region][aria-label="Needs your answer"]</code>. The card form keeps <code>aria-labelledby</code> its <code>h3</code>.</li>
+      <li>Focus is never moved into the dock on arrival. The user reaches it with Shift+Tab from the composer, the anchor's "Answer" link, the tray or <kbd>g</kbd> <kbd>n</kbd>.</li>
+      <li>Answer keys fire only while focus is inside the card, never from the composer textarea (see each card).</li>
+    </ul>
+    <h4>Copy</h4>
+    <dl class="kv"><dt>region</dt><dd>"Needs your answer"</dd><dt>count</dt><dd>"{i} of {n}"</dd><dt>compact expand</dt><dd>"Show"</dd></dl>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>With one pending request, the card sits between the error banner slot and HelperChip, and scrolling the stream does not move it.</li>
+      <li>With three pending, the head card shows "1 of 3" and the batch bar reads "3 pending".</li>
+      <li>At 390×844 with the keyboard open, the dock and the composer are both fully visible; a tall plan card renders compact with Approve visible.</li>
+      <li>A second request arriving while the user types in the head card's text field does not replace the card.</li>
+      <li>The last message stays visible above the dock at the bottom of the stream.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="rq-anchor">
+  <header><h4>RequestAnchor (stream placeholder)</h4><span class="tag derive">derive</span><span class="tag backend">backend</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/request-anchor.tsx (new) · rendered by ChatMessages</span></header>
+  <div class="body">
+    <p>A dashed row in the stream at the point where the turn paused, so the transcript shows why it stopped. It links to the docked card and disappears when the request resolves; the audit row takes its place.</p>
+    <div class="specimen" aria-hidden="true"><div class="rq-spec-hold"><span>Waiting for your permission · Example: Run a shell command</span><span style="margin-left:auto">Answer ↓</span></div></div>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>row</dt><dd>flex, gap <code>--sp-2</code>, wrap, padding 7px 10px, radius <code>--r-ctl</code>, 1px dashed <code>color-mix(in srgb, var(--warn) 55%, transparent)</code>, background <code>color-mix(in srgb, var(--warn-bg) 55%, transparent)</code>, 12.5 <code>--warning-text</code></dd><dt>icon</dt><dd>14px, shield (tool) / question-circle (question) / check (plan)</dd><dt>text</dt><dd>kind phrase + " · " + title, one line, ellipsis</dd><dt>jump</dt><dd><code>button.link</code> "Answer" + arrow-down 12, margin-left auto, 600</dd></dl>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Without BE-02: the anchor goes at the end of the entry list, after the live turn's last entry. If <code>seenTurn</code> recorded a turn id and that turn is still the last turn, it goes at the end of that turn (same place). If the user has sent more messages since, it stays after the recorded turn's last entry. If no turn id was seen (loaded from history), it goes at the very end. <span class="tag derive">derive</span></li>
+      <li>With BE-02 <code>turnId</code>: the anchor goes inside that turn, after the entry whose <code>turnId</code> matches and that was last before the request (the running tool step, when the Stream part renders steps). Several anchors in one turn stack in <code>orderKey</code> order. <span class="tag backend">backend</span> BE-02</li>
+      <li>With BE-02 <code>threadId</code> for a helper: the anchor is also placed in that helper's group, kind phrase "{helperName} is waiting for your permission". Until then, never name a helper. <span class="tag backend">backend</span> BE-02, D-07</li>
+      <li>"Answer" focuses the docked card's first control. If the request is not the head (behind others), it opens the batch sheet at that request.</li>
+      <li>On <code>approval.resolved</code> the anchor is removed in the same render that inserts the audit row, so the stream does not jump.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li><code>div.request-anchor[role=note]</code>. Button name "Answer: {title}".</li><li>Not a live region; the dock arrival is announced once (see Timing).</li></ul>
+    <h4>Copy</h4>
+    <dl class="kv"><dt>tool</dt><dd>"Waiting for your permission"</dd><dt>question</dt><dd>"Waiting for your answer"</dd><dt>plan</dt><dd>"Waiting for your plan review"</dd><dt>jump</dt><dd>"Answer"</dd></dl>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Without <code>turnId</code>, the anchor renders after the last entry of the turn that was live when the request arrived.</li>
+      <li>With <code>turnId</code>, it renders inside that turn even if later turns exist.</li>
+      <li>After resolution the anchor is gone and an audit row is in the same position.</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="rq-cards-h">Request cards</h3>
+<p>All three cards share today's internals: <code>useExpiry(expiresAt)</code> on the shared 1s clock (<code>useClock</code>), <code>answerErrorMessage</code> for send errors, and <code>p.request-error[role=alert]</code> + <code>&lt;ErrorRef&gt;</code> for failures. v3 moves submit state into one hook so the dock, the compact form and the batch sheet share it.</p>
+<pre><code>// components/v2/use-request-answer.ts (new, derive)
+function useRequestAnswer(view: RequestView, onAnswer: (value: unknown) =&gt; Promise&lt;void&gt;): {
+  sending: string | null;          // label of the pressed button, or null
+  error: { message: string; ref?: ErrorRefData } | null;
+  locked: boolean;                 // sending || expired || frozen || readOnly
+  submit(payload: AnswerPayload, pressed: string): Promise&lt;void&gt;;
+};
+// submit: guards double-press (sending !== null → no-op), calls onAnswer,
+// on reject sets error = answerErrorMessage(status). 409/404/410 also mark the
+// request as gone: the card hides after 2000ms if approval.resolved has not arrived.</code></pre>
+
+<div class="comp" id="rq-expiry">
+  <header><h4>ExpiryCountdown</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/request-card.tsx ExpiryTimer → components/v2/expiry-countdown.tsx</span></header>
+  <div class="body">
+    <p>Shows the time left before the request auto-resolves and what will happen then. Today it is text only: "Expires in {LiveDuration trend=-1}". v3 adds a ring and a consequence line.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>ring</dt><dd>32×32, 3px stroke via <code>conic-gradient(var(--warn) calc(var(--p) * 1%), var(--surface-3) 0)</code> with a 26px <code>--surface</code> inner disc; <code>--accent</code> instead of <code>--warn</code> for questions and plans</dd><dt>time</dt><dd><code>LiveDuration trend=-1</code>, <code>--font-mono</code> 11/600 centred in the ring, format "0:42", "3:40"</dd><dt>consequence</dt><dd>10.5 <code>--ink-2</code>, under the ring, nowrap</dd><dt>stack</dt><dd>flex column, centre, gap 2</dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Counting</td><td><code>msLeft &gt; 60000</code></td><td>ring fill <code>--p = msLeft / totalMs × 100</code></td><td>tool/secret: "then declined"; others: none (rule line in the card)</td></tr>
+    <tr><td>Last minute</td><td><code>msLeft ≤ 60000</code></td><td>time turns <code>--warning-text</code></td><td>same</td></tr>
+    <tr><td>Expired</td><td><code>msLeft === 0</code></td><td>ring hidden; card locks</td><td>per card, see below</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li><code>totalMs</code> = <code>expiresAt − createdAt</code> (BE-02), else <code>expiresAt − firstSeen</code>. Floor 1000ms. The ring is decorative; the time text is the source of truth. <span class="tag derive">derive</span></li>
+      <li>Ticks on <code>useClock(!expired)</code>. No per-card <code>setInterval</code>.</li>
+      <li>Expiry is decided by the server. The client locks at 0 and waits for <code>approval.resolved</code>; it never sends an answer on the user's behalf.</li>
+      <li>Reduced motion: the ring updates in steps with no transition (it has none by default).</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Ring <code>aria-hidden</code>. Visible text wrapped in <code>span.sr-only</code> "Expires in {m} minutes {s} seconds" that updates only at 60s, 30s and 10s left (see Timing), not every tick.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A request with 90s left shows "1:30" and a ring at about 75% if it arrived 30s ago.</li><li>The countdown text changes every second; the screen reader hears at most three countdown messages.</li><li>At 0 the card locks and no network request is sent.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="rq-tool">
+  <header><h4>ToolApprovalCard</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/request-card.tsx QuestionCard (toolApproval variant) → components/v2/tool-approval-card.tsx</span></header>
+  <div class="body">
+    <p>Asks permission before a connected tool runs. Chosen when any question has <code>kind === "toolApproval"</code>. One button per option, in order.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Head</td><td>shield icon tile (warn), kind "Permission needed" (+ " · {i} of {n}"), title = <code>action</code> or "Connected business service", subtitle = <code>question</code>, countdown with "then declined"</td><td><span class="tag exists">exists</span> strings; layout <span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Command preview <code>div.request-action</code></td><td>radius <code>--r-ctl</code>, <code>--surface-3</code>, 1px <code>--line</code>, <code>--font-mono</code> 12.5/1.6, padding 8px 10px, <code>white-space: pre</code>, <code>overflow-x: auto</code>, max-height 120px then <code>overflow-y: auto</code>. Label row "Action" 11.5 <code>--ink-2</code> above</td><td><span class="tag exists">exists</span> label; box <span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Actions <code>div.request-approval-actions</code></td><td>flex wrap, gap <code>--sp-1_5</code>; buttons height 32, radius <code>--r-btn</code>, 13/600; each shows its key hint (<code>kbd</code> 18×18, <code>--font-mono</code> 10/600)</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Key hint line</td><td>11.5 <code>--ink-2</code>, only while the card has focus-within, hidden on touch (<code>pointer: coarse</code>)</td><td><span class="tag derive">derive</span></td></tr>
+    </tbody></table></div>
+    <p>The contract has only <code>action</code> (a humanised tool name), not a raw command or working directory. The preview shows <code>action</code> verbatim. The wireframe's "~/qlik-handbook · shell" label and the <code>$</code> prompt are illustrative and need a new field, so they are not built. <span class="tag backend">BE-NEW: tool call arguments on approvals</span></p>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>first button</dt><dd><code>btn-solid</code>: <code>--accent-fg</code> fill, <code>--on-accent</code></dd><dt>other options</dt><dd><code>btn-soft</code>: <code>--surface-2</code>, <code>--line</code>, <code>--ink</code></dd><dt>Cancel</dt><dd><code>btn-ghost</code>: transparent, <code>--ink</code></dd><dt>preview</dt><dd><code>--surface-3</code>, <code>--line</code>, <code>--ink</code></dd><dt>kbd</dt><dd><code>--surface-2</code>, <code>--line-strong</code>, <code>--ink-2</code>; inside solid: <code>color-mix(in srgb, var(--bg) 16%, transparent)</code>, text <code>--on-accent</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Default</td><td>request docked</td><td>buttons enabled</td><td></td></tr>
+    <tr><td>Sending</td><td>button pressed</td><td>pressed label changes, fieldset disabled, <code>aria-busy</code></td><td>"Sending…"</td></tr>
+    <tr><td>Error</td><td>POST rejected</td><td>alert under actions + ErrorRef; buttons re-enabled unless 409/404/410</td><td><code>answerErrorMessage</code></td></tr>
+    <tr><td>Expired</td><td><code>msLeft === 0</code></td><td>locked, countdown hidden</td><td>"This question has expired. Send a message to continue."</td></tr>
+    <tr><td>Multi-question</td><td>&gt; 1 question</td><td>one at a time, "Question {x} of {n}" in legend, Back / Next</td><td>as QuestionCard</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Buttons map 1:1 from <code>options[]</code>, in array order. Display labels: <code>Allow</code> → "Allow once"; <code>Allow for this session</code> and <code>Allow for this chat</code> → "Allow for this chat"; <code>Allow and don't ask me again</code> → "Always allow"; <code>Cancel</code> → "Don't allow". Any other label shows as sent. The submitted value is always the original label. <code>description</code> goes in <code>title</code> and in <code>aria-describedby</code>.</li>
+      <li>Variants: index 0 → <code>btn-solid</code> (the primary action), label <code>Cancel</code> → <code>btn-ghost</code>, others <code>btn-soft</code>. If <code>Cancel</code> is at index 0, it stays ghost and index 1 becomes solid.</li>
+      <li>A single question answers on click (<code>answersOnClick</code>). Payload <code>{ answers: { [id]: { answers: [label] } } }</code>.</li>
+      <li>Approval mode: in Auto-allow read-only and Autopilot the server may answer without a card; that shows only as an audit row with <code>autoMode</code>.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Key</th><th>Scope</th><th>Action</th><th>Tag</th></tr></thead><tbody>
+    <tr><td><kbd>Enter</kbd></td><td>focus on the card, not on a button or text field</td><td>primary action (the solid button)</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> … <kbd>9</kbd></td><td>focus within the card, not in a text field</td><td>option at that position (1-based, over all options including Cancel); keys above the option count do nothing</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td><kbd>Esc</kbd></td><td>focus within the card, after any menu inside it has closed</td><td>submits the <code>Cancel</code> option ("Don't allow"). If no option is labelled <code>Cancel</code>, Esc moves focus to the composer and answers nothing</td><td><span class="tag proposal">proposal</span> D-06</td></tr>
+    <tr><td><kbd>Tab</kbd></td><td></td><td>preview (focusable when it scrolls) → buttons in order → Back/Next</td><td><span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <ul>
+      <li>Keys never fire from the composer textarea. Esc in the textarea follows the composer's Esc order and never declines.</li>
+      <li>The Esc handler calls <code>stopPropagation</code> so the global handler does not also stop the turn.</li>
+      <li>Form <code>aria-labelledby</code> the title; <code>aria-describedby</code> the question text and countdown sr text.</li>
+    </ul>
+    <h4>Copy</h4>
+    <dl class="kv"><dt>kind</dt><dd>"Permission needed"</dd><dt>title fallback</dt><dd>"Connected business service"</dd><dt>preview label</dt><dd>"Action"</dd><dt>hint</dt><dd>"Enter picks the first option. 1 to {n} pick by position. Esc picks Don't allow."</dd><dt>countdown</dt><dd>"then declined"</dd><dt>expired</dt><dd>"This question has expired. Send a message to continue."</dd></dl>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Options <code>["Allow","Allow for this session","Cancel"]</code> render "Allow once" (solid), "Allow for this chat" (soft), "Don't allow" (ghost).</li>
+      <li>Pressing 2 with the card focused sends <code>"Allow for this session"</code>.</li>
+      <li>Pressing Esc with the card focused sends <code>"Cancel"</code>; with the textarea focused, nothing is sent.</li>
+      <li>A 300-character <code>action</code> scrolls inside the preview; the page does not scroll sideways at 400px.</li>
+      <li>A double press sends one request.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="rq-question">
+  <header><h4>QuestionCard</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/request-card.tsx QuestionCard → components/v2/question-card.tsx</span></header>
+  <div class="body">
+    <p>Asks the user one or more questions with options, free text or a secret value. Multi-question requests step through one question at a time.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Head</td><td>question-circle tile (accent), kind "Question" + step "{n} of {total}" when &gt; 1, title = sole question's <code>header</code> or "Your input is needed", subtitle = <code>question</code>, countdown</td><td><span class="tag exists">exists</span> strings</td></tr>
+    <tr><td><code>fieldset.request-question[tabIndex=-1][aria-invalid]</code></td><td>no border, padding 0; <code>legend</code> 13/600 with <code>span.request-question-header</code> when multi</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Options <code>div.request-options[role=group]</code></td><td>column, gap 6. Each <code>button.request-option[aria-pressed]</code>: grid <code>auto 1fr</code>, gap 2px 10px, padding 8px 10px, radius <code>--r-ctl</code>, 1px <code>--line</code>, 13px. Number kbd, label 600 <code>--ink</code>, description 12 <code>--ink-2</code></td><td><span class="tag exists">exists</span>; number column <span class="tag derive">derive</span></td></tr>
+    <tr><td>First option marker</td><td>border <code>color-mix(in srgb, var(--accent) 45%, var(--line))</code>. Marks the expiry default only, not a recommendation</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Pressed option</td><td><code>--accent-soft</code> fill, border <code>--accent</code></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Other <code>button.request-option-other</code></td><td>when <code>isOther</code>: "Something else…" / description "Type your own answer"</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Free text <code>input.request-text</code></td><td>height 34, padding 0 10, radius <code>--r-btn</code>, 1px <code>--line-strong</code>, 13px. <code>type=password</code> only when <code>isSecret === true</code>, plus <code>autocomplete="off"</code> and <code>spellcheck=false</code></td><td><span class="tag exists">exists</span>; attributes <span class="tag derive">derive</span></td></tr>
+    <tr><td>Rule line <code>p.request-rule</code></td><td>padding 8px 10px, radius <code>--r-ctl</code>, <code>--surface-3</code>, 12 <code>--ink-2</code></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Footer <code>div.request-submit</code></td><td>flex end, gap 6: <code>btn-ghost</code> "Back" (step &gt; 0), <code>btn-solid</code> "Next" / "Send answer" / "Sending…"</td><td><span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Options</td><td><code>options.length &gt; 0</code></td><td>option list</td><td></td></tr>
+    <tr><td>Free text</td><td>no options, or Other pressed with <code>isOther</code></td><td>input, autofocus when revealed</td><td>"Enter a value" (secret) / "Type your answer"</td></tr>
+    <tr><td>Secret</td><td><code>isSecret</code></td><td>password input; rule says declined on expiry</td><td></td></tr>
+    <tr><td>Missing</td><td>send with a blank answer</td><td><code>aria-invalid</code>, jump to first unanswered, alert</td><td>"Question {x} of {n} needs an answer before you can send." / "This question needs an answer before you can send."</td></tr>
+    <tr><td>Sending</td><td>submit</td><td>locked, <code>aria-busy</code></td><td>"Sending…"</td></tr>
+    <tr><td>Expired, continues</td><td>0 left, non-secret with options</td><td>locked, footer hidden</td><td>Today: "No reply in time. Continuing with the recommended option." v3: "No reply in time. Continuing with "{options[0].label}"." <span class="tag proposal">proposal</span> D-NEW: expired continue copy</td></tr>
+    <tr><td>Expired, declined</td><td>0 left, secret</td><td>locked, footer hidden</td><td>"This question has expired. Send a message to continue."</td></tr>
+    <tr><td>Error</td><td>POST rejected</td><td>alert + ErrorRef</td><td><code>answerErrorMessage</code></td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Flow is today's: <code>answersOnClick</code> for a single question with options. Otherwise <code>afterPick</code> returns <code>"next"</code>, <code>"send"</code> or <code>"wait"</code>; focus moves to the new fieldset on step change. <code>missingAnswers</code> / <code>complete</code> trim before checking.</li>
+      <li>Expiry rule line, always visible while counting: non-secret with options → "No reply in {m:ss} and {agent} continues with "{options[0].label}", the first option." Secret or free-text only → "No reply in {m:ss} and this question is declined." <code>{agent}</code> is the session's agent name from data. The time in the line uses the same clock value as the ring. <span class="tag derive">derive</span></li>
+      <li>The first-option marker and the rule describe the server's expiry behavior. Never label any option "Recommended"; the contract has no such flag.</li>
+      <li>Secrets: the typed value lives only in component state, is never written to the draft store, localStorage or logs, and is cleared after send or unmount.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li><kbd>1</kbd>…<kbd>9</kbd> press the option at that position when focus is in the card and not in the text input. <kbd>Enter</kbd> in the text input sends (or Next). <kbd>Enter</kbd> on the card with an option pressed advances. <span class="tag derive">derive</span></li>
+      <li><kbd>Esc</kbd> (D-06): a question has no Cancel option, so Esc in the card moves focus to the composer without answering. If the Other input is open and empty, Esc first closes it. <span class="tag proposal">proposal</span> D-06</li>
+      <li>Option buttons use <code>aria-pressed</code>; the group has <code>aria-labelledby</code> the legend. The rule line is in <code>aria-describedby</code> of the fieldset.</li>
+    </ul>
+    <h4>Copy</h4>
+    <dl class="kv"><dt>kind</dt><dd>"Question"</dd><dt>title fallback</dt><dd>"Your input is needed"</dd><dt>other</dt><dd>"Something else…", "Type your own answer"</dd><dt>placeholders</dt><dd>"Enter a value", "Type your answer"</dd><dt>footer</dt><dd>"Back", "Next", "Send answer", "Sending…"</dd></dl>
+    <div class="note warn">Example only: "Who is the plan for?" with options "Analysts new to Qlik", "Experienced BI analysts", "Both, as two tracks" comes from the wireframe. Real text always comes from <code>InputQuestion</code>.</div>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>A single question with three options sends on the first click; pressing 3 on the focused card sends the third label.</li>
+      <li><code>isSecret:true</code> renders <code>type=password</code>; the rule line says it will be declined.</li>
+      <li>With <code>isOther:true</code>, pressing "Something else…" reveals the input and focuses it.</li>
+      <li>A three-question request shows "1 of 3" and cannot send until all answers are non-blank.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="rq-plan">
+  <header><h4>PlanApprovalCard</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/request-card.tsx PlanApprovalCard → components/v2/plan-approval-card.tsx</span></header>
+  <div class="body">
+    <p>Asks the user to approve a drafted plan or ask for changes. Used when the only question id is <code>plan_approval</code>. Only two actions exist: Approve and Revise.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Head</td><td>check tile (accent), kind "Plan", title "{header||"Plan"} ready for review", subtitle "{n} steps" from <code>plan.length</code>, countdown</td><td><span class="tag exists">exists</span> title; subtitle <span class="tag derive">derive</span></td></tr>
+    <tr><td><code>p.plan-approval-question</code></td><td>13 <code>--ink</code></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Steps</td><td><code>&lt;PlanSteps&gt;</code> from <code>PlanStep[]</code> in a list box: 1px <code>--line</code>, radius <code>--r-card</code>, rows padding 8px 10px, 13px, row divider <code>--line</code>, status 11 <code>--font-mono</code> <code>--ink-2</code>. Max-height 220px, scrolls. Empty: <code>p.muted</code> "The drafted steps are in the message above."</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Actions</td><td><code>btn-solid[type=submit]</code> "Approve plan" + <code>btn-soft</code> "Revise"</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Revise field</td><td><code>label.plan-feedback-label</code> "What should change?" + <code>textarea.request-text.plan-feedback</code> 3 rows, min-height 64, padding 8px 10px, radius <code>--r-ctl</code>, 1.5px <code>--accent</code> on focus. Buttons "Send feedback" (disabled until non-blank) + <code>btn-ghost</code> "Cancel"</td><td><span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Default</td><td>docked</td><td>Approve + Revise</td><td></td></tr>
+    <tr><td>Revising</td><td>Revise pressed</td><td>field shown and focused; Approve hidden</td><td>placeholder "For example: split step 2, skip the report"</td></tr>
+    <tr><td>Sending</td><td>submit</td><td>pressed label "Sending…", fieldset disabled, <code>aria-busy</code></td><td></td></tr>
+    <tr><td>Expired</td><td>0 left</td><td>locked</td><td>Today: "No reply in time. Continuing with the recommended option." v3: "No reply in time. The plan was approved as written." <span class="tag proposal">proposal</span> D-NEW: expired continue copy</td></tr>
+    <tr><td>Error</td><td>POST rejected</td><td>alert + ErrorRef</td><td><code>answerErrorMessage</code></td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Approve sends <code>planApprovalPayload("Approve")</code> → <code>{ plan_approval: { answers: ["Approve"] } }</code>. Revise sends <code>["Revise", "user_note: " + feedback.trim()]</code>.</li>
+      <li>Expiry continues with Approve, the first option. The rule line reads "No reply in {m:ss} and the plan is approved as written." <span class="tag derive">derive</span></li>
+      <li>Plans always ask, in every approval mode. There is no plan version or diff in the contract; any "changed since last plan" marking is client-kept and belongs to the Panel part.</li>
+      <li>A revise draft survives the card moving between the dock and the batch sheet (state held in <code>useRequestAnswer</code> keyed by <code>requestId</code>).</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li><kbd>Enter</kbd> on the card (not in the textarea) approves. <kbd>1</kbd> Approve, <kbd>2</kbd> Revise. <span class="tag derive">derive</span></li>
+      <li>In the textarea: <kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>Enter</kbd> sends Revise, <kbd>Esc</kbd> cancels revising and returns focus to "Revise" (exists).</li>
+      <li><kbd>Esc</kbd> on the card outside the textarea: no Cancel option, so focus moves to the composer without answering (D-06).</li>
+    </ul>
+    <h4>Copy</h4>
+    <dl class="kv"><dt>title</dt><dd>"{header||"Plan"} ready for review"</dd><dt>buttons</dt><dd>"Approve plan", "Revise", "Send feedback", "Cancel", "Sending…"</dd><dt>label</dt><dd>"What should change?"</dd><dt>empty steps</dt><dd>"The drafted steps are in the message above."</dd></dl>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>No third action appears for any plan.</li>
+      <li>"Send feedback" stays disabled for whitespace-only text; ⌘+Enter with text sends <code>["Revise","user_note: …"]</code>.</li>
+      <li>A plan with 12 steps scrolls inside the steps box; the action row stays visible.</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="rq-audit-h">Audit row</h3>
+<div class="comp" id="rq-audit">
+  <header><h4>ApprovalRecordView</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/approval-record.tsx → components/v2/approval-record.tsx · labels in lib/approval-mode.ts (unchanged)</span></header>
+  <div class="body">
+    <p>A quiet, read-only line that records how a request was resolved. It is inserted by <code>approval.resolved</code> (<code>addApprovals</code> with <code>data.audit</code>) and stays in the transcript and in history.</p>
+    <div class="specimen" aria-hidden="true"><div class="rq-spec-audit"><div class="rq-spec-row"><span class="rq-spec-dot"></span><span>Example: Run a shell command</span><span class="rq-spec-badge">Allowed once</span></div><div class="rq-spec-row"><span class="rq-spec-dot is-muted"></span><span>Example: Service account key</span><span class="rq-spec-badge is-muted">Answer hidden</span></div><span>You answered at 10:25</span></div></div>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>group</dt><dd><code>div.approval-record[role=group][aria-label="Your decision"]</code>, flex column, gap <code>--sp-1</code>, padding 8px 10px, radius <code>--r-ctl</code>, 1px <code>--line</code>, <code>--surface-2</code>, 12.5 <code>--ink-2</code>, max-width <code>--thread-max</code></dd><dt>row</dt><dd><code>div.approval-record-row</code>: flex, gap 8, wrap, align centre</dd><dt>dot</dt><dd><code>span.approval-record-dot.approval-record-{tone}</code> 7×7 circle</dd><dt>title</dt><dd><code>span.approval-record-title</code> 12.5/500 <code>--ink</code>; question rows <code>span.approval-record-question</code></dd><dt>badge</dt><dd><code>span.approval-record-badge</code> height 20, padding 0 8, radius <code>--r-pill</code>, 11.5/600</dd><dt>answer</dt><dd><code>span.approval-record-answer</code> 12.5 <code>--ink</code></dd><dt>note</dt><dd>item <code>note</code>, 12 <code>--ink-2</code>, own line, clamp 3 lines</dd><dt>footer</dt><dd><code>time.approval-record-time[dateTime={at}]</code> 12 <code>--ink-2</code></dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>tone allowed</dt><dd>dot <code>--ok</code>; badge <code>--ok-bg</code> / <code>--ok</code></dd><dt>tone declined</dt><dd>dot <code>--bad</code>; badge <code>--bad-bg</code> / <code>--bad</code></dd><dt>tone muted</dt><dd>dot <code>--ink-3</code>; badge <code>--surface-3</code> / <code>--ink-2</code></dd></dl>
+    <h4>States</h4>
+    <p>Tool approval rows (title = <code>action</code> or "Connected business service"):</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>decision</th><th>outcome answered / expired / interrupted</th><th>outcome auto + autoMode readOnly</th><th>auto + auto</th><th>auto + grant</th><th>auto, no autoMode</th></tr></thead><tbody>
+    <tr><td>allowedOnce</td><td>"Allowed once" · allowed</td><td rowspan="4">"Auto-allowed (read-only)" · allowed</td><td rowspan="4">"Auto-accepted (Autopilot)" · allowed</td><td rowspan="4">"Allowed for this chat" · allowed</td><td>"Allowed once" · allowed</td></tr>
+    <tr><td>allowedSession / allowedChat</td><td>"Allowed for this chat" · allowed</td><td>"Allowed for this chat" · allowed</td></tr>
+    <tr><td>allowedAlways</td><td>"Always allowed" · allowed</td><td>"Always allowed" · allowed</td></tr>
+    <tr><td>expired</td><td>"No answer — timed out" · muted</td><td>"No answer — timed out" · muted</td></tr>
+    <tr><td>declined</td><td colspan="5">"Not allowed" · declined (never replaced by an auto label)</td></tr>
+    <tr><td>interrupted</td><td>"No answer — stopped" · muted</td><td colspan="3">the column's auto label, tone allowed (it is non-declined)</td><td>"No answer — stopped" · muted</td></tr>
+    </tbody></table></div>
+    <p>The labels "No answer — timed out" and "No answer — stopped" are today's strings in <code>decisionLabel</code> and contain an em dash. The copy rule for this spec bans em dashes, so v3 changes them to "No answer, timed out" and "No answer, stopped". <span class="tag proposal">proposal</span> D-NEW: audit label punctuation</p>
+    <p>Question rows (dot always muted):</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>Condition</th><th>Answer text</th></tr></thead><tbody>
+    <tr><td><code>secret === true</code></td><td>"Answer hidden" (always, whatever <code>outcome</code>). The value is never received or rendered.</td></tr>
+    <tr><td>answer present, <code>outcome === "auto"</code>, <code>autoMode</code> set</td><td>"{answer} (chosen by Autopilot)"</td></tr>
+    <tr><td>answer present, <code>outcome === "auto"</code>, no <code>autoMode</code></td><td>"{answer} (chosen automatically, no reply in time)"</td></tr>
+    <tr><td>answer present, other outcome</td><td>"{answer}"</td></tr>
+    <tr><td>answered with empty text</td><td>"" (row shows the question only)</td></tr>
+    <tr><td>no answer</td><td>"No answer"</td></tr>
+    </tbody></table></div>
+    <p>Plan approvals arrive as question items: answer "Approve", or "Revise" with the feedback in <code>note</code>.</p>
+    <p>Footer (<code>recordSummary</code>) "{summary} at {h:mm}": answered → "You answered"; auto → <code>autoModeLabel</code> or "Recommended option chosen"; expired / interrupted → "Closed". Omitted when <code>at</code> is missing or invalid.</p>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Placement: where the request's anchor was. In history (no anchor), after the entry of the same <code>turnId</code> when present, else in arrival order (today's rule).</li>
+      <li>One record can hold several items (multi-question requests); each item is one row, in array order.</li>
+      <li>Records are never collapsed or grouped with neighbours. Consecutive auto records (Autopilot) stay separate so each decision is traceable.</li>
+      <li>Answer and note text render as plain text, never markdown or HTML.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Not focusable. <code>role=group</code> "Your decision"; the dot is <code>aria-hidden</code>, so tone is carried by the badge text.</li><li><code>time</code> carries the ISO <code>at</code> in <code>dateTime</code>.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Every cell of the tool-decision table above renders its label and tone.</li>
+      <li>A secret item renders "Answer hidden" even if a stale <code>answer</code> string is present in the payload.</li>
+      <li>A record without <code>at</code> renders no footer.</li>
+      <li><code>outcome:"auto"</code>, <code>autoMode:"readOnly"</code>, <code>decision:"declined"</code> renders "Not allowed".</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="rq-needs-h">Needs you and batch review</h3>
+<div class="comp" id="rq-needs">
+  <header><h4>NeedsYouTray</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/needs-you-tray.tsx (new) · lib/needs-you.ts (new) · opened by button.needs-you in the topbar (Shell part)</span></header>
+  <div class="body">
+    <p>A popover from the topbar Needs-you count that lists everything blocking this chat. Each row has exactly one fix. The count button itself (size, tone, hidden at zero) is specified in the Shell part; this block owns the item list, its order and the tray.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td><code>div.needs-tray[role=dialog][aria-label="Needs you"]</code></td><td>Popover primitive (Shell part), anchored below-end of the count. Width <code>min(430px, 100vw − 24px)</code>, radius <code>--r-panel</code>, 1px <code>--line</code>, <code>--surface</code>, <code>--shadow-lg</code>, <code>--z-popover</code>. Max-height <code>min(70dvh, 520px)</code>, list scrolls. Phones ≤720: bottom sheet form</td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Head</td><td>padding 10px 12px, bottom border <code>--line</code>, flex gap 8: "Needs you" 14/600, "{n} items" 12 <code>--ink-2</code>, grow, order label 12 <code>--ink-2</code></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Row <code>div.needs-item</code></td><td>grid <code>28px 1fr</code>, gap 4px 10px, padding 10px 12px, top border <code>--line</code>. Tile 28×28 radius <code>--r-xs</code>. Title 13.5/600 <code>--ink</code>; meta 12 <code>--ink-2</code>; fix button in column 2, height 28, 12.5</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Focused row</td><td>background <code>color-mix(in srgb, var(--accent-soft) 60%, transparent)</code>, inset <code>3px 0 0 var(--accent)</code></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Foot</td><td>padding 9px 12px, <code>--surface-2</code>, top border, 11.5 <code>--ink-2</code>: key hints. Hidden on <code>pointer: coarse</code></td><td><span class="tag derive">derive</span></td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>request tiles</dt><dd>tool: <code>--warn-bg</code> / <code>--warning-text</code>; question and plan: <code>--accent-soft</code> / <code>--accent-fg</code></dd><dt>goal stop tile</dt><dd><code>--warn-bg</code> / <code>--warning-text</code></dd><dt>helper tile</dt><dd>errored: <code>--bad-bg</code> / <code>--bad</code>; notFound: <code>--warn-bg</code> / <code>--warning-text</code> (the helper tone map)</dd><dt>MCP tile</dt><dd><code>--warn-bg</code> / <code>--warning-text</code></dd><dt>motion</dt><dd>Popover: rise, <code>--dur-2</code>, <code>--ease-out</code></dd></dl>
+    <h4>Data</h4>
+<pre><code>// lib/needs-you.ts (new, derive)
+export type NeedsItem =
+  | { kind: "request"; id: string; view: RequestView }                  // exists data
+  | { kind: "goal"; id: "goal"; goal: Goal; failure?: TurnFailure }     // exists data
+  | { kind: "helper"; id: string; agent: SubAgent }                     // status errored | notFound
+  | { kind: "mcp"; id: string; name: string };                          // BE-06 authRequired
+
+export function needsYou(input: {
+  views: RequestView[];
+  goal: Goal | null;
+  goalStoppedByUser: boolean;      // client flag: Stop paused the goal in this tab
+  failure: TurnFailure | null;
+  helpers: SubAgent[];
+  mcp: Record&lt;string, { authRequired: boolean }&gt;;   // BE-06, {} until then
+  firstSeen: Map&lt;string, number&gt;; // per item id, set when the item first qualifies
+}): NeedsItem[];</code></pre>
+    <h4>Behavior</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Source</th><th>Qualifies when</th><th>Row title · meta</th><th>One fix</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Pending request</td><td>each <code>RequestView</code> with ≥ 1 valid question</td><td><code>action</code> / <code>header</code> / "Plan ready for review" · "{Permission needed|Question|Plan} · expires in {m:ss}"</td><td>"Review" (tool), "Answer" (question), "Review plan" (plan): closes the tray and focuses the docked card, or opens the batch sheet at it when it is not the head</td><td><span class="tag exists">exists</span> data</td></tr>
+    <tr><td>Goal <code>blocked</code></td><td><code>goal.status === "blocked"</code></td><td>"Needs input" · <code>GoalReason</code> text if present</td><td>"Provide input": closes the tray, focuses the composer (goal strip action)</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Goal <code>usageLimited</code></td><td>status <code>usageLimited</code></td><td>"Usage limit reached" · <code>GoalReason</code></td><td>"Resume goal" (<code>thread/goal/set {status:"active"}</code>)</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Goal <code>budgetLimited</code></td><td>status <code>budgetLimited</code></td><td>"Budget reached · {tokensUsed} of {tokenBudget} tokens" · "Goal paused. Extend it to let the assistant keep going."</td><td>"Extend by 25k" (<code>extendedBudget(goal, 25000)</code>, sets status active). The 50k choice stays in the goal strip</td><td><span class="tag exists">exists</span> action</td></tr>
+    <tr><td>Goal context window</td><td>blocked or usageLimited with <code>failure.reason === "contextWindow"</code></td><td>"Context window full" · <code>providerTip</code> if present</td><td>"Compact conversation" (replaces the goal fix above)</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Goal paused by Stop</td><td>status <code>paused</code> and <code>goalStoppedByUser</code></td><td>"Goal paused" · "You stopped the last turn."</td><td>"Resume goal"</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Helper</td><td><code>SubAgentStatus</code> <code>errored</code> or <code>notFound</code>, not yet dismissed</td><td>"{helperName} {statusLabels[status]}" ("Failed" / "Unavailable") · <code>taskTitle(task)</code></td><td>"Ask {agentName} to rerun": prefills the composer with "Please rerun the task for {helperName}: {taskTitle}" and focuses it. No respawn endpoint exists</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>MCP server</td><td><code>mcp.status</code> with <code>authRequired: true</code></td><td>"{name} · sign in required" · "New chats use the fixed connection."</td><td>"Sign in" (OAuth flow)</td><td><span class="tag backend">backend</span> BE-06</td></tr>
+    </tbody></table></div>
+    <ul>
+      <li>Aggregation: one row per request, at most one goal row (the most specific row above wins: context window, then status), one per qualifying helper, one per MCP server. The count is <code>needsYou(...).length</code>, shown by the Shell part's button.</li>
+      <li>Order: requests first, in <code>RequestView</code> order. Then goal, helpers and MCP rows in <code>firstSeen</code> order. Head label: "soonest first" until BE-02, "oldest first" with <code>createdAt</code>. <span class="tag derive">derive</span></li>
+      <li>The Shell part also lists the last turn failure as a count input. Turn failures without a goal already show in the stream's error banner, so the tray shows a failure only through the goal context-window row. <span class="tag proposal">proposal</span> D-NEW: turn failure in Needs you</li>
+      <li>Rows leave when their source clears: request resolved, goal status changes, helper dismissed, MCP signed in. A helper row is dismissed when its fix runs or the user presses the row's close (×, 24×24, "Dismiss").</li>
+      <li>After a fix runs, the tray stays open if rows remain and moves focus to the next row; it closes when empty. Fix errors show inline under the row as 12 <code>--bad</code> text.</li>
+      <li>While <code>turn.frozen</code>, rows and count hold their last values and fix buttons are disabled.</li>
+      <li>Until BE-06, MCP rows never appear. Never infer sign-in state from other errors.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li><kbd>g</kbd> then <kbd>n</kbd> (second key within 1000ms, not in an input, textarea, select or contenteditable): opens the tray and focuses the first row. If the tray is empty, nothing opens and "Nothing needs you right now." is announced. <span class="tag proposal">proposal</span> D-NEW-7 (Shell part)</li>
+      <li>Rows are a <code>role=list</code>; each row is <code>role=listitem</code> containing its fix button. <kbd>↑</kbd>/<kbd>↓</kbd> move between rows (roving tabindex on the fix buttons), <kbd>Home</kbd>/<kbd>End</kbd> jump, <kbd>Enter</kbd> runs the fix, <kbd>Esc</kbd> closes and returns focus to the count button.</li>
+      <li>Fix button names include the row: "Review: {title}", "Sign in to {name}".</li>
+    </ul>
+    <h4>Copy</h4>
+    <dl class="kv"><dt>head</dt><dd>"Needs you", "{n} items" / "1 item", "soonest first" / "oldest first"</dd><dt>foot</dt><dd>"g then n jumps here", "↑ ↓ move", "Esc close"</dd><dt>empty</dt><dd>"Nothing needs you right now."</dd><dt>fixes</dt><dd>"Review", "Answer", "Review plan", "Provide input", "Resume goal", "Extend by 25k", "Compact conversation", "Ask {agentName} to rerun", "Sign in", "Dismiss"</dd></dl>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Two requests, a budgetLimited goal and a notFound helper give a count of 4, with the requests first.</li>
+      <li>A goal that is blocked with a contextWindow failure shows one goal row with "Compact conversation".</li>
+      <li>Pressing g then n in the stage opens the tray with the first row focused; typing "gn" in the composer does nothing.</li>
+      <li>"Review" on a request closes the tray and focuses the docked card; no second answer UI appears in the tray.</li>
+      <li>Without BE-06 no MCP row ever renders.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="rq-batch">
+  <header><h4>BatchBar and BatchReviewSheet</h4><span class="tag derive">derive</span><span class="tag phase">P2</span>
+    <span class="path">components/v2/batch-review.tsx (new) · uses Sheet (Shell part)</span></header>
+  <div class="body">
+    <p>With two or more open requests, a bar above the docked card offers "Review all", which opens a sheet that steps through every request in order. Each step renders the same card body, so rules and keys are identical.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Bar <code>div.request-batchbar</code></td><td>flex wrap, gap 8, padding 8px 10px 8px 12px, radius <code>--r-card</code>, <code>--warn-bg</code>, <code>--warning-text</code> 13, border <code>color-mix(in srgb, var(--warn) 35%, transparent)</code>. "{n} pending" 600, summary (ellipsis), grow, <code>btn-solid</code> "Review all" height 30</td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Sheet</td><td>Sheet primitive. Desktop: bottom-anchored inside the stage, width <code>min(620px, 100% − 24px)</code>, max-height 80dvh; phones: bottom sheet, max-height 88dvh, grab handle</td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Sheet head</td><td>"Review {i} of {n}" 14/600 + progress bar: <code>n</code> segments, height 4, gap 3, radius 2; done <code>--ok</code>, current <code>--accent</code>, rest <code>--surface-3</code></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Queue list</td><td>one row per request, 12.5: dot, title (<code>--font-mono</code> for <code>action</code>), trailing state: audit badge (answered), "current", "next"</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Card body</td><td>the matching card, without its outer shadow</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Foot</td><td>11.5 <code>--ink-2</code> key hints; "Close" <code>btn-ghost</code></td><td><span class="tag derive">derive</span></td></tr>
+    </tbody></table></div>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Bar shown</td><td><code>views.length ≥ 2</code></td><td>bar above the head card</td><td>"{n} pending" + summary</td></tr>
+    <tr><td>Stepping</td><td>sheet open</td><td>current card, progress</td><td>"Review {i} of {n}"</td></tr>
+    <tr><td>Item resolved</td><td><code>approval.resolved</code> for any item</td><td>row gets the audit badge; if current, advance after 400ms</td><td></td></tr>
+    <tr><td>New item</td><td><code>approval.requested</code> while open</td><td>appended at its order position after the current index; count grows</td><td></td></tr>
+    <tr><td>Done</td><td>no unresolved items</td><td>sheet closes after 600ms, focus to composer</td><td>"All requests answered."</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Summary: distinct <code>action</code> values, joined with ", ", clipped to 60 chars with "…"; if none, "{t} permissions, {q} questions". No helper names until BE-02 <code>threadId</code> (D-07).</li>
+      <li>Order is <code>RequestView</code> order, fixed when the sheet opens. Already-answered items stay listed with their badge until the sheet closes.</li>
+      <li>There is no "allow all". Each request is its own decision, and buttons come from each request's <code>options[]</code>.</li>
+      <li>Closing leaves unanswered requests pending and docked. Expired items lock in place and show their expired copy; the stepper skips them on advance.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Sheet <code>role=dialog</code>, <code>aria-labelledby</code> the head, focus trapped. Opening focuses the current card's first control.</li>
+      <li><kbd>1</kbd>…<kbd>9</kbd> answer and advance. <kbd>←</kbd> previous, <kbd>→</kbd> skip (not inside a text field). <kbd>Enter</kbd> primary action.</li>
+      <li><kbd>Esc</kbd>: inside a card, D-06 applies first (Cancel for tool approvals). A second <kbd>Esc</kbd> with focus on the sheet itself closes the sheet and returns focus to "Review all". <span class="tag proposal">proposal</span> D-06</li>
+      <li>Progress is <code>role=progressbar</code>, <code>aria-valuenow={answered}</code>, <code>aria-valuemax={n}</code>, label "Requests answered".</li>
+    </ul>
+    <h4>Copy</h4>
+    <dl class="kv"><dt>bar</dt><dd>"{n} pending", "Review all"</dd><dt>sheet</dt><dd>"Review {i} of {n}", "current", "next", "Close"</dd><dt>hints</dt><dd>"1 to {k} answer and advance", "← → previous or skip", "Esc close the sheet"</dd><dt>done</dt><dd>"All requests answered."</dd></dl>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Three pending approvals: pressing 1 three times answers all three with each request's first option and closes the sheet.</li>
+      <li>→ skips without answering; closing leaves the skipped request docked.</li>
+      <li>A request arriving mid-review is added to the list and the count reads "of 4".</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="rq-viewer-h">Read-only viewer</h3>
+<div class="comp" id="rq-viewer">
+  <header><h4>Read-only viewer: "Waiting on owner"</h4><span class="tag backend">backend</span><span class="tag phase">P2</span>
+    <span class="path">RequestDock, RequestAnchor, NeedsYouTray with readOnly = viewer is not the owner</span></header>
+  <div class="body">
+    <p>Only the owner can write. A viewer of a shared chat sees that the chat is paused on a person, but never gets answer controls. Knowing the owner's name and that the viewer is not the owner needs BE-09 (<code>ownerName</code>, viewer rules).</p>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Surface</th><th>Owner</th><th>Viewer</th></tr></thead><tbody>
+    <tr><td>Dock</td><td>full card</td><td>one-line card, height 48: kind tile, title, countdown text; no buttons, no keys. Text "Waiting on {ownerName}". Secret and command previews are not shown</td></tr>
+    <tr><td>Anchor</td><td>"Waiting for your permission" + "Answer"</td><td>"Waiting on {ownerName}" and no jump button</td></tr>
+    <tr><td>Audit row</td><td>as specified; footer "You answered"</td><td>same rows; footer "{ownerName} answered" instead of "You answered". "Answer hidden" still applies</td></tr>
+    <tr><td>Needs-you count and tray</td><td>shown</td><td>hidden. The topbar pill reads "Waiting on {ownerName}" instead of "Waiting on you" (the Shell part owns the pill)</td></tr>
+    <tr><td>Batch bar and sheet</td><td>shown</td><td>hidden</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Until BE-09 there is no way to tell a viewer from the owner, so this state is not built in P1. Fallback copy when <code>ownerName</code> is missing: "Waiting on the owner".</li>
+      <li>The viewer's composer is replaced by the viewer bar (States part), so no answer path exists anywhere on the page.</li>
+      <li>If a viewer POSTs anyway, the server's 403 renders the generic <code>answerErrorMessage</code> fallback; the client never shows controls, so this is only a guard.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>The viewer dock is <code>role=status</code> with text "Waiting on {ownerName} to answer: {title}". Not focusable.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>As a viewer, no button, input or key handler exists inside the dock.</li><li>A viewer sees "Answer hidden" for secret items and "{ownerName} answered" in the footer.</li></ul>
+  </div>
+</div>
+
+<h3 id="rq-timing-h">Timing, focus and announcements</h3>
+<div class="comp" id="rq-timing">
+  <header><h4>Timing, focus and live regions</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/request-dock.tsx · shared polite region from the Shell part</span></header>
+  <div class="body">
+    <p>One place for every timer, focus move and announcement in this part, so the dock, the tray and the sheet behave the same way.</p>
+    <h4>Timing</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Event</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Countdown tick</td><td>1000ms, shared <code>useClock</code></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Dock enter</td><td>Rise, <code>--dur-3</code> (200ms), <code>--ease-out</code>; only when the dock goes from hidden to shown</td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Card swap on advance</td><td>instant, no exit animation</td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Stale card hide after 409/404/410</td><td>2000ms if <code>approval.resolved</code> has not arrived</td><td><span class="tag proposal">proposal</span> D-NEW: stale card hide</td></tr>
+    <tr><td>Batch advance after resolve</td><td>400ms (lets the badge show)</td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Batch sheet close when done</td><td>600ms</td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>g then n window</td><td>1000ms</td><td><span class="tag proposal">proposal</span> D-NEW-7</td></tr>
+    <tr><td>Tray popover</td><td>rise, <code>--dur-2</code> (160ms), <code>--ease-out</code></td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Keyboard-open measure</td><td>one rAF after <code>visualViewport</code> resize</td><td><span class="tag derive">derive</span></td></tr>
+    </tbody></table></div>
+    <p>Reduced motion: all <code>--dur-*</code> are 0s (Foundations), so the dock and tray appear instantly. The delays above (400ms, 600ms, 2000ms) are not motion and still apply.</p>
+    <h4>Focus management</h4>
+    <ul>
+      <li>A new request never steals focus. The user may be typing in the composer.</li>
+      <li>After an answer from the dock: if another request docks, focus moves to its first control. Otherwise focus moves to the composer textarea.</li>
+      <li>If focus was inside a card that disappears for any other reason (expired and resolved, answered in another tab), move focus to the composer only if focus would otherwise fall to <code>body</code>.</li>
+      <li>Multi-question step change: focus the new <code>fieldset</code> (<code>tabIndex=-1</code>), as today.</li>
+      <li>Revise: focus the textarea on open; Cancel returns focus to "Revise".</li>
+      <li>Tray: opening focuses the first row's fix button. Esc returns focus to the count button. A fix that moves focus elsewhere (dock, composer) closes the tray first.</li>
+      <li>Batch sheet: focus is trapped. Close returns focus to "Review all", or to the composer if the bar is gone.</li>
+      <li>The anchor's "Answer" and <kbd>g</kbd> <kbd>n</kbd> scroll the dock into view with <code>block: "nearest"</code> before focusing.</li>
+    </ul>
+    <h4>Live-region announcements</h4>
+    <p>All messages go to the Shell part's single polite region, except errors, which use the card's own <code>role=alert</code>.</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>Moment</th><th>Region</th><th>Text</th></tr></thead><tbody>
+    <tr><td>Request docked (from 0)</td><td>polite</td><td>"Permission needed: {title}." / "Question: {title}." / "Plan ready for review." + " Shift Tab to answer." when the composer has focus</td></tr>
+    <tr><td>Another request arrives</td><td>polite</td><td>"{n} requests waiting."</td></tr>
+    <tr><td>Countdown</td><td>polite</td><td>"{title} expires in 1 minute." at 60s, "30 seconds" at 30s, "10 seconds" at 10s. Only for the head request, only if the request lasted longer than that mark</td></tr>
+    <tr><td>Answer sent and resolved</td><td>polite</td><td>badge text, for example "Allowed once." or "Answer sent."</td></tr>
+    <tr><td>Expired</td><td>polite (<code>p.request-expired[role=status]</code>, exists)</td><td>the card's expired copy</td></tr>
+    <tr><td>Auto-resolved by approval mode</td><td>none</td><td>no announcement; the audit row is silent</td></tr>
+    <tr><td>Send error</td><td>alert (exists)</td><td><code>answerErrorMessage</code> text</td></tr>
+    <tr><td>Batch done</td><td>polite</td><td>"All requests answered."</td></tr>
+    <tr><td>g n with nothing pending</td><td>polite</td><td>"Nothing needs you right now."</td></tr>
+    </tbody></table></div>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>A request arriving while the user types in the composer leaves focus and caret unchanged.</li>
+      <li>After answering the last request, focus lands in the composer textarea.</li>
+      <li>A screen reader hears the arrival once and at most three countdown messages for a five-minute request.</li>
+      <li>With reduced motion, the dock appears with no animation.</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="rq-coverage">Coverage</h3>
+<div class="tw"><table class="tbl cov"><thead><tr><th>Schema heading</th><th>Covered in</th></tr></thead><tbody>
+<tr><td data-schema="3.0.3 Approval audit record — shared/contracts.ts">3.0.3 Approval audit record — shared/contracts.ts</td><td><a href="#rq-data">PendingRequest, ApprovalRecord and derived views</a>, <a href="#rq-audit">ApprovalRecordView</a></td></tr>
+<tr><td data-schema="3.0.4 Pending request (live approval/question) — shared/contracts.ts, lib/request-input.ts">3.0.4 Pending request (live approval/question) — shared/contracts.ts, lib/request-input.ts</td><td><a href="#rq-data">PendingRequest, ApprovalRecord and derived views</a> (BE-02 fields), <a href="#rq-dock">RequestDock</a></td></tr>
+<tr><td data-schema="3.5 ApprovalRecordView">3.5 ApprovalRecordView</td><td><a href="#rq-audit">ApprovalRecordView</a></td></tr>
+<tr><td data-schema="3.7 RequestCard (PlanApprovalCard, QuestionCard)">3.7 RequestCard (PlanApprovalCard, QuestionCard)</td><td><a href="#rq-structure">Structure</a> (routing), <a href="#rq-cards-h">shared internals</a>, <a href="#rq-expiry">ExpiryCountdown</a>, <a href="#rq-tool">ToolApprovalCard</a></td></tr>
+<tr><td data-schema="PlanApprovalCard">PlanApprovalCard</td><td><a href="#rq-plan">PlanApprovalCard</a></td></tr>
+<tr><td data-schema="QuestionCard">QuestionCard</td><td><a href="#rq-question">QuestionCard</a>, <a href="#rq-tool">ToolApprovalCard</a> (toolApproval variant)</td></tr>
+</tbody></table></div>
+<p>§2.14 <code>lib/request-input.ts</code> is used unchanged by every card here (<code>answersOnClick</code>, <code>needsText</code>, <code>afterPick</code>, <code>answerPayload</code>, <code>msLeft</code>, <code>answerErrorMessage</code>). Its coverage row is in the Composer part.</p>
+
+<h3 id="rq-backend">New backend items</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Id</th><th>Need</th><th>Used by</th><th>Fallback until then</th></tr></thead><tbody>
+<tr><td>BE-NEW: tool call arguments on approvals</td><td>Raw command or arguments (and working directory for shell tools) on <code>InputQuestion</code> for <code>kind:"toolApproval"</code>, for example <code>arguments?: string</code>, redacted server-side</td><td><a href="#rq-tool">ToolApprovalCard</a> command preview</td><td>Preview shows <code>action</code> only</td></tr>
+</tbody></table></div>
+
+<h3 id="rq-decisions">New decisions</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Id</th><th>Question</th><th>Default chosen</th></tr></thead><tbody>
+<tr><td>D-NEW: dock height budget</td><td>How tall may the docked card get, and when does it go compact?</td><td>Max <code>min(52dvh, 460px)</code> with the body scrolling. With the keyboard open, compact (48px row) when the card exceeds 45% of the space left above the keyboard and composer.</td></tr>
+<tr><td>D-NEW: keep head stable</td><td>Should a newly arrived, sooner-expiring request replace the card the user is working in?</td><td>No. It queues behind while the head card has focus or a draft. Order is applied again on blur.</td></tr>
+<tr><td>D-NEW: answer while offline</td><td>Can a user answer while the stream is reconnecting?</td><td>No. Controls are disabled with "Reconnecting. Your answer will be sent when the connection is back." No client-side answer queue.</td></tr>
+<tr><td>D-NEW: audit label punctuation</td><td>Keep the em dash in "No answer — timed out" and "No answer — stopped"?</td><td>Change to "No answer, timed out" and "No answer, stopped" in <code>decisionLabel</code>, per the no-em-dash copy rule.</td></tr>
+<tr><td>D-NEW: expired continue copy</td><td>Today's expired copy says "Continuing with the recommended option", but no option is marked recommended.</td><td>Change to "No reply in time. Continuing with "{options[0].label}"." for questions, and "No reply in time. The plan was approved as written." for plans.</td></tr>
+<tr><td>D-NEW: turn failure in Needs you</td><td>Should a plain turn failure (no goal) add a tray row?</td><td>No. It stays in the stream's error banner; only the goal context-window stop is a tray row.</td></tr>
+<tr><td>D-NEW: stale card hide</td><td>How long does a card stay after a 409/404/410 answer error if <code>approval.resolved</code> never arrives?</td><td>2000ms, then hide it and remove it from <code>pending</code>.</td></tr>
+</tbody></table></div>
+</section>

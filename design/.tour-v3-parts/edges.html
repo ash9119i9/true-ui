@@ -1,0 +1,292 @@
+<section class="sec" id="edges">
+<style>
+#edges .ecols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+#edges .ecols.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+#edges .e-grid{grid-template-columns:150px minmax(0,1fr)}
+#edges .e-side{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 8px;display:flex;flex-direction:column;gap:4px;font-size:12.5px;min-width:0}
+#edges .e-side span{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:8px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#edges .e-side span.on{background:var(--surface-3);color:var(--ink)}
+#edges .e-side .e-h{font:500 10.5px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);padding:8px 8px 2px}
+#edges .e-msgs{padding:16px 18px 8px;display:flex;flex-direction:column;gap:12px;font-size:13.5px;min-height:260px}
+#edges .e-msgs .msg.user{justify-content:flex-end}
+#edges .e-req{margin:0 16px 10px}
+#edges .e-req .row b{min-width:0}
+#edges .e-bottom{padding:0 16px 12px;display:flex;flex-direction:column;gap:10px}
+#edges .e-lab{display:flex;justify-content:space-between;gap:8px;font:500 11px var(--font-mono);color:var(--ink-3);letter-spacing:.04em;margin-bottom:6px}
+#edges .e-mini{position:relative;overflow:hidden;isolation:isolate;border:1px solid var(--line);border-radius:14px;background:var(--surface-2);box-shadow:var(--shadow-card);min-height:250px;display:flex;flex-direction:column}
+#edges .e-mini .e-top{display:flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-bottom:1px solid var(--line);font-size:11.5px;font-weight:500;min-width:0}
+#edges .e-mini .e-top .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#edges .e-mini .e-body{position:relative;flex:1;padding:10px;display:flex;flex-direction:column;gap:6px;min-width:0}
+#edges .ln{display:block;height:5px;border-radius:3px;background:var(--line-strong)}
+#edges .ln.s{width:55%} #edges .ln.m{width:80%} #edges .ln.u{align-self:flex-end;width:58%;height:12px;border-radius:7px 7px 2px 7px;background:var(--ink)}
+#edges .e-hole{position:absolute;inset:-4px;border-radius:9px;box-shadow:0 0 0 1.5px var(--spot-ring),0 0 0 600px var(--scrim);pointer-events:none;z-index:2}
+#edges .e-rq{position:relative;border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);background:var(--warn-bg);color:var(--warn-text);border-radius:9px;padding:7px 8px;font-size:11px;font-weight:600;display:flex;flex-direction:column;gap:5px}
+#edges .e-rq i{display:inline-block;height:14px;width:48px;border-radius:5px;background:var(--accent-fg)}
+#edges .e-rq i+i{background:var(--surface);border:1px solid var(--line-strong)}
+#edges .e-drawer{position:absolute;right:8px;top:8px;bottom:8px;width:44%;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-lift);padding:8px;display:flex;flex-direction:column;gap:5px;font-size:11px;z-index:1}
+#edges .e-mc{position:absolute;z-index:3;left:10px;top:44px;width:44%;background:var(--coach);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-lift);padding:8px 9px;display:flex;flex-direction:column;gap:4px;font-size:11px;line-height:1.35;color:var(--ink-2)}
+#edges .e-mc b,#edges .e-sheet b{color:var(--ink);font-size:12px}
+#edges .e-eye{font:500 9px var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+#edges .e-phone{position:relative;width:100%;max-width:210px;margin:0 auto;height:420px;border-radius:28px;border:6px solid var(--ink);background:var(--bg);overflow:hidden;isolation:isolate;display:flex;flex-direction:column}
+#edges .e-phone .e-body{position:relative;flex:1;padding:8px 9px;display:flex;flex-direction:column;gap:6px;min-height:0}
+#edges .e-sheet{position:relative;z-index:3;background:var(--coach);border-top:1px solid var(--line);border-radius:14px 14px 0 0;box-shadow:var(--shadow-lift);padding:6px 10px 8px;display:flex;flex-direction:column;gap:4px;font-size:10.5px;line-height:1.35;color:var(--ink-2)}
+#edges .e-sheet .grab{align-self:center;width:28px;height:4px;border-radius:3px;background:var(--line-strong)}
+#edges .e-sheet .fb{display:flex;justify-content:flex-end;gap:4px}
+#edges .e-sheet .fb i{width:30px;height:12px;border-radius:4px;border:1px solid var(--line-strong)}
+#edges .e-sheet .fb i+i{background:var(--accent-fg);border-color:transparent}
+#edges .e-kb{height:92px;background:var(--surface-3);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(10,1fr);gap:3px;padding:6px 5px}
+#edges .e-kb i{height:16px;border-radius:3px;background:var(--surface);border:1px solid var(--line)}
+#edges .e-kbl{position:absolute;left:0;right:0;bottom:92px;border-top:2px dashed var(--bad);font:500 8.5px/1 var(--font-mono);color:var(--bad);text-align:right;padding:2px 6px;z-index:4}
+#edges .e-dockbar{display:flex;justify-content:space-around;padding:6px 8px;border-top:1px solid var(--line);background:var(--surface)}
+#edges .e-dockbar b{position:relative;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:var(--ink-2)}
+#edges .e-dockbar b.on{background:var(--ink);color:var(--bg)}
+#edges .e-dockbar .badge{position:absolute;top:-3px;right:-3px;min-width:13px;height:13px;border-radius:999px;background:var(--warn);color:var(--bg);font:700 8px/13px var(--font-mono);text-align:center}
+#edges .e-blk{position:relative;border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:14px;display:flex;flex-direction:column;gap:8px;font-size:12.5px;color:var(--ink-2);min-width:0}
+#edges .e-blk h4{margin:0 0 0 28px;font:600 14px var(--font-sans);color:var(--ink)}
+#edges .e-blk .pin-at{left:12px;top:12px}
+#edges .e-blk code{overflow-wrap:anywhere}
+#edges .e-live{display:flex;flex-direction:column;gap:4px;margin:0;padding:0;list-style:none;font:12px/1.4 var(--font-mono)}
+#edges .e-live li{padding:4px 8px;border-radius:7px;background:var(--surface-3)}
+#edges .e-live li.t{background:var(--accent-soft);color:var(--accent-fg)}
+#edges .e-z{display:flex;flex-direction:column-reverse;gap:3px;margin:0;padding:0;list-style:none;font:12px/1.4 var(--font-mono)}
+#edges .e-z li{display:flex;justify-content:space-between;gap:8px;padding:4px 8px;border-radius:7px;background:var(--surface-3)}
+#edges .e-z li.t{background:var(--accent-soft);color:var(--accent-fg)}
+#edges .e-note{font-size:12px;color:var(--ink-2)}
+#edges .e-pop{position:absolute;bottom:calc(100% + 8px);left:120px;width:250px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-lift);padding:6px;display:flex;flex-direction:column;gap:2px;font-size:12.5px;z-index:1}
+#edges .e-pop span{display:flex;flex-direction:column;padding:6px 8px;border-radius:9px;color:var(--ink)}
+#edges .e-pop span.on{background:var(--accent-soft)}
+#edges .e-pop small{color:var(--ink-2);font-size:12px}
+#edges .composer{position:relative}
+@media (max-width:900px){#edges .ecols.three{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:720px){#edges .e-grid{grid-template-columns:minmax(0,1fr)}#edges .e-side{display:none}#edges .ecols{grid-template-columns:minmax(0,1fr)}#edges .e-pop{left:8px}}
+@media (prefers-reduced-motion:reduce){#edges *{transition:none;animation:none}}
+</style>
+<div class="sec-head">
+  <span class="eyebrow">Edge cases</span>
+  <h2>When the screen doesn't cooperate</h2>
+  <p>Narrow screens, v3 states that outrank the tour, and the theme, motion and accessibility rules the tour layer has to follow.</p>
+</div>
+
+<!-- Board 1: narrow screens -->
+<div class="board">
+  <div>
+    <div class="demo" role="img" aria-label="Step 8 of 12 at 1440 wide: the Google Drive request docked above the composer is spotlit and the coach sits above it asking the user to answer">
+      <div class="app">
+        <div class="app-chrome"><i></i><i></i><i></i><span>truex.app · 1440</span></div>
+        <div class="app-body e-grid">
+          <div class="e-side">
+            <span class="on"><svg class="ic sm" aria-hidden="true"><use href="#i-plus"/></svg>New chat</span>
+            <span><svg class="ic sm" aria-hidden="true"><use href="#i-search"/></svg>Search <span class="kbd">⌘K</span></span>
+            <span><svg class="ic sm" aria-hidden="true"><use href="#i-users"/></svg>Agents</span>
+            <span class="e-h">Today</span>
+            <span class="on">Onboarding plan for new analysts</span>
+            <span>Qlik license tiers</span>
+          </div>
+          <div class="app-stage">
+            <div class="wf-top">
+              <div class="crumb"><svg class="ic" aria-hidden="true"><use href="#i-sidebar"/></svg><span class="t">Onboarding plan for new analysts</span></div>
+              <span class="status-pill"><span class="pulse warn"></span>Needs you</span>
+              <span></span>
+            </div>
+            <div class="e-msgs">
+              <div class="msg user"><div class="bubble">Draft a 30-day onboarding plan for new analysts from the handbook</div></div>
+              <div class="msg"><div style="color:var(--ink-2)">Atlas read the handbook folder and Juno has a first draft of weeks 1 and 2. Saving it to Drive needs your OK.</div></div>
+            </div>
+            <div class="e-req">
+              <div class="card warn t-anchor" data-tour="request-card">
+                <div class="row"><svg class="ic" aria-hidden="true"><use href="#i-plug"/></svg><b>Google Drive · create_document</b><span class="spacer"></span><span class="pill warn"><svg class="ic sm" aria-hidden="true"><use href="#i-clock"/></svg>4:32 left</span></div>
+                <span>Create "Onboarding plan, weeks 1-2" in Analyst handbook / Drafts.</span>
+                <div class="row"><span class="btn" style="background:var(--accent-fg);color:var(--on-accent);border-color:transparent">Allow once</span><span class="btn">Decline</span></div>
+                <span class="spot inset" aria-hidden="true"></span>
+              </div>
+            </div>
+            <div class="e-bottom">
+              <div class="composer"><span class="ph">Message Qlik Analyst</span>
+                <div class="composer-bar"><span class="chip"><svg class="ic sm" aria-hidden="true"><use href="#i-file"/></svg></span><span class="chip"><svg class="ic sm" aria-hidden="true"><use href="#i-lock"/></svg>Qlik Analyst</span><span class="chip">gpt-5 · high</span><span class="chip">Ask</span><span class="spacer"></span><span class="send"><svg class="ic sm" aria-hidden="true"><use href="#i-stop"/></svg></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tour-layer" aria-hidden="true"></div>
+      <div class="coach" data-side="above" style="right:28px;bottom:236px;--caret:200px">
+        <div class="c-eye"><span>Step 8 of 12 · See it work</span><span class="c-x"><svg aria-hidden="true"><use href="#i-x"/></svg></span></div>
+        <h4>It needs <em>your OK</em></h4>
+        <p>Requests dock above the composer. The buttons come from the request itself.</p>
+        <div class="c-try"><svg class="ic sm" aria-hidden="true"><use href="#i-check"/></svg>Pick Allow once to keep going</div>
+        <div class="c-foot"><span class="c-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i></span><span class="tb quiet">Back</span><span class="tb soft">Skip</span></div>
+      </div>
+      <span class="pin pin-at" style="left:12px;top:40px">1</span>
+    </div>
+    <div class="ecols">
+      <div>
+        <div class="e-lab"><span>900</span><span>drawer closed first</span></div>
+        <div class="e-mini">
+          <div class="e-top"><svg class="ic sm" aria-hidden="true"><use href="#i-sidebar"/></svg><span class="t">Onboarding plan for new analysts</span><span class="pin">2</span></div>
+          <div class="e-body">
+            <span class="ln u"></span><span class="ln m"></span><span class="ln s"></span>
+            <div class="e-mc"><span class="e-eye">Step 8 of 12</span><b>It needs your OK</b>Buttons come from the request.</div>
+            <div class="e-rq" style="margin-top:auto">Save weeks 1-2 to Drive?<span><i></i> <i></i></span><span class="e-hole"></span></div>
+            <span class="ln" style="height:22px;border-radius:9px;background:var(--surface);border:1px solid var(--line)"></span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="e-lab"><span>400</span><span>sheet above keyboard</span></div>
+        <div class="e-phone">
+          <div class="e-top" style="display:flex;align-items:center;gap:6px;height:28px;padding:0 9px;font-size:11px;font-weight:500"><span class="pin">3</span><span style="flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">Onboarding plan</span></div>
+          <div class="e-body">
+            <span class="ln u"></span><span class="ln m"></span>
+            <div class="e-rq" style="margin-top:auto">Save weeks 1-2 to Drive?<span><i></i> <i></i></span><span class="e-hole"></span></div>
+          </div>
+          <div class="e-sheet"><span class="grab"></span><span class="e-eye">Step 8 of 12</span><b>It needs your OK</b><span>Pick Allow once to keep going.</span><span class="fb"><i></i><i></i></span></div>
+          <div class="e-kb" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <span class="e-kbl">keyboard top</span>
+        </div>
+        <div class="e-lab" style="margin-top:12px"><span>400 · keyboard closed</span><span class="pin">4</span></div>
+        <div class="e-dockbar" style="border:1px solid var(--line);border-radius:14px"><b class="on"><svg class="ic sm" aria-hidden="true"><use href="#i-activity"/></svg></b><b><svg class="ic sm" aria-hidden="true"><use href="#i-users"/></svg></b><b><svg class="ic sm" aria-hidden="true"><use href="#i-alert"/></svg><span class="badge">1</span></b><b><svg class="ic sm" aria-hidden="true"><use href="#i-file"/></svg></b></div>
+      </div>
+    </div>
+    <p class="board-cap">Same step 8, three widths. The coach never covers the card it points at.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>1440, all docked</b> <span class="tag derive">derive</span><span class="tag try">Try</span><span>Spotlight wraps <code>data-tour="request-card"</code> and the coach sits above it, caret down, clear of the option buttons. The RequestDock is a v3 component that is not in app.tsx yet.</span></div></li>
+    <li><span class="pin">2</span><div><b>900, drawer closed</b> <span class="tag derive">derive</span><span>The session panel is an overlay here (fitPanel <code>overlay: true</code>). prepare() closes it so two scrims never stack, then measures the coach after the close transition ends.</span></div></li>
+    <li><span class="pin">3</span><div><b>400, bottom sheet</b> <span class="tag derive">derive</span><span class="tag new">New</span><span>The coach becomes a sheet pinned to <code>visualViewport.height</code>, so it rides above the keyboard, capped at 40% of the screen. The target scrolls into the space left above it.</span></div></li>
+    <li><span class="pin">4</span><div><b>Dock as bottom bar</b> <span class="tag derive">derive</span><span>On phones the dock is a bottom bar that hides while the keyboard is up. Stop 9 targets its needs-you badge, so prepare() blurs the composer first. Stops 3 and 4 target the + sheet that folds the action bar.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 2: tour vs v3 states -->
+<div class="board">
+  <div>
+    <div class="demo" role="img" aria-label="Step 7 of 12 while the stream reconnects: the status pill reads Reconnecting, the spotlight waits on the Handed off node and the coach says the step is paused">
+      <div class="app">
+        <div class="app-chrome"><i></i><i></i><i></i><span>truex.app</span></div>
+        <div class="app-body" style="grid-template-columns:minmax(0,1fr)">
+          <div class="app-stage">
+            <div class="wf-top">
+              <div class="crumb"><svg class="ic" aria-hidden="true"><use href="#i-sidebar"/></svg><span class="t">Onboarding plan for new analysts</span></div>
+              <span class="status-pill"><span class="pulse warn"></span>Reconnecting</span>
+              <span></span>
+            </div>
+            <div class="e-msgs" style="min-height:300px">
+              <div class="msg user"><div class="bubble">Draft a 30-day onboarding plan for new analysts from the handbook</div></div>
+              <div class="msg"><div style="color:var(--ink-2)">Reading the Analyst handbook folder in Google Drive. I'll hand the Qlik pieces to a helper.</div></div>
+              <div class="card t-anchor" data-tour="handoff" style="max-width:420px">
+                <div class="row"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg><b>Handed off to Atlas</b><span class="spacer"></span><span class="pill">Waiting</span></div>
+                <span style="color:var(--ink-2);font-size:13px">Research the handbook and list what a new analyst needs in week 1.</span>
+                <span class="spot inset" aria-hidden="true"></span>
+              </div>
+            </div>
+            <div class="e-bottom">
+              <div class="composer"><span class="ph">Message Qlik Analyst</span>
+                <div class="composer-bar"><span class="chip"><svg class="ic sm" aria-hidden="true"><use href="#i-file"/></svg></span><span class="chip"><svg class="ic sm" aria-hidden="true"><use href="#i-lock"/></svg>Qlik Analyst</span><span class="chip">gpt-5 · high</span><span class="chip">Ask</span><span class="spacer"></span><span class="send"><svg class="ic sm" aria-hidden="true"><use href="#i-stop"/></svg></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tour-layer" aria-hidden="true"></div>
+      <div class="coach" data-side="left" style="right:24px;top:150px;width:min(260px,calc(100% - 24px));--caret:30px">
+        <div class="c-eye"><span>Step 7 of 12 · See it work</span><span class="c-x"><svg aria-hidden="true"><use href="#i-x"/></svg></span></div>
+        <h4>Helpers <em>take a piece</em></h4>
+        <p>Each hand-off gets one node in the chat. Atlas starts as soon as live updates come back.</p>
+        <div class="c-wait"><span class="spinner" aria-hidden="true"></span>Paused while live updates reconnect</div>
+        <div class="c-foot"><span class="c-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></span><span class="tb quiet">Back</span><span class="tb line">Next</span></div>
+      </div>
+      <span class="pin pin-at" style="left:12px;top:40px">1</span>
+    </div>
+    <div class="ecols">
+      <div>
+        <div class="e-lab"><span>Read-only viewer</span><span class="pin">2</span></div>
+        <div class="e-mini">
+          <div class="e-top"><svg class="ic sm" aria-hidden="true"><use href="#i-eye"/></svg><span class="t">Started by Priya N. · View only</span></div>
+          <div class="e-body">
+            <span class="ln u"></span><span class="ln m"></span><span class="ln s"></span><span class="ln m"></span>
+            <div class="e-mc" style="left:50%;top:50%;transform:translate(-50%,-50%);width:78%"><span class="e-eye">App tour</span><b>The tour needs a chat you own</b>You can read Priya's chat, but the tour sends a message and answers a request. Start your own chat to take it.<span class="row" style="justify-content:flex-end;gap:4px"><span class="tb quiet" style="height:24px;font-size:11.5px">Not now</span><span class="tb soft" style="height:24px;font-size:11.5px">Start a new chat</span></span></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="e-lab"><span>Request mid-tour</span><span class="pin">3</span></div>
+        <div class="e-mini">
+          <div class="e-top"><span class="t">Onboarding plan for new analysts</span><span class="pill warn" style="height:18px;font-size:10.5px">Needs you 1</span></div>
+          <div class="e-body">
+            <span class="ln u"></span><span class="ln m"></span>
+            <div class="e-rq" style="margin-top:auto">Approve plan: weeks 3-4 outline?<span><i></i> <i></i></span></div>
+            <span class="tour-chip" style="align-self:flex-start;height:28px;font-size:11.5px"><span class="mring" style="--p:83" aria-hidden="true"></span>Resume tour · 10 of 12</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">The tour steps aside for anything the app needs from the user.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Reconnecting pauses Wait</b> <span class="tag data">data</span><span class="tag wait">Wait</span><span>While <code>StreamStatus</code> is Reconnecting, waitFor stops polling and the 3s missing-target timer is frozen, so no fallback card appears. Next stays enabled. After a resync, if the node is already there, the step jumps to Look.</span></div></li>
+    <li><span class="pin">2</span><div><b>Read-only viewer</b> <span class="tag derive">derive</span><span>When <code>session.userId !== me.user.id</code> the tour never auto-starts. Replay from Account shows this card instead of step 1, since stops 6 and 8 would hit 403 <code>NOT_SESSION_OWNER</code>. Nothing is saved to <code>truex-tour</code>.</span></div></li>
+    <li><span class="pin">3</span><div><b>Request arrives mid-tour</b> <span class="tag data">data</span><span>A new <code>PendingRequest</code> outside stop 8 minimizes the tour to the resume chip. The needs-you count and g then n keep working, and the global hotkeys the tour paused come back until the user resumes.</span></div></li>
+    <li><span class="pin">4</span><div><b>Goal stop mid-tour</b> <span class="tag derive">derive</span><span>A goal that hits budgetLimited or blocked counts in needs-you the same way. The tour does not resume on its own; the chip waits, and step 11 later shows that stop in the goal strip if it is still open.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 3: themes, motion, a11y -->
+<div class="board">
+  <div>
+    <div class="demo" role="img" aria-label="Step 4 of 12 in dark or light theme: the approval mode picker is open above the composer, the chip is spotlit, and the coach sits to the right with focus on its Next button">
+      <div class="app">
+        <div class="app-chrome"><i></i><i></i><i></i><span>truex.app</span></div>
+        <div class="app-body" style="grid-template-columns:minmax(0,1fr)">
+          <div class="app-stage">
+            <div class="wf-top">
+              <div class="crumb"><svg class="ic" aria-hidden="true"><use href="#i-sidebar"/></svg><span class="t">New chat</span></div>
+              <span class="status-pill"><span class="pulse idle"></span>Ready</span>
+              <span></span>
+            </div>
+            <div class="e-msgs" style="min-height:220px;justify-content:center;align-items:center;color:var(--ink-2)">What should Qlik Analyst work on?</div>
+            <div class="e-bottom">
+              <div class="composer"><span class="ph">Message Qlik Analyst</span>
+                <div class="e-pop" role="presentation">
+                  <span class="on">Ask<small>Every tool call waits for you</small></span>
+                  <span>Auto-allow read-only tools<small>Reads run, writes still ask</small></span>
+                  <span>Autopilot<small>Runs tools without asking. Plans and secrets still ask.</small></span>
+                </div>
+                <div class="composer-bar"><span class="chip"><svg class="ic sm" aria-hidden="true"><use href="#i-file"/></svg></span><span class="chip">Qlik Analyst</span><span class="chip">gpt-5 · high</span><span class="chip t-anchor" data-tour="approval-mode"><svg class="ic sm" aria-hidden="true"><use href="#i-shield"/></svg>Ask<svg class="ic sm" aria-hidden="true"><use href="#i-chevd"/></svg><span class="spot round inset" aria-hidden="true"></span></span><span class="chip"><svg class="ic sm" aria-hidden="true"><use href="#i-target"/></svg>Goal</span><span class="spacer"></span><span class="send"><svg class="ic sm" aria-hidden="true"><use href="#i-send"/></svg></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tour-layer" aria-hidden="true"></div>
+      <div class="coach" data-side="left" style="right:20px;top:70px;width:min(270px,calc(100% - 24px))">
+        <div class="c-eye"><span>Step 4 of 12 · First look</span><span class="c-x"><svg aria-hidden="true"><use href="#i-x"/></svg></span></div>
+        <h4>How much it <em>asks first</em></h4>
+        <p>Ask is the default. Plans and secrets always ask, whatever you pick.</p>
+        <div class="c-foot"><span class="c-dots" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="tb quiet">Back</span><span class="tb primary" style="background:var(--accent-fg);outline:2px solid var(--accent);outline-offset:2px">Next</span></div>
+      </div>
+      <span class="pin pin-at" style="left:12px;top:40px">1</span>
+    </div>
+    <div class="ecols three">
+      <div class="e-blk"><span class="pin pin-at">2</span><h4>One live region</h4>
+        <ul class="e-live"><li>Working</li><li class="t">Tour, step 4 of 12: How much it asks first</li><li>Needs your approval</li></ul>
+        <span class="e-note">The v3 <code>role="status"</code> region, shared. Tour text goes in the same queue.</span>
+      </div>
+      <div class="e-blk"><span class="pin pin-at">3</span><h4>Layer order</h4>
+        <ul class="e-z"><li><span>app, topbar, scroll</span><span>1-3</span></li><li><span>popover, @ menu</span><span>20</span></li><li><span>panel overlay</span><span>30</span></li><li><span>scrim, dialogs, ⌘K</span><span>50</span></li><li class="t"><span>tour layer, coach</span><span>60-61</span></li><li class="t"><span>resume chip</span><span>62</span></li></ul>
+      </div>
+      <div class="e-blk"><span class="pin pin-at">4</span><h4>Reduced motion</h4>
+        <span class="row"><span class="beacon" style="position:relative" aria-hidden="true"></span>Breathing ring</span><span>becomes a static 2px ring</span>
+        <span class="row">Coach glide between stops</span><span>becomes an instant move</span>
+        <span class="e-note">Confetti on step 12 and agent-celebrate is skipped.</span>
+      </div>
+    </div>
+    <p class="board-cap">Both themes use the same tokens. Only the scrim and ring swap.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Focus trap and keys</b> <span class="tag derive">derive</span><span class="tag look">Look</span><span>Focus moves to the coach's primary button and cycles inside it on Look stops. Try stops leave the target focusable too. The tour's keydown listener sits before the v3 Esc chain and only minimizes; mod+K, mod+B, mod+. and mod+J are paused while the coach is open.</span></div></li>
+    <li><span class="pin">2</span><div><b>Shared polite region</b> <span class="tag derive">derive</span><span class="tag new">New</span><span>No second live region. Each stop announces "Tour, step N of 12" plus its title through the v3 status announcer, debounced with it so a new request and a step change don't talk over each other. The coach is <code>role="dialog"</code> with <code>aria-labelledby</code> on its h4.</span></div></li>
+    <li><span class="pin">3</span><div><b>Above every v3 scrim</b> <span class="tag data">data</span><span>app.tsx today uses z 1-3 for the stage, 20 for popovers, 30 for the overlay panel and 50 for <code>.scrim</code>. The tour layer takes 60 and the coach 61, so a spotlit popover or ⌘K palette stays readable under the dim.</span></div></li>
+    <li><span class="pin">4</span><div><b>Reduced motion and themes</b> <span class="tag derive">derive</span><span>Under <code>prefers-reduced-motion</code> the ring stops breathing and the coach moves without a glide. Dark mode swaps <code>--scrim</code>, <code>--spot-ring</code> and <code>--coach</code> only; white text on buttons uses accent-fg for contrast.</span></div></li>
+  </ol>
+</div>
+</section>

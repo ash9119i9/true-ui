@@ -1,0 +1,1079 @@
+<section class="part" id="composer">
+<style>
+/* composer fragment: specimens only, tokens only */
+.cp-spec{display:flex;flex-direction:column;gap:8px;max-width:360px;padding:10px 10px 8px 12px;border:1px solid var(--line);border-radius:18px;background:var(--surface);box-shadow:var(--shadow-md)}
+.cp-spec-ta{min-height:44px;font-size:15px;line-height:1.5;color:var(--ink-3)}
+.cp-spec-bar{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.cp-spec-chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);font:500 13px var(--font-sans);color:var(--ink);white-space:nowrap}
+.cp-spec-chip.is-locked{background:var(--surface-3);color:var(--ink-2)}
+.cp-spec-chip.is-on{background:var(--accent-soft);color:var(--accent-fg);border-color:transparent}
+.cp-spec-grow{flex:1}
+.cp-spec-send{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:var(--accent-fg);color:var(--on-accent);font:600 15px var(--font-sans)}
+.cp-spec-stop{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:var(--ink);color:var(--bg);font:600 11px var(--font-sans)}
+.cp-spec-steer{display:inline-flex;align-items:center;height:34px;padding:0 12px;border-radius:11px;border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent-fg);font:600 13px var(--font-sans)}
+.cp-spec-file{display:flex;flex-direction:column;gap:2px;padding:6px 8px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);font-size:13px;color:var(--ink);min-width:0}
+.cp-spec-file small{font-size:12px;color:var(--ink-2)}
+.cp-spec-file.is-err{background:var(--bad-bg);border-color:var(--bad)}
+.cp-spec-file.is-err small{color:var(--bad)}
+</style>
+<h2>Composer</h2>
+<p>The composer is the form at the bottom of the chat column and inside the hero on an empty chat. Today it holds the textarea, the Goal chip with BudgetField, the alpha approval-mode picker, Send and Stop. v3 moves everything that shapes the next message onto one action bar: files, agent, model and effort, approval mode and Goal. It adds @-mentions, a visible queue for messages typed during a turn, an explicit Steer button and a Stopping state. The slash-command parser, BudgetField and PrivacyNote keep their current logic.</p>
+<p>Source of truth for today's values: <code>chat-ui-schema.md</code> §2. Target design: the composer boards in the v3 wireframe. In this section <b>page</b> means <code>Home</code> in <code>frontend/app/page.tsx</code>. The page's <code>busy</code> means a request is in flight. The page's <code>running</code> means a turn is streaming. <code>Composer</code> receives <code>running</code> through a prop that is also called <code>busy</code>.</p>
+<div class="note">Contrast rule for this section: Send, the file icon tile and any other filled button with light text use the <code>--accent-fg</code> fill, not <code>--accent</code>. Text under 13px uses <code>--ink-2</code>. Spacing, z-index and motion tokens (<code>--sp-*</code>, <code>--z-*</code>, <code>--dur-*</code>, <code>--ease-*</code>) come from the Foundations part. The raw values below are today's CSS, so a token replaces each one at the same value.</div>
+
+<h3 id="cp-overview">Structure</h3>
+<pre><code>&lt;form.composer-form onSubmit={preventDefault; submitInput()}&gt;
+  QueueList            (running or queue non-empty)       new, derive
+  &lt;Composer hero goalMode busy={running} stopping canSend canSteer ...&gt;
+    goal head          (goal mode only)                    exists
+    above:  ProjectNote + FileChips + PrivacyNote          ProjectNote/PrivacyNote exist, FileChips new
+    children: &lt;SmoothTextarea autoGrow={240}/&gt;             exists, autoGrow turned on
+    below:  #composer-hint + MentionMenu | SlashMenu + notices
+    bar:    Attach | AgentChip | ModelChip | ApprovalModePicker | Goal | BudgetField
+            | grow | Steer | Send | Stop/Stopping
+  &lt;/Composer&gt;
+&lt;/form&gt;
+HelperChip sits directly above the form in thread state (not in hero).</code></pre>
+<p>Render sites stay as they are. On an empty chat (<code>empty = !session &amp;&amp; !entries.length</code>) the form renders inside <code>&lt;Hero&gt;</code> → <code>.hero-composer</code> with <code>hero={true}</code>. In a thread it renders at the bottom of the chat column, after <code>HelperChip</code>.</p>
+
+<h4>Page state that drives the composer</h4>
+<div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Type</th><th>Controls</th><th>Tag</th></tr></thead><tbody>
+<tr><td><code>text</code></td><td><code>string</code></td><td>Draft value</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>notice</code></td><td><code>string</code></td><td><code>.composer-notice</code>, cleared on typing</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>commandOpen</code>, <code>commandIndex</code></td><td><code>boolean</code>, <code>number</code></td><td>Slash menu eligibility and highlight</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>busy</code></td><td><code>boolean</code></td><td>Request in flight. Disables textarea and Send</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>running</code></td><td><code>boolean</code></td><td>Turn streaming. Shows Stop, Steer and the queue</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>goalMode</code>, <code>goalBudget</code>, <code>goalBudgetValid</code>, <code>goal</code></td><td></td><td>Goal mode and budget</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>composerFocused</code></td><td><code>boolean</code></td><td>Pauses the rotating placeholder</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>draftProjectId</code></td><td><code>string | null</code></td><td>Project note</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>approvalModes</code>, <code>draftMode</code>, <code>modeError</code></td><td></td><td>ApprovalModePicker</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>stopping</code></td><td><code>boolean</code></td><td>Stop pressed, stream not closed yet</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td><code>queue</code></td><td><code>QueuedMessage[]</code></td><td>QueueList</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td><code>queuePaused</code></td><td><code>null | QueuePauseReason</code></td><td>Queue dispatch</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td><code>editingQueueId</code></td><td><code>string | null</code></td><td>Textarea is editing a queued item</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td><code>files</code></td><td><code>DraftFile[]</code></td><td>File chips</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td><code>draftSettings</code></td><td><code>{ model?: string; effort?: Effort }</code></td><td>Model chip before a session exists</td><td><span class="tag proposal">proposal</span></td></tr>
+<tr><td><code>mention</code></td><td><code>MentionQuery | null</code></td><td>@-mention picker</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td><code>mentions</code></td><td><code>DraftMention[]</code></td><td>Mention ranges in the draft</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>refs <code>sending</code>, <code>suggesting</code>, <code>generation</code>, <code>commandAttempt</code></td><td></td><td>Double-submit guards, stale-response guards, idempotent command retry (<code>clientId</code>)</td><td><span class="tag exists">exists</span></td></tr>
+</tbody></table></div>
+
+<h3 id="cp-frame-h">Frame and input</h3>
+
+<div class="comp" id="cp-frame">
+  <header><h4>Composer frame and textarea</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/composer.tsx + components/smooth-textarea.tsx · page wiring in app/page.tsx composerForm</span></header>
+  <div class="body">
+    <p>The presentational frame (<code>Composer</code>) wraps a <code>SmoothTextarea</code>, the slots above and below it, and the action bar. The page owns the form, keyboard handling, menus and the submit pipeline.</p>
+    <div class="specimen" aria-hidden="true"><div class="cp-spec"><div class="cp-spec-ta">Ask anything, or type / for commands</div><div class="cp-spec-bar"><span class="cp-spec-chip">+</span><span class="cp-spec-chip">Goal</span><span class="cp-spec-grow"></span><span class="cp-spec-send">↑</span></div></div></div>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td><code>.composer-form</code></td><td>width 100%, max-width 740px; none in hero</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>.composer</code></td><td>max-width 740px (none in hero), radius 18px, border 1px, padding <code>12px 10px 8px 12px</code>, transition border-color and box-shadow .15s</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Slot gap (above / textarea / below / bar)</td><td>8px column gap, from the wireframe (<code>.cp-box</code>)</td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Goal head <code>.composer-goal-head</code></td><td>flex, gap 8px, margin <code>-4px -2px 6px 0</code>, padding-left 4px, 12px/1.45; target icon 15; cancel <code>.icon-btn.ghost</code> 26×26 with x 14</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>textarea</code></td><td>15px/1.5, padding <code>4px 4px 12px</code>, no border, transparent, <code>resize:none</code>, <code>rows={1}</code></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Height</td><td>min 60px, hero min 76px, max 240px, then scrolls inside</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Auto-grow</td><td>Pass <code>autoGrow={240}</code>: on each value change <code>height=auto</code>, then <code>min(scrollHeight, 240)</code>px. Never below the CSS min-height</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td><code>.smooth-field</code></td><td><code>div.smooth-field &gt; textarea + div.smooth-mirror[aria-hidden] + div.smooth-caret[aria-hidden]</code></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>.hero-composer</code></td><td>margin-top 28px</td><td><span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>frame bg</dt><dd><code>--surface</code></dd><dt>frame border</dt><dd><code>--line</code></dd><dt>frame shadow</dt><dd><code>--shadow-md</code></dd><dt>focus border</dt><dd><code>color-mix(in srgb, var(--accent) 45%, transparent)</code> plus ring <code>0 0 0 4px color-mix(in srgb, var(--accent) 10%, transparent)</code></dd><dt>goal border</dt><dd><code>--accent-soft-2</code>; goal and focus: accent 40%</dd><dt>text</dt><dd><code>--ink</code></dd><dt>placeholder</dt><dd><code>--ink-3</code> (15px, passes AA at that size)</dd><dt>caret</dt><dd><code>.smooth-caret</code> uses <code>--accent</code></dd><dt>goal head</dt><dd>text <code>--ink-2</code>, "New goal" and icon <code>--accent-fg</code>, cancel <code>--ink-3</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Default</td><td>none</td><td>line border, shadow-md</td><td>Placeholder by precedence below</td></tr>
+    <tr><td>Focus <code>.is-focus</code></td><td>textarea focus only (<code>e.target instanceof HTMLTextAreaElement</code>)</td><td>accent 45% border, 4px ring</td><td></td></tr>
+    <tr><td>Goal mode <code>.goal-mode</code></td><td>Goal chip on</td><td>goal head shown, border tint</td><td>"Describe the outcome you want. The assistant works until it’s done."</td></tr>
+    <tr><td>Running</td><td><code>running</code></td><td>Stop shows, Steer shows, queue list above</td><td>Today "Add a thought to steer the current turn…"; v3 copy in Behavior</td></tr>
+    <tr><td>Request in flight</td><td>page <code>busy</code></td><td>textarea disabled, cursor not-allowed, Send disabled</td><td></td></tr>
+    <tr><td>No agent</td><td><code>!session &amp;&amp; !agentId</code></td><td>textarea disabled</td><td></td></tr>
+    <tr><td>Hero</td><td><code>empty</code></td><td><code>.is-hero</code>, min-height 76px, rotating placeholder</td><td><code>PLACEHOLDERS</code>, 3200ms</td></tr>
+    <tr><td>Read-only viewer</td><td>viewer is not the owner (BE-09)</td><td>composer replaced by the viewer bar defined in the States part</td><td></td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>interface ComposerProps {
+  children: ReactNode;            // SmoothTextarea
+  goalMode: boolean;
+  onGoalToggle: () =&gt; void;       // goalMode ? setGoalMode(false) : startGoal(text)
+  onGoalCancel: () =&gt; void;
+  busy: boolean;                  // page running
+  canSend: boolean;
+  onStop: () =&gt; void;
+  hero?: boolean;
+  budget?: ReactNode; chips?: ReactNode; above?: ReactNode; below?: ReactNode;
+  stopTitle?: string;
+  onFocusChange?: (focused: boolean) =&gt; void;
+  // v3 additions (derive)
+  stopping?: boolean;             // shows Stopping, disables Steer and Send
+  canSteer?: boolean;             // running &amp;&amp; text.trim() &amp;&amp; !stopping
+  onSteer?: () =&gt; void;
+  leading?: ReactNode;            // Attach, AgentChip, ModelChip before the Goal chip
+}
+export const PLACEHOLDERS = [
+  "Ask anything, or type / for commands",
+  "Summarize last week's pipeline changes",
+  "Compare Q2 vs Q3 revenue by region",
+  "Draft a reply to the customer escalation",
+] as const;
+export const GOAL_PLACEHOLDER =
+  "Describe the outcome you want. The assistant works until it’s done.";</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Placeholder precedence: goal mode → <code>GOAL_PLACEHOLDER</code> (import it; the page inlines the string today); running → "Type to queue. Steer sends into this turn." <span class="tag proposal">proposal</span> D-05; empty → rotating; else <code>PLACEHOLDERS[0]</code>. Today's running placeholder "Add a thought to steer the current turn…" is wrong under D-05, because Enter queues.</li>
+      <li>Rotation: <code>useRotatingPlaceholder(active)</code>, active = <code>empty &amp;&amp; !composerFocused &amp;&amp; !text &amp;&amp; !goalMode</code>. Every 3200ms, index <code>(i+1) % 4</code>. Index kept when paused. Instant swap, no transition.</li>
+      <li>SmoothTextarea caret: spring <code>{stiffness:500, damping:30, mass:0.5}</code>. <code>SWEEP_LIMIT = 48</code>px: on a line change a wider horizontal move snaps. Caret hides when unfocused, disabled, range selected, scrolled out of view or on window blur. Reduced motion or width change: caret jumps. Recomputes on value or disabled change (microtask), <code>selectionchange</code>, font load, scroll and ResizeObserver.</li>
+      <li>Message length has no max. Only <code>text.trim()</code> non-blank is required.</li>
+      <li><code>onChange</code>: <code>setText(value)</code>, <code>setCommandOpen(!goalMode &amp;&amp; value.startsWith("/"))</code>, <code>setCommandIndex(0)</code>, clear <code>notice</code>, recompute the mention query.</li>
+      <li>Entry points that fill the textarea: <code>startGoal(template)</code>, <code>applyPrompt(prompt)</code> (<code>"/goal"</code> → <code>startGoal()</code>, <code>/</code>-prefixed opens the slash menu), <code>ChatMessages.onPrompt</code>/<code>onCommand</code>, <code>askSuggestion</code>. Each sets text, closes menus and focuses with the caret at the end.</li>
+      <li>Reduced motion: <code>.send, .composer { transition: none }</code>.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Textarea: <code>aria-label</code> "Goal" in goal mode, else "Message"; <code>aria-describedby="composer-hint"</code>; combobox attributes while a menu is open (see Slash menu and Mention picker).</li>
+      <li><code>#composer-hint</code> (<code>.sr-only</code>): "Type / for commands, @ to mention. Enter to send, Shift + Enter for a new line." <span class="tag proposal">proposal</span> D-NEW-01. Today: "Type / for commands. Enter to send, Shift + Enter for a new line."</li>
+      <li>Focus ring on the frame shows only for textarea focus. Chips keep their own <code>:focus-visible</code> outline (2px <code>--accent</code>, offset 2px).</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Typing 12 lines grows the textarea to 240px, then it scrolls inside; the bar does not move off screen.</li>
+      <li>Hero textarea is 76px tall when empty; thread textarea is 60px.</li>
+      <li>Focusing a chip does not show the frame focus ring.</li>
+      <li>The hero placeholder rotates every 3200ms only while empty, unfocused and not in goal mode.</li>
+      <li>With reduced motion on, the caret jumps and the frame has no transition.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="cp-bar">
+  <header><h4>Action bar</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/composer.tsx .composer-bar · replaces Goal-chip-only bar</span></header>
+  <div class="body">
+    <p>One row that reads left to right in the order a person sets things: files, agent, model and effort, approval mode, Goal and budget, then the send cluster on the right.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Order</th><th>Part</th><th>Shown when</th><th>Size</th></tr></thead><tbody>
+    <tr><td>1</td><td>Attach (<a href="#cp-attach">Attachment</a>)</td><td>always, disabled before an agent is chosen</td><td>30px ghost chip, padding 0 8px, plus icon</td></tr>
+    <tr><td>2</td><td><a href="#cp-agent">AgentChip</a></td><td>always</td><td>30px chip</td></tr>
+    <tr><td>3</td><td><a href="#cp-model">ModelChip</a></td><td>always</td><td>30px chip</td></tr>
+    <tr><td>4</td><td><a href="#cp-approval">ApprovalModePicker</a></td><td><code>modePicker()</code> non-null</td><td>30px select, max-width 190px</td></tr>
+    <tr><td>5</td><td>Goal chip</td><td>always</td><td>30px chip</td></tr>
+    <tr><td>6</td><td><a href="#cp-goal">BudgetField</a></td><td>goal mode</td><td>30px select + 96×30 input</td></tr>
+    <tr><td>7</td><td><code>span.grow</code></td><td>always</td><td>flex 1</td></tr>
+    <tr><td>8</td><td>Steer, Send, Stop (<a href="#cp-send">matrix</a>)</td><td>see matrix</td><td>34×34, Steer 34px tall</td></tr>
+    </tbody></table></div>
+    <dl class="kv"><dt>bar</dt><dd>flex, align center, gap 4px (today 2px plus chip margin-left 4px), <code>flex-wrap: nowrap</code>, <code>min-width:0</code></dd><dt>.chip</dt><dd>height 30px, padding <code>0 8px 0 10px</code>, gap 6px, radius 999px, 13px/500</dd></dl>
+    <h4>Width rules</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Width of composer</th><th>Bar</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>&gt; 640px</td><td>All chips with labels. Model chip "{model} · {effort}". Approval select up to 190px.</td><td><span class="tag exists">exists</span> for picker widths</td></tr>
+    <tr><td>521 to 640px</td><td>Approval select max 128px (today's <code>max-width: 640px</code> rule). Agent chip shows avatar and name, name ellipsis at 120px.</td><td><span class="tag proposal">proposal</span> D-NEW-02</td></tr>
+    <tr><td>≤ 520px</td><td>Labels hide (<code>.cp-hide</code>): agent chip shows avatar and lock; approval chip shows the shield icon only; model chip keeps "{effort}" only. Goal keeps its label.</td><td><span class="tag proposal">proposal</span> D-NEW-02</td></tr>
+    <tr><td>≤ 400px</td><td>Agent, model and approval collapse into one overflow chip (<code>aria-label="Message settings"</code>, sliders icon) that opens a sheet with the three controls stacked. Attach, Goal and the send cluster stay.</td><td><span class="tag proposal">proposal</span> D-NEW-02</td></tr>
+    </tbody></table></div>
+    <p>Measure the composer width with a ResizeObserver on <code>.composer</code>, not the viewport, because the side panel narrows the chat column.</p>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Tab order: textarea → Attach → Agent → Model → Approval → Goal → budget select → custom input → Steer → Send → Stop.</li>
+      <li>The bar is a plain group (<code>role="group" aria-label="Message options"</code>), not a toolbar, so Tab stays predictable.</li>
+      <li>Every chip that opens a popover has <code>aria-haspopup="dialog"</code> and <code>aria-expanded</code>.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>At a 400px viewport no bar element wraps to a second line and nothing scrolls horizontally.</li>
+      <li>Opening the side panel so the chat column is 500px applies the ≤520px rules.</li>
+      <li>Tab order matches the list above.</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="cp-chips-h">Bar chips</h3>
+
+<div class="comp" id="cp-attach">
+  <header><h4>Attachment button and FileChips</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/composer-files.tsx (new) · moves upload out of components/assistant-tools.tsx label.document-upload</span></header>
+  <div class="body">
+    <p>A plus button on the bar opens the file picker. Each chosen file shows as a chip above the textarea with progress, an inline error, or a Remove button. Uploads use the existing documents endpoint, so files stay per conversation.</p>
+    <div class="specimen" aria-hidden="true"><div class="cp-spec"><div class="cp-spec-file"><span>Example: handbook.pdf</span><small>Uploading 640 KB of 910 KB</small></div><div class="cp-spec-file is-err"><span>Example: deck.pptx</span><small>Choose a document of up to 1 MB.</small></div></div></div>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th></tr></thead><tbody>
+    <tr><td>Attach button</td><td><code>.chip.ghost</code> 30px, padding 0 8px, transparent bg and border, plus icon 16, <code>--ink-2</code>. Hidden <code>input[type=file][multiple][accept=uploadAccept]</code></td></tr>
+    <tr><td><code>.cp-files</code> row</td><td>flex wrap, gap 6px, in the <code>above</code> slot after ProjectNote</td></tr>
+    <tr><td>File chip</td><td>grid <code>28px minmax(0,1fr) auto</code>, gap 8px, padding 6px 8px, radius 12px, border 1px, <code>flex: 1 1 200px</code>, max-width 280px (none at ≤520px)</td></tr>
+    <tr><td>Icon tile</td><td>28×28, radius 8px, <code>DocumentIcon</code> by <code>documentKind(name)</code></td></tr>
+    <tr><td>Name</td><td>13px/600, one line, ellipsis</td></tr>
+    <tr><td>Meta</td><td>12px, <code>--ink-2</code></td></tr>
+    <tr><td>Progress bar</td><td>4px tall, margin-top 4px, radius 2px, full chip text width</td></tr>
+    <tr><td>Remove / Cancel</td><td><code>.icon-btn.ghost</code> 26×26, x icon 14</td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>chip</dt><dd>bg <code>--surface-2</code>, border <code>--line</code></dd><dt>icon tile</dt><dd>bg <code>--accent-soft</code>, icon <code>--accent-fg</code></dd><dt>progress</dt><dd>track <code>--surface-3</code>, fill <code>--accent-fg</code></dd><dt>error chip</dt><dd>bg <code>--bad-bg</code>, border <code>color-mix(in srgb, var(--bad) 40%, transparent)</code>, meta and icon <code>--bad</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Held</td><td>File chosen before a session exists</td><td>chip, no bar, meta shows size</td><td>"{size} · Uploads when you send" <span class="tag proposal">proposal</span> D-NEW-03</td></tr>
+    <tr><td>Uploading</td><td>POST in flight</td><td>progress bar from XHR <code>upload.onprogress</code>; button is Cancel</td><td>"Uploading {loaded} of {total}"; Cancel <code>aria-label="Cancel upload of {name}"</code></td></tr>
+    <tr><td>Uploaded</td><td>201 <code>ConversationFile</code></td><td>no bar, meta = kind label and size</td><td>"{kindLabel} · {size}"</td></tr>
+    <tr><td>Too large</td><td><code>file.size &gt; 1_048_576</code>, checked before any request</td><td>error chip, <code>role="alert"</code></td><td>"Choose a document of up to 1 MB." <span class="tag exists">exists</span></td></tr>
+    <tr><td>Empty file</td><td><code>file.size === 0</code> (server minimum is 1 byte)</td><td>error chip</td><td>"This file is empty." <span class="tag proposal">proposal</span> D-NEW-04</td></tr>
+    <tr><td>Wrong type</td><td>extension not in <code>uploadAccept</code> (drag and drop bypasses <code>accept</code>)</td><td>error chip</td><td>"This file type can't be uploaded. Use PDF, Word, Excel, PowerPoint, text or code." <span class="tag proposal">proposal</span> D-NEW-04</td></tr>
+    <tr><td>Conversation full</td><td>would exceed 50 files or 25 MB per conversation</td><td>error chip</td><td>"This chat already has the maximum files (50 or 25 MB)." <span class="tag proposal">proposal</span> D-NEW-04</td></tr>
+    <tr><td>Server error</td><td>non-2xx</td><td>error chip with Retry and Remove</td><td><code>ApiError.userMessage</code>, else "Upload failed. Try again."</td></tr>
+    <tr><td>Disabled</td><td>running, page busy, or no agent</td><td>Attach dimmed .5, <code>aria-disabled</code></td><td>title "Files can be added after this response finishes." while running</td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>// lib/document-kind.ts (exists)
+export const uploadAccept =
+  ".pdf,.docx,.xlsx,.pptx,.txt,.md,.csv,.tsv,.abap,.cds,.json,.xml,.yaml,.sql,.js,.ts";
+// shared/assistant-capabilities.ts (exists)
+interface ConversationFile { id: string; name: string; size: number; createdAt: string;
+  mediaType: string; sourceId?: string; kind?: "visualization"; title?: string;
+  description?: string; mode?: "inline" | "wide"; }
+// POST /api/sessions/:id/documents  body { name: string; base64: string } → 201 ConversationFile
+// Limits: 1 byte to 1 MB per file, max 50 files / 25 MB per conversation.
+
+// new, client only
+interface DraftFile {
+  key: string;                     // client uuid
+  file: File;
+  state: "held" | "uploading" | "uploaded" | "error";
+  loaded: number;                  // bytes sent
+  result?: ConversationFile;
+  error?: string;
+}</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Validate size, emptiness, extension and conversation totals on the client first. Invalid files never send a request.</li>
+      <li>With a session: upload starts on pick, up to 2 files at a time <span class="tag proposal">proposal</span> D-NEW-04. Use XHR for progress; fetch has no upload progress.</li>
+      <li>Without a session: files are held. On the first Send, <code>ensureSession()</code> runs, held files upload, then the message sends. If any upload fails, the message does not send, the draft stays and the failed chip shows Retry <span class="tag proposal">proposal</span> D-NEW-03.</li>
+      <li>Send and Steer are disabled while any chip is <code>uploading</code>. Error chips do not block Send; they are not sent.</li>
+      <li>Remove on an uploaded chip only removes it from the draft. The file stays in the conversation (no delete endpoint). Its row in the Tools panel stays.</li>
+      <li>After a successful send, uploaded chips clear. Today's auto prompt <code>'Read the uploaded document "{name}" and summarize its key points.'</code> is not inserted from the composer; the person writes their own message.</li>
+      <li>Drag and drop onto the composer and paste of files use the same path. Drop target shows the focus border.</li>
+      <li>Uploaded files feed the Files group of the <a href="#cp-mention">mention picker</a>.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Attach: <code>aria-label="Attach files"</code>, title "Attach files (1 MB each)".</li>
+      <li>The chip list is <code>role="list" aria-label="Attached files"</code>; each chip is a <code>listitem</code>.</li>
+      <li>Error chips use <code>role="alert"</code> once. Progress is not announced per tick; announce "Uploaded {name}" in the composer polite region on finish.</li>
+      <li>Remove button: <code>aria-label="Remove {name}"</code>. After removing, focus moves to the next chip's button, else the textarea.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>A 4.2 MB file shows "Choose a document of up to 1 MB." with no network request.</li>
+      <li>A dropped <code>.py</code> file is rejected with the wrong-type copy.</li>
+      <li>Send is disabled while a chip shows a progress bar.</li>
+      <li>Files picked on a new chat upload only after Send, and the message waits for them.</li>
+      <li>Tools panel keeps listing uploaded files; its upload control is removed.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="cp-agent">
+  <header><h4>AgentChip</h4><span class="tag derive">derive</span><span class="tag proposal">proposal</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/composer-agent-chip.tsx (new) · reuses components/v2/agent-menu.tsx · D-02</span></header>
+  <div class="body">
+    <p>Shows which agent will answer. Before the first message it opens the agent menu. Once a session exists the agent is fixed, so the chip locks and explains why.</p>
+    <div class="specimen" aria-hidden="true"><div class="cp-spec-bar"><span class="cp-spec-chip">Example agent ▾</span><span class="cp-spec-chip is-locked">Example agent · locked</span></div></div>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>chip</dt><dd><code>.chip</code> 30px, gap 6px</dd><dt>avatar</dt><dd><code>Badge</code> 18×18, radius 6px, from <code>look</code> and <code>tint</code></dd><dt>name</dt><dd>13px/500, max-width 160px (120px at ≤640px), ellipsis; hidden at ≤520px</dd><dt>trailing</dt><dd>chevd 12 when open-able, lock 12 when locked</dd><dt>popover</dt><dd>existing <code>AgentMenu</code> in <code>.popover</code> (width 280px, radius 14px, padding 6px, <code>--shadow-lg</code>), opens above the bar</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>open-able</dt><dd>bg <code>--surface-2</code>, border <code>--line</code>, text <code>--ink</code></dd><dt>locked</dt><dd>bg <code>--surface-3</code>, text <code>--ink-2</code></dd><dt>tooltip</dt><dd>bg <code>--ink</code>, text <code>--bg</code>, 12px, radius 8px</dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Choosable</td><td><code>!session</code></td><td>chevron</td><td>title "Choose agent"</td></tr>
+    <tr><td>No agent</td><td><code>!session &amp;&amp; !agentId</code> (empty list)</td><td>dashed border</td><td>"Choose agent"</td></tr>
+    <tr><td>Loading</td><td><code>GET /api/agents</code> pending</td><td>chip skeleton 96px</td><td></td></tr>
+    <tr><td>Locked</td><td><code>session</code> exists</td><td>lock icon, no chevron</td><td>tooltip "Agent is set when the chat starts. Start a new chat to switch."</td></tr>
+    <tr><td>Agent missing</td><td><code>session.agentId</code> not in the list</td><td>locked, generic avatar</td><td>"Unknown agent"</td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>// GET /api/agents
+interface AgentSummary { id: string; name: string; description: string; provider: string;
+  model: string; sandbox: string; handle?: string; look: number; tint: AgentTint; builtin: boolean; }
+// selection: page agentId (no session) or session.agentId (locked)</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Picking an agent sets the page <code>agentId</code>, resets <code>draftSettings</code> and closes the popover. Focus returns to the textarea.</li>
+      <li>The floating dock agent popover keeps working and shares the same state (D-02). The status pill keeps the detail view.</li>
+      <li>Locked chip click opens nothing; it shows the tooltip on hover and focus. The lock is not an error.</li>
+      <li>"New agent" in the menu opens <code>AgentDialog</code> as today.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Choosable: <code>button aria-haspopup="dialog" aria-expanded</code>, <code>aria-label="Agent: {name}. Change agent"</code>.</li>
+      <li>Locked: <code>button aria-disabled="true" aria-describedby="cp-agent-lock"</code>, <code>aria-label="Agent: {name}"</code>. Stays focusable so the tooltip is reachable.</li>
+      <li>Esc closes the popover and returns focus to the chip.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>After the first message, the chip shows a lock and no longer opens a menu.</li>
+      <li>Keyboard focus on the locked chip shows the tooltip text.</li>
+      <li>Changing agent in the dock updates the chip, and the reverse.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="cp-model">
+  <header><h4>ModelChip and effort popover</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/composer-model-chip.tsx (new) · replaces QuickTools "Model settings"</span></header>
+  <div class="body">
+    <p>Shows the model and reasoning effort for this chat and changes them with the same call as <code>/model</code> and <code>/effort</code>: <code>thread/settings/update</code>.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>chip</dt><dd><code>.chip</code> 30px, brain icon 14, label "{modelName} · {effort}", chevd 12. Model name max-width 140px ellipsis. At ≤520px only "{effort}"</dd><dt>popover</dt><dd><code>.popover</code> width 280px, padding 6px, radius 14px</dd><dt>model row</dt><dd><code>.menu-item</code> padding 8px 10px, 26px icon tile, "Model" 13px/600 + current name 12px; opens a model list sub-view with Back</dd><dt>effort header</dt><dd>11px/700 uppercase, letter-spacing .07em, <code>--ink-2</code>, padding 8px 8px 4px</dd><dt>effort rows</dt><dd>7 <code>.menu-item</code> rows, 26px number tile 0-6, check 14 on the selected row</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>row hover / active</dt><dd><code>--surface-3</code></dd><dt>selected row</dt><dd>bg <code>--accent-soft</code>, tile bg <code>--accent-fg</code> with <code>--on-accent</code></dd><dt>sub text</dt><dd>12px <code>--ink-2</code></dd></dl>
+    <h4>Effort values</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>#</th><th>Value</th><th>Label</th></tr></thead><tbody>
+    <tr><td>0</td><td><code>none</code></td><td>none</td></tr><tr><td>1</td><td><code>minimal</code></td><td>minimal</td></tr><tr><td>2</td><td><code>low</code></td><td>low</td></tr><tr><td>3</td><td><code>medium</code></td><td>medium</td></tr><tr><td>4</td><td><code>high</code></td><td>high</td></tr><tr><td>5</td><td><code>xhigh</code></td><td>xhigh</td></tr><tr><td>6</td><td><code>ultra</code></td><td>ultra</td></tr>
+    </tbody></table></div>
+    <p>Labels are the raw values, as in <code>/effort</code> and QuickTools. There is no reasoningSummary, serviceTier or personality control.</p>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Default</td><td>settings known</td><td>"{model} · {effort}"</td><td></td></tr>
+    <tr><td>Unknown effort</td><td>settings not exposed (<span class="tag backend">backend</span> BE-NEW: session settings)</td><td>model only</td><td>"{agent.model}"</td></tr>
+    <tr><td>Draft</td><td>no session</td><td>same chip; values held in <code>draftSettings</code></td><td></td></tr>
+    <tr><td>Saving</td><td>request in flight</td><td>chip spinner 12 replaces brain icon, popover rows disabled</td><td></td></tr>
+    <tr><td>Error</td><td>command <code>failed</code> or network error</td><td>value rolls back; <code>.composer-notice</code></td><td>"Could not change the model settings. {userMessage}" <span class="tag proposal">proposal</span> D-NEW-05</td></tr>
+    <tr><td>Blocked</td><td><code>running</code></td><td>chip <code>aria-disabled</code>, dimmed .5</td><td>title "Settings can change after this response finishes."</td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>// GET /api/models (tenant allow-list)
+interface ModelOption { id: string; name: string; provider: string }
+type Effort = "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "ultra";
+// POST /api/sessions/:id/capabilities
+//   { method: "thread/settings/update", params: { model?: string; effort?: Effort },
+//     command: { clientId: string; text: string } }   // text e.g. "/effort high"
+// Session.settings { model?, effort? } is server-side; PublicSession does not include it.
+interface PublicSessionSettings { model?: string; effort?: Effort } // BE-NEW: session settings in PublicSession</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Initial label: <code>session.settings</code> once exposed; until then the last value this browser set for the session, else <code>AgentSummary.model</code> with no effort.</li>
+      <li>With a session, a pick sends the command through the same pipeline as a typed <code>/effort high</code>, so the transcript gets the same command result card and success text ("Reasoning effort changed to high.", "Model changed to X.").</li>
+      <li>Without a session, picks go into <code>draftSettings</code> and are sent right after <code>ensureSession()</code>, before the first message, like <code>draftMode</code> <span class="tag proposal">proposal</span> D-NEW-05.</li>
+      <li>Model list comes from <code>GET /api/models</code>, fetched once per popover open. <code>/model</code> accepts any identifier; the list sends <code>ModelOption.id</code>.</li>
+      <li>Optimistic update; roll back on failure.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Chip: <code>aria-haspopup="dialog"</code>, <code>aria-label="Model {name}, effort {effort}. Change"</code>.</li>
+      <li>Effort list: <code>role="radiogroup" aria-label="Reasoning effort"</code>, rows <code>role="radio" aria-checked</code>. ↑/↓ move, Enter or Space picks and closes, digits 0-6 pick directly, Esc closes.</li>
+      <li>On open, focus goes to the selected effort row.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>The popover lists exactly 7 effort values in the order above.</li>
+      <li>Picking "high" sends <code>thread/settings/update { effort: "high" }</code> and the chip shows "· high".</li>
+      <li>A failed update rolls the chip back and shows the notice.</li>
+      <li>While a turn runs the chip is disabled with the title text.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="cp-approval">
+  <header><h4>ApprovalModePicker</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/approval-mode-picker.tsx + lib/approval-mode.ts · restyled as a chip, native select kept</span></header>
+  <div class="body">
+    <p>Alpha per-chat control for which questions and tool approvals are answered automatically. It stays a native <code>&lt;select&gt;</code> so keyboard and mobile pickers work, styled as a chip.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>wrapper</dt><dd><code>span.approval-mode</code> inline-flex, gap 4px, shrinkable</dd><dt>label</dt><dd><code>label.visually-hidden</code> "Approval mode (alpha)"</dd><dt>select</dt><dd><code>span.select &gt; select.approval-mode-select + Icon upDown 13</code>; height 30px, padding <code>0 28px 0 10px</code>, radius 9px (v3: 999px to match chips <span class="tag proposal">proposal</span> D-01); max-width 190px, 128px at ≤640px, ellipsis. v3 adds a leading shield icon 14</dd><dt>tag</dt><dd><code>span.approval-mode-tag[aria-hidden]</code> "Alpha": pill, 10.5px mono uppercase</dd><dt>help</dt><dd><code>span.visually-hidden#help</code> with the selected description</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>select</dt><dd>bg <code>--surface</code>, border <code>--line</code>, hover <code>--line-strong</code>, text <code>--ink</code>, chevron <code>--ink-3</code></dd><dt>Alpha tag</dt><dd>bg <code>--accent-soft</code>, text <code>--accent-fg</code></dd><dt>error</dt><dd><code>.composer-notice.approval-mode-error</code> text <code>--bad</code></dd></dl>
+    <h4>Modes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>id</th><th>Label</th><th>Description</th><th>Shown when</th></tr></thead><tbody>
+    <tr><td><code>ask</code></td><td>Ask me every time</td><td>Every question and tool use waits for your answer.</td><td><code>enabled</code></td></tr>
+    <tr><td><code>readOnly</code></td><td>Auto-allow read-only tools</td><td>Tools that only read data run without asking.</td><td><code>enabled</code></td></tr>
+    <tr><td><code>auto</code></td><td>Autopilot</td><td>Runs tools and picks recommended answers; plans and secrets still ask.</td><td><code>enabled &amp;&amp; autopilot</code></td></tr>
+    </tbody></table></div>
+    <p>Plan approval and secret questions always ask in every mode.</p>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Hidden</td><td><code>modePicker()</code> returns null (<code>!enabled</code>, or load failed)</td><td>not rendered</td><td></td></tr>
+    <tr><td>Draft</td><td>no session</td><td>value from <code>draftMode</code></td><td></td></tr>
+    <tr><td>Saving</td><td>POST in flight</td><td>optimistic value shown</td><td></td></tr>
+    <tr><td>Rolled back, 422</td><td>server refuses Autopilot</td><td>previous value, <code>role="alert"</code> notice</td><td>"Autopilot is not available right now."</td></tr>
+    <tr><td>Rolled back, other</td><td>any other failure</td><td>previous value, alert</td><td>"Could not change the approval mode. {userMessage}"</td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>export const APPROVAL_MODES = ["ask", "readOnly", "auto"] as const;
+export type ApprovalMode = (typeof APPROVAL_MODES)[number];
+export interface ApprovalModesConfig {   // GET /api/features → approvalModes
+  enabled: boolean; defaultMode: ApprovalMode; autopilot: boolean; nameHeuristic: boolean;
+}
+export interface ModeOption { value: ApprovalMode; label: string; description: string; }
+export interface ModePicker { options: ModeOption[]; selected: ApprovalMode; }
+export const approvalModesOff: ApprovalModesConfig =
+  { enabled: false, defaultMode: "ask", autopilot: false, nameHeuristic: false };
+// props
+{ picker: ModePicker; onChange: (mode: ApprovalMode) =&gt; void; disabled?: boolean; errorId?: string; }
+// POST /api/sessions/:id/approval-mode { mode }   PublicSession.approvalMode</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Selection: wanted = <code>session.approvalMode</code> ?? (no session ? <code>draftMode</code> : null) ?? <code>config.defaultMode</code>. If not in options, fall back to <code>defaultMode</code>, then <code>"ask"</code>.</li>
+      <li><code>loadApprovalModes()</code> on mount; any failure or bad shape gives <code>approvalModesOff</code> and logs a warning.</li>
+      <li>No session: store in <code>draftMode</code>/<code>draftModeRef</code>; <code>ensureSession()</code> applies it before the first message.</li>
+      <li>With a session: optimistic, POST, roll back on failure and set <code>modeError</code>. <code>modeError</code> clears on the next successful change or on typing.</li>
+      <li>Changing mode while a turn runs is allowed (it is not a slash command).</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Native select: arrows, type-ahead and the platform picker. Each <code>&lt;option&gt;</code> has <code>title={description}</code>.</li>
+      <li><code>aria-describedby</code> = help id, plus <code>approval-mode-error</code> when <code>modeError</code> is set.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>With <code>enabled=false</code> nothing renders and the bar has no gap for it.</li>
+      <li>With <code>autopilot=false</code> only two options show.</li>
+      <li>A 422 on Autopilot restores the previous mode and shows the exact alert copy.</li>
+      <li>A mode chosen on a new chat is applied before the first message is sent.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="cp-goal">
+  <header><h4>Goal mode and BudgetField</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/composer.tsx goal props + components/budget-field.tsx + lib/goal.ts</span></header>
+  <div class="body">
+    <p>The Goal chip turns the draft into a goal objective. BudgetField sets an optional token budget. Starting a goal while another exists asks first. The goal bar above the stream is specified in the Goals part.</p>
+    <div class="specimen" aria-hidden="true"><div class="cp-spec-bar"><span class="cp-spec-chip is-on">Goal</span><span class="cp-spec-chip">Custom</span><span class="cp-spec-chip">50k</span></div></div>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>Goal chip</dt><dd><code>button.chip.goal-chip</code> target 14 + "Goal", <code>aria-pressed={goalMode}</code>, title "Set this message as the conversation goal"</dd><dt>BudgetField</dt><dd><code>span.budget-field</code> inline-flex, wrap, gap 6px</dd><dt>select</dt><dd><code>span.select &gt; label.sr-only "Budget" + select + Icon upDown 13</code>, 30px</dd><dt>custom input</dt><dd><code>input.input.budget-custom</code> 96×30, radius 9px, 13px, <code>maxLength={12}</code>, <code>inputMode="numeric"</code>, placeholder "e.g. 50k", <code>aria-label="Custom token budget"</code>, autofocuses when shown</dd><dt>error</dt><dd><code>span.budget-error[role=alert]</code> full row (flex-basis 100%), 12px</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>chip pressed</dt><dd>bg <code>--accent-soft</code>, text <code>--accent-fg</code>, border transparent</dd><dt>input invalid</dt><dd>border <code>--bad</code>, ring <code>0 0 0 3px color-mix(in srgb, var(--bad) 14%, transparent)</code></dd><dt>error text</dt><dd><code>--bad</code> (today <code>--error-text</code>)</dd></dl>
+    <h4>Budget options</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Label</th><th>Value</th></tr></thead><tbody>
+    <tr><td>No budget</td><td><code>null</code></td></tr><tr><td>25k tokens</td><td><code>25_000</code></td></tr><tr><td>100k tokens</td><td><code>100_000</code></td></tr><tr><td>250k tokens</td><td><code>250_000</code></td></tr><tr><td>Custom…</td><td><code>"custom"</code></td></tr>
+    </tbody></table></div>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Off</td><td>default</td><td>chip unpressed, no budget</td><td></td></tr>
+    <tr><td>On</td><td>chip click, <code>startGoal()</code>, <code>/goal</code> prompt</td><td><code>.goal-mode</code>, goal head, BudgetField shown, Send label "Start goal"</td><td>"New goal" + "The assistant keeps working until the goal is done, paused or out of budget."</td></tr>
+    <tr><td>Custom, untouched</td><td>Custom chosen</td><td>input shown, no error</td><td></td></tr>
+    <tr><td>Invalid</td><td><code>touched &amp;&amp; !valid</code> (after blur)</td><td>input <code>aria-invalid</code>, error row</td><td>"Enter a whole number of tokens, like 50000 or 50k (up to 10M)."</td></tr>
+    <tr><td>Submit while invalid</td><td>Enter or Start goal</td><td>notice also shows <code>budgetHelp</code>; nothing sent</td><td>same</td></tr>
+    <tr><td>Replace confirm</td><td>goal exists and is not <code>complete</code></td><td>inline <code>role="alertdialog"</code> card above the composer <span class="tag proposal">proposal</span> D-NEW-06</td><td>see Copy</td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>export type BudgetValue = { tokens: number | null; valid: boolean };
+// BudgetField props
+{ initial: number | null; onChange: (v: BudgetValue) =&gt; void;
+  selectClassName?: string; showError?: boolean /* true */; autoFocus?: boolean /* false */; }
+// internal: choice ("" | preset string | "custom"), custom (text), touched
+export const MAX_TOKEN_BUDGET = 10_000_000;
+// parseTokenBudget(text): trim, /^(\d[\d,_]*)(k?)$/i, strip , and _, ×1000 for k,
+//   must be a safe integer, &gt; 0 and &lt;= MAX_TOKEN_BUDGET, else null
+type GoalStatus = "active" | "paused" | "blocked" | "usageLimited" | "budgetLimited" | "complete";
+interface Goal { objective: string; status: GoalStatus; tokenBudget: number | null;
+  tokensUsed: number; timeUsedSeconds: number; createdAt: number | null;
+  updatedAt: number | null; tokensObserved?: number; }</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Accepted: <code>50000</code>, <code>50,000</code>, <code>50_000</code>, <code>50k</code>, <code>1</code>, <code>10000k</code>. Rejected: <code>0</code>, <code>50m</code>, <code>1.5k</code>, <code>10001k</code>, blank custom.</li>
+      <li><code>choice</code> defaults to <code>"custom"</code> when <code>initial</code> is not a preset. BudgetField reports its initial value on mount. <code>touched</code> is set on custom blur and reset on select change.</li>
+      <li>Toggle on: <code>startGoal(text)</code> closes the panel, sets goal mode, keeps the draft and focuses with the caret at the end. Toggle off or Cancel: goal mode off, draft kept.</li>
+      <li>Goal mode closes the slash menu and never opens it. The mention picker still works.</li>
+      <li>Submit: <code>goalCommand(text, goalBudget)</code> → <code>thread/goal/set { objective, tokenBudget }</code>. This is the only command that can create a session.</li>
+      <li>Replace: today <code>window.confirm("Replace the current goal with this one?")</code>. v3 replaces it with an inline confirm card showing the current objective and <code>max(tokensUsed, tokensObserved)</code> of <code>tokenBudget</code>. Confirm sends <code>thread/goal/clear</code>, then the new set. Keep current closes the card and keeps the draft.</li>
+      <li>On success goal mode exits and the budget resets to <code>null</code>.</li>
+      <li>Blocked while running like other commands: Start goal is disabled and the notice copy from the slash table applies.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Textarea label becomes "Goal". Send <code>aria-label="Start goal"</code>.</li>
+      <li>Esc exits goal mode only after menus close (see keyboard table).</li>
+      <li>Confirm card: focus moves to "Replace goal"; Esc = Keep current; focus returns to the textarea.</li>
+    </ul>
+    <h4>Copy</h4>
+    <ul><li>Confirm title "Replace the current goal?"</li><li>Body "{objective} is {statusLabel} with {used} of {budget} tokens used. A chat holds one goal, so starting this one clears it." When no budget: "{objective} is {statusLabel}. A chat holds one goal, so starting this one clears it." <span class="tag proposal">proposal</span> D-NEW-06</li><li>Buttons "Replace goal", "Keep current"</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>"50m" shows the budget error after blur and Start goal does nothing.</li>
+      <li>A 13th character cannot be typed into the custom input.</li>
+      <li>With an active goal, starting a new one shows the confirm; confirming sends clear then set.</li>
+      <li>With a complete goal no confirm appears.</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="cp-menus-h">Menus above the text</h3>
+
+<div class="comp" id="cp-mention">
+  <header><h4>MentionMenu (@-mentions)</h4><span class="tag derive">derive</span><span class="tag backend">backend</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/mention-menu.tsx (new) · lib/mentions.ts (new) · BE-15</span></header>
+  <div class="body">
+    <p>Typing @ opens one picker for files, agents and connected tools. A pick inserts an atomic mention token. On send, the message carries the text plus a <code>mentions[]</code> list so the agent gets references, not only names.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>menu</dt><dd>same frame as the slash menu: absolute, <code>bottom: calc(100% + 8px)</code>, full composer width, max-height 260px, overflow-y auto, padding 4px (v3 6px), radius 12px, <code>--shadow-lg</code>, z-index 5 (<code>--z-*</code> menu token)</dd><dt>group header</dt><dd>11px/700 uppercase, letter-spacing .07em, <code>--ink-2</code>, padding 8px 8px 4px, 14px icon</dd><dt>row</dt><dd>grid <code>26px minmax(0,1fr) auto</code>, gap 10px, padding 6px 8px, radius 9px, 13px</dd><dt>row title</dt><dd>13px/600, match highlighted with <code>mark</code></dd><dt>row sub</dt><dd>12px <code>--ink-2</code>, one line, ellipsis</dd><dt>footer</dt><dd>border-top 1px <code>--line</code>, 11.5px <code>--ink-2</code>, kbd hints "↑ ↓ move", "Enter insert", "Esc close"</dd><dt>token in text</dt><dd>inline-flex, height 22px, padding 0 7px, radius 7px, 13px/600, 14px icon, gap 4px</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>active row</dt><dd>bg <code>--accent-soft</code>, tile <code>--accent-fg</code> with <code>--on-accent</code></dd><dt>hover</dt><dd><code>--surface-3</code></dd><dt>mark</dt><dd><code>color-mix(in srgb, var(--accent) 22%, transparent)</code>, text inherit</dd><dt>token</dt><dd>bg <code>--accent-soft</code>, text <code>--accent-fg</code></dd><dt>kbd</dt><dd>11px mono, border <code>--line-strong</code>, bg <code>--surface-2</code></dd></dl>
+    <h4>Groups</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Order</th><th>Group</th><th>Source</th><th>Title / sub</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>1</td><td>Files</td><td><code>GET /api/sessions/:id/documents</code> + uploaded <code>DraftFile</code>s; excludes <code>kind: "visualization"</code></td><td><code>name</code> / "{kindLabel} · {size}"</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>2</td><td>Agents</td><td><code>GET /api/agents</code> (<code>AgentSummary</code>), plus running helpers from <code>SubAgentState</code></td><td><code>handle</code> ?? <code>name</code> / <code>description</code></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>3</td><td>Tools</td><td>per-session tool list</td><td>server name / tool names joined ", "</td><td><span class="tag backend">backend</span> BE-15</td></tr>
+    </tbody></table></div>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Closed</td><td>no active query</td><td>none</td><td></td></tr>
+    <tr><td>Open</td><td>@ at start or after whitespace, caret inside <code>@[^\s@]*</code></td><td>groups, first row active</td><td></td></tr>
+    <tr><td>Loading</td><td>documents or tools fetch pending</td><td>group shows one skeleton row</td><td></td></tr>
+    <tr><td>No match</td><td>all groups empty</td><td>single muted row</td><td>"No files, agents or tools match “{q}”"</td></tr>
+    <tr><td>Tools unavailable</td><td>BE-15 missing or failed</td><td>Tools group hidden</td><td></td></tr>
+    <tr><td>No session</td><td>new chat</td><td>Files group lists held files only; Tools hidden</td><td></td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>type MentionKind = "file" | "agent" | "tool";
+interface MentionQuery { start: number; end: number; q: string }   // indexes into text
+interface DraftMention {                     // client
+  kind: MentionKind; id: string; label: string;
+  start: number; end: number;                // range of "@label" in text, kept in sync on edit
+}
+// BE-15: GET /api/sessions/:id/tools
+interface SessionToolServer { id: string; name: string; tools: { name: string; description?: string }[] }
+// BE-15: send body gains mentions
+// transport.send(sessionId, text, clientId, { mentions })
+interface MessageMention { kind: MentionKind; id: string; label: string }  // BE-15
+// Message.mentions?: MessageMention[]                                      // BE-15</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Trigger: @ at index 0 or after whitespace. An email like <code>priya@example.com</code> never opens it. Closes on space, newline, Esc, blur, or caret leaving the range.</li>
+      <li>Filtering: case-insensitive substring on title and sub; prefix matches rank first, then alphabetical. Max 5 rows per group, fixed group order.</li>
+      <li>Insert: replaces <code>@q</code> with <code>@{label}</code> plus one space, records a <code>DraftMention</code>, closes, keeps focus.</li>
+      <li>Tokens are atomic. The textarea stays plain text; the token look comes from an overlay drawn in the <code>.smooth-mirror</code> layer at the mention ranges. Backspace at a token end deletes the whole token. Typing inside a token drops that mention and leaves the text.</li>
+      <li>Only one menu at a time. The slash menu wins when the text starts with <code>/</code> and has no whitespace.</li>
+      <li>Send: until BE-15 ships, mentions are sent as text only and <code>mentions</code> is omitted. Queued messages keep their mentions.</li>
+      <li>Agent mentions do not switch the agent. They name a helper or agent for the main agent to use.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Textarea combobox attributes while open: <code>aria-controls="chat-mentions"</code>, <code>aria-expanded="true"</code>, <code>aria-activedescendant="chat-mention-{i}"</code>, <code>aria-autocomplete="list"</code>.</li>
+      <li>Menu: <code>role="listbox" aria-label="Mention"</code>; group headers <code>role="presentation"</code>; each group is <code>role="group" aria-label="Files|Agents|Tools"</code>; rows <code>role="option" aria-selected</code>.</li>
+      <li>↑/↓ move across groups with wrap. Enter or Tab inserts. Esc closes. Rows use <code>onMouseDown preventDefault</code> to keep focus.</li>
+      <li>Polite live region: "{n} results" on open, not on every keystroke (debounce 300ms <span class="tag proposal">proposal</span> D-NEW-07).</li>
+      <li>Screen readers read tokens as their plain text ("@label"), so no extra markup is needed.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Typing an email address never opens the picker.</li>
+      <li>"@ha" lists matching files first, then agents; each group shows at most 5.</li>
+      <li>One Backspace removes a whole inserted token.</li>
+      <li>Without BE-15 the Tools group is absent and sends have no <code>mentions</code> field.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="cp-slash">
+  <header><h4>SlashMenu</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">app/page.tsx inline #chat-commands → components/v2/slash-menu.tsx · data lib/slash-commands.ts</span></header>
+  <div class="body">
+    <p>Autocomplete for <code>/</code> commands. v3 keeps the matching and completion logic, adds an icon per command and shows commands that are blocked during a turn as locked rows instead of failing after Enter.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>menu</dt><dd><code>div#chat-commands.slash-menu[role=listbox][aria-label="Chat commands"]</code>; absolute, z-index 5, <code>bottom: calc(100% + 8px)</code>, full width, max-height 260px, overflow-y auto, padding 4px, radius 12px, <code>--shadow-lg</code></dd><dt>header</dt><dd>v3: "Commands matching {text}", same style as mention group header <span class="tag derive">derive</span></dd><dt>row</dt><dd><code>button#chat-command-{i}[role=option]</code>; v3 grid <code>26px minmax(0,1fr) auto</code>, gap 10px, padding 6px 8px, radius 9px</dd><dt>name</dt><dd>12px mono, <code>--accent-fg</code></dd><dt>description</dt><dd><code>--ink-2</code> (today <code>--ink-3</code>; raised for text under 13px)</dd><dt>trailing</dt><dd>"Enter" kbd on the active row; lock 14 on blocked rows</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>selected / hover</dt><dd><code>--surface-3</code></dd><dt>blocked row</dt><dd>opacity .5, <code>aria-disabled="true"</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Open</td><td><code>commandOpen</code> and <code>suggestCommands(text)</code> non-empty</td><td>rows, index 0 selected</td><td></td></tr>
+    <tr><td>Closed</td><td>text fails <code>/^\/[a-z]*$/i</code> (space, argument or second line), no match, goal mode, Esc</td><td>none</td><td></td></tr>
+    <tr><td>Running</td><td><code>running</code></td><td>command rows locked with sub "Blocked until the turn ends"; panels and /help normal <span class="tag derive">derive</span></td><td></td></tr>
+    <tr><td>No session</td><td><code>!session</code></td><td>session-only rows locked with sub "Start a conversation first" <span class="tag derive">derive</span></td><td></td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li><code>suggestCommands(text)</code>: matches only while text is <code>/^\/[a-z]*$/i</code>, filters by <code>name.startsWith(text.toLowerCase())</code>.</li>
+      <li>↑/↓ move with wrap. Tab or Enter on a partial name inserts <code>"{name} "</code>, closes the menu, resets the index and refocuses. Enter on an exact name runs it. Click completes.</li>
+      <li>Locked rows can still be completed (the text is useful later), but Enter on the full command shows the blocked notice and keeps the draft.</li>
+      <li>Row <code>onMouseDown preventDefault</code> keeps textarea focus.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Textarea: <code>aria-controls="chat-commands"</code> when rows exist, <code>aria-haspopup="listbox"</code>, <code>aria-expanded</code>, <code>aria-activedescendant="chat-command-{i}"</code>.</li>
+      <li>Rows: <code>aria-selected</code>; locked rows <code>aria-disabled="true"</code> and their sub text is in the accessible name.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>"/co" + Enter gives "/compact " and does not run it.</li>
+      <li>"/compact" + Enter runs it.</li>
+      <li>"/model x" shows no menu.</li>
+      <li>While running, /goal shows locked and /mcp does not.</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="cp-commands">Slash commands</h3>
+<p>Source: <code>lib/slash-commands.ts</code> <code>parseChatInput</code>. All values below exist today except the "Needs session" column's v3 locking, which is derive.</p>
+<pre><code>type ParsedInput =
+  | { kind: "message"; text: string }
+  | { kind: "invalid"; message: string }
+  | { kind: "help" }
+  | { kind: "panel"; panel: "mcp" | "tools" | "agents" }
+  | { kind: "command"; method: string; params: Record&lt;string, unknown&gt;; success: string };
+export function suggestCommands(text: string): typeof slashCommands;
+export function parseChatInput(text: string): ParsedInput;</code></pre>
+<ul>
+  <li>Trimmed input starting with <code>//</code> sends as a message with the first <code>//</code> replaced by <code>/</code>.</li>
+  <li>Pattern <code>/^\/(\S+)(?:\s+([\s\S]*))?$/</code>; name lowercased. Unknown names (for example <code>/usr/bin</code>) send as plain messages.</li>
+  <li>Commands other than <code>/goal</code>, <code>/model</code>, <code>/effort</code> reject arguments: "{name} takes no arguments. Use /help for command syntax, or prefix with // to send it as a question."</li>
+</ul>
+<div class="tw"><table class="tbl"><thead><tr><th>Command</th><th>Menu description</th><th>Arguments</th><th>Method / params</th><th>Success text</th><th>Blocked while running</th><th>Needs session</th></tr></thead><tbody>
+<tr><td><code>/goal</code></td><td>Set a goal, or /goal show | pause | resume | budget &lt;tokens&gt; | clear</td><td>none or <code>show</code></td><td><code>thread/goal/get</code></td><td>""</td><td>yes</td><td>yes</td></tr>
+<tr><td></td><td></td><td><code>clear</code></td><td><code>thread/goal/clear</code></td><td>Goal cleared.</td><td>yes</td><td>yes</td></tr>
+<tr><td></td><td></td><td><code>pause</code></td><td><code>thread/goal/set {status:"paused"}</code></td><td>Goal paused.</td><td>yes</td><td>yes</td></tr>
+<tr><td></td><td></td><td><code>resume</code></td><td><code>thread/goal/set {status:"active"}</code></td><td>Goal resumed.</td><td>yes</td><td>yes</td></tr>
+<tr><td></td><td></td><td><code>budget &lt;tokens&gt;</code></td><td><code>thread/goal/set {tokenBudget}</code></td><td>Token budget set to N. Invalid: "Usage: /goal budget &lt;tokens&gt;, for example /goal budget 50k"</td><td>yes</td><td>yes</td></tr>
+<tr><td></td><td></td><td>any other text</td><td><code>thread/goal/set {objective}</code></td><td>Goal updated.</td><td>yes</td><td>no, creates the session</td></tr>
+<tr><td><code>/fork</code></td><td>Create a new conversation branch</td><td>none</td><td><code>thread/fork</code></td><td>Created a conversation branch.</td><td>yes</td><td>yes</td></tr>
+<tr><td><code>/compact</code></td><td>Summarize this conversation context</td><td>none</td><td><code>thread/compact/start</code></td><td>Context compaction requested.</td><td>yes</td><td>yes</td></tr>
+<tr><td><code>/model</code></td><td>Change model: /model &lt;model name&gt;</td><td>one whitespace-free token, required</td><td><code>thread/settings/update {model}</code></td><td>Model changed to X. Missing: "Usage: /model &lt;model identifier&gt;"</td><td>yes</td><td>yes</td></tr>
+<tr><td><code>/effort</code></td><td>Change reasoning: /effort &lt;level&gt;</td><td><code>none|minimal|low|medium|high|xhigh|ultra</code></td><td><code>thread/settings/update {effort}</code></td><td>Reasoning effort changed to X. Else "Usage: /effort &lt;none|minimal|low|medium|high|xhigh|ultra&gt;"</td><td>yes</td><td>yes</td></tr>
+<tr><td><code>/archive</code></td><td>Archive this conversation</td><td>none</td><td><code>thread/archive</code></td><td>Conversation archived.</td><td>yes</td><td>yes</td></tr>
+<tr><td><code>/unarchive</code></td><td>Restore this conversation</td><td>none</td><td><code>thread/unarchive</code></td><td>Conversation restored.</td><td>yes</td><td>yes</td></tr>
+<tr><td><code>/tools</code></td><td>Capabilities, documents &amp; visuals</td><td>none</td><td>panel <code>tools</code></td><td>opens panel, clears draft</td><td>no</td><td>no</td></tr>
+<tr><td><code>/mcp</code></td><td>Manage connected tools (MCP)</td><td>none</td><td>panel <code>mcp</code></td><td>opens panel, clears draft</td><td>no</td><td>no</td></tr>
+<tr><td><code>/agents</code></td><td>Show helper agents in this conversation</td><td>none</td><td>panel <code>agents</code> (agents tab)</td><td>opens tab, clears draft</td><td>no</td><td>no</td></tr>
+<tr><td><code>/help</code></td><td>Show available chat commands</td><td>none</td><td>server method <code>"help"</code> with a session, else local notice</td><td>help text</td><td>no</td><td>no</td></tr>
+</tbody></table></div>
+<h4>Command copy</h4>
+<ul>
+  <li>Blocked while running: "Wait for the current response to finish or press Stop before running a command. Your draft is saved."</li>
+  <li>No session: "Start a conversation with a message before using this command. Your draft is saved."</li>
+  <li>Local help (no session). Today it omits <code>/agents</code>; fix: "Commands: /goal [objective|show|pause|resume|budget &lt;tokens&gt;|clear], /fork, /compact, /model &lt;identifier&gt;, /effort &lt;level&gt;, /archive, /unarchive, /tools, /mcp, /agents. Use // to send a literal command as a question." <span class="tag derive">derive</span></li>
+  <li>Network failure after send: entry becomes <code>state: "unknown"</code> with "Connection interrupted. Refresh the conversation to check the saved result before trying again."</li>
+</ul>
+<p>Commands run as a user entry with <code>command: { method, params, state: "running" }</code> and <code>POST /api/sessions/:id/capabilities { method, params, command: { clientId, text } }</code>. The result replaces the entry (<code>CommandResult</code>, Stream part). On <code>succeeded</code> the draft clears. Commands are never queued: under D-05 a command typed while running is refused with the blocked copy and the draft stays.</p>
+
+<h3 id="cp-running-h">Sending, queueing and steering</h3>
+
+<div class="comp" id="cp-submit">
+  <header><h4>Submit pipeline</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">app/page.tsx submitInput() · extended with the queue branch</span></header>
+  <div class="body">
+    <p>One function decides what Enter or Send does. v3 inserts the queue branch (D-05) and the file wait. Everything else keeps today's order.</p>
+    <h4>Behavior</h4>
+    <ol>
+      <li>Silent no-op when: page <code>busy</code>, <code>sending.current</code>, blank text, no session and no <code>agentId</code>, or any file chip is <code>uploading</code> <span class="tag derive">derive</span>.</li>
+      <li>Slash menu has a highlighted option whose name differs from the text: complete it, stop.</li>
+      <li>Mention menu open: insert the active row, stop <span class="tag derive">derive</span>.</li>
+      <li>Goal mode with an invalid budget: <code>notice = budgetHelp</code>, stop.</li>
+      <li>Parse: goal mode → <code>goalCommand(text, goalBudget)</code>; else <code>parseChatInput(text)</code>.</li>
+      <li>Editing a queued item (<code>editingQueueId</code>): only <code>message</code> is allowed. Save the text back in place, restore the stashed draft, stop. Anything else: notice "Queued messages can only be text. Your draft is saved." <span class="tag proposal">proposal</span> D-05.</li>
+      <li><code>running</code> and kind <code>message</code>: add to the queue (next block), clear the draft, stop <span class="tag proposal">proposal</span> D-05. Today this steers.</li>
+      <li>Goal mode with a goal that is not <code>complete</code>: replace confirm; when confirmed send <code>thread/goal/clear</code> first.</li>
+      <li><code>help</code> with a session goes to the server as method <code>"help"</code>.</li>
+      <li>By kind: <code>message</code> → <code>send(text)</code>; <code>panel</code> → clear draft, open <code>mcp</code>/<code>tools</code>/agents tab; <code>invalid</code> → notice, draft kept; <code>help</code> without a session → local help notice, draft cleared; <code>command</code> while running → blocked notice; <code>command</code> with no session → only <code>thread/goal/set</code> with an objective may create it, else the no-session notice; <code>command</code> → optimistic command entry and capabilities POST.</li>
+    </ol>
+    <p><code>send(text)</code>: clears the draft, uploads held files, appends an optimistic user entry with <code>delivery: "pending"</code>, runs <code>ensureSession()</code> if needed (applies <code>draftMode</code> and <code>draftSettings</code>), then <code>transport.send(sessionId, value, clientId)</code>. Success: <code>delivery: "accepted"</code> with <code>turnId</code> and <code>steer</code>. Failure: <code>delivery: "unknown"</code> and the error banner.</p>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Double Enter within one frame sends once (<code>sending</code> ref).</li>
+      <li>A retried command reuses its <code>clientId</code> (<code>commandAttempt</code> ref).</li>
+      <li>A stale response from a previous session is ignored (<code>generation</code> ref).</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="cp-queue">
+  <header><h4>QueueList</h4><span class="tag derive">derive</span><span class="tag proposal">proposal</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/composer-queue.tsx (new) · lib/queue.ts (new) · D-05</span></header>
+  <div class="body">
+    <p>Messages typed while a turn runs line up in a visible list above the composer. Each one can be edited, removed or reordered before it goes. They send one at a time after the turn ends.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>list</dt><dd><code>div.cp-queue</code> flex column, gap 6px, above the composer inside the form, same max-width 740px</dd><dt>header</dt><dd>12px <code>--ink-2</code>: "<b>Queued · {n}</b>" + "Send in order after this turn"; paused adds a Resume button (<code>.btn-soft</code>, 26px)</dd><dt>item</dt><dd>grid <code>16px 20px minmax(0,1fr) auto</code>, gap 8px, padding <code>6px 6px 6px 8px</code>, radius 11px, border 1px, 13px</dd><dt>grip</dt><dd>16px, <code>cursor: grab</code>, <code>--ink-2</code></dd><dt>position</dt><dd>11px/600 mono, centered</dd><dt>text</dt><dd>one line, ellipsis; mention tokens render as plain "@label"</dd><dt>actions</dt><dd>Edit and Remove, 26×26 icon buttons</dd><dt>max height</dt><dd>list scrolls inside after 4 items (about 176px) <span class="tag proposal">proposal</span> D-NEW-08</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>item</dt><dd>bg <code>--surface</code>, border <code>--line</code></dd><dt>editing</dt><dd>border <code>--accent</code>, ring <code>0 0 0 3px var(--accent-soft)</code></dd><dt>failed</dt><dd>border <code>color-mix(in srgb, var(--bad) 40%, transparent)</code>, bg <code>--bad-bg</code>, sub text <code>--bad</code></dd><dt>sending</dt><dd>position replaced by a 12px spinner</dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Hidden</td><td>queue empty</td><td>not rendered</td><td></td></tr>
+    <tr><td>Waiting</td><td>items and a turn running</td><td>list</td><td>"Send in order after this turn"</td></tr>
+    <tr><td>Sending</td><td>head item dispatched</td><td>head shows spinner; others wait</td><td>"Sending 1 of {n}"</td></tr>
+    <tr><td>Paused</td><td>see pause reasons</td><td>header with Resume; items stay</td><td>by reason, below</td></tr>
+    <tr><td>Item editing</td><td>Edit or ↑ recall</td><td>item outlined, textarea holds its text</td><td>placeholder "Editing queued message {i}. Enter saves, Esc cancels."</td></tr>
+    <tr><td>Item failed</td><td>send of that item failed</td><td>failed style, stays at the head</td><td>"Not sent. {userMessage}"</td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>interface QueuedMessage {
+  id: string;                  // becomes the clientId when sent, so a retry is idempotent
+  text: string;
+  mentions?: DraftMention[];   // kept; sent as MessageMention[] once BE-15 exists
+  createdAt: number;           // ms, client clock
+  state: "waiting" | "sending" | "failed";
+  error?: string;
+}
+type QueuePauseReason = "stopped" | "failed" | "request" | "turnError" | "offline" | "manual";
+// sessionStorage key: "truex.queue." + sessionId  (value: QueuedMessage[] with state reset to "waiting")</code></pre>
+    <h4>Ordering rules</h4>
+    <ol>
+      <li>First in, first out. Position is the order shown; reorder changes it.</li>
+      <li>Only <code>message</code> input queues. Commands, panels and help never queue (commands are refused with the blocked copy; panels and help run at once).</li>
+      <li>Dispatch starts when <code>running</code> goes false after <code>turn.completed</code> and no pause reason is set. Wait one frame so the final assistant entry renders first.</li>
+      <li>Exactly one item is in flight. The next item waits until the turn started by the previous item completes. Queued messages never steer.</li>
+      <li>Steer never touches the queue. A steer goes into the live turn ahead of every queued item.</li>
+      <li>If the person sends a normal message when idle while items exist (for example after a pause), that message joins the end of the queue and Resume starts it. Nothing jumps the queue except Steer <span class="tag proposal">proposal</span> D-NEW-09.</li>
+      <li>An active goal does not change the order. Queued items send at the next turn boundary like any message.</li>
+      <li>Max 10 items. The 11th Enter shows notice "The queue is full. Send or remove a queued message first. Your draft is saved." <span class="tag proposal">proposal</span> D-NEW-08.</li>
+    </ol>
+    <h4>Pause reasons and failure</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Reason</th><th>Trigger</th><th>Header copy</th><th>Resume does</th></tr></thead><tbody>
+    <tr><td><code>stopped</code></td><td>the person pressed Stop</td><td>"Paused after Stop. {n} queued."</td><td>starts dispatch</td></tr>
+    <tr><td><code>request</code></td><td>a <code>PendingRequest</code> is docked</td><td>"Waiting for your answer above."</td><td>auto-resumes when no requests remain; no button</td></tr>
+    <tr><td><code>turnError</code></td><td>turn ended with a <code>TurnFailure</code></td><td>"Paused because the last response failed."</td><td>starts dispatch</td></tr>
+    <tr><td><code>failed</code></td><td>sending the head item failed (network or 4xx/5xx)</td><td>"Paused. 1 message wasn't sent."</td><td>retries the head with the same <code>clientId</code></td></tr>
+    <tr><td><code>offline</code></td><td><code>navigator.onLine</code> false or stream disconnected</td><td>"Paused while offline."</td><td>auto-resumes on reconnect</td></tr>
+    <tr><td><code>manual</code></td><td>the person pressed Pause in the header menu</td><td>"Paused."</td><td>starts dispatch</td></tr>
+    </tbody></table></div>
+    <ul>
+      <li>A failed item with <code>delivery: "unknown"</code> is not resent automatically, since the server may have it. Resume first reloads the session and drops the item if a message with its <code>clientId</code> exists.</li>
+      <li>A <code>dead</code> session (410 <code>THREAD_LOST</code>) clears nothing: the queue stays visible, Resume is disabled and each item offers "Copy". Header: "This chat can't take new messages."</li>
+      <li>Switching chats keeps each chat's queue in session storage. Reload restores it in <code>paused: "manual"</code> so nothing sends without a click.</li>
+    </ul>
+    <h4>Edit, recall and reorder</h4>
+    <ul>
+      <li>Edit: stash the current draft, load the item text into the textarea, set <code>editingQueueId</code>, focus. Enter saves in place. Esc cancels and restores the stash. Clearing the text and pressing Enter removes the item.</li>
+      <li>↑ recall: when the draft is empty, the caret is at index 0, no menu is open and the queue is not empty, ↑ opens the last item for edit.</li>
+      <li>An item being edited is skipped by dispatch until saved; the rest keep their order.</li>
+      <li>Reorder by pointer: drag the grip; drop indicator is a 2px <code>--accent</code> line. Reorder by keyboard: focus an item and press Alt+↑ or Alt+↓.</li>
+      <li>Remove: no confirm. Show a 5s undo toast "Removed queued message. Undo" <span class="tag proposal">proposal</span> D-NEW-08.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>List <code>role="list" aria-label="Queued messages"</code>; items <code>role="listitem"</code> with <code>tabindex="0"</code> and accessible name "Queued message {i} of {n}: {text}".</li>
+      <li>Buttons: "Edit queued message {i}", "Remove queued message {i}". Grip <code>aria-hidden</code>; keyboard reorder is announced: "Moved to position {i}".</li>
+      <li>Polite live region announces "Queued. {n} waiting." on add and "Sending queued message" on dispatch.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Enter during a turn adds an item and does not create a steer message.</li>
+      <li>Two items send in order, each after the previous turn completes.</li>
+      <li>After Stop the queue stays and sends nothing until Resume.</li>
+      <li>A docked request pauses dispatch; answering it resumes.</li>
+      <li>Reload restores the queue paused.</li>
+      <li>Alt+↑ on item 2 makes it item 1 and the order is used on dispatch.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="cp-steer">
+  <header><h4>Steer button</h4><span class="tag exists">exists</span><span class="tag proposal">proposal</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/composer.tsx · D-05</span></header>
+  <div class="body">
+    <p>Sends the draft into the running turn now. The backend supports this today (<code>Message.steer</code>); v3 only moves it from Enter to an explicit button.</p>
+    <dl class="kv"><dt>size</dt><dd>height 34px, padding 0 12px, radius 11px, gap 6px, steer icon 14 + "Steer", 13px/600</dd><dt>tokens</dt><dd>border <code>color-mix(in srgb, var(--accent) 45%, transparent)</code>, bg <code>--accent-soft</code>, text <code>--accent-fg</code>; disabled opacity .45</dd><dt>at ≤400px</dt><dd>icon only, 34×34, <code>aria-label="Steer"</code></dd></dl>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Shown while <code>running</code>. Enabled when <code>text.trim()</code>, not <code>stopping</code>, no upload in flight, not editing a queued item, and the parsed input is a <code>message</code>.</li>
+      <li>Click: <code>send(text)</code> as today while running; the entry gets <code>steer: true</code>.</li>
+      <li>If the turn ends between render and click, the draft goes through the normal idle send instead.</li>
+      <li>Failure: same as send, <code>delivery: "unknown"</code> and the banner. The draft is not restored (it is in the entry).</li>
+      <li>Keyboard shortcut mod+Enter steers while running and sends when idle <span class="tag proposal">proposal</span> D-NEW-10.</li>
+    </ul>
+    <h4>Copy</h4>
+    <ul><li>Label "Steer", title "Send now, into the current response"</li><li>Rule line under the bar while running (12px <code>--ink-2</code>): "Send adds to the queue. Steer sends now, into this turn."</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Steer during a turn produces a user entry with <code>steer: true</code> and the queue is unchanged.</li><li>Steer is disabled while Stopping.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="cp-send">
+  <header><h4>Send, Stop and Stopping</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/composer.tsx .send / .send.is-stop · Stopping is derive</span></header>
+  <div class="body">
+    <p>The right end of the bar. Send starts or queues, Stop interrupts the turn, and Stopping holds until the stream really closes.</p>
+    <div class="specimen" aria-hidden="true"><div class="cp-spec-bar"><span class="cp-spec-grow"></span><span class="cp-spec-steer">Steer</span><span class="cp-spec-send">↑</span><span class="cp-spec-stop">■</span></div></div>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>Send</dt><dd><code>button[type=submit].send</code> 34×34, radius 11px, arrowUp 17 stroke 2.25; disabled opacity .35; active scale .94</dd><dt>Stop</dt><dd><code>button.send.is-stop</code> 34×34, stop icon 12 stroke 3</dd><dt>Stopping</dt><dd><code>.send.is-stopping</code> auto width, padding 0 12px, gap 6px, 12px spinner + "Stopping", 13px</dd><dt>order</dt><dd>Steer, Send, Stop (v3 puts Stop last so its position never moves)</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>Send</dt><dd>bg <code>--accent-fg</code> (today <code>--accent</code>; changed for contrast), icon <code>--on-accent</code></dd><dt>Stop</dt><dd>bg <code>--ink</code>, icon <code>--bg</code></dd><dt>Stopping</dt><dd>bg <code>--surface-3</code>, text <code>--ink-2</code></dd></dl>
+    <h4>Matrix</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Situation</th><th>Steer</th><th>Send</th><th>Stop</th><th>Textarea</th></tr></thead><tbody>
+    <tr><td>Idle, empty draft</td><td>hidden</td><td>shown, disabled</td><td>hidden</td><td>enabled</td></tr>
+    <tr><td>Idle, text</td><td>hidden</td><td>enabled, "Send"</td><td>hidden</td><td>enabled</td></tr>
+    <tr><td>Idle, goal mode, text, valid budget</td><td>hidden</td><td>enabled, "Start goal"</td><td>hidden</td><td>enabled</td></tr>
+    <tr><td>Idle, goal mode, invalid budget</td><td>hidden</td><td>disabled <span class="tag derive">derive</span></td><td>hidden</td><td>enabled</td></tr>
+    <tr><td>File uploading</td><td>disabled</td><td>disabled</td><td>as running</td><td>enabled</td></tr>
+    <tr><td>Request in flight (page <code>busy</code>)</td><td>hidden</td><td>disabled</td><td>shown only if running</td><td>disabled</td></tr>
+    <tr><td>Streaming, empty draft</td><td>shown, disabled</td><td>hidden</td><td>shown</td><td>enabled</td></tr>
+    <tr><td>Streaming, text</td><td>enabled</td><td>enabled, "Queue message" <span class="tag proposal">proposal</span> D-05</td><td>shown</td><td>enabled</td></tr>
+    <tr><td>Streaming, text is a command</td><td>disabled</td><td>enabled; submit shows the blocked notice</td><td>shown</td><td>enabled</td></tr>
+    <tr><td>Stopping</td><td>disabled</td><td>hidden</td><td>replaced by Stopping</td><td>enabled; Enter still queues</td></tr>
+    <tr><td>No session and no agent</td><td>hidden</td><td>disabled</td><td>hidden</td><td>disabled</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li><code>canSend = !!text.trim() &amp;&amp; !busy &amp;&amp; (!!session || !!agentId) &amp;&amp; !uploading</code>.</li>
+      <li>Stop (<code>stopTurn()</code>): if the goal is <code>active</code>, first <code>thread/goal/set { status: "paused" }</code>; then <code>transport.interrupt(id)</code>. A 409 (turn already ended) is swallowed. Set <code>stopping = true</code> and the queue pause reason <code>stopped</code>.</li>
+      <li>Stopping ends when <code>running</code> goes false. If it lasts 10s, show notice "Stopping is taking longer than usual. Press Stop again to retry." and restore the Stop button <span class="tag proposal">proposal</span> D-NEW-11.</li>
+      <li>Stop title: goal active → "Pause the goal and stop the current response", else "Stop the current response".</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Send <code>aria-label</code>: "Send", "Start goal" in goal mode, "Queue message" while running. Stop <code>aria-label="Stop"</code>. Stopping: <code>aria-disabled="true"</code>, <code>aria-live="polite"</code> text "Stopping".</li>
+      <li>When Stop is replaced by Stopping, focus stays on that element; when Stopping ends, focus returns to the textarea.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Every row of the matrix can be reproduced and matches.</li><li>Stop during an active goal pauses the goal before the interrupt.</li><li>A 409 on interrupt shows no error.</li></ul>
+  </div>
+</div>
+
+<h3 id="cp-notes-h">Notes, notices and helpers</h3>
+
+<div class="comp" id="cp-project">
+  <header><h4>ProjectNote (project chip)</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">app/page.tsx .composer-project · Composer above slot</span></header>
+  <div class="body">
+    <p>Tells the person a new chat will be filed in a project, with a way to opt out before the first message.</p>
+    <dl class="kv"><dt>layout</dt><dd>flex, gap 8px, padding 0 4px, 12px, <code>role="status"</code></dd><dt>icon</dt><dd>folder 14, <code>--accent-fg</code></dd><dt>text</dt><dd>"New chat in <b>{name}</b>", text <code>--ink-2</code> (today <code>--ink-3</code>; raised for 12px), name <code>--accent-fg</code> 600</dd><dt>dismiss</dt><dd><code>.icon-btn.ghost</code> 26×26, x 14, <code>aria-label="Don't add to {name}"</code></dd></dl>
+    <h4>Data and behavior</h4>
+<pre><code>draftProjectId: string | null        // page
+draftProject(draftProjectId, projects): Project | undefined   // lib/projects.ts
+// ensureSession() sends projectId; PublicSession.projectId after create</code></pre>
+    <ul>
+      <li>Shown only when <code>!session</code> and <code>draftProject()</code> resolves. It is the first row in the <code>above</code> slot, before file chips.</li>
+      <li>Dismiss: <code>setDraftProjectId(null)</code>, focus to the textarea.</li>
+      <li>After the session is created, the note disappears; project membership moves to the session menu.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Starting "New chat" from a project shows the note with that name.</li><li>Dismissing it creates the chat with no <code>projectId</code>.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="cp-privacy">
+  <header><h4>PrivacyNote</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/observability/privacy-note.tsx · Composer above slot</span></header>
+  <div class="body">
+    <p>A non-blocking heads-up when the draft looks like it contains sensitive data. It never stops sending.</p>
+    <dl class="kv"><dt>markup</dt><dd><code>div.composer-note.is-warn[role=status]</code> &gt; ShieldAlert 14 + span + <code>button.icon-btn.ghost</code> <code>aria-label="Dismiss privacy note"</code></dd><dt>size</dt><dd>padding 6px 10px, radius 10px, gap 8px, 12.5px, wraps</dd><dt>tokens</dt><dd>bg <code>--warn-bg</code>, text <code>--warn-text</code> (today <code>--warning-bg</code>/<code>--warning-text</code>)</dd></dl>
+    <h4>Data and behavior</h4>
+<pre><code>props { draft: string }
+state { note: string; dismissed: string }
+// 250 ms debounce → draftNote(scanText(draft, "userMessage"))  (shared/privacy.ts, lib/observability.ts)</code></pre>
+    <ul>
+      <li>Copy format: "This looks like {a/an label}[, … and …]. It will be sent to the model." Labels come from the scanner vocabulary, never hard-coded.</li>
+      <li>Dismiss hides the note until its text changes. Clearing the draft resets both <code>note</code> and <code>dismissed</code>.</li>
+      <li>Sits after file chips in the <code>above</code> slot. File contents are not scanned.</li>
+      <li>Masked samples of the match are dev-mode only (D-04).</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Typing an email address shows the note within about 250ms.</li><li>Dismissed note stays hidden while the same finding persists and returns when a new kind is added.</li><li>Send stays enabled with the note visible.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="cp-notices">
+  <header><h4>Composer notices</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">app/page.tsx .composer-notice and #approval-mode-error · Composer below slot</span></header>
+  <div class="body">
+    <p>One status line under the textarea for usage, validation and help text, plus one alert line for approval-mode errors.</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>Element</th><th>Role</th><th>Shown when</th><th>Cleared</th><th>Style</th></tr></thead><tbody>
+    <tr><td><code>.composer-notice</code></td><td><code>status</code></td><td><code>notice</code> non-empty</td><td>next keystroke</td><td>12.5px <code>--ink-2</code>, padding 0 4px</td></tr>
+    <tr><td><code>#approval-mode-error.composer-notice.approval-mode-error</code></td><td><code>alert</code></td><td><code>modeError</code> non-empty</td><td>next successful mode change</td><td>12.5px <code>--bad</code>, alert icon 14</td></tr>
+    <tr><td>Running rule line</td><td>none</td><td><code>running</code></td><td>turn ends</td><td>12px <code>--ink-2</code> <span class="tag derive">derive</span></td></tr>
+    </tbody></table></div>
+    <h4>Notice sources</h4>
+    <ul>
+      <li>Slash parser <code>invalid</code> messages and usage strings (see the commands table).</li>
+      <li>Blocked while running, no session, local help.</li>
+      <li><code>budgetHelp</code> on submit with an invalid budget.</li>
+      <li>v3 additions: queue full, model settings error, Stopping slow, queued-edit guard <span class="tag proposal">proposal</span>.</li>
+    </ul>
+    <p>Only the latest notice shows. Notices never block typing.</p>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>"/fork now" shows the no-arguments notice and keeps the draft.</li><li>Typing any character clears <code>.composer-notice</code> but not the approval alert.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="cp-suggest">
+  <header><h4>SuggestedQuestions</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/suggested-questions.tsx + lib/suggestions.ts · rendered by components/chat-messages.tsx</span></header>
+  <div class="body">
+    <p>Up to three follow-up questions under the latest answer. Clicking one sends it.</p>
+    <dl class="kv"><dt>markup</dt><dd><code>nav.suggested-questions[aria-label="Suggested follow-ups"] &gt; ul &gt; li &gt; AnimatedLink.suggested-question[aria-label="Ask: {q}"]</code></dd><dt>size</dt><dd>margin-top 12px, column list gap 4px, 13px/500</dd><dt>tokens</dt><dd>text <code>--accent-fg</code></dd></dl>
+    <h4>Data</h4>
+<pre><code>props { questions: string[]; onSelect: (question: string) =&gt; void; disabled?: boolean }
+splitSuggestions(text: string, streaming: boolean): { body: string; suggestions: string[] }</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Parsing: block <code>[truex-suggestions]</code> … <code>[/truex-suggestions]</code> with list lines (<code>-</code>, <code>*</code>, <code>•</code>, <code>1.</code>, <code>1)</code>). Markers inside code fences are ignored.</li>
+      <li>Max 3, each ≤160 characters; surrounding quotes, backticks, <code>*</code> and <code>_</code> stripped; whitespace collapsed; case-insensitive dedupe.</li>
+      <li>While streaming: suggestions are <code>[]</code>, a partial marker line is hidden, an unclosed block is hidden.</li>
+      <li>Hide rules: shown only when <code>!busy &amp;&amp; !goalMode &amp;&amp; !failure &amp;&amp; !pending.length</code>. v3 also hides them while <code>running</code> or while the queue is non-empty <span class="tag derive">derive</span>, and only on the last assistant turn.</li>
+      <li>Send (<code>askSuggestion</code>): ignored if suggesting, sending, busy or running. Closes menus, clears the notice, puts the question in the composer, focuses, then after 350ms sends it, then restores the previous unsent draft.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Links are in tab order after the answer. Enter activates. Focus moves to the textarea during the 350ms delay.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A block with 5 items shows 3.</li><li>An item of 200 characters is dropped.</li><li>A draft typed before clicking is back in the textarea after the suggestion sends.</li><li>No suggestions show while a request is docked.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="cp-helper">
+  <header><h4>HelperChip</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/helper-chip.tsx · above the composer form in thread state</span></header>
+  <div class="body">
+    <p>A pill pinned above the composer while helper agents run, so the count and elapsed time stay visible when the helper card scrolls away.</p>
+    <dl class="kv"><dt>markup</dt><dd><code>div.helper-chip.status-pill</code>: <code>.pulse</code> dot, "{n} helper(s) running · {LiveDuration}" (<code>aria-hidden</code>), visually hidden polite count, <code>button.link.helper-chip-view</code> "View"</dd><dt>size</dt><dd>30px pill, padding 0 12px, gap 8px, 13px/500, centered, tabular nums</dd><dt>tokens</dt><dd>bg <code>--surface</code>, border <code>--line</code>, <code>--shadow-sm</code>; pulse <code>--accent</code></dd></dl>
+    <h4>Data</h4>
+<pre><code>props { state: SubAgentState; onView: () =&gt; void }
+interface SubAgentState { agents: SubAgent[]; previews: Record&lt;string, string&gt;; skewMs?: number }
+// isRunning = status === "running" || status === "pendingInit"
+// clock: useClock(running.length &gt; 0)</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Renders <code>null</code> when no helper is running. Hidden in hero state.</li>
+      <li>Timer ticks are not announced; the count is (polite).</li>
+      <li>"View" bug fix: <code>viewHelpers</code> queries <code>.helper-group</code>, but <code>HelperGroup</code> renders <code>section.hcard#helpers-{id}</code>, so View always opens the agents panel. Fix: query <code>section.hcard[id^="helpers-"]</code>, take the last one, <code>scrollIntoView({ block: "center" })</code> (instant with reduced motion) and focus it (it has <code>tabIndex=-1</code>). Fall back to the agents panel only when none is in the DOM <span class="tag derive">derive</span>. Better still, add a <code>data-helper-group</code> attribute on the section and query that.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>With 2 running helpers the chip reads "2 helpers running · 0:42" (Example).</li><li>View scrolls to and focuses the latest helper card when it is rendered.</li><li>View opens the agents panel when the card is not in the transcript.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="cp-quicktools">
+  <header><h4>QuickTools (retired)</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/quick-tools.tsx · removed from assistant-tools.tsx and capabilities.tsx</span></header>
+  <div class="body">
+    <p>QuickTools was the only model and effort UI, plus buttons for fork, compact and archive, inside the Tools panel. v3 removes it. Each field moves to where people already look.</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>QuickTools field</th><th>Method</th><th>New home</th></tr></thead><tbody>
+    <tr><td>Model text input "Model identifier (optional)"</td><td><code>thread/settings/update {model}</code></td><td><a href="#cp-model">ModelChip</a> model list, and <code>/model</code></td></tr>
+    <tr><td>Reasoning effort select</td><td><code>thread/settings/update {effort}</code></td><td><a href="#cp-model">ModelChip</a> effort list, and <code>/effort</code></td></tr>
+    <tr><td>"Apply settings"</td><td>same</td><td>gone; each pick applies at once</td></tr>
+    <tr><td>"Fork conversation"</td><td><code>thread/fork</code>, then <code>onFork(session._id)</code></td><td>Conversation menu in the topbar ("Branch conversation") and <code>/fork</code>; the new session opens</td></tr>
+    <tr><td>"Compact context"</td><td><code>thread/compact/start</code></td><td>Conversation menu and <code>/compact</code>; also the Compact action on a <code>contextWindow</code> failure</td></tr>
+    <tr><td>"Archive conversation"</td><td><code>thread/archive</code></td><td>Sidebar row menu and conversation menu, and <code>/archive</code></td></tr>
+    <tr><td>Result line "Done." or error</td><td></td><td>command result card in the transcript</td></tr>
+    <tr><td><code>refreshKey</code> (unused)</td><td></td><td>dropped</td></tr>
+    </tbody></table></div>
+    <p>All moved actions send through the command pipeline so they leave the same transcript record as the typed command. The conversation menu itself is specified in the Navigation part. Document upload leaves the Tools panel for the <a href="#cp-attach">composer</a>; the Tools panel keeps the document list and Refresh.</p>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>No build references <code>QuickTools</code>.</li><li>Every former action is reachable without opening the Tools panel.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="cp-request-input">
+  <header><h4>request-input helpers</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">lib/request-input.ts · consumed by components/request-card.tsx (Requests part)</span></header>
+  <div class="body">
+    <p>Pure helpers for answering agent questions and tool approvals. The card that uses them docks above the composer and is specified in the Requests part. They stay unchanged.</p>
+<pre><code>export interface InputOption { label: string; description?: string; }
+export interface InputQuestion {
+  id: string; kind?: "toolApproval"; header?: string; question: string; action?: string;
+  isOther?: boolean; isSecret?: boolean; options?: InputOption[] | null;
+}</code></pre>
+    <div class="tw"><table class="tbl"><thead><tr><th>Helper</th><th>Rule</th></tr></thead><tbody>
+    <tr><td>Display labels</td><td>Allow → "Allow once"; "Allow for this session" → "Allow for this chat"; "Allow and don't ask me again" → "Always allow"; Cancel → "Don't allow" (<code>isDecline</code>). The submitted value stays the original.</td></tr>
+    <tr><td><code>answersOnClick</code></td><td>A single question with options submits on click; otherwise answers are reviewed and sent together.</td></tr>
+    <tr><td><code>needsText</code></td><td>Free-text field when there are no options, or "other" chosen and <code>isOther === true</code>.</td></tr>
+    <tr><td><code>missingAnswers</code> / <code>complete</code></td><td>Every answer non-blank after trim.</td></tr>
+    <tr><td><code>afterPick(questions, step, answers)</code></td><td><code>"next"</code> until the last question, then <code>"send"</code> if complete, else <code>"wait"</code>.</td></tr>
+    <tr><td><code>answerPayload</code></td><td><code>{ answers: { [id]: { answers: [trimmed] } } }</code></td></tr>
+    <tr><td><code>msLeft(expiresAt, now)</code></td><td>ms until expiry, floor 0</td></tr>
+    <tr><td><code>answerErrorMessage</code></td><td>409 "This was already answered."; 404/410 "This request is no longer available."; else "Your answer could not be sent. Please try again."</td></tr>
+    </tbody></table></div>
+    <h4>Composer interaction</h4>
+    <ul>
+      <li>While a request is docked, the composer stays usable. Enter queues (the turn is still running) and the queue pauses with reason <code>request</code>.</li>
+      <li>Focus moves to the request card when it docks only if the textarea is empty; otherwise a polite announcement "The assistant needs your answer" plays and focus stays.</li>
+      <li>Esc on a docked request cancels only after composer menus close (D-06).</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="cp-keys">Keyboard</h3>
+<p>Handled in the textarea <code>onKeyDown</code> unless noted. Rows are checked top to bottom; the first match wins. "Menu" means the slash menu or the mention menu, whichever is open.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Key</th><th>Condition</th><th>Behavior</th><th>Tag</th></tr></thead><tbody>
+<tr><td>any</td><td><code>e.nativeEvent.isComposing || e.keyCode === 229</code></td><td>Ignored (IME, see below)</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>mod+K, mod+B, mod+., mod+J</td><td>always, also while typing</td><td>Global hotkeys (search, sidebar, panel, and the Shell part's binding). The composer never swallows them</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>↑ / ↓</td><td>menu open, no modifiers</td><td><code>preventDefault</code>, move highlight with wrap</td><td><span class="tag exists">exists</span> slash, <span class="tag derive">derive</span> mention</td></tr>
+<tr><td>Tab</td><td>menu open, no modifiers</td><td>Complete the slash command (<code>"{name} "</code>) or insert the mention</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Enter</td><td>menu open, partial slash name or any mention row</td><td>Complete or insert; does not send</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Esc</td><td>menu open</td><td>Close the menu. Nothing else</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Esc</td><td>editing a queued item</td><td>Cancel the edit, restore the stashed draft</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Esc</td><td>goal mode</td><td>Exit goal mode, keep the draft</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Esc</td><td>a composer popover (agent, model, overflow) or the side panel is open</td><td>Close it</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Esc</td><td><code>running</code>, nothing above applies</td><td>Stop the turn (same as the Stop button)</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>↑</td><td>no menu, draft empty, caret at 0, queue not empty</td><td>Recall the last queued item for editing</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Alt+↑ / Alt+↓</td><td>focus on a queued item</td><td>Move it up or down</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Delete / Backspace</td><td>focus on a queued item</td><td>Remove it (undo toast)</td><td><span class="tag proposal">proposal</span> D-NEW-08</td></tr>
+<tr><td>Backspace</td><td>caret right after a mention token</td><td>Delete the whole token</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>mod+Enter</td><td>running, text is a message</td><td>Steer. When idle, same as Enter</td><td><span class="tag proposal">proposal</span> D-NEW-10</td></tr>
+<tr><td>Enter</td><td>no Shift, not composing</td><td><code>preventDefault</code>, <code>submitInput()</code>. While running a message queues (D-05)</td><td><span class="tag exists">exists</span>, queue <span class="tag proposal">proposal</span> D-05</td></tr>
+<tr><td>Shift+Enter</td><td></td><td>Native newline</td><td><span class="tag exists">exists</span></td></tr>
+</tbody></table></div>
+<p>Esc with focus inside a docked request card cancels that request (D-06), only after any menu inside it has closed. Esc in the textarea never cancels a request.</p>
+
+<h4 id="cp-ime">IME rules</h4>
+<ul>
+  <li>Every key handler returns early when <code>e.nativeEvent.isComposing</code> is true or <code>e.keyCode === 229</code>. The second check covers Safari, which reports the confirming Enter with <code>isComposing</code> false and keyCode 229.</li>
+  <li>Track composition with <code>compositionstart</code>/<code>compositionend</code> in a ref. Do not recompute the slash or mention query during composition; recompute once on <code>compositionend</code>.</li>
+  <li>The Enter that ends a composition never sends, never completes a menu row and never queues.</li>
+  <li>The mention trigger also accepts the full-width at sign <code>＠</code> (U+FF20) <span class="tag proposal">proposal</span> D-NEW-07. The slash menu only accepts ASCII <code>/</code>, matching <code>parseChatInput</code>.</li>
+  <li>The privacy scan debounce (250ms) and the placeholder logic ignore composition state; they read <code>text</code> only.</li>
+  <li>SmoothTextarea hides its custom caret during composition so the IME underline and candidate window line up with the native caret <span class="tag proposal">proposal</span> D-NEW-12.</li>
+</ul>
+
+<h3 id="cp-a11y">Accessibility summary</h3>
+<ul>
+  <li>One polite live region inside the form (<code>#composer-live</code>, visually hidden) for queue, upload and menu counts. Alerts use <code>role="alert"</code> on the element itself (file errors, budget error, approval error).</li>
+  <li>Every icon-only control has an <code>aria-label</code> listed in its block. Minimum hit area 26×26, 34×34 for Send, Stop and Steer.</li>
+  <li>Focus return: popovers → their chip; menus keep focus in the textarea; removed chips → next chip or textarea; Stopping end → textarea.</li>
+  <li>Text under 13px uses <code>--ink-2</code>. This changes the slash description and project note from <code>--ink-3</code>.</li>
+</ul>
+
+<h3 id="cp-limits">Limits and validation</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Item</th><th>Rule</th><th>Source</th><th>Tag</th></tr></thead><tbody>
+<tr><td>Message length</td><td>no max; non-blank after trim</td><td>page</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Textarea height</td><td>60px min (76px hero), 240px max; v3 turns on <code>autoGrow={240}</code></td><td><code>styles/v2/chat.css</code></td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Token budget</td><td><code>/^(\d[\d,_]*)(k?)$/i</code>, integer 1 to 10,000,000, custom maxLength 12</td><td><code>lib/goal.ts</code>, <code>budget-field.tsx</code></td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>/model</code></td><td>exactly one whitespace-free token</td><td><code>slash-commands.ts</code></td><td><span class="tag exists">exists</span></td></tr>
+<tr><td><code>/effort</code></td><td>none, minimal, low, medium, high, xhigh, ultra</td><td><code>slash-commands.ts</code></td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Suggestions</td><td>max 3, ≤160 chars; send delay 350ms</td><td><code>lib/suggestions.ts</code>, page</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Placeholder rotation</td><td>3200ms</td><td><code>composer.tsx</code></td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Privacy scan debounce</td><td>250ms</td><td><code>privacy-note.tsx</code></td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Helper task title / preview</td><td>48 chars; 240 chars / 4 lines</td><td><code>lib/subagents.ts</code></td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Upload</td><td><code>uploadAccept</code>, 1 byte to 1 MB per file, 50 files / 25 MB per conversation</td><td><code>lib/document-kind.ts</code>, documents API</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Parallel uploads</td><td>2</td><td>this spec</td><td><span class="tag proposal">proposal</span> D-NEW-04</td></tr>
+<tr><td>Queue</td><td>max 10 items; list scrolls after 4</td><td>this spec</td><td><span class="tag proposal">proposal</span> D-NEW-08</td></tr>
+<tr><td>Mention picker</td><td>max 5 rows per group</td><td>this spec</td><td><span class="tag proposal">proposal</span> D-NEW-07</td></tr>
+<tr><td>Stopping timeout</td><td>10s</td><td>this spec</td><td><span class="tag proposal">proposal</span> D-NEW-11</td></tr>
+</tbody></table></div>
+
+<h3 id="cp-coverage">Coverage</h3>
+<div class="tw"><table class="tbl cov"><thead><tr><th>Schema heading</th><th>Covered in</th></tr></thead><tbody>
+<tr><td data-schema="2.1 Composer wiring (page-level)">2.1 Composer wiring (page-level)</td><td><a href="#cp-overview">Structure</a>, <a href="#cp-frame">Composer frame and textarea</a></td></tr>
+<tr><td data-schema="Keyboard behavior (textarea onKeyDown)">Keyboard behavior (textarea onKeyDown)</td><td><a href="#cp-keys">Keyboard</a>, <a href="#cp-ime">IME rules</a></td></tr>
+<tr><td data-schema="Submit pipeline (submitInput())">Submit pipeline (submitInput())</td><td><a href="#cp-submit">Submit pipeline</a></td></tr>
+<tr><td data-schema="2.2 Composer and useRotatingPlaceholder">2.2 Composer and useRotatingPlaceholder</td><td><a href="#cp-frame">Composer frame and textarea</a>, <a href="#cp-send">Send, Stop and Stopping</a></td></tr>
+<tr><td data-schema="2.3 SmoothTextarea">2.3 SmoothTextarea</td><td><a href="#cp-frame">Composer frame and textarea</a></td></tr>
+<tr><td data-schema="2.4 Slash-command menu (inline in page)">2.4 Slash-command menu (inline in page)</td><td><a href="#cp-slash">SlashMenu</a></td></tr>
+<tr><td data-schema="2.5 Composer notes and notices">2.5 Composer notes and notices</td><td><a href="#cp-project">ProjectNote</a>, <a href="#cp-notices">Composer notices</a></td></tr>
+<tr><td data-schema="2.6 PrivacyNote">2.6 PrivacyNote</td><td><a href="#cp-privacy">PrivacyNote</a></td></tr>
+<tr><td data-schema="2.7 BudgetField">2.7 BudgetField</td><td><a href="#cp-goal">Goal mode and BudgetField</a></td></tr>
+<tr><td data-schema="2.8 Slash commands (lib/slash-commands.ts)">2.8 Slash commands (lib/slash-commands.ts)</td><td><a href="#cp-commands">Slash commands</a></td></tr>
+<tr><td data-schema="2.9 ApprovalModePicker + lib/approval-mode.ts">2.9 ApprovalModePicker + lib/approval-mode.ts</td><td><a href="#cp-approval">ApprovalModePicker</a>. Audit-record label helpers are out of scope here: transcript, see the Stream part</td></tr>
+<tr><td data-schema="2.10 SuggestedQuestions + lib/suggestions.ts">2.10 SuggestedQuestions + lib/suggestions.ts</td><td><a href="#cp-suggest">SuggestedQuestions</a></td></tr>
+<tr><td data-schema="2.11 HelperChip">2.11 HelperChip</td><td><a href="#cp-helper">HelperChip</a></td></tr>
+<tr><td data-schema="2.12 HelperGroup / HelperRow">2.12 HelperGroup / HelperRow</td><td>Out of scope: transcript helper card, specified in the Agents part. Its selector (<code>section.hcard#helpers-{id}</code>) is used by the <a href="#cp-helper">HelperChip</a> fix</td></tr>
+<tr><td data-schema="2.13 QuickTools (conversation tools form)">2.13 QuickTools (conversation tools form)</td><td><a href="#cp-quicktools">QuickTools (retired)</a>, upload in <a href="#cp-attach">Attachment and FileChips</a></td></tr>
+<tr><td data-schema="2.14 lib/request-input.ts (request-card answer helpers)">2.14 lib/request-input.ts (request-card answer helpers)</td><td><a href="#cp-request-input">request-input helpers</a></td></tr>
+<tr><td data-schema="2.15 Limits and validation summary">2.15 Limits and validation summary</td><td><a href="#cp-limits">Limits and validation</a></td></tr>
+<tr><td data-schema="2.16 Findings worth knowing for the redesign">2.16 Findings worth knowing for the redesign</td><td><a href="#cp-helper">HelperChip fix</a>, <a href="#cp-commands">/help copy fix</a>, <a href="#cp-quicktools">refreshKey dropped</a>, <a href="#cp-frame">autoGrow and GOAL_PLACEHOLDER used</a>, <a href="#cp-bar">new pickers</a></td></tr>
+</tbody></table></div>
+
+<h3 id="cp-new-be">New backend items</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Id</th><th>Need</th><th>Used by</th></tr></thead><tbody>
+<tr><td>BE-NEW: session settings</td><td>Expose <code>Session.settings { model, effort }</code> in <code>PublicSession</code> (or <code>GET /api/sessions/:id</code>) so the chip shows the real values after reload</td><td><a href="#cp-model">ModelChip</a></td></tr>
+</tbody></table></div>
+
+<h3 id="cp-new-d">New decisions</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Id</th><th>Question</th><th>Default chosen</th></tr></thead><tbody>
+<tr><td>D-NEW-01</td><td>Screen-reader hint copy now that @ exists?</td><td>"Type / for commands, @ to mention. Enter to send, Shift + Enter for a new line."</td></tr>
+<tr><td>D-NEW-02</td><td>How does the bar collapse at narrow widths?</td><td>Labels hide at ≤520px; agent, model and approval fold into one "Message settings" chip at ≤400px, measured on the composer width</td></tr>
+<tr><td>D-NEW-03</td><td>Files picked before a session exists?</td><td>Hold them; upload after <code>ensureSession()</code> on first Send; a failed upload keeps the draft and does not send</td></tr>
+<tr><td>D-NEW-04</td><td>Client file checks and copy beyond 1 MB, and parallelism?</td><td>Reject empty, wrong type and over the 50 files / 25 MB total on the client with the listed copy; 2 uploads at a time</td></tr>
+<tr><td>D-NEW-05</td><td>Model and effort before a session, and error copy?</td><td>Hold in <code>draftSettings</code>, apply after <code>ensureSession()</code>; "Could not change the model settings. {userMessage}"</td></tr>
+<tr><td>D-NEW-06</td><td>Replace-goal confirm format?</td><td>Inline alertdialog card with objective and usage, "Replace goal" / "Keep current", replacing <code>window.confirm</code></td></tr>
+<tr><td>D-NEW-07</td><td>Mention picker limits and triggers?</td><td>5 rows per group, 300ms debounced count announcement, full-width ＠ also triggers</td></tr>
+<tr><td>D-NEW-08</td><td>Queue size, scroll and removal?</td><td>Max 10, scroll after 4, remove without confirm with a 5s undo</td></tr>
+<tr><td>D-NEW-09</td><td>Idle send while a paused queue has items?</td><td>It joins the end of the queue; only Steer jumps ahead</td></tr>
+<tr><td>D-NEW-10</td><td>Keyboard shortcut for Steer?</td><td>mod+Enter steers while running, sends when idle</td></tr>
+<tr><td>D-NEW-11</td><td>How long can Stopping last?</td><td>10s, then a notice and the Stop button returns</td></tr>
+<tr><td>D-NEW-12</td><td>Custom caret during IME composition?</td><td>Hide it while composing</td></tr>
+</tbody></table></div>
+
+</section>

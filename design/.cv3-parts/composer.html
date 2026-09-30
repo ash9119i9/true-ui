@@ -1,0 +1,288 @@
+<section class="sec" id="composer">
+<style>
+/* composer: action bar, mentions, queue and steer, goal mode */
+.cp-dock{padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;background:var(--surface-2)}
+.cp-box{border:1px solid var(--line);border-radius:18px;background:var(--surface);box-shadow:var(--shadow-md);padding:10px 10px 8px 12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.cp-box.is-focus{border-color:color-mix(in srgb,var(--accent) 45%,transparent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 10%,transparent),var(--shadow-md)}
+.cp-box.is-goal{border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+.cp-ta{position:relative;min-height:60px;max-height:240px;padding:4px 4px 10px;font-size:15px;line-height:1.5;color:var(--ink);overflow-wrap:anywhere;min-width:0}
+.cp-ta.ph{color:var(--ink-3)}
+.cp-grow{position:absolute;right:0;bottom:6px;font:11px var(--font-mono);color:var(--ink-2);display:inline-flex;align-items:center;gap:4px}
+.cp-bar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-width:0}
+.cp-chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);font:500 13px var(--font-sans);color:var(--ink);white-space:nowrap;min-width:0}
+.cp-chip.on{background:var(--accent-soft);color:var(--accent-fg);border-color:transparent}
+.cp-chip.locked{color:var(--ink-2);background:var(--surface-3)}
+.cp-chip.ghost{background:transparent;border-color:transparent;color:var(--ink-2);padding:0 8px}
+.cp-flag{font:600 10px var(--font-mono);text-transform:uppercase;letter-spacing:.05em;padding:1px 6px;border-radius:999px;background:var(--warn-bg);color:var(--warn-text)}
+.cp-send,.cp-stop{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:none;border:0}
+.cp-send{background:var(--accent-fg);color:var(--on-accent)}
+.cp-send.off{opacity:.35}
+.cp-stop{background:var(--ink);color:var(--bg)}
+.cp-stop.is-stopping{background:var(--surface-3);color:var(--ink-2);width:auto;padding:0 12px;gap:6px;display:inline-flex;align-items:center;font-size:13px}
+.cp-files{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.cp-file{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 8px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);font-size:13px;min-width:0;flex:1 1 200px;max-width:280px}
+.cp-file > span:first-child{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-fg)}
+.cp-file b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cp-file small{display:block;font-size:12px;color:var(--ink-2)}
+.cp-file .bar{margin-top:4px;height:4px}
+.cp-file.is-err{border-color:color-mix(in srgb,var(--bad) 40%,transparent);background:var(--bad-bg)}
+.cp-file.is-err > span:first-child{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
+.cp-file.is-err small{color:var(--bad)}
+.cp-note{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:10px;font-size:12.5px;min-width:0;flex-wrap:wrap}
+.cp-note.warn{background:var(--warn-bg);color:var(--warn-text)}
+.cp-note.proj{padding:0 4px;color:var(--ink-2)}
+.cp-note.proj b{color:var(--accent-fg)}
+.cp-note > span{flex:1;min-width:0}
+.cp-pop{border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:var(--shadow-card);padding:6px;display:flex;flex-direction:column;gap:1px;min-width:0}
+.cp-pop-h{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);padding:8px 8px 4px;display:flex;gap:6px;align-items:center}
+.cp-it{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 8px;border-radius:9px;font-size:13px;color:var(--ink)}
+.cp-it > span:first-child{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:var(--surface-3);color:var(--ink-2)}
+.cp-it small{display:block;font-size:12px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cp-it b{font-weight:600}
+.cp-it b mark{background:color-mix(in srgb,var(--accent) 22%,transparent);color:inherit;border-radius:3px}
+.cp-it.is-active{background:var(--accent-soft)}
+.cp-it.is-active > span:first-child{background:var(--accent-fg);color:var(--on-accent)}
+.cp-it.is-off{opacity:.5}
+.cp-kbd{font:500 11px var(--font-mono);color:var(--ink-2);border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:5px;padding:0 5px;background:var(--surface-2);white-space:nowrap}
+.cp-pop-f{display:flex;gap:10px;flex-wrap:wrap;padding:8px 8px 4px;margin-top:4px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-2)}
+.cp-mention{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 7px;border-radius:7px;background:var(--accent-soft);color:var(--accent-fg);font-size:13px;font-weight:600;vertical-align:1px}
+.cp-pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;min-width:0}
+.cp-lbl{font:700 19px/1 var(--font-hand);color:var(--ink-2);display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.cp-rules{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--ink-2)}
+.cp-rules li{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
+.cp-queue{display:flex;flex-direction:column;gap:6px;min-width:0}
+.cp-qhead{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2);flex-wrap:wrap}
+.cp-qhead b{color:var(--ink)}
+.cp-q{display:grid;grid-template-columns:16px 20px minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 6px 6px 8px;border:1px solid var(--line);border-radius:11px;background:var(--surface);font-size:13px;min-width:0}
+.cp-q .grip{color:var(--ink-2);cursor:grab;font:700 12px/1 var(--font-mono);letter-spacing:-2px}
+.cp-q em{font:600 11px var(--font-mono);font-style:normal;color:var(--ink-2);text-align:center}
+.cp-q > span:nth-child(3){white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.cp-q.is-edit{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.cp-ib{width:26px;height:26px;border-radius:8px;display:inline-grid;place-items:center;color:var(--ink-2);border:0;background:transparent}
+.cp-steer{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:11px;border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);background:var(--accent-soft);color:var(--accent-fg);font:600 13px var(--font-sans)}
+.cp-steer.off{opacity:.45}
+.cp-rule{font-size:12px;color:var(--ink-2);padding:0 4px;display:flex;gap:6px;align-items:flex-start}
+.cp-live{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);padding:0 4px}
+.cp-ghead{display:flex;align-items:flex-start;gap:8px;padding:2px 2px 8px;border-bottom:1px dashed var(--line-strong);font-size:13px;color:var(--ink-2);min-width:0}
+.cp-ghead b{color:var(--ink)}
+.cp-ghead > span{flex:1;min-width:0}
+.cp-budget{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.cp-sel{display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 8px 0 10px;border-radius:9px;border:1px solid var(--line-strong);background:var(--surface);font-size:13px;color:var(--ink)}
+.cp-in{display:inline-flex;align-items:center;width:96px;height:30px;padding:0 8px;border-radius:9px;border:1px solid var(--line-strong);background:var(--surface);font:13px var(--font-mono);color:var(--ink)}
+.cp-in.bad{border-color:var(--bad);box-shadow:0 0 0 3px color-mix(in srgb,var(--bad) 14%,transparent)}
+.cp-err{flex-basis:100%;font-size:12px;color:var(--bad);display:flex;gap:5px;align-items:center}
+.cp-confirm{border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);background:var(--warn-bg);color:var(--warn-text);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;font-size:13px;min-width:0}
+.cp-confirm b{font-size:14px;color:inherit}
+.cp-confirm .btn.cp-danger{background:var(--accent-fg);color:var(--on-accent);border-color:transparent}
+.cp-esc{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;color:var(--ink-2)}
+.cp-esc .step{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+.cp-esc .step.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-fg)}
+.cp-tip{position:relative;align-self:flex-start;background:var(--ink);color:var(--bg);font-size:12px;padding:6px 9px;border-radius:8px;max-width:260px}
+#composer :is(.cp-chip,.cp-send,.cp-stop,.cp-steer,.cp-ib,.cp-it,.cp-q):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:520px){.cp-dock{padding:10px}.cp-chip .cp-hide{display:none}.cp-file{max-width:none}}
+</style>
+
+<div class="sec-head"><span class="eyebrow">Composer</span><h2>The composer, from rest to goal mode</h2><p>Everything that shapes the next message sits on one bar: files, agent, model and effort, approval mode and Goal. Mentions and slash commands open above the text. While a turn runs, typed messages queue in plain sight, and steering the live turn is its own button.</p></div>
+
+<!-- Board 1: action bar at rest -->
+<div class="board">
+<div>
+<div class="wf"><div class="cp-dock">
+  <div class="cp-note proj"><svg class="ic sm"><use href="#i-layers"/></svg><span>New chat in <b>Analyst onboarding</b></span><button class="cp-ib" aria-label="Don't add to Analyst onboarding"><svg class="ic sm"><use href="#i-x"/></svg></button><span class="pin">1</span></div>
+  <div class="cp-box is-focus">
+    <div class="cp-files">
+      <div class="cp-file"><span><svg class="ic sm"><use href="#i-file"/></svg></span><div style="min-width:0"><b>analyst-handbook-2026.pdf</b><small>Uploading 640 KB of 910 KB</small><div class="bar"><i style="width:70%"></i></div></div><button class="cp-ib" aria-label="Cancel upload"><svg class="ic sm"><use href="#i-x"/></svg></button></div>
+      <div class="cp-file is-err" role="alert"><span><svg class="ic sm"><use href="#i-alert"/></svg></span><div style="min-width:0"><b>qlik-sense-training-deck.pptx</b><small>4.2 MB. Files must be 1 MB or less.</small></div><button class="cp-ib" aria-label="Remove file"><svg class="ic sm"><use href="#i-x"/></svg></button></div>
+      <span class="pin">2</span>
+    </div>
+    <div class="cp-note warn" role="status"><svg class="ic sm"><use href="#i-shield"/></svg><span>This looks like an email address. It will be sent to the model.</span><button class="cp-ib" aria-label="Dismiss privacy note"><svg class="ic sm"><use href="#i-x"/></svg></button><span class="pin">3</span></div>
+    <div class="cp-ta">Build a two-week onboarding plan for new analysts from the handbook. Send the draft to priya.shah@example.com for review.<span class="caret"></span><span class="cp-grow">60 to 240px<span class="pin">4</span></span></div>
+    <div class="cp-bar">
+      <button class="cp-chip ghost" aria-label="Attach files"><svg class="ic"><use href="#i-plus"/></svg></button>
+      <button class="cp-chip locked" aria-describedby="cp-lock"><span class="av" style="width:18px;height:18px;font-size:9px;border-radius:6px">QA</span><span class="cp-hide">Qlik Analyst</span><svg class="ic sm"><use href="#i-lock"/></svg></button><span class="pin">5</span>
+      <button class="cp-chip"><svg class="ic sm"><use href="#i-brain"/></svg>Sonnet 5.5 · high<svg class="ic sm"><use href="#i-chevd"/></svg></button><span class="pin">6</span>
+      <button class="cp-chip"><svg class="ic sm"><use href="#i-shield"/></svg><span class="cp-hide">Auto-allow read-only</span><svg class="ic sm"><use href="#i-chevd"/></svg></button><span class="pin">7</span>
+      <button class="cp-chip" aria-pressed="false"><svg class="ic sm"><use href="#i-target"/></svg>Goal</button><span class="pin">8</span>
+      <span class="spacer"></span>
+      <button class="cp-send" aria-label="Send"><svg class="ic"><use href="#i-send"/></svg></button><span class="pin">9</span>
+    </div>
+  </div>
+  <div class="cp-tip" id="cp-lock" role="tooltip">Agent is set when the chat starts. Start a new chat to switch.</div>
+</div></div>
+
+<div class="cp-pair" style="margin-top:18px">
+  <div><span class="cp-lbl">Model and effort <span class="pin">6</span></span>
+    <div class="cp-pop" role="listbox" aria-label="Reasoning effort">
+      <div class="cp-it"><span><svg class="ic sm"><use href="#i-brain"/></svg></span><div><b>Model</b><small>Sonnet 5.5</small></div><svg class="ic sm"><use href="#i-chev"/></svg></div>
+      <div class="cp-pop-h">Effort</div>
+      <div class="cp-it"><span>0</span><div>none</div><span></span></div>
+      <div class="cp-it"><span>1</span><div>minimal</div><span></span></div>
+      <div class="cp-it"><span>2</span><div>low</div><span></span></div>
+      <div class="cp-it"><span>3</span><div>medium</div><span></span></div>
+      <div class="cp-it is-active"><span>4</span><div><b>high</b></div><svg class="ic sm"><use href="#i-check"/></svg></div>
+      <div class="cp-it"><span>5</span><div>xhigh</div><span></span></div>
+      <div class="cp-it"><span>6</span><div>ultra</div><span></span></div>
+    </div></div>
+  <div><span class="cp-lbl">Approval mode <span class="pin">7</span></span>
+    <div class="cp-pop" role="listbox" aria-label="Approval mode">
+      <div class="cp-it"><span><svg class="ic sm"><use href="#i-user"/></svg></span><div><b>Ask me every time</b><small>Every question and tool use waits for you.</small></div><span></span></div>
+      <div class="cp-it is-active"><span><svg class="ic sm"><use href="#i-eye"/></svg></span><div><b>Auto-allow read-only tools</b><small>Tools that only read data run without asking.</small></div><svg class="ic sm"><use href="#i-check"/></svg></div>
+      <div class="cp-it"><span><svg class="ic sm"><use href="#i-spark"/></svg></span><div><b>Autopilot <span class="cp-flag">flag</span></b><small>Runs tools without asking.</small></div><span></span></div>
+      <div class="cp-pop-f"><svg class="ic sm"><use href="#i-lock"/></svg>Plans and secrets always ask.</div>
+    </div></div>
+</div>
+<p class="board-cap">New chat at rest. One file still uploading, one too big, and the bar reads left to right in the order you'd set things.</p>
+</div>
+<ol class="notes">
+  <li><span class="pin">1</span><div><b>Project chip</b> <span class="tag data">data</span><span>"New chat in {name}" from <code>draftProject</code>, only before a session exists. Dismiss drops the draft project.</span></div></li>
+  <li><span class="pin">2</span><div><b>File chips</b> <span class="tag data">data</span> <span class="tag new">new</span><span>Moves upload from the Tools panel into the composer. Progress comes from the XHR upload event. Files over 1 MB or outside <code>uploadAccept</code> fail inline before any request, with a Remove button.</span></div></li>
+  <li><span class="pin">3</span><div><b>PrivacyNote</b> <span class="tag data">data</span><span>Existing 250 ms debounced scan. Non-blocking, dismissable, returns if the note text changes.</span></div></li>
+  <li><span class="pin">4</span><div><b>Auto-grow textarea</b> <span class="tag derive">derive</span><span>Turn on the unused <code>autoGrow={240}</code> prop. Starts at 60px, scrolls inside past 240px. Enter sends, Shift+Enter adds a line.</span></div></li>
+  <li><span class="pin">5</span><div><b>Agent chip</b> <span class="tag derive">derive</span> <span class="tag new">new</span><span>Pick an agent before the first message. Once a session exists it locks and shows a lock with a tooltip that explains why.</span></div></li>
+  <li><span class="pin">6</span><div><b>Model and effort</b> <span class="tag data">data</span> <span class="tag new">new</span><span>Writes <code>thread/settings/update {model, effort}</code>, the same call as /model and /effort. The popover lists all seven effort values.</span></div></li>
+  <li><span class="pin">7</span><div><b>ApprovalModePicker</b> <span class="tag data">data</span><span>Three modes. Autopilot only shows with <code>autopilot=true</code>, and the whole chip hides when <code>enabled=false</code>. A 422 shows "Autopilot is not available right now." under the bar.</span></div></li>
+  <li><span class="pin">8</span><div><b>Goal chip</b> <span class="tag data">data</span><span>Toggles goal mode (board 4). <code>aria-pressed</code> reflects state.</span></div></li>
+  <li><span class="pin">9</span><div><b>Send</b> <span class="tag data">data</span><span>Disabled at 35% opacity on an empty draft or while a file is still uploading. White icon on the <code>--accent-fg</code> fill for contrast.</span></div></li>
+</ol>
+</div>
+
+<!-- Board 2: mentions and slash -->
+<div class="board">
+<div>
+<div class="cp-pair">
+  <div><span class="cp-lbl">@-mention picker <span class="pin">1</span></span>
+    <div class="cp-pop" role="listbox" aria-label="Mention">
+      <div class="cp-pop-h"><svg class="ic sm"><use href="#i-file"/></svg>Files</div>
+      <div class="cp-it is-active"><span><svg class="ic sm"><use href="#i-file"/></svg></span><div><b><mark>ha</mark>ndbook.pdf</b><small>Uploaded to this chat · 910 KB</small></div><span class="cp-kbd">Enter</span></div>
+      <div class="cp-pop-h"><svg class="ic sm"><use href="#i-bot"/></svg>Agents</div>
+      <div class="cp-it"><span><svg class="ic sm"><use href="#i-bot"/></svg></span><div><b>@juno</b><small>Drafting helper. Matches "ha" in "hands-on drafts"</small></div><span></span></div>
+      <div class="cp-pop-h"><svg class="ic sm"><use href="#i-plug"/></svg>Tools <span class="pin">2</span></div>
+      <div class="cp-it"><span><svg class="ic sm"><use href="#i-globe"/></svg></span><div><b>Google Drive</b><small>MCP · search_files, get_file. Matches "shared drive"</small></div><span></span></div>
+      <div class="cp-pop-f"><span><span class="cp-kbd">↑</span> <span class="cp-kbd">↓</span> move</span><span><span class="cp-kbd">Enter</span> insert</span><span><span class="cp-kbd">Esc</span> close</span></div>
+    </div>
+    <div class="cp-box" style="margin-top:10px"><div class="cp-ta" style="min-height:0">Use <span class="cp-mention"><svg class="ic sm"><use href="#i-file"/></svg>handbook.pdf</span> and ask <span class="cp-mention"><svg class="ic sm"><use href="#i-bot"/></svg>juno</span> to draft week one. @ha<span class="caret"></span></div></div>
+    <span class="cp-lbl" style="margin-top:8px">Picked items become chips <span class="pin">3</span></span>
+  </div>
+  <div><span class="cp-lbl">Slash menu <span class="pin">4</span></span>
+    <div class="cp-pop" role="listbox" aria-label="Chat commands">
+      <div class="cp-pop-h">Commands matching /co</div>
+      <div class="cp-it is-active"><span><svg class="ic sm"><use href="#i-layers"/></svg></span><div><b>/compact</b><small>Summarize this conversation context</small></div><span class="cp-kbd">Enter</span></div>
+      <div class="cp-pop-h">While running <span class="pin">5</span></div>
+      <div class="cp-it is-off" aria-disabled="true"><span><svg class="ic sm"><use href="#i-target"/></svg></span><div><b>/goal</b><small>Blocked until the turn ends</small></div><svg class="ic sm"><use href="#i-lock"/></svg></div>
+      <div class="cp-it"><span><svg class="ic sm"><use href="#i-plug"/></svg></span><div><b>/mcp</b><small>Panels still open while running</small></div><span></span></div>
+    </div>
+    <ul class="cp-rules">
+      <li><span class="pin">6</span>Opens only while text matches <code>/^\/[a-z]*$/</code>. A space or a second line closes it.</li>
+      <li>Enter or Tab completes a partial to <code>/compact </code>. It doesn't send.</li>
+      <li><code>//usr/bin</code> sends <code>/usr/bin</code> as text. Unknown names send as text too.</li>
+    </ul>
+  </div>
+</div>
+<p class="board-cap">Typing "@ha" mid-sentence. One picker for all three kinds, grouped so a file never looks like an agent.</p>
+</div>
+<ol class="notes">
+  <li><span class="pin">1</span><div><b>Mention picker</b> <span class="tag derive">derive</span> <span class="tag new">new</span><span>Opens on @ after a space or line start. Groups in fixed order Files, Agents, Tools, capped at 5 per group. Files come from this chat's uploads, agents from the agent list.</span></div></li>
+  <li><span class="pin">2</span><div><b>Tool list per session</b> <span class="tag backend">backend</span><span>Needs a session endpoint that lists enabled MCP servers and their tools, such as <code>GET /api/sessions/:id/tools</code>. Without it the Tools group is hidden.</span></div></li>
+  <li><span class="pin">3</span><div><b>Inline mention chip</b> <span class="tag backend">backend</span> <span class="tag new">new</span><span>An atomic token that Backspace removes whole. Sending needs a <code>mentions[]</code> field on the message ({kind, id}) so the agent gets refs, not just the text.</span></div></li>
+  <li><span class="pin">4</span><div><b>Slash menu</b> <span class="tag data">data</span><span>Same <code>suggestCommands</code> list, with icons added. Arrow keys wrap, and Esc closes it before doing anything else.</span></div></li>
+  <li><span class="pin">5</span><div><b>Blocked while running</b> <span class="tag derive">derive</span><span>Commands are refused during a turn today. The menu shows them locked instead of failing after Enter. Panels (/mcp, /tools, /agents) and /help stay live.</span></div></li>
+  <li><span class="pin">6</span><div><b>Matching rules</b> <span class="tag data">data</span><span>Written on the menu so the escape is discoverable. Commands other than /goal, /model and /effort reject arguments with the existing hint.</span></div></li>
+</ol>
+</div>
+
+<!-- Board 3: running turn, queue, steer, stopping -->
+<div class="board">
+<div>
+<div class="wf"><div class="cp-dock">
+  <div class="cp-live"><span class="pulse"></span>Qlik Analyst is drafting week 1 with Juno</div>
+  <div class="cp-queue" aria-label="Queued messages">
+    <div class="cp-qhead"><b>Queued · 2</b><span>Send in order after this turn</span><span class="pin">1</span></div>
+    <div class="cp-q"><span class="grip" aria-label="Drag to reorder">⋮⋮</span><em>1</em><span>Add a Qlik Sense certification checkpoint on day 8</span><span><button class="cp-ib" aria-label="Edit queued message 1"><svg class="ic sm"><use href="#i-list"/></svg></button><button class="cp-ib" aria-label="Remove queued message 1"><svg class="ic sm"><use href="#i-x"/></svg></button></span></div>
+    <div class="cp-q is-edit"><span class="grip" aria-label="Drag to reorder">⋮⋮</span><em>2</em><span>Then export the plan to the Onboarding folder in Drive</span><span><button class="cp-ib" aria-label="Edit queued message 2"><svg class="ic sm"><use href="#i-list"/></svg></button><button class="cp-ib" aria-label="Remove queued message 2"><svg class="ic sm"><use href="#i-x"/></svg></button></span></div>
+    <span class="pin">2</span>
+  </div>
+  <div class="cp-box is-focus">
+    <div class="cp-ta" style="min-height:44px">Keep week 1 lighter, no more than 3 sessions a day<span class="caret"></span></div>
+    <div class="cp-bar">
+      <span class="cp-chip locked"><svg class="ic sm"><use href="#i-lock"/></svg>QA</span>
+      <span class="sm" style="color:var(--ink-2);white-space:nowrap"><span class="cp-kbd">↑</span> recall last queued</span><span class="pin">3</span>
+      <span class="spacer"></span>
+      <button class="cp-steer"><svg class="ic sm"><use href="#i-steer"/></svg>Steer</button><span class="pin">4</span>
+      <button class="cp-send" aria-label="Queue message"><svg class="ic"><use href="#i-send"/></svg></button>
+      <button class="cp-stop" aria-label="Stop"><svg class="ic sm"><use href="#i-stop"/></svg></button><span class="pin">5</span>
+    </div>
+  </div>
+  <p class="cp-rule"><svg class="ic sm"><use href="#i-list"/></svg><span>Send adds to the queue. Steer sends now, into this turn. Queued messages send one at a time, in the order shown, after the turn ends.</span><span class="pin">6</span></p>
+</div></div>
+<span class="cp-lbl" style="margin-top:18px">Stopping <span class="pin">7</span></span>
+<div class="cp-box">
+  <div class="cp-ta ph" style="min-height:0">Queue kept. Nothing sends until the turn settles.</div>
+  <div class="cp-bar"><span class="spacer"></span><span class="cp-steer off" aria-disabled="true"><svg class="ic sm"><use href="#i-steer"/></svg>Steer</span><span class="cp-stop is-stopping" aria-live="polite"><span class="spinner"></span>Stopping</span></div>
+</div>
+<p class="board-cap">Mid-turn with two messages waiting. You can see, fix and reorder what goes next before it goes.</p>
+</div>
+<ol class="notes">
+  <li><span class="pin">1</span><div><b>Visible queue</b> <span class="tag derive">derive</span> <span class="tag new">new</span><span>Client-held list above the textarea with a count. Lost on reload unless persisted, so keep it in session storage per chat.</span></div></li>
+  <li><span class="pin">2</span><div><b>Edit, remove, reorder</b> <span class="tag derive">derive</span><span>Edit loads the chip back into the textarea (outlined while editing). Drag the grip, or Alt+↑/↓ from the keyboard, to reorder.</span></div></li>
+  <li><span class="pin">3</span><div><b>↑ recalls</b> <span class="tag derive">derive</span><span>With an empty draft and the caret at the start, ↑ pulls the last queued message back for editing.</span></div></li>
+  <li><span class="pin">4</span><div><b>Steer</b> <span class="tag data">data</span><span>An explicit button that sends into the running turn, which the backend supports today. Never the Enter default, so a stray Enter only queues.</span></div></li>
+  <li><span class="pin">5</span><div><b>Send beside Stop</b> <span class="tag data">data</span><span>Matches the matrix: Stop always shows while running, Send joins once text is typed. Esc stops only after menus, goal mode and popovers are closed.</span></div></li>
+  <li><span class="pin">6</span><div><b>Ordering rule</b> <span class="tag derive">derive</span><span>Written under the bar, not in a tooltip. If the turn fails or needs an answer, the queue pauses with a Resume button.</span></div></li>
+  <li><span class="pin">7</span><div><b>Stopping</b> <span class="tag derive">derive</span><span>Spinner and "Stopping" until the stream closes. Steer and Send are disabled so nothing lands in a dying turn. The queue stays.</span></div></li>
+</ol>
+</div>
+
+<!-- Board 4: goal mode -->
+<div class="board">
+<div>
+<div class="wf"><div class="cp-dock">
+  <div class="cp-box is-goal is-focus">
+    <div class="cp-ghead"><svg class="ic" style="color:var(--accent-fg)"><use href="#i-target"/></svg><span><b>New goal</b> The assistant keeps working until the goal is done, paused or out of budget.</span><button class="cp-ib" aria-label="Cancel goal"><svg class="ic sm"><use href="#i-x"/></svg></button><span class="pin">1</span></div>
+    <div class="cp-ta">Finish the onboarding plan for new analysts: a 10-day schedule, a reading list from the handbook and a day-8 checkpoint.<span class="caret"></span></div>
+    <div class="cp-bar">
+      <button class="cp-chip on" aria-pressed="true"><svg class="ic sm"><use href="#i-target"/></svg>Goal</button>
+      <span class="cp-budget"><span class="cp-sel">Custom<svg class="ic sm"><use href="#i-chevd"/></svg></span><span class="cp-in bad" aria-invalid="true">50m</span><span class="pin">2</span>
+        <span class="cp-err" role="alert"><svg class="ic sm"><use href="#i-alert"/></svg>Enter a whole number of tokens, like 50000 or 50k (up to 10M).</span></span>
+      <span class="spacer"></span>
+      <button class="cp-send off" aria-label="Start goal" aria-disabled="true"><svg class="ic"><use href="#i-send"/></svg></button>
+    </div>
+  </div>
+  <div class="cp-confirm" role="alertdialog" aria-label="Replace goal">
+    <b>Replace the current goal?</b>
+    <span>"Draft week 1 checklist" is active with 31k of 50k tokens used. A chat holds one goal, so starting this one clears it.</span>
+    <div class="row"><button class="btn cp-danger">Replace goal</button><button class="btn">Keep current</button><span class="pin">3</span></div>
+  </div>
+  <div class="cp-esc" aria-label="Escape order"><span class="cp-kbd">Esc</span><span class="step">close / @ menu</span>→<span class="step on">exit goal mode</span>→<span class="step">close popover</span>→<span class="step">stop turn</span><span class="pin">4</span></div>
+</div></div>
+<p class="board-cap">Goal mode with a mistyped budget. "50m" is caught before send, and an existing goal asks before it's replaced.</p>
+</div>
+<ol class="notes">
+  <li><span class="pin">1</span><div><b>Goal header</b> <span class="tag data">data</span><span>Existing copy and cancel button. The box border tints and the placeholder swaps to the goal prompt.</span></div></li>
+  <li><span class="pin">2</span><div><b>BudgetField</b> <span class="tag data">data</span><span>Presets No budget, 25k, 100k, 250k, or Custom. Tokens only: <code>/^(\d[\d,_]*)(k?)$/i</code>, 1 to 10M, 12 characters max. The error shows after blur, and Start goal stays disabled while invalid.</span></div></li>
+  <li><span class="pin">3</span><div><b>Replace-goal confirm</b> <span class="tag derive">derive</span> <span class="tag new">new</span><span>One goal per chat. If <code>thread/goal/get</code> returns an active or paused goal, confirm before <code>thread/goal/set</code> overwrites it. Shows the old objective and its usage.</span></div></li>
+  <li><span class="pin">4</span><div><b>Esc exits goal mode</b> <span class="tag derive">derive</span><span>Second in the Esc order: menus close first, then goal mode, then popovers, then the turn stops. The draft text is kept when leaving goal mode.</span></div></li>
+</ol>
+</div>
+
+<div class="tbl-wrap"><table>
+<thead><tr><th>Element</th><th>Source field or event</th><th>Data tag</th></tr></thead>
+<tbody>
+<tr><td>Project chip</td><td><code>draftProject(draftProjectId, projects)</code></td><td><span class="tag data">data</span></td></tr>
+<tr><td>File chips</td><td>Upload endpoint from Tools panel, <code>uploadAccept</code>, 1 MB rule, XHR progress</td><td><span class="tag data">data</span></td></tr>
+<tr><td>PrivacyNote</td><td><code>draftNote(scanText(draft))</code></td><td><span class="tag data">data</span></td></tr>
+<tr><td>Agent chip lock</td><td><code>session</code> exists, agent list</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Model and effort</td><td><code>thread/settings/update {model, effort}</code></td><td><span class="tag data">data</span></td></tr>
+<tr><td>Approval mode</td><td><code>GET /api/features → approvalModes</code>, <code>POST /api/sessions/:id/approval-mode</code></td><td><span class="tag data">data</span></td></tr>
+<tr><td>Mention picker: files, agents</td><td>Chat uploads, agent list</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Mention picker: tools</td><td>New per-session tool list endpoint</td><td><span class="tag backend">backend</span></td></tr>
+<tr><td>Mention refs on send</td><td>New <code>mentions[]</code> on the message</td><td><span class="tag backend">backend</span></td></tr>
+<tr><td>Slash menu</td><td><code>suggestCommands</code>, <code>parseChatInput</code>, <code>running</code></td><td><span class="tag data">data</span></td></tr>
+<tr><td>Queue, reorder, ↑ recall</td><td>Client list, sent on turn end</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Steer, Send beside Stop</td><td>Send while <code>running</code>, <code>canSend</code></td><td><span class="tag data">data</span></td></tr>
+<tr><td>Stopping</td><td>Stop called until stream closes</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>BudgetField</td><td><code>parseTokenBudget</code>, <code>budgetOptions</code></td><td><span class="tag data">data</span></td></tr>
+<tr><td>Replace-goal confirm</td><td><code>thread/goal/get</code> before <code>thread/goal/set</code></td><td><span class="tag derive">derive</span></td></tr>
+</tbody></table></div>
+
+<div class="q"><b>Does Enter queue or steer?</b><span>Recommend queue. Steering changes a live turn, so it should always be a deliberate click or mod+Enter. Needs a quick check with users who steer often.</span></div>
+</section>

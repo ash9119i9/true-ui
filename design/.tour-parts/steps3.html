@@ -1,0 +1,221 @@
+<section class="sec" id="make-it-yours">
+<style>
+#make-it-yours .solo{grid-template-columns:minmax(0,1fr)}
+#make-it-yours .side{grid-template-columns:176px minmax(0,1fr)}
+#make-it-yours .sb{display:flex;flex-direction:column;gap:2px;padding:8px 4px;font-size:13px;color:var(--ink-2);min-width:0}
+#make-it-yours .sb .it{display:flex;align-items:center;gap:8px;height:30px;padding:0 8px;border-radius:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#make-it-yours .sb .it.on{background:var(--surface-3);color:var(--ink);font-weight:600}
+#make-it-yours .sb .it .kbd{margin-left:auto}
+#make-it-yours .sb .lbl{font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);padding:10px 8px 4px}
+#make-it-yours .sb hr{border:0;border-top:1px solid var(--line);margin:6px 4px}
+#make-it-yours .stream{padding:18px 18px 8px;display:flex;flex-direction:column;gap:14px;font-size:13.5px;line-height:1.5}
+#make-it-yours .roster{padding:18px;display:flex;flex-direction:column;gap:14px}
+#make-it-yours .roster h3{margin:0;font:600 20px/1.2 var(--font-sans);letter-spacing:-.02em}
+#make-it-yours .roster h3 em{font-family:var(--font-accent);font-weight:400}
+#make-it-yours .pols{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:18px 14px;padding-top:8px}
+#make-it-yours .pol{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:8px 8px 4px;box-shadow:var(--shadow-card);transform:rotate(var(--tilt,0deg))}
+#make-it-yours .pol .ph{height:84px;border-radius:2px;background:var(--tint);display:grid;place-items:center;color:var(--ink)}
+#make-it-yours .pol .ph .ic{width:34px;height:34px;stroke-width:1.4;color:color-mix(in srgb,var(--ink) 75%,var(--tint))}
+#make-it-yours .pol .cap{font:700 20px/1.05 var(--font-hand);text-align:center;padding:6px 0 0;color:var(--ink)}
+#make-it-yours .pol .sub{font-size:11px;text-align:center;color:var(--ink-3);padding-bottom:4px}
+#make-it-yours .pol .tack{position:absolute;top:-8px;left:50%;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--bad);box-shadow:0 2px 3px rgb(0 0 0 / 25%),inset -2px -2px 0 color-mix(in srgb,var(--bad) 60%,var(--ink))}
+#make-it-yours .pol .inchat{position:absolute;top:12px;right:12px;height:18px;font-size:10.5px}
+#make-it-yours .pol.new{transform:none;border:1.5px dashed var(--line-strong);background:var(--surface);box-shadow:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:140px;color:var(--ink-2);font-weight:500;font-size:13px}
+#make-it-yours .pol.new .plus{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-fg)}
+#make-it-yours .swatches{display:flex;gap:4px}
+#make-it-yours .swatches i{width:10px;height:10px;border-radius:50%;background:var(--tint);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ink) 12%,transparent)}
+#make-it-yours .acct{position:absolute;z-index:6;right:18px;bottom:66px;width:214px}
+#make-it-yours .acct .it{height:32px}
+#make-it-yours .acct .it.hl{background:var(--accent-soft);color:var(--accent-fg);font-weight:600;box-shadow:0 0 0 2px var(--spot-ring)}
+#make-it-yours .acct hr{border:0;border-top:1px solid var(--line);margin:4px 2px}
+#make-it-yours .acct .it .tag{margin-left:auto}
+#make-it-yours .hero-c{left:50%;top:44%;transform:translate(-50%,-50%)}
+#make-it-yours .confetti i{position:absolute;top:var(--y);left:var(--x);width:7px;height:11px;border-radius:2px;background:var(--c);transform:rotate(var(--r));animation:mi-fall 1.4s var(--ease-out) 1 both}
+#make-it-yours .confetti i:nth-child(3n){width:8px;height:8px;border-radius:50%}
+@keyframes mi-fall{from{top:-16px;transform:rotate(0deg);opacity:0}30%{opacity:1}}
+#make-it-yours .recap{margin:2px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--ink-2)}
+#make-it-yours .recap li{display:flex;gap:8px;align-items:flex-start}
+#make-it-yours .recap .ic{color:var(--ok);margin-top:2px}
+@media (max-width:720px){#make-it-yours .side{grid-template-columns:minmax(0,1fr)}#make-it-yours .side .sb{display:none}}
+@media (max-width:640px){#make-it-yours .hero-c{transform:none}#make-it-yours .acct{position:relative;right:auto;bottom:auto;width:auto;margin:0 12px 12px}}
+@media (prefers-reduced-motion:reduce){#make-it-yours .confetti{display:none}}
+</style>
+  <div class="sec-head"><span class="eyebrow">Chapter 3</span><h2>Make it yours</h2><p>The last three steps point at what makes truex personal: goals that keep working, a team you build, and a way back into the tour whenever you want it.</p></div>
+
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Step 9 of 11: the goal chip in the composer is spotlighted and a coach card above explains goal mode">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/c/onboarding-plan</span></div>
+          <div class="app-body solo">
+            <div class="app-stage">
+              <div class="wf-top">
+                <div class="crumb"><svg class="ic"><use href="#i-sidebar"/></svg><span class="t">Analyst onboarding plan</span></div>
+                <span class="status-pill"><span class="pulse idle"></span>Qlik Analyst · Idle</span>
+                <span></span>
+              </div>
+              <div class="stream">
+                <div class="msg user"><div class="bubble-wrap"><div class="bubble">Draft a 2-week onboarding plan for new analysts from the handbook</div></div></div>
+                <div class="msg">
+                  <span class="av">Q</span>
+                  <div class="grow">
+                    <div class="msg-meta"><b>Qlik Analyst</b><span class="muted">3 helpers · 1m 48s</span></div>
+                    <div class="answer">Here is a 10-day plan in two blocks. Week 1 covers data access, the Qlik Sense workspace and the metric glossary. Week 2 pairs each analyst with a shadow reviewer and ends with a first dashboard review.</div>
+                    <div class="msg-foot"><span>18.4k tokens</span><span>·</span><span>context 31%</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom">
+                <div class="composer">
+                  <div class="ph">Ask, or type / for commands</div>
+                  <div class="composer-bar">
+                    <span class="chip t-anchor" data-tour="goal-chip"><svg class="ic"><use href="#i-target"/></svg>Goal<span class="spot round inset" aria-hidden="true"></span></span>
+                    <span class="chip"><svg class="ic"><use href="#i-plus"/></svg>Attach</span>
+                    <span class="spacer"></span>
+                    <span class="send"><svg class="ic"><use href="#i-send"/></svg></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="coach" data-side="above" style="left:14px;bottom:128px;--caret:26px">
+          <div class="c-eye"><span>Step 9 of 11 · Make it yours</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Set a <em>goal</em> for longer work</h4>
+          <p>Goal mode keeps the agent working toward one outcome across turns, within a budget you can pause or end at any time.</p>
+          <p><span class="kbd">Esc</span> leaves goal mode.</p>
+          <div class="c-foot">
+            <span class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i></span>
+            <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+          </div>
+        </div>
+        <span class="pin pin-at" style="left:10px;bottom:22px">1</span>
+      </div>
+      <p class="board-cap">The chip only lights up. Goal mode stays off, so the tour never starts a budgeted run.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Target: goal-chip</b> <span class="tag look">Look</span><span>Spotlight is round to match the chip. Coach sits above the composer, caret on the chip.</span><span class="src">data-tour="goal-chip"</span></div></li>
+      <li><span class="pin">2</span><div><b>Copy</b><span>Long-running goal, budget you can pause or end, Esc leaves goal mode. No mention of the budget select values, they change.</span></div></li>
+      <li><span class="pin">3</span><div><b>prepare()</b><span>Close the agent popover and any open menu, focus nothing. Keep the demo chat from step 6 on screen. Do not toggle goal mode.</span></div></li>
+      <li><span class="pin">4</span><div><b>Cleanup</b><span>Nothing to restore. If the user clicked the chip anyway, leave goal mode on: it was their action. Missing target after 3s falls back to a centered card.</span> <span class="tag new">New</span></div></li>
+    </ol>
+  </div>
+
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Step 10 of 11: the Meet the team roster with polaroid agent cards, the New agent card spotlighted and a coach card beside it">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/agents</span></div>
+          <div class="app-body side">
+            <nav class="sb" aria-label="Sidebar">
+              <span class="it"><svg class="ic"><use href="#i-search"/></svg>Search<span class="kbd">⌘K</span></span>
+              <span class="it"><svg class="ic"><use href="#i-plus"/></svg>New conversation<span class="kbd">⌘J</span></span>
+              <span class="it on" data-tour="nav-agents"><svg class="ic"><use href="#i-users"/></svg>Agents</span>
+              <span class="lbl">Recent</span>
+              <span class="it">Analyst onboarding plan</span>
+              <span class="it">Q3 churn by region</span>
+              <span class="it">Handbook access review</span>
+              <span class="it">Weekly ops digest</span>
+            </nav>
+            <div class="app-stage">
+              <div class="roster">
+                <div class="row"><h3>Meet the <em>team</em></h3><span class="spacer"></span><span class="seg"><span class="on">All</span><span>Yours</span><span>Built-in</span></span></div>
+                <div class="pols">
+                  <div class="pol" style="--tilt:-2deg;--tint:var(--ice)"><span class="tack" aria-hidden="true"></span><span class="pill accent inchat">in chat</span><div class="ph"><svg class="ic"><use href="#i-chart"/></svg></div><div class="cap">Qlik Analyst</div><div class="sub">@qlik · Built-in</div></div>
+                  <div class="pol" style="--tilt:1.5deg;--tint:var(--mint)"><div class="ph"><svg class="ic"><use href="#i-globe"/></svg></div><div class="cap">Researcher</div><div class="sub">Built-in</div></div>
+                  <div class="pol" style="--tilt:-1deg;--tint:var(--butter)"><div class="ph"><svg class="ic"><use href="#i-file"/></svg></div><div class="cap">Writer</div><div class="sub">Built-in</div></div>
+                  <div class="pol" style="--tilt:2deg;--tint:var(--lilac)"><div class="ph"><svg class="ic"><use href="#i-term"/></svg></div><div class="cap">Ops</div><div class="sub">Built-in</div></div>
+                  <div class="pol new t-anchor" data-tour="new-agent"><span class="plus"><svg class="ic"><use href="#i-plus"/></svg></span>New agent<span class="swatches" aria-hidden="true"><i style="--tint:var(--ice)"></i><i style="--tint:var(--mint)"></i><i style="--tint:var(--butter)"></i><i style="--tint:var(--lilac)"></i><i style="--tint:var(--peach)"></i></span><span class="spot inset" aria-hidden="true"></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="coach" data-side="above" style="right:14px;top:62px;--caret:150px">
+          <div class="c-eye"><span>Step 10 of 11 · Make it yours</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Build your <em>own</em> agent</h4>
+          <p>Give it a name and a job, then choose one of 12 looks and a tint. It joins the team next to the built-ins.</p>
+          <div class="c-foot">
+            <span class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i></span>
+            <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+          </div>
+        </div>
+        <span class="pin pin-at" style="left:18px;top:128px">2</span>
+      </div>
+      <p class="board-cap">The pushpin marks the agent in the current chat, so you can find your way back.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Target: new-agent</b> <span class="tag look">Look</span><span>The New agent card is the only untilted card, so the spotlight hole stays square to it. Coach sits above the grid.</span><span class="src">data-tour="new-agent"</span></div></li>
+      <li><span class="pin">2</span><div><b>prepare()</b><span>Clicks nav-agents to open the roster, resets the filter to All, then waits for new-agent to mount. Missing after 3s: centered card.</span><span class="src">data-tour="nav-agents"</span></div></li>
+      <li><span class="pin">3</span><div><b>Copy</b><span>Create your own agent, choose a look and tint. The card is not clicked for the user: creating an agent is a later, deliberate step.</span></div></li>
+      <li><span class="pin">4</span><div><b>Cleanup</b><span>On Next, Back or close, navigate back to the demo chat and restore the sidebar and panel as they were before step 10.</span> <span class="tag new">New</span></div></li>
+    </ol>
+  </div>
+
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Step 11 of 11: the screen is dimmed, a centered finish card with confetti says You're set, Nitin, and the Account menu shows a Take the tour item marked New">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/c/onboarding-plan</span></div>
+          <div class="app-body solo">
+            <div class="app-stage">
+              <div class="wf-top">
+                <div class="crumb"><svg class="ic"><use href="#i-sidebar"/></svg><span class="t">Analyst onboarding plan</span></div>
+                <span class="status-pill"><span class="pulse idle"></span>Qlik Analyst · Idle</span>
+                <span></span>
+              </div>
+              <div class="stream">
+                <div class="msg user"><div class="bubble-wrap"><div class="bubble">Draft a 2-week onboarding plan for new analysts from the handbook</div></div></div>
+                <div class="msg"><span class="av">Q</span><div class="grow"><div class="msg-meta"><b>Qlik Analyst</b><span class="muted">3 helpers · 1m 48s</span></div><div class="answer">Here is a 10-day plan in two blocks, with a shadow reviewer for week 2 and a first dashboard review on day 10.</div></div></div>
+                <div style="height:150px"></div>
+              </div>
+              <div class="dock">
+                <b><svg class="ic"><use href="#i-sidebar"/></svg></b><b><svg class="ic"><use href="#i-search"/></svg></b><b><svg class="ic"><use href="#i-plus"/></svg></b><hr>
+                <b><svg class="ic"><use href="#i-bot"/></svg></b><hr>
+                <b><svg class="ic"><use href="#i-activity"/></svg></b><hr>
+                <b class="on"><svg class="ic"><use href="#i-user"/></svg></b>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tour-layer dim"></div>
+        <div class="coach hero hero-c" data-side="center">
+          <div class="c-art confetti" aria-hidden="true">
+            <i style="--x:8%;--y:22%;--r:18deg;--c:var(--ice)"></i><i style="--x:17%;--y:62%;--r:-30deg;--c:var(--peach)"></i><i style="--x:26%;--y:30%;--r:40deg;--c:var(--butter)"></i>
+            <i style="--x:35%;--y:72%;--r:-12deg;--c:var(--lilac)"></i><i style="--x:44%;--y:18%;--r:60deg;--c:var(--mint)"></i><i style="--x:53%;--y:56%;--r:-44deg;--c:var(--ice)"></i>
+            <i style="--x:62%;--y:26%;--r:22deg;--c:var(--peach)"></i><i style="--x:71%;--y:68%;--r:-60deg;--c:var(--butter)"></i><i style="--x:80%;--y:34%;--r:12deg;--c:var(--lilac)"></i>
+            <i style="--x:89%;--y:60%;--r:-26deg;--c:var(--mint)"></i><i style="--x:94%;--y:16%;--r:48deg;--c:var(--ice)"></i><i style="--x:4%;--y:78%;--r:-8deg;--c:var(--butter)"></i>
+          </div>
+          <div class="c-body">
+            <div class="c-eye"><span>Step 11 of 11 · Done</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+            <h4>You're set, <em>Nitin</em></h4>
+            <ul class="recap">
+              <li><svg class="ic"><use href="#i-check"/></svg>Pick an agent and send from the composer</li>
+              <li><svg class="ic"><use href="#i-check"/></svg>Watch helpers and the session panel work</li>
+              <li><svg class="ic"><use href="#i-check"/></svg>Set goals and build your own agents</li>
+            </ul>
+            <p>Replay any time from Account.</p>
+            <div class="c-foot">
+              <span class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i></span>
+              <span class="tb quiet">Back</span><span class="tb primary">Done</span>
+            </div>
+          </div>
+        </div>
+        <div class="pop acct" aria-label="Account menu">
+          <span class="it"><svg class="ic"><use href="#i-user"/></svg>Nitin</span>
+          <hr>
+          <span class="it hl" data-tour="tour-replay"><svg class="ic"><use href="#i-history"/></svg>Take the tour<span class="tag new">New</span></span>
+          <span class="it"><svg class="ic"><use href="#i-eye"/></svg>Theme</span>
+        </div>
+        <span class="pin pin-at" style="right:10px;bottom:14px">3</span>
+      </div>
+      <p class="board-cap">Second element: the Account menu as it looks after Done, with the replay entry tagged New.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Centered finish</b> <span class="tag look">Look</span><span>No target. Dim layer plus hero card. Done and Enter both finish; Esc also finishes here instead of minimizing.</span></div></li>
+      <li><span class="pin">2</span><div><b>Celebration</b><span>Twelve confetti pieces in the five tints fall once, then rest in place. Hidden under reduced motion.</span></div></li>
+      <li><span class="pin">3</span><div><b>Replay: tour-replay</b><span>Account menu item "Take the tour" restarts from step 1. The New tag shows until the menu is next closed.</span><span class="src">data-tour="tour-replay"</span> <span class="tag new">New</span></div></li>
+      <li><span class="pin">4</span><div><b>prepare() and cleanup</b><span>prepare closes popovers. Done writes {done: true} to truex-tour, restores panels and nav, and keeps the demo chat. Missing target fallback stays 3s for all steps.</span></div></li>
+    </ol>
+  </div>
+</section>

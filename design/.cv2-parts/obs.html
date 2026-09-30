@@ -1,0 +1,147 @@
+<style>
+.ob-stack{display:flex;gap:2px;height:14px}
+.ob-stack i{flex-basis:0;min-width:2px;background:var(--t,var(--accent))}
+.ob-stack i:first-child{border-radius:4px 0 0 4px}
+.ob-stack i:last-child{border-radius:0 4px 4px 0}
+.ob-sw{width:10px;height:10px;border-radius:3px;background:var(--t,var(--accent));flex:none}
+.ob-mono{font:12px/1.6 var(--font-mono);color:var(--ink-2);font-variant-numeric:tabular-nums;display:flex;flex-wrap:wrap;gap:4px 10px}
+.ob-num{font-variant-numeric:tabular-nums}
+.ob-tok{display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:6px}
+.ob-tok div{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;display:flex;flex-direction:column;font-size:11px;color:var(--ink-3)}
+.ob-tok b{font-size:14px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.ob-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;font-size:12px}
+.ob-list li{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line);min-width:0;flex-wrap:wrap}
+.ob-list li:first-child{border-top:0}
+.ob-ctx summary{cursor:pointer;font-size:12px;color:var(--ink-2);padding:6px 0;border-top:1px solid var(--line)}
+.ob-ctx:first-of-type summary{border-top:0}
+.ob-ctx pre{margin:0 0 6px;padding:8px 10px;border-radius:8px;background:var(--surface-3);font:11px/1.5 var(--font-mono);color:var(--ink-2);white-space:pre-wrap;overflow-wrap:anywhere}
+</style>
+<section class="sec" id="obs">
+  <div class="sec-head">
+    <span class="eyebrow">4 · Diagnostics, collapsed</span>
+    <h2>Observability</h2>
+    <p>Every turn records a trace: steps, tokens, timings, rate limits and privacy findings. By default a response shows one quiet receipt line. The full trace opens behind Details, and session-wide numbers live in the Insights tab.</p>
+  </div>
+
+  <!-- Board A: per-turn receipt and trace -->
+  <div class="board">
+    <div>
+      <div class="wf">
+        <div class="wf-stage">
+          <div class="msg">
+            <div class="av">t</div>
+            <div class="grow">
+              <div class="answer">Here is a two-week onboarding plan built from the analyst handbook. Week one covers access and shadowing. Week two ends with each analyst publishing a first sheet.</div>
+              <div class="msg-foot"><span class="pin">1</span> <span class="ob-num">2.6s</span> · <span class="ob-num">26.6k tokens</span> · Sonnet 5.5 · <span class="pill warn">1 privacy finding</span> · <span class="btn ghost">Details</span> <span class="pin">2</span></div>
+
+              <div class="card" style="margin-top:10px">
+                <div class="row"><span class="pin">3</span><span class="pill ok">Completed</span><span class="muted sm ob-num">2.6s · Sonnet 5.5</span><span class="spacer"></span><span class="btn ghost">Hide</span></div>
+
+                <div class="row"><span class="pin">4</span><span class="strong sm">Steps</span></div>
+                <div style="overflow-x:auto">
+                  <div class="tl" style="min-width:300px">
+                    <div class="tl-row"><span class="lbl">Thinking</span><span class="tl-track"><i class="k-think" style="left:0;width:15.4%"></i></span><span class="d">0.4s</span></div>
+                    <div class="tl-row"><span class="lbl">Reading 3 documents</span><span class="tl-track"><i class="k-tool" style="left:15.4%;width:34.6%"></i></span><span class="d">0.9s</span></div>
+                    <div class="tl-row"><span class="lbl">Atlas</span><span class="tl-track"><i class="k-agent" style="left:19.2%;width:57.7%"></i></span><span class="d">1.5s</span></div>
+                    <div class="tl-row"><span class="lbl">Drafting answer</span><span class="tl-track"><i style="left:50%;width:50%"></i></span><span class="d">1.3s</span></div>
+                  </div>
+                </div>
+                <div class="row sm muted"><span class="ob-sw tone-0"></span>Thinking <span class="ob-sw tone-1"></span>Tool <span class="ob-sw tone-2"></span>Agent <span class="ob-sw"></span>Message</div>
+
+                <div class="row"><span class="pin">5</span><span class="strong sm">Tokens</span><span class="spacer"></span><span class="muted sm ob-num">26.6k total</span></div>
+                <div class="ob-tok">
+                  <div>Input<b>14.1k</b></div>
+                  <div>Cached<b>9.8k</b></div>
+                  <div>Output<b>1.9k</b></div>
+                  <div>Reasoning<b>0.6k</b></div>
+                  <div>Helpers<b>0.2k</b></div>
+                </div>
+
+                <div class="row"><span class="pin">6</span><span class="strong sm">Timing</span></div>
+                <div class="ob-mono"><span>accept 42ms</span><span>TTFT 610ms</span><span>stream 1.9s</span><span>max gap 180ms</span><span>38 tok/s</span><span>finalize 55ms</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">Receipt is the default. The trace card opens inline under the response, one turn at a time. On narrow screens it can open in the session panel instead.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Receipt line</b> <span class="tag changed">Changed</span><span>The existing footer grows from time only to time, total tokens, model and a privacy count. Privacy shows only when the count is above zero, in warn tone.</span><span class="src">Data: <code>TurnTrace.durationMs</code> <code>usage.total</code> <code>model</code> <code>privacy.length</code></span></div></li>
+      <li><span class="pin">2</span><div><b>Details</b> <span class="tag new">New</span><span>Ghost button that toggles the trace card for this turn. Opening one closes any other open trace.</span><span class="src">Data: <code>TurnTrace.id</code></span></div></li>
+      <li><span class="pin">3</span><div><b>Trace status</b> <span class="tag new">New</span><span>Status pill (Completed, Failed, Stopped) with total duration and model. Failed uses the bad tone and names the failing step.</span><span class="src">Data: <code>TurnTrace.status</code> <code>durationMs</code> <code>model</code></span></div></li>
+      <li><span class="pin">4</span><div><b>Step timeline</b> <span class="tag new">New</span><span>One row per step, labelled in plain words. Bars are placed by start offset and length as a share of the turn, so overlap with helper agents is visible. Colour follows kind; helper rows carry the agent name. Scrolls sideways on phones.</span><span class="src">Data: <code>StepSpan[]</code>: <code>kind</code> <code>label</code> <code>agent</code> <code>startMs</code> <code>durationMs</code> <code>status</code></span></div></li>
+      <li><span class="pin">5</span><div><b>Token breakdown</b> <span class="tag new">New</span><span>Input, cached input, output, reasoning, and tokens used by helper agents, summed to the total on the receipt.</span><span class="src">Data: <code>usage.input</code> <code>usage.cachedInput</code> <code>usage.output</code> <code>usage.reasoning</code> <code>usage.total</code> <code>helperTokens</code></span></div></li>
+      <li><span class="pin">6</span><div><b>Timing row</b> <span class="tag new">New</span><span>Mono line for people debugging latency: accept, time to first token, stream time, longest gap between deltas, delta rate and finalize.</span><span class="src">Data: <code>TurnTiming.acceptMs</code> <code>ttftMs</code> <code>streamMs</code> <code>maxGapMs</code> <code>deltaRate</code> <code>finalizeMs</code></span></div></li>
+    </ol>
+  </div>
+
+  <!-- Board B: Insights tab -->
+  <div class="board">
+    <div>
+      <div class="wf">
+        <div class="wf-panel" style="border-left:0">
+          <div class="tabs"><span class="tab">Activity</span><span class="tab">Goal</span><span class="tab">Agents</span><span class="tab">Plan</span><span class="tab is-active">Insights</span></div>
+
+          <div class="row"><span class="pin">1</span><span class="muted sm">Existing</span></div>
+          <div class="kpis">
+            <div class="kpi"><span class="l">Average time</span><span class="v">3.1s</span><span class="s">6 responses</span></div>
+            <div class="kpi"><span class="l">Slowest</span><span class="v">7.8s</span></div>
+            <div class="kpi"><span class="l">Tokens</span><span class="v">142k</span><span class="s">31k from helpers</span></div>
+            <div class="kpi"><span class="l">Helpers</span><span class="v">2</span><span class="s">2 finished</span></div>
+          </div>
+          <div class="card">
+            <div class="row"><span class="strong sm">Tokens by agent</span><span class="spacer"></span><span class="muted sm ob-num">142k total</span></div>
+            <div class="ob-stack"><i class="tone-main" style="flex-grow:111"></i><i class="tone-0" style="flex-grow:22"></i><i class="tone-2" style="flex-grow:9"></i></div>
+            <div class="row sm ob-num"><span class="ob-sw tone-main"></span>Main agent 111k <span class="ob-sw tone-0"></span>Atlas 22k <span class="ob-sw tone-2"></span>Cedar 9k</div>
+          </div>
+
+          <div class="card">
+            <div class="row"><span class="pin">2</span><span class="strong sm">Main agent context</span><span class="spacer"></span><span class="muted sm ob-num">61.4k of 258k · 24%</span></div>
+            <div class="bar"><i style="width:24%"></i></div>
+          </div>
+
+          <div class="card">
+            <div class="row"><span class="pin">3</span><span class="strong sm">Rate limits</span></div>
+            <div class="row sm ob-num"><span>Primary · 5h window</span><span class="spacer"></span><span class="muted">72% · resets 3:40 PM</span></div>
+            <div class="bar warn"><i style="width:72%"></i></div>
+            <div class="row sm ob-num"><span>Secondary · weekly</span><span class="spacer"></span><span class="muted">18%</span></div>
+            <div class="bar"><i style="width:18%"></i></div>
+          </div>
+
+          <div class="card">
+            <div class="row"><span class="pin">4</span><span class="strong sm">Privacy findings</span><span class="spacer"></span><span class="pill warn ob-num">2</span></div>
+            <ul class="ob-list">
+              <li><span class="pill">Email</span><span class="muted">in Reading 3 documents</span><span class="spacer"></span><code>j•••@acme.com</code><span class="ob-num muted">×1</span></li>
+              <li><span class="pill">Card</span><span class="muted">in your message</span><span class="spacer"></span><code>•••• 4242</code><span class="ob-num muted">×1</span></li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="row"><span class="pin">5</span><span class="strong sm">This session</span></div>
+            <div class="ob-mono"><span>6 turns</span><span>avg 3.1s</span><span>p95 7.8s</span><span>142k tokens</span><span>2 privacy</span></div>
+          </div>
+
+          <div class="card">
+            <div class="row"><span class="pin">6</span><span class="strong sm">Model context</span><span class="pill accent">Dev mode</span><span class="spacer"></span><span class="muted sm">masked</span></div>
+            <div>
+              <details class="ob-ctx"><summary>System · 1.2k</summary><pre>You are truex, a data assistant for •••••…</pre></details>
+              <details class="ob-ctx"><summary>Tools · 3.4k</summary><pre>read_document, search_workspace, run_query …</pre></details>
+              <details class="ob-ctx" open><summary>Workspace docs · 38.9k</summary><pre>handbook/week-one.md, access-requests.md · Contact: j•••@acme.com …</pre></details>
+              <details class="ob-ctx"><summary>Conversation · 17.9k</summary><pre>6 turns, oldest first. Card •••• 4242 …</pre></details>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">Insights stacks existing tiles on top, then live meters, then session detail. Model context appears only in dev mode.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>KPI tiles and Tokens by agent</b> <span class="tag exists">Exists</span><span>Average time, Slowest, Tokens, Helpers, and the stacked bar with legend stay as specified. Values now come from real traces instead of the 8,200-per-response estimate.</span><span class="src">Data: <code>TraceSummary</code> <code>usage.total</code> <code>helperTokens</code></span></div></li>
+      <li><span class="pin">2</span><div><b>Context window fill</b> <span class="tag changed">Changed</span><span>The spec already has a context meter. It switches to the reported used tokens over the 258k window. Warn at 75%, critical at 90%, as today.</span><span class="src">Data: <code>contextUsedTokens</code> <code>contextWindow</code></span></div></li>
+      <li><span class="pin">3</span><div><b>Rate limits</b> <span class="tag new">New</span><span>Two bars, primary and secondary, each with window and reset time. At 70% or more the bar turns warn. When reached, the row shows a bad pill "Limit reached · resets 3:40 PM", and the composer explains why sending is paused.</span><span class="src">Data: <code>rateLimits.primary.usedPercent</code> <code>windowMinutes</code> <code>resetsAt</code> <code>reached</code>, same for <code>secondary</code></span></div></li>
+      <li><span class="pin">4</span><div><b>Privacy findings</b> <span class="tag new">New</span><span>One row per finding: kind, where it came from, a masked sample and how many times it appeared. Raw values never reach the UI. Hidden when the list is empty.</span><span class="src">Data: <code>privacy[]</code>: <code>kind</code> <code>source</code> <code>count</code> <code>maskedSample</code></span></div></li>
+      <li><span class="pin">5</span><div><b>Session rollup</b> <span class="tag new">New</span><span>One mono line summarising the session: turns, average and p95 latency, total tokens and privacy count.</span><span class="src">Data: <code>TraceSummary.turns</code> <code>avgMs</code> <code>p95Ms</code> <code>tokens</code> <code>privacyCount</code></span></div></li>
+      <li><span class="pin">6</span><div><b>Model context</b> <span class="tag new">New, dev only</span><span>Collapsible list of what the model was fed on the latest turn, one section each for System, Tools, Workspace docs and Conversation, with token counts. Masked, and only available for live turns.</span><span class="src">Data: <code>TurnContext.sections[]</code>: <code>name</code> <code>tokens</code> <code>maskedText</code></span></div></li>
+    </ol>
+  </div>
+</section>

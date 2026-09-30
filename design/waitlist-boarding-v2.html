@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pluto Waitlist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+/* Concept: "Departure lounge for a small planet".
+   Left = the story (status, headline, wave route, referral).
+   Right = a real perforated boarding pass with an orbit behind your number.
+   Light = warm paper + ink. Dark = deep space + starlight. */
+:root {
+  --bg: #F4F0E8;
+  --bg-2: #EDE7DC;
+  --paper: #FFFCF6;
+  --paper-2: #F7F2E8;
+  --ink: #1C1B18;
+  --ink-2: #57534A;
+  --ink-3: #8D877A;
+  --line: #E2DACB;
+  --line-2: #D2C8B6;
+  --accent: #3550F0;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #E3E7FF;
+  --sun: #F2B33D;
+  --sun-ink: #3A2A06;
+  --ok: #2E9E61;
+  --grid: rgb(28 27 24 / 5%);
+  --star: transparent;
+  --ticket-shadow: drop-shadow(0 2px 2px rgb(60 45 20 / 8%)) drop-shadow(0 22px 28px rgb(60 45 20 / 16%));
+  --pass-edge: rgb(60 45 20 / 6%);
+  --glow: radial-gradient(60% 50% at 70% 40%, rgb(53 80 240 / 10%), transparent 70%);
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0A0B10; --bg-2: #10121A;
+    --paper: #15171F; --paper-2: #1B1E28;
+    --ink: #EEECE6; --ink-2: #A9A89F; --ink-3: #6F6F6A;
+    --line: #262934; --line-2: #333746;
+    --accent: #8397FF; --accent-ink: #0A0B10; --accent-soft: #1C2248;
+    --sun: #F5C466; --sun-ink: #2A1D02; --ok: #5BD48F;
+    --grid: rgb(255 255 255 / 3.5%);
+    --star: rgb(255 255 255 / 55%);
+    --ticket-shadow: drop-shadow(0 28px 36px rgb(0 0 0 / 65%)) drop-shadow(0 0 50px rgb(131 151 255 / 14%));
+    --pass-edge: rgb(255 255 255 / 7%);
+    --glow: radial-gradient(55% 50% at 72% 40%, rgb(131 151 255 / 16%), transparent 70%);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0A0B10; --bg-2: #10121A;
+  --paper: #15171F; --paper-2: #1B1E28;
+  --ink: #EEECE6; --ink-2: #A9A89F; --ink-3: #6F6F6A;
+  --line: #262934; --line-2: #333746;
+  --accent: #8397FF; --accent-ink: #0A0B10; --accent-soft: #1C2248;
+  --sun: #F5C466; --sun-ink: #2A1D02; --ok: #5BD48F;
+  --grid: rgb(255 255 255 / 3.5%);
+  --star: rgb(255 255 255 / 55%);
+  --ticket-shadow: drop-shadow(0 28px 36px rgb(0 0 0 / 65%)) drop-shadow(0 0 50px rgb(131 151 255 / 14%));
+    --pass-edge: rgb(255 255 255 / 7%);
+  --glow: radial-gradient(55% 50% at 72% 40%, rgb(131 151 255 / 16%), transparent 70%);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  transition: background-color .4s ease, color .4s ease;
+}
+/* Backdrop: faint blueprint grid + glow + (dark only) stars */
+.backdrop { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+.backdrop::before {
+  content: ""; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(80% 70% at 50% 40%, #000 30%, transparent 80%);
+}
+.backdrop::after { content: ""; position: absolute; inset: 0; background: var(--glow); }
+.stars { position: absolute; inset: 0; }
+.stars i {
+  position: absolute; width: 2px; height: 2px; border-radius: 50%;
+  background: var(--star); animation: twinkle 4s ease-in-out infinite;
+}
+@keyframes twinkle { 50% { opacity: .2; } }
+
+a { color: inherit; }
+.mono { font-family: var(--font-mono); letter-spacing: .06em; text-transform: uppercase; font-size: 11px; }
+
+/* ---------- Top bar ---------- */
+.top {
+  position: relative; z-index: 2;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px clamp(16px, 4vw, 40px);
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 16px; letter-spacing: -.01em; text-decoration: none; }
+.brand svg { display: block; }
+.who { display: flex; align-items: center; gap: 12px; }
+.who .email { color: var(--ink-2); font-size: 13.5px; }
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--accent-soft); color: var(--accent);
+  font-weight: 600; font-size: 13px;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--line-2);
+}
+.theme-btn {
+  width: 34px; height: 34px; border-radius: 10px;
+  border: 1px solid var(--line); background: transparent; color: var(--ink-2);
+  display: grid; place-items: center; cursor: pointer;
+  transition: border-color .2s, color .2s, background .2s;
+}
+.theme-btn:hover { color: var(--ink); border-color: var(--line-2); background: var(--paper); }
+.theme-btn .moon { display: none; }
+:root[data-mode="dark"] .theme-btn .sun { display: none; }
+:root[data-mode="dark"] .theme-btn .moon { display: block; }
+
+/* ---------- Stage ---------- */
+.stage {
+  position: relative; z-index: 1;
+  max-width: 1200px; margin: 0 auto;
+  padding: clamp(24px, 6vh, 72px) clamp(16px, 4vw, 40px) 80px;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 520px);
+  gap: clamp(32px, 6vw, 88px); align-items: center;
+}
+
+/* Status pill */
+.status {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 6px 12px 6px 8px; border-radius: 999px;
+  background: var(--paper); border: 1px solid var(--line);
+  color: var(--ink-2);
+}
+.pulse { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); margin-left: 4px; }
+.pulse::after {
+  content: ""; position: absolute; inset: -4px; border-radius: 50%;
+  border: 1.5px solid var(--ok); opacity: 0; animation: ping 2s ease-out infinite;
+}
+@keyframes ping { 0% { transform: scale(.4); opacity: .8; } 100% { transform: scale(1.6); opacity: 0; } }
+.status b { color: var(--ink); font-weight: 500; }
+
+h1 {
+  margin: 22px 0 18px;
+  font-weight: 600; font-size: clamp(44px, 6.4vw, 80px);
+  line-height: .95; letter-spacing: -.045em;
+}
+h1 em {
+  font-family: var(--font-serif); font-style: italic; font-weight: 400;
+  letter-spacing: -.02em; color: var(--accent);
+  padding-right: .05em;
+}
+.lede { margin: 0; max-width: 34em; color: var(--ink-2); font-size: 17px; line-height: 1.6; text-wrap: pretty; }
+.lede strong { color: var(--ink); font-weight: 600; }
+
+/* ---------- Wave route ---------- */
+.route { margin: 40px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); position: relative; }
+.route::before {
+  content: ""; position: absolute; left: 7px; right: 0; top: 7px; height: 0;
+  border-top: 1.5px dashed var(--line-2);
+}
+.route li { position: relative; padding-top: 28px; padding-right: 8px; }
+.route .node {
+  position: absolute; left: 0; top: 0; width: 15px; height: 15px; border-radius: 50%;
+  background: var(--bg); border: 1.5px solid var(--line-2);
+}
+.route li.here .node { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 5px var(--accent-soft); }
+.route li.here::after {
+  /* solid line segment for the active wave */
+  content: ""; position: absolute; left: 7px; right: 0; top: 7px; border-top: 1.5px solid var(--accent);
+}
+.route .you {
+  position: absolute; top: -30px; left: -6px;
+  padding: 2px 7px; border-radius: 6px; background: var(--ink); color: var(--bg);
+  white-space: nowrap;
+}
+.route .you::after {
+  content: ""; position: absolute; left: 10px; bottom: -4px; width: 8px; height: 8px;
+  background: inherit; transform: rotate(45deg); border-radius: 1px;
+}
+.route .w { color: var(--ink-3); }
+.route li.here .w { color: var(--accent); }
+.route .range { display: block; margin-top: 4px; font-weight: 500; font-size: 15px; font-variant-numeric: tabular-nums; }
+.route .when { display: block; color: var(--ink-3); font-size: 13px; }
+.route li.here .when { color: var(--ink-2); }
+
+/* ---------- Referral ---------- */
+.refer {
+  margin-top: 44px; padding: 22px;
+  background: var(--paper); border: 1px solid var(--line); border-radius: 20px;
+  position: relative;
+}
+.refer-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.refer h2 { margin: 0 0 4px; font-size: 18px; font-weight: 600; letter-spacing: -.02em; }
+.refer p { margin: 0; color: var(--ink-2); font-size: 14px; }
+.boost {
+  flex: none; display: inline-flex; align-items: baseline; gap: 4px;
+  padding: 6px 10px; border-radius: 10px;
+  background: var(--sun); color: var(--sun-ink);
+  font-weight: 600; font-size: 13px; transform: rotate(3deg);
+}
+.boost span { font-family: var(--font-serif); font-style: italic; font-weight: 400; font-size: 20px; line-height: 1; }
+
+.link-row {
+  margin-top: 18px; display: flex; align-items: stretch; gap: 6px;
+  padding: 5px; border-radius: 14px; background: var(--paper-2); border: 1px solid var(--line);
+}
+.link-row:focus-within { border-color: var(--accent); }
+.link-row input {
+  flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink);
+  font: 500 14px var(--font-mono); padding: 0 12px; outline: none;
+}
+.copy {
+  flex: none; display: inline-flex; align-items: center; gap: 8px;
+  border: 0; border-radius: 10px; padding: 11px 16px; cursor: pointer;
+  background: var(--accent); color: var(--accent-ink);
+  font: 600 14px var(--font-sans);
+  transition: transform .15s ease, filter .2s;
+}
+.copy:hover { filter: brightness(1.08); }
+.copy:active { transform: scale(.97); }
+.copy:focus-visible, .theme-btn:focus-visible, .share a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.copy .check { display: none; }
+.copy.done .check { display: block; }
+.copy.done .clip { display: none; }
+
+.refer-foot { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.seats { display: flex; align-items: center; gap: 12px; }
+.seats-row { display: flex; }
+.seat {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1.5px dashed var(--line-2); background: var(--paper);
+  display: grid; place-items: center; color: var(--ink-3); font-size: 14px; line-height: 1;
+}
+.seat + .seat { margin-left: -8px; }
+.seats-text { color: var(--ink-2); font-size: 13.5px; }
+.share { display: flex; gap: 6px; }
+.share a {
+  width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center;
+  border: 1px solid var(--line); color: var(--ink-2); text-decoration: none;
+  transition: color .2s, border-color .2s;
+}
+.share a:hover { color: var(--ink); border-color: var(--line-2); }
+
+/* ---------- Boarding pass ---------- */
+.pass-wrap { position: relative; justify-self: center; width: 100%; max-width: 520px; perspective: 1400px; }
+.pass-tilt {
+  transform: rotate(-3deg);
+  transition: transform .6s cubic-bezier(.2,.8,.2,1);
+  filter: drop-shadow(0 0 0 transparent);
+}
+.pass-wrap:hover .pass-tilt { transform: rotate(-1deg) translateY(-4px); }
+.pass-shadow { filter: var(--ticket-shadow); }
+.pass {
+  --stub: 148px; --notch: 13px;
+  position: relative;
+  display: grid; grid-template-columns: 1fr var(--stub);
+  border-radius: 22px; overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--pass-edge);
+  background:
+    linear-gradient(135deg, transparent 60%, rgb(128 128 128 / 4%)),
+    var(--paper);
+  /* two half-masks punch notches at the perforation line */
+  -webkit-mask:
+    radial-gradient(circle var(--notch) at calc(100% - var(--stub)) 0, transparent 97%, #000) top / 100% 51% no-repeat,
+    radial-gradient(circle var(--notch) at calc(100% - var(--stub)) 100%, transparent 97%, #000) bottom / 100% 51% no-repeat;
+          mask:
+    radial-gradient(circle var(--notch) at calc(100% - var(--stub)) 0, transparent 97%, #000) top / 100% 51% no-repeat,
+    radial-gradient(circle var(--notch) at calc(100% - var(--stub)) 100%, transparent 97%, #000) bottom / 100% 51% no-repeat;
+}
+.pass-main { padding: 24px 24px 22px; position: relative; overflow: hidden; }
+.pass-stub {
+  position: relative; padding: 24px 18px 22px;
+  background: var(--paper-2);
+  border-left: 2px dashed var(--line-2);
+  display: flex; flex-direction: column; justify-content: space-between; align-items: center; text-align: center;
+}
+.pass-top { display: flex; justify-content: space-between; align-items: center; }
+.pass-top .brand { font-size: 14px; }
+.pass-top .mono { color: var(--ink-3); }
+
+.lbl { display: block; color: var(--ink-3); margin-bottom: 3px; }
+.val { font-weight: 500; font-size: 15px; letter-spacing: -.01em; }
+
+/* Orbit hero */
+.hero { position: relative; height: 210px; margin: 8px 0 6px; }
+.orbit { position: absolute; right: -60px; top: 50%; width: 330px; height: 330px; transform: translateY(-50%); }
+.orbit circle.ring { fill: none; stroke: var(--line-2); stroke-width: 1; }
+.orbit circle.ring.dash { stroke-dasharray: 2 5; }
+.orbit .spin { transform-origin: 165px 165px; animation: spin 28s linear infinite; }
+.orbit .spin.slow { animation-duration: 60s; animation-direction: reverse; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.orbit .planet { fill: var(--sun); }
+.orbit .moon-dot { fill: var(--accent); }
+.num {
+  position: absolute; left: 0; bottom: 4px;
+  display: flex; align-items: flex-start; line-height: .8;
+}
+.num .hash { font-family: var(--font-serif); font-style: italic; font-size: 56px; color: var(--accent); margin-top: 10px; margin-right: 2px; }
+.num .digits {
+  font-weight: 600; font-size: 172px; letter-spacing: -.07em; color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.hero .place { position: absolute; left: 0; top: 4px; color: var(--ink-3); }
+
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; padding-top: 18px; border-top: 1px solid var(--line); }
+
+/* Stub */
+.stamp {
+  width: 104px; height: 104px; border-radius: 50%;
+  display: grid; place-items: center; position: relative;
+  color: var(--sun-ink); background: var(--sun);
+  transform: rotate(-12deg);
+  box-shadow: inset 0 0 0 5px var(--sun), inset 0 0 0 6.5px rgb(0 0 0 / 22%);
+}
+.stamp svg { position: absolute; inset: 0; }
+.stamp text { font: 600 8.5px var(--font-mono); letter-spacing: .22em; fill: currentColor; text-transform: uppercase; }
+.stamp .big { font-family: var(--font-serif); font-style: italic; font-size: 52px; line-height: 1; margin-top: -2px; }
+.code { writing-mode: vertical-rl; transform: rotate(180deg); font: 500 17px var(--font-mono); letter-spacing: .28em; color: var(--ink); }
+.code-wrap { display: flex; gap: 10px; align-items: center; }
+.code-wrap .mono { writing-mode: vertical-rl; transform: rotate(180deg); color: var(--ink-3); font-size: 10px; }
+.barcode { display: flex; align-items: stretch; gap: 1.5px; height: 34px; width: 100%; justify-content: center; }
+.barcode i { display: block; background: var(--ink); border-radius: .5px; }
+
+/* Sticker planet peeking over the pass */
+.mascot {
+  position: absolute; z-index: 3; top: -58px; left: 34px;
+  width: 104px; height: 104px;
+  animation: bob 5s ease-in-out infinite;
+}
+@keyframes bob { 50% { transform: translateY(-6px) rotate(2deg); } }
+
+.pass-caption { margin-top: 26px; text-align: center; color: var(--ink-3); font-size: 13px; }
+.pass-caption kbd { font-family: var(--font-mono); font-size: 11px; padding: 1px 6px; border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 5px; color: var(--ink-2); }
+
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Entrance */
+.rise { opacity: 0; transform: translateY(12px); animation: rise .8s cubic-bezier(.2,.8,.2,1) forwards; }
+.d1 { animation-delay: .05s; } .d2 { animation-delay: .12s; } .d3 { animation-delay: .2s; } .d4 { animation-delay: .28s; } .d5 { animation-delay: .36s; }
+@keyframes rise { to { opacity: 1; transform: none; } }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 960px) {
+  .stage { grid-template-columns: minmax(0, 1fr); }
+  .pass-wrap { margin-top: 56px; }
+}
+@media (max-width: 560px) {
+  .who .email { display: none; }
+  .route { grid-template-columns: repeat(2, 1fr); row-gap: 28px; }
+  .route::before { display: none; }
+  .route li.here::after { display: none; }
+  .pass { grid-template-columns: 1fr; -webkit-mask: none; mask: none; }
+  .pass-stub { border-left: 0; border-top: 2px dashed var(--line-2); flex-direction: row; gap: 14px; }
+  .code, .code-wrap .mono { writing-mode: horizontal-tb; transform: none; }
+  .code-wrap { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .barcode { width: 80px; }
+  .stamp { width: 84px; height: 84px; }
+  .stamp .big { font-size: 42px; }
+  .num .digits { font-size: 140px; }
+  .orbit { right: -110px; }
+  .refer-head { flex-direction: column; }
+  .copy .txt { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .rise { opacity: 1; transform: none; }
+}
+</style>
+</head>
+<body>
+<div class="backdrop" aria-hidden="true"><div class="stars" id="stars"></div></div>
+
+<header class="top">
+  <a class="brand" href="#" aria-label="Pluto home">
+    <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
+      <circle cx="13" cy="13" r="7" fill="var(--sun)"/>
+      <ellipse cx="13" cy="13" rx="12" ry="4.2" fill="none" stroke="var(--ink)" stroke-width="1.6" transform="rotate(-18 13 13)"/>
+      <circle cx="23.5" cy="9.3" r="1.8" fill="var(--accent)"/>
+    </svg>
+    Pluto
+  </a>
+  <div class="who">
+    <span class="email">ashokjoe2001@gmail.com</span>
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="Toggle dark mode">
+      <svg class="sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <svg class="moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+    <span class="avatar" aria-hidden="true">A</span>
+  </div>
+</header>
+
+<main class="stage">
+  <section aria-labelledby="title">
+    <div class="status mono rise d1"><span class="pulse" aria-hidden="true"></span>Now boarding <b>· Wave 1</b></div>
+
+    <h1 id="title" class="rise d2">You’re <em>on the list.</em></h1>
+    <p class="lede rise d3">Pluto opens in waves, front of the line first. <strong>4 people</strong> are ahead of you, and every friend you bring moves you closer.</p>
+
+    <ol class="route rise d4" aria-label="Boarding waves">
+      <li class="here" aria-current="step">
+        <span class="node" aria-hidden="true"></span>
+        <span class="you mono" aria-hidden="true">You · #5</span>
+        <span class="w mono">Wave 01</span>
+        <span class="range">#1–25</span>
+        <span class="when">Boarding now</span>
+      </li>
+      <li>
+        <span class="node" aria-hidden="true"></span>
+        <span class="w mono">Wave 02</span>
+        <span class="range">#26–100</span>
+        <span class="when">Later</span>
+      </li>
+      <li>
+        <span class="node" aria-hidden="true"></span>
+        <span class="w mono">Wave 03</span>
+        <span class="range">#101–300</span>
+        <span class="when">Later</span>
+      </li>
+      <li>
+        <span class="node" aria-hidden="true"></span>
+        <span class="w mono">Wave 04</span>
+        <span class="range">#301+</span>
+        <span class="when">Later</span>
+      </li>
+    </ol>
+
+    <div class="refer rise d5">
+      <div class="refer-head">
+        <div>
+          <h2>Skip ahead with friends</h2>
+          <p>Every friend who joins with your link moves you up 10 spots.</p>
+        </div>
+        <span class="boost"><span>+10</span> per friend</span>
+      </div>
+
+      <div class="link-row">
+        <label class="sr" for="invite">Your invite link</label>
+        <input id="invite" type="text" value="hirepluto.ai/join/gb27cprd" readonly>
+        <button class="copy" id="copyBtn" type="button">
+          <svg class="clip" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+          <svg class="check" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+          <span class="txt" id="copyTxt">Copy link</span>
+        </button>
+      </div>
+      <span class="sr" id="copyLive" aria-live="polite"></span>
+
+      <div class="refer-foot">
+        <div class="seats">
+          <div class="seats-row" aria-hidden="true">
+            <span class="seat">+</span><span class="seat">+</span><span class="seat">+</span>
+          </div>
+          <span class="seats-text">No friends aboard yet</span>
+        </div>
+        <div class="share">
+          <a href="#" aria-label="Share on X"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.8 3h3.3l-7.2 8.2L22.4 21h-6.6l-5.2-6.8L4.7 21H1.4l7.7-8.8L1 3h6.8l4.7 6.2L17.8 3Zm-1.2 16h1.8L7.5 4.9H5.6L16.6 19Z"/></svg></a>
+          <a href="#" aria-label="Share on LinkedIn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9.5h4V21H3V9.5Zm7 0h3.8v1.6h.1c.5-1 1.8-2 3.8-2 4 0 4.8 2.6 4.8 6V21h-4v-5.2c0-1.3 0-2.9-1.8-2.9s-2 1.4-2 2.8V21h-4V9.5Z"/></svg></a>
+          <a href="#" aria-label="Share by email"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="pass-wrap rise d3" aria-label="Your boarding pass">
+    <!-- Mascot placeholder: swap for the Pluto robot sticker asset -->
+    <svg class="mascot" viewBox="0 0 104 104" aria-hidden="true">
+      <g transform="rotate(-14 52 52)">
+        <circle cx="52" cy="54" r="30" fill="var(--sun)" stroke="var(--ink)" stroke-width="2.5"/>
+        <path d="M30 44c8 3 14 1 20-3M58 70c6-2 11-6 14-12" stroke="var(--sun-ink)" stroke-opacity=".25" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <circle cx="42" cy="54" r="3.2" fill="var(--ink)"/>
+        <circle cx="62" cy="54" r="3.2" fill="var(--ink)"/>
+        <path d="M45 63q7 6 14 0" stroke="var(--ink)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <ellipse cx="52" cy="56" rx="48" ry="12" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-dasharray="120 30" stroke-dashoffset="-38"/>
+      </g>
+      <path d="M86 12l2 6M96 22l-6 2M92 14l-4 4" stroke="var(--sun)" stroke-width="3" stroke-linecap="round"/>
+    </svg>
+
+    <div class="pass-tilt">
+      <div class="pass-shadow">
+        <div class="pass">
+          <div class="pass-main">
+            <div class="pass-top">
+              <span class="brand">
+                <svg width="18" height="18" viewBox="0 0 26 26" aria-hidden="true">
+                  <circle cx="13" cy="13" r="7" fill="var(--sun)"/>
+                  <ellipse cx="13" cy="13" rx="12" ry="4.2" fill="none" stroke="var(--ink)" stroke-width="1.8" transform="rotate(-18 13 13)"/>
+                </svg>
+                Pluto
+              </span>
+              <span class="mono">Boarding pass</span>
+            </div>
+
+            <div class="hero">
+              <svg class="orbit" viewBox="0 0 330 330" aria-hidden="true">
+                <circle class="ring" cx="165" cy="165" r="160"/>
+                <circle class="ring dash" cx="165" cy="165" r="122"/>
+                <circle class="ring" cx="165" cy="165" r="84"/>
+                <circle class="ring dash" cx="165" cy="165" r="46"/>
+                <circle class="planet" cx="165" cy="165" r="16"/>
+                <g class="spin"><circle class="moon-dot" cx="165" cy="81" r="6"/></g>
+                <g class="spin slow"><circle cx="287" cy="165" r="3.5" fill="var(--ink-3)"/></g>
+              </svg>
+              <span class="place mono">Your place in line</span>
+              <div class="num" aria-label="Number 5"><span class="hash" aria-hidden="true">#</span><span class="digits" aria-hidden="true">5</span></div>
+            </div>
+
+            <div class="fields">
+              <div><span class="lbl mono">Passenger</span><span class="val">Ashok</span></div>
+              <div><span class="lbl mono">Group</span><span class="val">Wave 1</span></div>
+              <div><span class="lbl mono">Joined</span><span class="val">Sep 28, 2026</span></div>
+              <div><span class="lbl mono">Ahead of you</span><span class="val">4 people</span></div>
+            </div>
+          </div>
+
+          <div class="pass-stub">
+            <div class="stamp" aria-label="Wave 1 of 4">
+              <svg viewBox="0 0 104 104" aria-hidden="true">
+                <defs><path id="arc" d="M52 52m-38 0a38 38 0 1 1 76 0a38 38 0 1 1-76 0"/></defs>
+                <text><textPath href="#arc" startOffset="0">Wave · one of four · boarding ·</textPath></text>
+              </svg>
+              <span class="big" aria-hidden="true">1</span>
+            </div>
+            <div class="code-wrap">
+              <span class="mono">Invite code</span>
+              <span class="code">GB27CPRD</span>
+            </div>
+            <div class="barcode" id="barcode" aria-hidden="true"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="pass-caption">We’ll email you the moment Wave 1 gates open.</p>
+  </aside>
+</main>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var mq = window.matchMedia('(prefers-color-scheme: dark)');
+
+  // Theme: explicit choice (remembered per viewer) or system default
+  function stored() { try { return localStorage.getItem('pluto-theme'); } catch (e) { return null; } }
+  function apply(theme) {
+    if (theme) root.setAttribute('data-theme', theme); else root.removeAttribute('data-theme');
+    var mode = theme || (mq.matches ? 'dark' : 'light');
+    root.setAttribute('data-mode', mode);
+    document.getElementById('themeBtn').setAttribute('aria-label', mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+  }
+  // #light / #dark in the URL forces a mode (handy for sharing either theme)
+  var forced = /^#(light|dark)$/.test(location.hash) ? location.hash.slice(1) : null;
+  apply(forced || stored());
+  mq.addEventListener && mq.addEventListener('change', function () { apply(stored()); });
+  document.getElementById('themeBtn').addEventListener('click', function () {
+    var next = root.getAttribute('data-mode') === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem('pluto-theme', next); } catch (e) {}
+    apply(next);
+  });
+
+  // Stars (only visible in dark mode via --star)
+  var stars = document.getElementById('stars');
+  for (var i = 0; i < 70; i++) {
+    var s = document.createElement('i');
+    s.style.left = (Math.random() * 100) + '%';
+    s.style.top = (Math.random() * 100) + '%';
+    s.style.animationDelay = (Math.random() * 4) + 's';
+    if (Math.random() > .85) { s.style.width = s.style.height = '3px'; }
+    stars.appendChild(s);
+  }
+
+  // Deterministic barcode from the invite code
+  var code = 'GB27CPRD', bc = document.getElementById('barcode'), seed = 0;
+  for (var c = 0; c < code.length; c++) seed = (seed * 31 + code.charCodeAt(c)) >>> 0;
+  function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+  for (var b = 0; b < 30; b++) {
+    var bar = document.createElement('i');
+    bar.style.width = (rnd() > .6 ? 3 : rnd() > .5 ? 2 : 1) + 'px';
+    bc.appendChild(bar);
+  }
+
+  // Copy link
+  var btn = document.getElementById('copyBtn'), txt = document.getElementById('copyTxt'),
+      live = document.getElementById('copyLive'), input = document.getElementById('invite'), t;
+  btn.addEventListener('click', function () {
+    var url = 'https://' + input.value;
+    var done = function () {
+      btn.classList.add('done'); txt.textContent = 'Copied'; live.textContent = 'Invite link copied';
+      clearTimeout(t); t = setTimeout(function () { btn.classList.remove('done'); txt.textContent = 'Copy link'; live.textContent = ''; }, 1800);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, function () { input.select(); document.execCommand('copy'); done(); });
+    } else { input.select(); document.execCommand('copy'); done(); }
+  });
+})();
+</script>
+</body>
+</html>

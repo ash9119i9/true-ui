@@ -1,0 +1,156 @@
+<style>
+.ch-dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--ok)}
+.ch-dot.warn{background:var(--warn)} .ch-dot.bad{background:var(--bad)}
+.ch-variants{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.ch-banner{margin:12px 16px 0}
+.ch-kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 12px;padding:6px 8px;font-size:13px}
+.ch-kv dt{color:var(--ink-3)} .ch-kv dd{margin:0;color:var(--ink);overflow-wrap:anywhere}
+.ch-ta{min-height:64px;border:1px solid var(--line-strong);border-radius:9px;background:var(--surface);padding:8px 10px;color:var(--ink-3);font-size:13px}
+.ch-tl{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--line);display:flex;flex-direction:column;gap:10px;font-size:13px}
+.ch-tl li{position:relative;display:flex;gap:8px;flex-wrap:wrap;align-items:baseline;color:var(--ink-2)}
+.ch-tl li::before{content:"";position:absolute;left:-19px;top:6px;width:8px;height:8px;border-radius:50%;background:var(--line-strong)}
+.ch-tl time{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3);min-width:56px}
+.ch-file{display:flex;align-items:center;gap:8px;font-size:13px;min-width:0}
+.ch-file code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ch-add{color:var(--ok);font-family:var(--font-mono);font-size:12px} .ch-del{color:var(--bad);font-family:var(--font-mono);font-size:12px}
+.ch-top{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)} .ch-top .crumb{overflow:hidden}
+</style>
+<section class="sec" id="chrome">
+  <div class="sec-head">
+    <span class="eyebrow">3 · Status, pinned</span>
+    <h2>Session chrome</h2>
+    <p>Status lives in two fixed places. The topbar shows who is working and whether the session is healthy. The session panel holds the goal, the plan, file changes and errors. None of it scrolls away with the stream.</p>
+  </div>
+
+  <!-- Board A: topbar + status -->
+  <div class="board">
+    <div>
+      <div class="wf">
+        <div class="wf-top ch-top">
+          <div class="crumb"><span class="muted">/</span><span class="t">Onboarding plan for new analysts</span><span class="pin">1</span><span class="pill">Archived</span><span class="pin">2</span></div>
+          <span class="status-pill"><span class="pulse"></span>Qlik Analyst <span class="muted">·</span> <span class="muted">Working</span></span>
+          <div class="row" style="justify-content:flex-end"><span class="pin">3</span></div>
+        </div>
+        <div class="ch-variants" aria-label="Status pill states">
+          <span class="status-pill"><span class="pulse idle"></span>Qlik Analyst <span class="muted">· Idle</span></span>
+          <span class="status-pill"><span class="spinner"></span>Qlik Analyst <span class="muted">· Starting…</span></span>
+          <span class="status-pill"><span class="pulse"></span>Qlik Analyst <span class="muted">· Working</span></span>
+          <span class="status-pill"><span class="pulse warn"></span>Qlik Analyst <span class="muted">· Stopping…</span></span>
+        </div>
+        <div class="card warn ch-banner"><div class="row"><span class="pin">4</span><span class="strong" style="color:inherit">This session lost its runner. Reconnect or start a new chat.</span><span class="spacer"></span><button class="btn" type="button">Reconnect</button><button class="btn ghost" type="button">New chat</button></div></div>
+        <div class="card bad ch-banner"><div class="row"><span class="pin">5</span><span class="strong">This session has ended. You can read it, but it can no longer run.</span><span class="spacer"></span><button class="btn" type="button">Start a new chat</button></div></div>
+        <div style="padding:12px 16px 16px;display:flex;justify-content:center">
+          <div class="pop" style="width:min(320px,100%)">
+            <div class="it"><span class="tile">Q</span><div class="grow"><span class="strong">Qlik Analyst</span><span class="muted sm">Edit agent</span></div><span class="pin">6</span></div>
+            <dl class="ch-kv">
+              <dt>Model</dt><dd>Sonnet 5.5</dd>
+              <dt>Provider</dt><dd>Anthropic</dd>
+              <dt>Sandbox</dt><dd>Workspace write</dd>
+              <dt>Folder</dt><dd><code>~/true-ui</code></dd>
+            </dl>
+            <div class="row" style="padding:4px 8px 2px"><span class="eyebrow">Connected tools</span><span class="pin">7</span></div>
+            <div class="it"><span class="ch-dot"></span>Qlik Cloud<span class="spacer"></span><span class="muted sm">12 tools</span></div>
+            <div class="it"><span class="ch-dot"></span>GitHub<span class="spacer"></span><span class="muted sm">8 tools</span></div>
+            <div class="it"><span class="ch-dot warn"></span>Google Drive<span class="spacer"></span><span class="pill warn">Needs auth</span></div>
+            <div class="it"><span class="ch-dot bad"></span>Jira<span class="spacer"></span><span class="pill bad">Failed</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">One topbar with the four pill states listed below it, the two health banners, and the agent popover opened from the pill.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Crumb title</b> <span class="tag exists">Exists</span><span>Conversation title, cut short with an ellipsis. Falls back to "New conversation".</span><span class="src">Data: <code>session.title</code></span></div></li>
+      <li><span class="pin">2</span><div><b>Archived pill</b> <span class="tag new">New</span><span>Shows after the title when the session is archived. The composer is replaced by an "Unarchive" action.</span><span class="src">Data: <code>session.archived</code></span></div></li>
+      <li><span class="pin">3</span><div><b>Status pill, turn state</b> <span class="tag changed">Changed</span><span>Agent name plus the real turn state: idle "Idle", starting "Starting…", running "Working", interrupting "Stopping…". The same state drives the composer stop button, which is disabled while stopping.</span><span class="src">Data: <code>turn.state</code>, <code>agent.name</code></span></div></li>
+      <li><span class="pin">4</span><div><b>Orphaned banner</b> <span class="tag new">New</span><span>Warn card under the topbar when the runner is gone. Reconnect retries the attach, New chat forks the transcript.</span><span class="src">Data: <code>session.status = "orphaned"</code></span></div></li>
+      <li><span class="pin">5</span><div><b>Dead banner</b> <span class="tag new">New</span><span>Bad card. The session is read only: the composer hides and history stays readable.</span><span class="src">Data: <code>session.status = "dead"</code></span></div></li>
+      <li><span class="pin">6</span><div><b>Agent popover</b> <span class="tag changed">Changed</span><span>Clicking the pill opens a summary before the editor: model, provider, sandbox mode and project folder.</span><span class="src">Data: <code>agent.model</code>, <code>agent.provider</code>, <code>session.sandbox</code>, <code>session.cwd</code></span></div></li>
+      <li><span class="pin">7</span><div><b>Connected tools</b> <span class="tag new">New</span><span>One row per MCP server with a dot: green connected, amber needs auth, red failed. Needs auth and failed rows open the server settings. If any server fails, the pill gets a small amber dot.</span><span class="src">Data: <code>mcp.status</code></span></div></li>
+    </ol>
+  </div>
+  <!-- Board B: Goal tab -->
+  <div class="board">
+    <div>
+      <div class="wf">
+        <div class="wf-panel" style="border-left:0">
+          <div class="tabs"><span class="tab">Activity</span><span class="tab is-active">Goal</span><span class="tab">Agents</span><span class="tab">Plan</span><span class="tab">Insights</span></div>
+          <div class="row"><span class="pill accent"><span class="pulse"></span>Active</span><span class="pin">1</span><span class="spacer"></span><span class="mono sm muted">Started 9:42 AM</span></div>
+          <h3>Build a two-week onboarding plan for the three new analysts joining in October</h3>
+          <div class="row sm muted" style="gap:6px"><span>Other states</span><span class="pill warn">Paused</span><span class="pill bad">Blocked</span><span class="pill warn">Usage limit</span><span class="pill warn">Budget reached</span><span class="pill ok">Complete</span></div>
+          <div class="card">
+            <div class="row"><span class="strong sm">Tokens</span><span class="pin">2</span><span class="spacer"></span><span class="mono sm">412k of 500k tokens</span></div>
+            <div class="bar warn"><i style="width:82%"></i></div>
+            <div class="row sm muted"><span>Time used</span><span class="spacer"></span><span class="mono">38m</span></div>
+          </div>
+          <div class="card">
+            <div class="row"><span class="tile">&#10003;</span><div class="grow"><span class="strong">Agent marked this goal complete</span><span class="muted sm">Plan saved to onboarding/analyst-plan.md with 10 days of sessions.</span></div><span class="pin">3</span></div>
+            <div class="row"><button class="btn primary" type="button">Accept</button><button class="btn ghost" type="button">Reopen with feedback</button></div>
+            <label class="field"><span class="muted sm">What is missing?</span><div class="ch-ta">Add a Qlik certification checkpoint in week two.</div></label>
+            <div class="row"><span class="spacer"></span><button class="btn soft" type="button">Reopen goal</button></div>
+          </div>
+          <div class="row"><span class="eyebrow">Timeline</span><span class="pin">4</span></div>
+          <ol class="ch-tl">
+            <li><time>9:42 AM</time>Goal set</li>
+            <li><time>9:43 AM</time>Budget set to 500k tokens</li>
+            <li><time>9:58 AM</time>Objective edited: added "joining in October"</li>
+            <li><time>10:11 AM</time>Status: Paused</li>
+            <li><time>10:14 AM</time>Status: Active</li>
+            <li><time>10:20 AM</time>Marked complete by agent</li>
+            <li><time>10:24 AM</time>Reopened with feedback</li>
+          </ol>
+        </div>
+      </div>
+      <p class="board-cap">Goal tab while a completion is waiting for review. Accepted and cleared entries join the same timeline.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Goal status</b> <span class="tag changed">Changed</span><span>GOAL_STATUS today has running, paused, done and ended. v2 needs six: active "Active" (pulse), paused "Paused", blocked "Blocked", usageLimited "Usage limit", budgetLimited "Budget reached", complete "Complete". Limit states show a Resume action once the limit clears.</span><span class="src">Data: <code>goal.status</code>, <code>goal.objective</code></span></div></li>
+      <li><span class="pin">2</span><div><b>Budget and time</b> <span class="tag new">New</span><span>Replaces the fake dollar meta. Tokens used against the budget, with the bar turning amber past 80%. Time used sits under it. With no budget, only the count shows.</span><span class="src">Data: <code>goal.tokensUsed</code>, <code>goal.tokenBudget</code>, <code>goal.timeUsedMs</code></span></div></li>
+      <li><span class="pin">3</span><div><b>Goal review</b> <span class="tag new">New</span><span>Shows when the agent marks the goal complete. Accept closes it. Reopen with feedback opens a textarea and sends the text back as the next turn.</span><span class="src">Data: <code>goal.status = "complete"</code>, <code>goal.accepted</code></span></div></li>
+      <li><span class="pin">4</span><div><b>Goal timeline</b> <span class="tag new">New</span><span>Vertical list, oldest first, one row per history entry: set, objective, budget, status, accepted, reopened, cleared. Local time on the left.</span><span class="src">Data: <code>GoalHistoryEntry[]</code></span></div></li>
+    </ol>
+  </div>
+  <!-- Board C: Activity + Plan tabs -->
+  <div class="board">
+    <div>
+      <div class="wf"><div class="wf-split">
+        <div class="wf-panel" style="border-left:0">
+          <div class="tabs"><span class="tab is-active">Activity</span><span class="tab">Goal</span><span class="tab">Agents</span><span class="tab">Plan</span><span class="tab">Insights</span></div>
+          <div class="row"><span class="eyebrow">Changes</span><span class="pin">1</span><span class="spacer"></span><span class="mono sm muted">3 files</span></div>
+          <div class="ch-file"><code>onboarding/analyst-plan.md</code><span class="ch-add">+84</span><span class="ch-del">-0</span></div>
+          <div class="diff" role="group" aria-label="Diff for onboarding/analyst-plan.md">
+            <div class="hd">@@ -0,0 +1,84 @@</div>
+            <div class="add">+## Week 1: Tools and data</div>
+            <div class="add">+- Day 1: Qlik Cloud access, workspace tour</div>
+            <div class="add">+- Day 2: Shadow Priya on the sales dashboard</div>
+          </div>
+          <div class="ch-file"><code>onboarding/checklist.csv</code><span class="ch-add">+12</span><span class="ch-del">-3</span></div>
+          <div class="ch-file"><code>README.md</code><span class="ch-add">+2</span><span class="ch-del">-1</span></div>
+          <div class="row"><span class="eyebrow">Errors</span><span class="pin">2</span></div>
+          <div class="card bad">
+            <div class="row"><span class="mark fail"></span><span class="strong sm">Google Drive search failed: token expired</span></div>
+            <div class="row mono sm muted"><span>ref err_7f3a21</span><span class="spacer"></span><span>10:06 AM</span></div>
+          </div>
+        </div>
+        <div class="wf-panel">
+          <div class="tabs"><span class="tab">Activity</span><span class="tab">Goal</span><span class="tab">Agents</span><span class="tab is-active">Plan</span><span class="tab">Insights</span></div>
+          <div class="row"><span class="strong sm">2 of 5 done</span><span class="pin">3</span><span class="spacer"></span><span class="mono sm muted">40%</span></div>
+          <div class="bar"><i style="width:40%"></i></div>
+          <ul class="steps">
+            <li class="is-done"><span class="mark done"></span>List the tools each analyst needs</li>
+            <li class="is-done"><span class="mark done"></span>Pull the team handbook and past plans</li>
+            <li style="color:var(--ink)"><span class="mark"><span class="spinner"></span></span>Draft week one sessions</li>
+            <li><span class="mark"></span>Draft week two sessions</li>
+            <li><span class="mark"></span>Write the checklist file</li>
+          </ul>
+        </div>
+      </div>
+      </div>
+      <p class="board-cap">Activity and Plan tabs side by side. On phones they stack.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Changes</b> <span class="tag new">New</span><span>File list with added and removed line counts, newest diff first. Each row expands to its diff. Long paths are cut short; the diff scrolls sideways.</span><span class="src">Data: <code>diff.updated</code> (path, additions, deletions, hunks)</span></div></li>
+      <li><span class="pin">2</span><div><b>Errors</b> <span class="tag new">New</span><span>Every error event gets a row: message, error ref in mono so support can find it, and the time. The same ref appears on the inline error in the stream.</span><span class="src">Data: <code>error.message</code>, <code>error.ref</code>, <code>error.at</code></span></div></li>
+      <li><span class="pin">3</span><div><b>Plan</b> <span class="tag exists">Exists</span><span>Same Plan tab, now fed by real data instead of sample steps. Marks for done, current and pending, with a "2 of 5 done" bar. Updates replace the whole list.</span><span class="src">Data: <code>plan.updated</code> (steps, status)</span></div></li>
+    </ol>
+  </div>
+</section>

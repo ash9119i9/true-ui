@@ -1,0 +1,173 @@
+<title>Join Invite Dev Spec</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,6..72,400..500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: sticky contents rail on the left, one reading column of spec tables on the right; stacks on phones.
+   Tokens mirror the product's light/dark system so the spec itself demonstrates the page it describes. */
+:root {
+  --bg: #FFFFFF; --surface: #FFFFFF; --surface-3: #F6F9FA; --line: #E3ECEF; --line-strong: #D8E0E4;
+  --ink: #1F2A30; --ink-2: #5F6D73; --ink-3: #849198;
+  --accent: #3691CD; --accent-fg: #2A72A3; --accent-soft: #EAF5F8;
+  --warn-bg: #FFF3D9; --warn-text: #7D5D1D; --ok-text: #35624E;
+  --board-dot: rgb(31 42 48 / 11%);
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-accent: "Newsreader", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171717; --surface: #171717; --surface-3: #242424; --line: #2A2A2A; --line-strong: #363636;
+  --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F;
+  --accent: #3691CD; --accent-fg: #BCDEE8; --accent-soft: #14283A;
+  --warn-bg: #2E2512; --warn-text: #E6C27A; --ok-text: #A8D8BE; --board-dot: rgb(238 244 246 / 9%); color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #171717; --surface: #171717; --surface-3: #242424; --line: #2A2A2A; --line-strong: #363636;
+  --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F;
+  --accent: #3691CD; --accent-fg: #BCDEE8; --accent-soft: #14283A;
+  --warn-bg: #2E2512; --warn-text: #E6C27A; --ok-text: #A8D8BE; --board-dot: rgb(238 244 246 / 9%); color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.6 var(--font-sans); -webkit-font-smoothing: antialiased; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+a { color: var(--accent-fg); }
+.page { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 48px; max-width: 1240px; margin: 0 auto; padding: 40px 24px 96px; }
+@media (max-width: 900px) { .page { grid-template-columns: minmax(0, 1fr); gap: 24px; padding: 24px 16px 64px; } .rail { position: static !important; max-height: none !important; } }
+
+.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; max-height: calc(100vh - 48px); overflow: auto; font-size: 13px; }
+.rail-brand { font-weight: 800; font-size: 19px; letter-spacing: -.04em; }
+.rail-sub { color: var(--ink-3); font: 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; margin: 2px 0 18px; }
+.rail ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; counter-reset: s; }
+.rail li { counter-increment: s; }
+.rail a { display: flex; gap: 10px; padding: 5px 8px; border-radius: 7px; color: var(--ink-2); text-decoration: none; }
+.rail a::before { content: counter(s, decimal-leading-zero); font: 11px/21px var(--font-mono); color: var(--ink-3); }
+.rail a:hover { background: var(--surface-3); color: var(--ink); }
+.rail .grp { font: 500 10.5px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); padding: 14px 8px 4px; }
+.theme { display: inline-flex; padding: 2px; margin-top: 18px; border-radius: 9px; background: var(--surface-3); border: 1px solid var(--line); }
+.theme button { height: 26px; padding: 0 10px; border: 0; border-radius: 7px; background: none; color: var(--ink-2); font: 12px var(--font-sans); cursor: pointer; }
+.theme button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / 8%); font-weight: 500; }
+
+main { min-width: 0; }
+.hero { padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+.eyebrow { font: 500 11px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+h1 { margin: 8px 0 10px; font-size: clamp(30px, 4.4vw, 44px); line-height: 1.06; letter-spacing: -.035em; font-weight: 600; text-wrap: balance; }
+h1 em, h2 em { font-family: var(--font-accent); font-style: italic; font-weight: 400; color: var(--accent-fg); }
+.lede { max-width: 64ch; color: var(--ink-2); font-size: 15px; margin: 0; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.meta span { font: 11.5px var(--font-mono); color: var(--ink-2); padding: 3px 9px; border-radius: 999px; background: var(--surface-3); border: 1px solid var(--line); }
+
+.shots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 24px; }
+.shots figure { margin: 0; min-width: 0; }
+.shots figure.wide { grid-column: 1 / -1; }
+.shots img { display: block; width: 100%; max-width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-3); }
+.shots figcaption { font: 11.5px var(--font-mono); color: var(--ink-3); margin-top: 6px; }
+.phone-row { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 640px) { .shots { grid-template-columns: minmax(0, 1fr); } .phone-row { grid-template-columns: minmax(0, 1fr); } }
+
+section { padding: 40px 0 8px; border-bottom: 1px solid var(--line); scroll-margin-top: 16px; }
+section > h2 { margin: 0 0 12px; font-size: 24px; letter-spacing: -.02em; line-height: 1.2; font-weight: 600; text-wrap: balance; }
+h3 { margin: 28px 0 8px; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+p, li { max-width: 72ch; }
+p { margin: 0 0 12px; color: var(--ink-2); }
+section ul, section ol { color: var(--ink-2); padding-left: 20px; margin: 0 0 14px; }
+section li { margin: 3px 0; }
+b, strong { color: var(--ink); font-weight: 600; }
+code { font: 12.5px var(--font-mono); background: var(--surface-3); border: 1px solid var(--line); padding: 1px 5px; border-radius: 5px; color: var(--ink); overflow-wrap: anywhere; }
+pre { margin: 10px 0 16px; padding: 14px 16px; background: var(--surface-3); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; font: 12px/1.6 var(--font-mono); color: var(--ink); }
+pre code { background: none; border: 0; padding: 0; font: inherit; overflow-wrap: normal; }
+.tw { overflow-x: auto; margin: 10px 0 18px; border: 1px solid var(--line); border-radius: 10px; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.tbl th { text-align: left; font: 500 11px var(--font-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--ink-3); background: var(--surface-3); padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.tbl td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--ink-2); }
+.tbl tr:last-child td { border-bottom: 0; }
+.tbl td:first-child { color: var(--ink); font-weight: 500; }
+.tbl td code { white-space: nowrap; }
+.sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; box-shadow: inset 0 0 0 1px rgb(128 128 128 / 35%); }
+.note { margin: 12px 0 18px; padding: 12px 14px; border-radius: 10px; background: var(--accent-soft); color: var(--ink); font-size: 13.5px; }
+.note.warn { background: var(--warn-bg); color: var(--warn-text); }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.grid2 > * { min-width: 0; }
+@media (max-width: 720px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+ul.chk { list-style: none; padding-left: 0; }
+ul.chk li { position: relative; padding-left: 26px; margin: 6px 0; }
+ul.chk li::before { content: ""; position: absolute; left: 0; top: 3px; width: 15px; height: 15px; border: 1.5px solid var(--line-strong); border-radius: 4px; }
+.foot { padding-top: 28px; font: 12px var(--font-mono); color: var(--ink-3); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+html { scroll-behavior: smooth; }
+</style>
+
+<div class="page">
+  <nav class="rail" aria-label="Contents">
+    <div class="rail-brand">truex</div>
+    <div class="rail-sub">Join invite · dev spec</div>
+    <ol>
+      <li class="grp">Start</li>
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#layout">Layout</a></li>
+      <li class="grp">Foundations</li>
+      <li><a href="#tokens">Color tokens</a></li>
+      <li><a href="#type">Typography</a></li>
+      <li><a href="#spacing">Radius &amp; spacing</a></li>
+      <li class="grp">Left: invitation</li>
+      <li><a href="#left-components">Components</a></li>
+      <li><a href="#states">Page states</a></li>
+      <li><a href="#logic">Logic &amp; wiring</a></li>
+      <li><a href="#copy">Copy deck</a></li>
+      <li class="grp">Right: board</li>
+      <li><a href="#board">Board geometry</a></li>
+      <li><a href="#materials">Materials</a></li>
+      <li><a href="#specimens">Specimens 01–08</a></li>
+      <li><a href="#motion">Motion</a></li>
+      <li><a href="#legend">Legend</a></li>
+      <li><a href="#assets">Assets</a></li>
+      <li class="grp">Ship it</li>
+      <li><a href="#a11y">Accessibility</a></li>
+      <li><a href="#perf">Performance</a></li>
+      <li><a href="#build">Build plan</a></li>
+      <li><a href="#qa">QA &amp; acceptance</a></li>
+    </ol>
+    <div class="theme" id="themeSeg" role="group" aria-label="Theme">
+      <button type="button" data-t="" aria-pressed="true">Auto</button>
+      <button type="button" data-t="light" aria-pressed="false">Light</button>
+      <button type="button" data-t="dark" aria-pressed="false">Dark</button>
+    </div>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Handoff · join-tenant-v3-capabilities.html</div>
+      <h1>Join invite, <em>capabilities</em> edition</h1>
+      <p class="lede">Everything needed to build the workspace invite page in the truex app: layout, tokens, every component and state, the capabilities board recipes, assets, copy, and the acceptance checklist. Values are copied from the prototype. Anything marked <b>proposal</b> is not in the prototype and needs a product or backend decision.</p>
+      <div class="meta"><span>Prototype: design/join-tenant-v3-capabilities.html</span><span>Target: app.tsx + index.html</span><span>Oct 1, 2026</span></div>
+
+      <div class="shots">
+        <figure><img alt="Valid invite, light theme, 1440 by 900" src="data:image/jpeg;base64,@@IMG:light@@"><figcaption>Valid invite · light · 1440×900</figcaption></figure>
+        <figure><img alt="Valid invite, dark theme, 1440 by 900" src="data:image/jpeg;base64,@@IMG:dark@@"><figcaption>Valid invite · dark · 1440×900</figcaption></figure>
+        <figure><img alt="Name typed, profile specimen filled, light theme" src="data:image/jpeg;base64,@@IMG:typed@@"><figcaption>Name typed “Alex Rivera” · profile 07 live</figcaption></figure>
+        <figure><img alt="Expired invite state, light theme" src="data:image/jpeg;base64,@@IMG:expired@@"><figcaption>Expired invite</figcaption></figure>
+        <figure class="wide"><div class="phone-row"><img alt="Phone layout at 400 pixels wide, stacked" src="data:image/jpeg;base64,@@IMG:phone@@"><div><p><b>Phone, 400px.</b> Below 960px the split stacks: the invitation first, then the board as a rounded panel with a 12px side margin. The page scrolls normally, the legend drops to one column below 520px, and the board switches to a taller 5 : 6.4 ratio so the specimens don't collide.</p></div></div></figure>
+      </div>
+    </header>
+
+@@PART:a@@
+@@PART:b@@
+@@PART:c@@
+@@PART:d@@
+
+    <div class="foot">truex · join invite dev spec · generated from the prototype on Oct 1, 2026</div>
+  </main>
+</div>
+
+<script>
+(() => {
+  const root = document.documentElement;
+  const apply = (t) => {
+    if (t) root.dataset.theme = t; else root.removeAttribute("data-theme");
+    document.querySelectorAll("#themeSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.t === t)));
+    try { localStorage.setItem("spec-theme", t); } catch (e) {}
+  };
+  let saved = ""; try { saved = localStorage.getItem("spec-theme") || ""; } catch (e) {}
+  apply(saved);
+  document.getElementById("themeSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) apply(b.dataset.t); });
+})();
+</script>

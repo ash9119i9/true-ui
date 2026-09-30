@@ -1,0 +1,462 @@
+<style>
+/* ---- receipt ---- */
+.ob-stage{padding:18px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.ob-num{font-variant-numeric:tabular-nums}
+.ob-receipt{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:12px;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.ob-receipt > span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.ob-receipt .ic{color:var(--ink-3)}
+.ob-flag{height:22px;padding:0 8px;border-radius:999px;font-weight:600}
+.ob-flag.warn{background:var(--warn-bg);color:var(--warn-text)} .ob-flag.warn .ic{color:var(--warn)}
+.ob-flag.bad{background:var(--bad-bg);color:var(--bad)} .ob-flag.bad .ic{color:var(--bad)}
+.ob-flag.live{background:var(--accent-soft);color:var(--accent-fg)}
+.ob-details{height:24px;padding:0 6px 0 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:500}
+.ob-details.on{background:var(--ink);color:var(--bg);border-color:var(--ink)} .ob-details.on .ic{color:var(--bg)}
+
+/* ---- trace card ---- */
+.ob-trace{margin-top:12px;border:1px solid var(--line);border-radius:16px;background:var(--surface);box-shadow:var(--shadow-card);overflow:hidden;min-width:0}
+.ob-th{display:flex;align-items:center;gap:10px;padding:12px 14px;flex-wrap:wrap}
+.ob-tile{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-fg);flex:none}
+.ob-tile.warn{background:var(--warn-bg);color:var(--warn)}
+.ob-title{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.ob-title b{font-size:14px;font-weight:700;color:var(--ink)}
+.ob-title small{font:11px var(--font-mono);color:var(--ink-3);font-variant-numeric:tabular-nums}
+.ob-status{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;background:var(--ok-bg);color:var(--ok)}
+.ob-status.warn{background:var(--warn-bg);color:var(--warn-text)}
+.ob-status.live{background:var(--accent-soft);color:var(--accent-fg)}
+.ob-right{margin-left:auto;display:flex;align-items:center;gap:6px}
+.ob-iconbtn{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:var(--ink-3)}
+.ob-sec{padding:14px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);min-width:0;background:var(--surface)}
+.ob-h{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--ink);letter-spacing:.01em}
+.ob-h > .ic{color:var(--ink-3)}
+.ob-h .ob-r{margin-left:auto;font:500 11px var(--font-mono);color:var(--ink-3);font-variant-numeric:tabular-nums}
+.ob-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;background:var(--line);border-top:1px solid var(--line)}
+.ob-cols > .ob-sec{border-top:0}
+
+/* ---- waterfall ---- */
+.ob-wf-scroll{overflow-x:auto;margin:0 -14px;padding:0 14px 4px;scrollbar-width:thin}
+.ob-wf{--lab:150px;--dur:40px;position:relative;min-width:540px;display:flex;flex-direction:column;gap:2px}
+.ob-axis,.ob-row{position:relative;z-index:1;display:grid;grid-template-columns:var(--lab) minmax(0,1fr) var(--dur);gap:8px;align-items:center}
+.ob-ticks{position:relative;height:18px;font:10px var(--font-mono);color:var(--ink-3);font-variant-numeric:tabular-nums}
+.ob-ticks span{position:absolute;top:1px;transform:translateX(-50%);white-space:nowrap}
+.ob-ticks span:first-child{transform:none}
+.ob-ticks span:last-child{transform:translateX(-100%)}
+.ob-ticks span.ob-nowlab{color:var(--accent-fg);font-weight:500}
+.ob-grid{position:absolute;z-index:0;top:18px;bottom:0;left:calc(var(--lab) + 8px);right:calc(var(--dur) + 8px);pointer-events:none;border-top:1px solid var(--line)}
+.ob-grid i{position:absolute;top:0;bottom:0;border-left:1px dashed var(--line-strong);opacity:.7}
+.ob-grid i.ob-now{border-left:1.5px solid var(--accent);opacity:1}
+.ob-row{height:22px}
+.ob-row.ob-grp{height:26px;margin-top:4px}
+.ob-row.ob-grp:first-of-type{margin-top:0}
+.ob-lab{display:flex;align-items:center;gap:6px;min-width:0;font-size:12px;color:var(--ink-2);padding-left:24px;white-space:nowrap}
+.ob-lab > span{overflow:hidden;text-overflow:ellipsis}
+.ob-grp .ob-lab{padding-left:0;font-weight:600;color:var(--ink)}
+.ob-grp .ob-lab small{font-weight:500;color:var(--ink-3);font-size:11px}
+.ob-lab .ic{color:var(--ink-3)}
+.ob-lab .ob-mark{color:var(--warn)}
+.ob-row.is-err .ob-lab{color:var(--bad);font-weight:600}
+.ob-row.is-err .ob-lab .ic{color:var(--bad)}
+.ob-trk{position:relative;height:100%}
+.ob-bar{position:absolute;top:5px;bottom:5px;min-width:3px;border-radius:4px}
+.ob-span{position:absolute;top:9px;height:8px;border-radius:999px;background:var(--ts);box-shadow:inset 0 0 0 1.5px var(--t)}
+.ob-dur{font:11px var(--font-mono);color:var(--ink-3);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ob-grp .ob-dur{color:var(--ink-2);font-weight:500}
+.ob-row.is-err .ob-dur{color:var(--bad)}
+/* bar kinds */
+.ob-k-think{background:repeating-linear-gradient(135deg,var(--accent) 0 2px,color-mix(in srgb,var(--accent) 35%,transparent) 2px 5px)}
+.ob-k-file{background:var(--t0)}
+.ob-k-tool{background:var(--t1)}
+.ob-k-write{background:var(--ink-2)}
+.ob-k-wait{background:transparent;box-shadow:inset 0 0 0 1px var(--line-strong);background-image:repeating-linear-gradient(90deg,var(--line-strong) 0 1px,transparent 1px 6px)}
+.ob-k-err{background:var(--bad);box-shadow:0 0 0 3px var(--bad-bg)}
+.ob-k-live{background:linear-gradient(90deg,color-mix(in srgb,var(--ink-2) 60%,transparent),var(--ink-2));border-radius:4px 1px 1px 4px}
+.ob-k-live::after{content:"";position:absolute;right:-4px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--accent);animation:pulse 1.6s infinite}
+.ob-errx{position:absolute;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:var(--bad);color:var(--bg);display:grid;place-items:center}
+.ob-errx .ic{width:10px;height:10px;stroke-width:3}
+.ob-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;color:var(--ink-3)}
+.ob-legend span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.ob-legend i{position:relative;width:14px;height:8px;border-radius:2px;flex:none}
+.ob-legend i.ob-k-live::after{display:none}
+
+/* ---- tokens ---- */
+.ob-stack{display:flex;height:12px;border-radius:999px;overflow:hidden;background:var(--surface-3)}
+.ob-stack.thin{height:6px}
+.ob-stack i{flex-basis:0;min-width:0}
+.ob-stack i + i{box-shadow:inset 2px 0 0 var(--surface)}
+.ob-t-in{background:var(--accent)}
+.ob-t-cache{background:color-mix(in srgb,var(--accent) 35%,var(--surface))}
+.ob-t-out{background:var(--ink-2)}
+.ob-t-rsn{background:repeating-linear-gradient(135deg,var(--ink-2) 0 2px,color-mix(in srgb,var(--ink-2) 30%,var(--surface)) 2px 5px)}
+.ob-tv{background:var(--t)}
+.ob-leg{display:grid;grid-template-columns:10px minmax(0,1fr) auto 34px;gap:5px 8px;align-items:center;font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.ob-leg i{width:10px;height:10px;border-radius:3px}
+.ob-leg b{font:500 12px var(--font-mono);color:var(--ink);text-align:right}
+.ob-leg em{font:normal 11px var(--font-mono);color:var(--ink-3);text-align:right}
+.ob-leg .ob-tot{grid-column:2;font-weight:600;color:var(--ink);padding-top:5px;border-top:1px solid var(--line)}
+.ob-leg .ob-tot + b{padding-top:5px;border-top:1px solid var(--line);font-weight:700}
+.ob-agents{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.ob-agents span{display:inline-flex;align-items:center;gap:5px}
+.ob-agents i{width:8px;height:8px;border-radius:2px;background:var(--t)}
+.ob-agents b{color:var(--ink-2);font-weight:600}
+
+/* ---- context ring and timing spec ---- */
+.ob-ctxrow{display:flex;align-items:center;gap:14px}
+.ob-ring{width:68px;height:68px;font-size:13px}
+.ob-ring::before{width:54px;height:54px}
+.ob-ctxrow p{font-size:12px;color:var(--ink-3);line-height:1.45}
+.ob-ctxrow p b{display:block;font-size:17px;font-weight:700;color:var(--ink);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.ob-spec{margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:4px 18px;font-size:12px}
+.ob-spec div{display:flex;align-items:baseline;gap:6px;min-width:0}
+.ob-spec dt{color:var(--ink-3);white-space:nowrap}
+.ob-spec div::after{content:"";order:1;flex:1;border-bottom:1px dotted var(--line-strong);min-width:8px}
+.ob-spec dd{order:2;margin:0;font:500 12px var(--font-mono);color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* ---- privacy ---- */
+.ob-find{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--warn-bg);color:var(--warn-text);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent)}
+.ob-find .ob-tile{background:var(--surface);color:var(--warn)}
+.ob-find-main{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:12px}
+.ob-find-main > span{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.ob-find-main b{font-size:13px;color:var(--ink)}
+.ob-find code{background:var(--surface);border-color:color-mix(in srgb,var(--warn) 30%,transparent);color:var(--ink)}
+.ob-find .ob-cnt{font:600 12px var(--font-mono);font-variant-numeric:tabular-nums}
+
+/* ---- rate limit footer ---- */
+.ob-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;padding:10px 14px;background:var(--surface-2);border-top:1px solid var(--line);font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.ob-foot > b{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--ink-2)}
+.ob-meter{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.ob-meter .bar{width:72px;height:5px}
+.ob-meter.warn{color:var(--warn-text)}
+.ob-meter.warn b{color:var(--warn-text)}
+.ob-meter b{font:600 11px var(--font-mono);color:var(--ink-2)}
+
+/* ---- error detail ---- */
+.ob-err{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;padding:12px;border-radius:12px;background:var(--bad-bg);border:1px solid color-mix(in srgb,var(--bad) 30%,transparent);font-size:12px;color:var(--ink-2)}
+.ob-err .ob-tile{background:var(--surface);color:var(--bad)}
+.ob-err b{color:var(--ink);font-size:13px}
+.ob-err code{background:var(--surface)}
+.ob-err .row{grid-column:2;margin-top:6px}
+.ob-err .btn{height:28px;font-size:12px}
+
+/* ---- model context ---- */
+.ob-ctxsec{border-top:1px solid var(--line)}
+.ob-ctxsec:first-of-type{border-top:0}
+.ob-ctxsec summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:16px 10px minmax(0,1fr) minmax(40px,90px) 44px;gap:8px;align-items:center;padding:9px 0;font-size:13px;color:var(--ink)}
+.ob-ctxsec summary::-webkit-details-marker{display:none}
+.ob-ctxsec summary > .ic{color:var(--ink-3);transition:transform .15s}
+.ob-ctxsec[open] summary > .ic{transform:rotate(90deg)}
+.ob-ctxsec summary > i{width:10px;height:10px;border-radius:3px}
+.ob-ctxsec summary b{font:500 12px var(--font-mono);text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+.ob-share{height:5px;border-radius:999px;background:var(--surface-3);overflow:hidden}
+.ob-share i{display:block;height:100%;border-radius:inherit;background:var(--c)}
+.ob-ctxbody{margin:0 0 10px 34px;display:flex;flex-direction:column;gap:8px}
+.ob-files{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:12px}
+.ob-files li{display:flex;align-items:center;gap:8px;color:var(--ink-2);min-width:0}
+.ob-files li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ob-files li b{margin-left:auto;font:500 11px var(--font-mono);color:var(--ink-3);font-variant-numeric:tabular-nums}
+.ob-pre{margin:0;padding:10px 12px;border-radius:10px;background:var(--surface-3);border:1px solid var(--line);font:11px/1.6 var(--font-mono);color:var(--ink-2);white-space:pre-wrap;overflow-wrap:anywhere}
+.ob-pre mark{background:var(--warn-bg);color:var(--warn-text);border-radius:3px;padding:0 2px}
+.ob-c-sys{--c:var(--ink-3)} .ob-c-tools{--c:var(--t1)} .ob-c-docs{--c:var(--accent)} .ob-c-convo{--c:var(--t2)}
+.ob-ctxsec summary > i.ob-c-sys,.ob-ctxsec summary > i.ob-c-tools,.ob-ctxsec summary > i.ob-c-docs,.ob-ctxsec summary > i.ob-c-convo{background:var(--c)}
+.ob-stack i.ob-c-sys,.ob-stack i.ob-c-tools,.ob-stack i.ob-c-docs,.ob-stack i.ob-c-convo{background:var(--c)}
+.ob-dev{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:6px;background:var(--ink);color:var(--bg);font:600 10px var(--font-mono);letter-spacing:.06em;text-transform:uppercase}
+.ob-mask{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink-3)}
+.ob-mockstack{display:flex;flex-direction:column;gap:20px;min-width:0}
+</style>
+<section class="sec" id="obs">
+  <div class="sec-head">
+    <span class="eyebrow">5 · Diagnostics, collapsed</span>
+    <h2>Observability per turn</h2>
+    <p>Every turn keeps a trace next to its message. By default the response shows one quiet receipt line. Details opens the trace card under it: a waterfall of every step by agent, tokens, context fill, latency, privacy findings and the account's rate limits. The same numbers roll up in the session panel's Insights tab under Session scope.</p>
+  </div>
+
+  <!-- Board A: receipt and full trace card, T1 -->
+  <div class="board">
+    <div>
+      <div class="app">
+        <div class="app-chrome"><i></i><i></i><i></i><span>Qlik Analyst · Onboarding plan for new analysts</span></div>
+        <div class="app-body">
+          <div class="app-stage">
+            <div class="ob-stage">
+              <div class="msg user"><div class="bubble-wrap"><div class="bubble">Draft a two-week onboarding plan for the three new analysts.</div></div></div>
+              <div class="msg">
+                <div class="av"><svg class="ic sm"><use href="#i-bot"/></svg></div>
+                <div class="grow">
+                  <div class="msg-meta"><span class="strong sm">Qlik Analyst</span><span class="muted sm ob-num">10:02</span></div>
+                  <div class="answer">Here is a two-week plan built from the analyst handbook. Week one covers access and shadowing with the BI team. Week two ends with each analyst publishing a first sheet.</div>
+
+                  <div class="ob-receipt">
+                    <span class="pin">1</span>
+                    <span><svg class="ic sm"><use href="#i-clock"/></svg>1m 12s</span>
+                    <span><svg class="ic sm"><use href="#i-sigma"/></svg>58.2k tokens</span>
+                    <span><svg class="ic sm"><use href="#i-spark"/></svg>Sonnet 5.5</span>
+                    <span class="ob-flag warn"><svg class="ic sm"><use href="#i-shield"/></svg>1 privacy</span>
+                    <span class="ob-details on">Details<svg class="ic sm"><use href="#i-chevd"/></svg></span>
+                    <span class="pin">2</span>
+                  </div>
+
+                  <div class="ob-trace">
+                    <div class="ob-th">
+                      <span class="ob-tile"><svg class="ic"><use href="#i-activity"/></svg></span>
+                      <span class="ob-title"><b>Turn trace</b><small>T1 · 10:02 · 12 steps · 3 helpers</small></span>
+                      <span class="ob-status"><svg class="ic sm"><use href="#i-check"/></svg>Completed</span>
+                      <span class="pin">3</span>
+                      <span class="ob-right"><span class="seg"><span class="on">Trace</span><span>Model context</span></span><span class="ob-iconbtn"><svg class="ic"><use href="#i-x"/></svg></span></span>
+                    </div>
+
+                    <div class="ob-sec">
+                      <div class="ob-h"><span class="pin">4</span><svg class="ic sm"><use href="#i-list"/></svg>Steps<span class="ob-r">1m 12s wall time</span></div>
+                      <div class="ob-wf-scroll">
+                        <div class="ob-wf">
+                          <div class="ob-grid"><i style="left:20.833%"></i><i style="left:41.667%"></i><i style="left:62.5%"></i><i style="left:83.333%"></i><i style="left:100%"></i></div>
+                          <div class="ob-axis"><span></span><div class="ob-ticks"><span style="left:0">0s</span><span style="left:20.833%">15s</span><span style="left:41.667%">30s</span><span style="left:62.5%">45s</span><span style="left:83.333%">60s</span><span style="left:100%">72s</span></div><span></span></div>
+
+                          <div class="ob-row ob-grp tone-main"><span class="ob-lab"><span class="h-av">Q</span><span>Main</span></span><span class="ob-trk"><i class="ob-span" style="left:0;width:100%"></i></span><span class="ob-dur">1m 12s</span></div>
+                          <div class="ob-row"><span class="ob-lab"><span>Thinking</span></span><span class="ob-trk"><i class="ob-bar ob-k-think" style="left:0;width:5.556%"></i></span><span class="ob-dur">4.0s</span></div>
+                          <div class="ob-row"><span class="ob-lab"><span>Reading 3 documents</span></span><span class="ob-trk"><i class="ob-bar ob-k-file" style="left:5.556%;width:13.889%"></i></span><span class="ob-dur">10s</span></div>
+                          <div class="ob-row"><span class="ob-lab"><span>Waiting on 3 helpers</span></span><span class="ob-trk"><i class="ob-bar ob-k-wait" style="left:19.444%;width:50%"></i></span><span class="ob-dur">36s</span></div>
+                          <div class="ob-row"><span class="ob-lab"><span>Thinking</span></span><span class="ob-trk"><i class="ob-bar ob-k-think" style="left:69.444%;width:5.556%"></i></span><span class="ob-dur">4.0s</span></div>
+                          <div class="ob-row"><span class="ob-lab"><span>Writing answer</span></span><span class="ob-trk"><i class="ob-bar ob-k-write" style="left:75%;width:25%"></i></span><span class="ob-dur">18s</span></div>
+
+                          <div class="ob-row ob-grp tone-0"><span class="ob-lab"><span class="h-av">A</span><span>Atlas <small>Docs</small></span></span><span class="ob-trk"><i class="ob-span" style="left:19.444%;width:41.667%"></i></span><span class="ob-dur">30s</span></div>
+                          <div class="ob-row"><span class="ob-lab"><span>Search handbook</span></span><span class="ob-trk"><i class="ob-bar ob-k-tool" style="left:19.444%;width:11.111%"></i></span><span class="ob-dur">8.0s</span></div>
+                          <div class="ob-row"><span class="ob-lab"><span>Read week-one.md</span></span><span class="ob-trk"><i class="ob-bar ob-k-file" style="left:30.556%;width:19.444%"></i></span><span class="ob-dur">14s</span></div>
+                          <div class="ob-row"><span class="ob-lab"><span>Write summary</span></span><span class="ob-trk"><i class="ob-bar ob-k-write" style="left:50%;width:11.111%"></i></span><span class="ob-dur">8.0s</span></div>
+
+                          <div class="ob-row ob-grp tone-1"><span class="ob-lab"><span class="h-av">B</span><span>Birch <small>Access</small></span></span><span class="ob-trk"><i class="ob-span" style="left:20.833%;width:31.944%"></i></span><span class="ob-dur">23s</span></div>
+                          <div class="ob-row"><span class="ob-lab"><span>Read access-requests.md</span><svg class="ic sm ob-mark"><use href="#i-shield"/></svg></span><span class="ob-trk"><i class="ob-bar ob-k-file" style="left:20.833%;width:20.833%"></i></span><span class="ob-dur">15s</span></div>
+                          <div class="ob-row"><span class="ob-lab"><span>Thinking</span></span><span class="ob-trk"><i class="ob-bar ob-k-think" style="left:41.667%;width:11.111%"></i></span><span class="ob-dur">8.0s</span></div>
+
+                          <div class="ob-row ob-grp tone-2"><span class="ob-lab"><span class="h-av">C</span><span>Cedar <small>Shadowing</small></span></span><span class="ob-trk"><i class="ob-span" style="left:22.222%;width:47.222%"></i></span><span class="ob-dur">34s</span></div>
+                          <div class="ob-row"><span class="ob-lab"><span>Google Calendar lookup</span></span><span class="ob-trk"><i class="ob-bar ob-k-tool" style="left:22.222%;width:25%"></i></span><span class="ob-dur">18s</span></div>
+                          <div class="ob-row"><span class="ob-lab"><span>Write shadowing slots</span></span><span class="ob-trk"><i class="ob-bar ob-k-write" style="left:47.222%;width:22.222%"></i></span><span class="ob-dur">16s</span></div>
+                        </div>
+                      </div>
+                      <div class="ob-legend"><span><i class="ob-k-think"></i>Thinking</span><span><i class="ob-k-file"></i>Reading files</span><span><i class="ob-k-tool"></i>Tool call</span><span><i class="ob-k-write"></i>Writing</span><span><i class="ob-k-wait"></i>Waiting</span><span><i class="ob-k-err"></i>Error</span><span><svg class="ic sm ob-mark" style="color:var(--warn)"><use href="#i-shield"/></svg>Privacy finding</span></div>
+                    </div>
+
+                    <div class="ob-cols">
+                      <div class="ob-sec">
+                        <div class="ob-h"><span class="pin">5</span><svg class="ic sm"><use href="#i-sigma"/></svg>Tokens<span class="ob-r">58.2k</span></div>
+                        <div class="ob-stack"><i class="ob-t-in" style="flex-grow:384"></i><i class="ob-t-cache" style="flex-grow:112"></i><i class="ob-t-out" style="flex-grow:61"></i><i class="ob-t-rsn" style="flex-grow:25"></i></div>
+                        <div class="ob-leg">
+                          <i class="ob-t-in"></i><span>Input</span><b>38.4k</b><em>66%</em>
+                          <i class="ob-t-cache"></i><span>Cached input</span><b>11.2k</b><em>19%</em>
+                          <i class="ob-t-out"></i><span>Output</span><b>6.1k</b><em>10%</em>
+                          <i class="ob-t-rsn"></i><span>Reasoning</span><b>2.5k</b><em>4%</em>
+                          <span></span><span class="ob-tot">Total</span><b>58.2k</b><em></em>
+                        </div>
+                        <div class="ob-stack thin"><i class="ob-tv tone-main" style="flex-grow:413"></i><i class="ob-tv tone-0" style="flex-grow:72"></i><i class="ob-tv tone-1" style="flex-grow:41"></i><i class="ob-tv tone-2" style="flex-grow:56"></i></div>
+                        <div class="ob-agents"><span class="tone-main"><i></i>Main <b>41.3k</b></span><span class="tone-0"><i></i>Atlas <b>7.2k</b></span><span class="tone-1"><i></i>Birch <b>4.1k</b></span><span class="tone-2"><i></i>Cedar <b>5.6k</b></span><span><b>16.9k</b> from helpers</span></div>
+                      </div>
+                      <div class="ob-sec">
+                        <div class="ob-h"><span class="pin">6</span><svg class="ic sm"><use href="#i-layers"/></svg>Context window</div>
+                        <div class="ob-ctxrow"><span class="ring ob-ring" style="--p:24"><span>24%</span></span><p><b>61.4k of 258k</b>Main agent, after this turn. Warns at 75%.</p></div>
+                        <div class="ob-h" style="margin-top:4px"><span class="pin">7</span><svg class="ic sm"><use href="#i-clock"/></svg>Timing</div>
+                        <dl class="ob-spec">
+                          <div><dt>Accept</dt><dd>42ms</dd></div>
+                          <div><dt>First token</dt><dd>610ms</dd></div>
+                          <div><dt>Stream</dt><dd>1m 8s</dd></div>
+                          <div><dt>Longest gap</dt><dd>180ms</dd></div>
+                          <div><dt>Rate</dt><dd>38 tok/s</dd></div>
+                          <div><dt>Finalize</dt><dd>55ms</dd></div>
+                        </dl>
+                      </div>
+                    </div>
+
+                    <div class="ob-sec">
+                      <div class="ob-h"><span class="pin">8</span><svg class="ic sm"><use href="#i-shield"/></svg>Privacy on this turn<span class="ob-r">1 finding</span></div>
+                      <div class="ob-find">
+                        <span class="ob-tile"><svg class="ic"><use href="#i-shield"/></svg></span>
+                        <div class="ob-find-main">
+                          <span><b>Email</b><code>j•••@acme.com</code></span>
+                          <span><svg class="ic sm"><use href="#i-file"/></svg>handbook/access-requests.md · read by Birch</span>
+                        </div>
+                        <span class="ob-cnt">×1</span>
+                      </div>
+                    </div>
+
+                    <div class="ob-foot">
+                      <span class="pin">9</span>
+                      <b><svg class="ic sm"><use href="#i-key"/></svg>Account limits</b>
+                      <span class="ob-meter warn">5h window <span class="bar warn"><i style="width:72%"></i></span><b>72%</b> resets 3:40 PM</span>
+                      <span class="ob-meter">Weekly <span class="bar"><i style="width:18%"></i></span><b>18%</b></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">One quiet line by default. Details unfolds the trace right under the answer, drawn to the turn's own clock.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Receipt line</b> <span class="tag changed">Changed</span><span>The footer grows from time only to time, total tokens, model and a privacy count, each with its icon. The privacy chip appears only when the count is above zero, in warn tone.</span><span class="src">Data: <code>TurnTrace.durationMs</code> <code>usage.total</code> <code>model</code> <code>privacy.length</code></span></div></li>
+      <li><span class="pin">2</span><div><b>Details toggle</b> <span class="tag new">New</span><span>Opens the trace card for this turn and fills in dark while open. Opening one closes any other open trace. On phones the card opens as a bottom sheet.</span><span class="src">Data: <code>TurnTrace.id</code></span></div></li>
+      <li><span class="pin">3</span><div><b>Trace header</b> <span class="tag new">New</span><span>Turn number, start time, step and helper counts, a status pill (Completed, Completed with errors, Failed, Stopped, Running) and a Trace / Model context switch. Model context shows only in dev mode.</span><span class="src">Data: <code>TurnTrace.status</code> <code>startedAt</code> <code>steps.length</code></span></div></li>
+      <li><span class="pin">4</span><div><b>Waterfall</b> <span class="tag new">New</span><span>Rows grouped by agent, with a tinted span showing each helper's lifetime. Bars sit on a shared time axis (0 to 72s, ticks every 15s), coloured by kind with a legend. Main's wait is drawn as a hatched outline so overlap with helpers reads at a glance. Scrolls sideways on phones.</span><span class="src">Data: <code>StepSpan[]</code>: <code>agent</code> <code>kind</code> <code>label</code> <code>startMs</code> <code>durationMs</code> <code>status</code></span></div></li>
+      <li><span class="pin">5</span><div><b>Token breakdown</b> <span class="tag new">New</span><span>Stacked bar to scale with a legend: input, cached input, output and reasoning, totalling the receipt's 58.2k. A thin second bar splits the same total by agent and calls out the 16.9k spent by helpers in this turn. The session total, 31k, lives in the panel's Session scope.</span><span class="src">Data: <code>usage.input</code> <code>cachedInput</code> <code>output</code> <code>reasoning</code> <code>total</code> <code>usageByAgent[]</code></span></div></li>
+      <li><span class="pin">6</span><div><b>Context ring</b> <span class="tag changed">Changed</span><span>The spec's context meter as a ring: reported tokens over the model window. Warn tone at 75%, bad at 90%.</span><span class="src">Data: <code>contextUsedTokens</code> <code>contextWindow</code></span></div></li>
+      <li><span class="pin">7</span><div><b>Timing spec sheet</b> <span class="tag new">New</span><span>Mono values with dotted leaders for latency debugging: accept, first token, stream, longest gap between deltas, delta rate and finalize.</span><span class="src">Data: <code>TurnTiming.acceptMs</code> <code>ttftMs</code> <code>streamMs</code> <code>maxGapMs</code> <code>deltaRate</code> <code>finalizeMs</code></span></div></li>
+      <li><span class="pin">8</span><div><b>Privacy findings</b> <span class="tag new">New</span><span>One row per finding: kind, masked sample, source file, which agent read it and the count. The matching step carries a shield in the waterfall. Raw values never reach the UI. Hidden when empty.</span><span class="src">Data: <code>privacy[]</code>: <code>kind</code> <code>source</code> <code>maskedSample</code> <code>count</code> <code>stepId</code></span></div></li>
+      <li><span class="pin">9</span><div><b>Account limits</b> <span class="tag new">New</span><span>Rate limits are account level, so they sit in the card footer as two compact meters, not in the turn body. Warn tone at 70% or more. When reached, the meter turns bad and reads "Limit reached · resets 3:40 PM".</span><span class="src">Data: <code>rateLimits.primary.usedPercent</code> <code>windowMinutes</code> <code>resetsAt</code> <code>reached</code>, same for <code>secondary</code></span></div></li>
+    </ol>
+  </div>
+
+  <!-- Board B: failed step and running turn -->
+  <div class="board">
+    <div>
+      <div class="ob-mockstack">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>T3 · 10:09</span></div>
+          <div class="app-body">
+            <div class="app-stage">
+              <div class="ob-stage">
+                <div class="msg">
+                  <div class="av"><svg class="ic sm"><use href="#i-bot"/></svg></div>
+                  <div class="grow">
+                    <div class="answer">I added the access checklist, but I could not open the shared onboarding folder in Google Drive, so the reading list is from the handbook only.</div>
+                    <div class="ob-receipt">
+                      <span class="pin">1</span>
+                      <span><svg class="ic sm"><use href="#i-clock"/></svg>48s</span>
+                      <span><svg class="ic sm"><use href="#i-sigma"/></svg>34.0k tokens</span>
+                      <span><svg class="ic sm"><use href="#i-spark"/></svg>Sonnet 5.5</span>
+                      <span class="ob-flag bad"><svg class="ic sm"><use href="#i-alert"/></svg>1 error</span>
+                      <span class="ob-details on">Details<svg class="ic sm"><use href="#i-chevd"/></svg></span>
+                    </div>
+                    <div class="ob-trace">
+                      <div class="ob-th">
+                        <span class="ob-tile warn"><svg class="ic"><use href="#i-alert"/></svg></span>
+                        <span class="ob-title"><b>Turn trace</b><small>T3 · 10:09 · 6 steps · 1 helper</small></span>
+                        <span class="ob-status warn"><svg class="ic sm"><use href="#i-alert"/></svg>Completed with 1 error</span>
+                        <span class="pin">2</span>
+                      </div>
+                      <div class="ob-sec">
+                        <div class="ob-wf-scroll">
+                          <div class="ob-wf">
+                            <div class="ob-grid"><i style="left:20.833%"></i><i style="left:41.667%"></i><i style="left:62.5%"></i><i style="left:83.333%"></i><i style="left:100%"></i></div>
+                            <div class="ob-axis"><span></span><div class="ob-ticks"><span style="left:0">0s</span><span style="left:20.833%">10s</span><span style="left:41.667%">20s</span><span style="left:62.5%">30s</span><span style="left:83.333%">40s</span><span style="left:100%">48s</span></div><span></span></div>
+                            <div class="ob-row ob-grp tone-main"><span class="ob-lab"><span class="h-av">Q</span><span>Main</span></span><span class="ob-trk"><i class="ob-span" style="left:0;width:100%"></i></span><span class="ob-dur">48s</span></div>
+                            <div class="ob-row"><span class="ob-lab"><span>Thinking</span></span><span class="ob-trk"><i class="ob-bar ob-k-think" style="left:0;width:6.25%"></i></span><span class="ob-dur">3.0s</span></div>
+                            <div class="ob-row"><span class="ob-lab"><span>Waiting on Birch</span></span><span class="ob-trk"><i class="ob-bar ob-k-wait" style="left:6.25%;width:50%"></i></span><span class="ob-dur">24s</span></div>
+                            <div class="ob-row"><span class="ob-lab"><span>Thinking</span></span><span class="ob-trk"><i class="ob-bar ob-k-think" style="left:56.25%;width:6.25%"></i></span><span class="ob-dur">3.0s</span></div>
+                            <div class="ob-row"><span class="ob-lab"><span>Writing answer</span></span><span class="ob-trk"><i class="ob-bar ob-k-write" style="left:62.5%;width:37.5%"></i></span><span class="ob-dur">18s</span></div>
+                            <div class="ob-row ob-grp tone-1"><span class="ob-lab"><span class="h-av">B</span><span>Birch <small>Access</small></span></span><span class="ob-trk"><i class="ob-span" style="left:6.25%;width:50%"></i></span><span class="ob-dur">24s</span></div>
+                            <div class="ob-row is-err"><span class="ob-lab"><svg class="ic sm"><use href="#i-alert"/></svg><span>Google Drive: list folders</span></span><span class="ob-trk"><i class="ob-bar ob-k-err" style="left:6.25%;width:37.5%"></i><span class="ob-errx" style="left:43.75%"><svg class="ic"><use href="#i-x"/></svg></span></span><span class="ob-dur">18s</span></div>
+                            <div class="ob-row"><span class="ob-lab"><span>Write fallback note</span></span><span class="ob-trk"><i class="ob-bar ob-k-write" style="left:43.75%;width:12.5%"></i></span><span class="ob-dur">6.0s</span></div>
+                          </div>
+                        </div>
+                        <div class="ob-err">
+                          <span class="ob-tile"><svg class="ic"><use href="#i-x"/></svg></span>
+                          <div><b>Google Drive returned 403</b><br>The folder "Analyst onboarding" is not shared with this workspace. Failed after 18s. <code>err_7f3a21</code></div>
+                          <div class="row"><span class="btn"><svg class="ic sm"><use href="#i-retry"/></svg>Retry step</span><span class="btn ghost">Copy error id</span></div>
+                        </div>
+                        <span class="pin">3</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>T4 · 10:14 · running</span></div>
+          <div class="app-body">
+            <div class="app-stage">
+              <div class="ob-stage">
+                <div class="ob-receipt" style="margin-top:0">
+                  <span class="pin">4</span>
+                  <span class="ob-flag live"><span class="pulse"></span>Running</span>
+                  <span><svg class="ic sm"><use href="#i-clock"/></svg>24s</span>
+                  <span><svg class="ic sm"><use href="#i-sigma"/></svg>12.8k tokens so far</span>
+                  <span class="ob-details on">Details<svg class="ic sm"><use href="#i-chevd"/></svg></span>
+                </div>
+                <div class="ob-trace" style="margin-top:0">
+                  <div class="ob-th">
+                    <span class="ob-tile"><svg class="ic"><use href="#i-activity"/></svg></span>
+                    <span class="ob-title"><b>Turn trace</b><small>T4 · 10:14 · 3 steps</small></span>
+                    <span class="ob-status live"><span class="pulse"></span>Running</span>
+                  </div>
+                  <div class="ob-sec">
+                    <div class="ob-wf-scroll">
+                      <div class="ob-wf">
+                        <div class="ob-grid"><i style="left:41.667%"></i><i style="left:83.333%"></i><i class="ob-now" style="left:100%"></i></div>
+                        <div class="ob-axis"><span></span><div class="ob-ticks"><span style="left:0">0s</span><span style="left:41.667%">10s</span><span style="left:83.333%">20s</span><span class="ob-nowlab" style="left:100%">now 24s</span></div><span></span></div>
+                        <div class="ob-row ob-grp tone-main"><span class="ob-lab"><span class="h-av">Q</span><span>Main</span></span><span class="ob-trk"><i class="ob-span" style="left:0;width:100%"></i></span><span class="ob-dur">24s</span></div>
+                        <div class="ob-row"><span class="ob-lab"><span>Thinking</span></span><span class="ob-trk"><i class="ob-bar ob-k-think" style="left:0;width:8.333%"></i></span><span class="ob-dur">2.0s</span></div>
+                        <div class="ob-row"><span class="ob-lab"><span>Read week-two.md</span></span><span class="ob-trk"><i class="ob-bar ob-k-file" style="left:8.333%;width:29.167%"></i></span><span class="ob-dur">7.0s</span></div>
+                        <div class="ob-row"><span class="ob-lab"><span>Writing answer</span></span><span class="ob-trk"><i class="ob-bar ob-k-live" style="left:37.5%;width:62.5%"></i></span><span class="ob-dur">15s</span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">A failed step stays red in its lane, and the turn still says what it managed. Running turns grow toward a "now" line.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Error on the receipt</b> <span class="tag changed">Changed</span><span>A bad-tone "1 error" chip takes the privacy chip's slot style, so a failure is visible without opening Details.</span><span class="src">Data: <code>TurnTrace.errors.length</code></span></div></li>
+      <li><span class="pin">2</span><div><b>Completed with 1 error</b> <span class="tag new">New</span><span>When the turn finished but a step failed, the status is warn tone, not bad. Bad is kept for turns that failed outright.</span><span class="src">Data: <code>TurnTrace.status</code> <code>errors[]</code></span></div></li>
+      <li><span class="pin">3</span><div><b>Failing step</b> <span class="tag new">New</span><span>The failing bar is drawn in bad tone with a halo and an x cap at its end time. Below the waterfall, an error panel names the tool, the reason, the time to failure and the error id, with Retry step and Copy error id.</span><span class="src">Data: <code>StepSpan.status</code> <code>errorId</code> <code>errorMessage</code> (T3: <code>err_7f3a21</code>, Google Drive)</span></div></li>
+      <li><span class="pin">4</span><div><b>Live trace</b> <span class="tag new">New</span><span>While a turn runs, the receipt shows elapsed time and tokens so far. The axis ends at a "now" line and rescales as the turn grows; the active bar fades in from its start and ends in a pulsing dot. Duration reads as a running count.</span><span class="src">Data: <code>TurnTrace.status = running</code> <code>StepSpan.endMs = null</code> <code>usage.total</code></span></div></li>
+    </ol>
+  </div>
+
+  <!-- Board C: dev-mode model context -->
+  <div class="board">
+    <div>
+      <div class="ob-trace" style="margin-top:0;box-shadow:var(--shadow-lift)">
+        <div class="ob-th">
+          <span class="ob-tile"><svg class="ic"><use href="#i-layers"/></svg></span>
+          <span class="ob-title"><b>Model context</b><small>T1 · Main agent · what the model saw</small></span>
+          <span class="ob-dev"><svg class="ic sm"><use href="#i-term"/></svg>Dev</span>
+          <span class="pin">1</span>
+          <span class="ob-right"><span class="seg"><span>Trace</span><span class="on">Model context</span></span></span>
+        </div>
+        <div class="ob-sec">
+          <div class="ob-h"><span class="pin">2</span>Context window<span class="ob-r">61.4k of 258k · 24%</span></div>
+          <div class="ob-stack"><i class="ob-c-sys" style="flex-grow:12"></i><i class="ob-c-tools" style="flex-grow:34"></i><i class="ob-c-docs" style="flex-grow:389"></i><i class="ob-c-convo" style="flex-grow:179"></i><i style="flex-grow:1966;background:var(--surface-3)"></i></div>
+        </div>
+        <div class="ob-sec" style="gap:0">
+          <details class="ob-ctxsec">
+            <summary><svg class="ic sm"><use href="#i-chev"/></svg><i class="ob-c-sys"></i><span>System</span><span class="ob-share ob-c-sys"><i style="width:1.954%"></i></span><b>1.2k</b></summary>
+            <div class="ob-ctxbody"><pre class="ob-pre">You are Qlik Analyst, a data assistant for <mark>•••••</mark>. Answer from workspace documents first…</pre></div>
+          </details>
+          <details class="ob-ctxsec">
+            <summary><svg class="ic sm"><use href="#i-chev"/></svg><i class="ob-c-tools"></i><span>Tools</span><span class="ob-share ob-c-tools"><i style="width:5.537%"></i></span><b>3.4k</b></summary>
+            <div class="ob-ctxbody"><pre class="ob-pre">read_document, search_workspace, run_query, google_calendar.find, google_drive.list…</pre></div>
+          </details>
+          <details class="ob-ctxsec" open>
+            <summary><svg class="ic sm"><use href="#i-chev"/></svg><i class="ob-c-docs"></i><span>Workspace docs</span><span class="ob-share ob-c-docs"><i style="width:63.355%"></i></span><b>38.9k</b></summary>
+            <div class="ob-ctxbody">
+              <ul class="ob-files">
+                <li><svg class="ic sm"><use href="#i-file"/></svg><span>handbook/week-one.md</span><b>24.6k</b></li>
+                <li><svg class="ic sm"><use href="#i-file"/></svg><span>handbook/access-requests.md</span><b>14.3k</b></li>
+              </ul>
+              <pre class="ob-pre">## Access requests
+Send the form to <mark>j•••@acme.com</mark> before day two.
+Hub access is granted by the BI admin within…</pre>
+            </div>
+          </details>
+          <details class="ob-ctxsec">
+            <summary><svg class="ic sm"><use href="#i-chev"/></svg><i class="ob-c-convo"></i><span>Conversation</span><span class="ob-share ob-c-convo"><i style="width:29.153%"></i></span><b>17.9k</b></summary>
+            <div class="ob-ctxbody"><pre class="ob-pre">1 user turn, 3 helper reports, oldest first…</pre></div>
+          </details>
+          <span class="pin">3</span>
+        </div>
+        <div class="ob-foot"><span class="pin">4</span><span class="ob-mask"><svg class="ic sm"><use href="#i-lock"/></svg>Masked on the server. Captured for live turns only.</span><span class="ob-right"><span class="btn ghost" style="height:26px;font-size:12px"><svg class="ic sm"><use href="#i-eye"/></svg>Copy masked</span></span></div>
+      </div>
+      <p class="board-cap">Dev mode only. The same card flips to what the model was actually fed, section by section, never unmasked.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Model context view</b> <span class="tag new">New, dev only</span><span>Second view of the trace card behind the Trace / Model context switch, marked with a dark Dev badge. Absent for normal users.</span><span class="src">Data: <code>devMode</code> <code>TurnContext.turnId</code></span></div></li>
+      <li><span class="pin">2</span><div><b>Window composition</b> <span class="tag new">New</span><span>One bar at the scale of the full 258k window, split by section. The sections sum to the 61.4k shown on the context ring, so the two views agree.</span><span class="src">Data: <code>TurnContext.sections[].tokens</code> <code>contextWindow</code></span></div></li>
+      <li><span class="pin">3</span><div><b>Collapsible sections</b> <span class="tag new">New</span><span>System, Tools, Workspace docs and Conversation, each with its token count and a share bar against the 61.4k used. Workspace docs lists each file with its own count, then a masked excerpt with masked spans highlighted.</span><span class="src">Data: <code>sections[]</code>: <code>name</code> <code>tokens</code> <code>maskedText</code> <code>items[]</code></span></div></li>
+      <li><span class="pin">4</span><div><b>Masking notice</b> <span class="tag new">New</span><span>States that text is masked before it leaves the server and is kept only for live turns. Copy exports the masked text only.</span><span class="src">Data: <code>TurnContext.masked</code> <code>capturedAt</code></span></div></li>
+    </ol>
+  </div>
+</section>

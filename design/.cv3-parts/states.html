@@ -1,0 +1,294 @@
+<section class="sec" id="states">
+<style>
+#states .ss-ban{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;border-radius:12px;font-size:13px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+#states .ss-ban.warn{background:var(--warn-bg);color:var(--warn-text);border-color:color-mix(in srgb,var(--warn) 35%,transparent)}
+#states .ss-ban.bad{background:var(--bad-bg);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+#states .ss-ban.info{background:var(--accent-soft);color:var(--accent-fg);border-color:transparent}
+#states .ss-ban-tx{flex:1 1 180px;min-width:0;display:flex;flex-direction:column;gap:1px}
+#states .ss-ban-tx b{font-weight:600;color:inherit}
+#states .ss-ban-tx span{font-size:12px;color:var(--ink-2)}
+#states .ss-ban.warn .ss-ban-tx span,#states .ss-ban.bad .ss-ban-tx span{color:inherit;opacity:.9}
+#states .ss-top{display:flex;align-items:center;gap:8px;height:46px;padding:0 12px 0 14px;border-bottom:1px solid var(--line);min-width:0}
+#states .ss-top .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+#states .ss-body{padding:14px 16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+#states .ss-act{display:flex;gap:4px;flex-wrap:wrap}
+#states .ss-act .btn{height:26px;padding:0 8px;font-size:12px}
+#states .ss-req{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;gap:6px;font-size:13px;min-width:0}
+#states .ss-lock{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 10px 10px 14px;border-radius:16px;border:1px dashed var(--line-strong);background:var(--surface-2);font-size:13px;color:var(--ink-2)}
+#states .ss-lock > span{flex:1 1 160px;min-width:0}
+#states .btn.ss-fill{background:var(--accent-fg);color:var(--on-accent);border-color:transparent}
+#states button.btn{cursor:pointer}
+#states button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* strip of streaming variants */
+#states .ss-strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+#states .ss-var{position:relative;border:1px solid var(--line);border-radius:14px;background:var(--bg);box-shadow:var(--shadow-card);overflow:hidden;display:flex;flex-direction:column;min-width:0}
+#states .ss-var h4{margin:0;font:700 18px/1 var(--font-hand);color:var(--ink-2);padding:10px 12px 0}
+#states .ss-var .ss-in{padding:10px 12px 12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+#states .ss-var .pin-at{top:8px;right:8px}
+#states .ss-var.wide{grid-column:1/-1}
+#states .ss-trio{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+#states .ss-sk{display:flex;flex-direction:column;gap:7px}
+#states .ss-sk i{display:block;height:9px;border-radius:999px;background:linear-gradient(90deg,var(--surface-3),color-mix(in srgb,var(--surface-3) 40%,var(--bg)),var(--surface-3));background-size:200% 100%;animation:ss-shim 1.4s linear infinite}
+#states .ss-sk i.b{height:30px;border-radius:10px;width:60%;align-self:flex-end}
+@keyframes ss-shim{to{background-position:-200% 0}}
+#states .ss-sheet{border:1px solid var(--line);border-radius:14px 14px 10px 10px;background:var(--surface);box-shadow:var(--shadow-md);padding:12px;display:flex;flex-direction:column;gap:8px;font-size:13px}
+#states .ss-sheet b{font-size:14px}
+#states .ss-toast{display:flex;gap:8px;align-items:flex-start;padding:9px 11px;border-radius:12px;background:var(--ink);color:var(--bg);font-size:13px}
+#states .ss-toast span{min-width:0}
+#states .ss-ref{font:11px var(--font-mono);color:var(--ink-2)}
+/* responsive frames */
+#states .ss-devs{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+#states .ss-phone{position:relative;width:100%;max-width:300px;border:1px solid var(--line-strong);border-radius:34px;padding:8px;background:var(--surface-3);box-shadow:var(--shadow-lift)}
+#states .ss-scr{border-radius:27px;overflow:hidden;background:var(--bg);display:flex;flex-direction:column;min-height:560px}
+#states .ss-scr .ss-top{height:40px;font-size:13px}
+#states .ss-scr .ss-body{padding:10px 12px;gap:10px;flex:1;font-size:13px}
+#states .ss-dockbar{display:flex;justify-content:space-around;border-top:1px solid var(--line);background:var(--surface);padding:6px 4px}
+#states .ss-dockbar b{position:relative;display:grid;place-items:center;width:40px;height:32px;border-radius:10px;color:var(--ink-2)}
+#states .ss-dockbar b.on{background:var(--ink);color:var(--bg)}
+#states .ss-dockbar .badge{position:absolute;top:-2px;right:2px;min-width:14px;height:14px;padding:0 3px;border-radius:999px;background:var(--warn);color:var(--bg);font:700 9px/14px var(--font-mono);text-align:center}
+#states .ss-kb{height:118px;background:var(--surface-3);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(10,1fr);gap:4px;padding:8px 6px}
+#states .ss-kb i{border-radius:5px;background:var(--surface);box-shadow:var(--shadow-sm)}
+#states .ss-mini-comp{display:flex;align-items:center;gap:6px;padding:6px 6px 6px 8px;border:1px solid var(--accent);border-radius:16px;background:var(--surface);margin:0 10px 8px}
+#states .ss-mini-comp .ph{flex:1;min-width:0;color:var(--ink);font-size:13px}
+#states .ss-plus{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);color:var(--ink-2);flex:none}
+#states .ss-tab{position:relative;flex:1 1 360px;min-width:0;max-width:560px;border:1px solid var(--line-strong);border-radius:22px;padding:8px;background:var(--surface-3);box-shadow:var(--shadow-lift)}
+#states .ss-tab .ss-scr{border-radius:15px;min-height:360px;position:relative}
+#states .ss-drawer{position:absolute;top:48px;right:8px;bottom:8px;width:min(62%,300px);background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-lift);padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:12px}
+#states .ss-scrim{position:absolute;inset:40px 0 0;background:color-mix(in srgb,var(--ink) 12%,transparent)}
+#states .ss-dim{display:flex;flex-direction:column;gap:7px}
+#states .ss-dim i{display:block;height:8px;border-radius:999px;background:var(--surface-3)}
+#states .ss-w{font:500 11px var(--font-mono);color:var(--ink-2);margin-bottom:6px;display:block}
+/* a11y board */
+#states .ss-a11y{display:flex;flex-direction:column;gap:14px}
+#states .ss-blk{border:1px solid var(--line);border-radius:14px;background:var(--bg);box-shadow:var(--shadow-card);padding:12px 14px;display:flex;flex-direction:column;gap:10px;min-width:0;position:relative}
+#states .ss-blk h4{margin:0;font:700 19px/1 var(--font-hand);color:var(--ink-2)}
+#states .ss-blk .pin-at{top:10px;right:10px}
+#states .ss-live{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px}
+#states .ss-live q{quotes:none;font:500 12px var(--font-mono);padding:3px 8px;border-radius:8px;background:var(--ts0);color:var(--t0)}
+#states .ss-nolive{border:1.5px dashed color-mix(in srgb,var(--bad) 45%,transparent);border-radius:10px;padding:8px 10px;font-size:12px;color:var(--ink-2)}
+#states .ss-order{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px;counter-reset:fo}
+#states .ss-order li{counter-increment:fo;display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px 0 4px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:12px;color:var(--ink)}
+#states .ss-order li::before{content:counter(fo);width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-fg);font:700 10px var(--font-mono)}
+#states .ss-order li.skip{border-style:dashed;color:var(--ink-2)}
+#states .ss-rm{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:6px 10px;align-items:center;font-size:12px;color:var(--ink-2)}
+#states .ss-rm > span:nth-child(3n+2){color:var(--ink-2);font-family:var(--font-mono)}
+#states .ss-rm .row{gap:6px;flex-wrap:nowrap}
+#states .ss-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
+#states .ss-solid{display:inline-grid;place-items:center;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:var(--warn);color:var(--bg);font:700 9px var(--font-mono)}
+#states .ss-rings{display:flex;flex-direction:column;gap:10px}
+#states .ss-fmsg{padding:8px 10px;border-radius:12px;outline:2px solid var(--accent);outline-offset:2px;font-size:13px;color:var(--ink)}
+#states .ss-fcomp{border:1px solid var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent);border-radius:16px;padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:13px;background:var(--surface)}
+#states .ss-fcomp span{flex:1;min-width:0;color:var(--ink)}
+#states .ss-tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+#states .ss-tw table{min-width:440px;font-size:12px}
+#states .ss-tw th,#states .ss-tw td{padding:7px 10px}
+#states .ss-sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:6px;border:1px solid var(--line)}
+#states .ss-ok{color:var(--ok);font-weight:600} #states .ss-no{color:var(--bad);font-weight:600}
+@media (prefers-reduced-motion:reduce){#states .ss-sk i{animation:none;background:var(--surface-3)}}
+</style>
+
+<div class="sec-head">
+  <span class="eyebrow">Edge states</span>
+  <h2>When the chat is not yours, not connected, or not wide</h2>
+  <p>Four boards for the states the happy path skips: someone else's conversation, a stream that drops or falls behind, phone and tablet widths, and the accessibility rules every state has to keep. The access rules come from §7.4, the stream states from §7.5 and the widths from fitPanel and §8.10.</p>
+</div>
+
+<!-- Board 1: read-only viewer -->
+<div class="board">
+  <div>
+    <div class="app">
+      <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/c/onboarding-plan</span></div>
+      <div class="app-stage" style="margin:10px">
+        <div class="ss-top">
+          <svg class="ic" aria-hidden="true"><use href="#i-sidebar"/></svg>
+          <span class="t">Onboarding plan for new analysts</span>
+          <span class="status-pill"><span class="pulse"></span>Working</span>
+        </div>
+        <div class="ss-body">
+          <div class="ss-ban info" role="note"><span class="pin">1</span><svg class="ic" aria-hidden="true"><use href="#i-eye"/></svg><div class="ss-ban-tx"><b>Started by Priya N. · View only</b><span>You can read and copy. Only Priya can send, approve or stop.</span></div></div>
+          <div class="msg user"><div class="bubble-wrap"><div class="bubble">Draft a 4-week onboarding plan from the analyst handbook in Drive.</div><span class="goal-tag"><svg class="ic sm" aria-hidden="true"><use href="#i-target"/></svg>Goal · 50k tokens</span></div></div>
+          <div class="msg"><div class="av">QA</div><div class="grow">
+            <div class="msg-meta"><b>Qlik Analyst</b><span class="sm muted">with Atlas and Juno</span></div>
+            <div class="answer">Week 1 covers workspace setup and the data catalog. Atlas pulled the three handbook chapters that define certification; Juno is drafting week 2.</div>
+            <div class="msg-foot"><span class="pin">2</span><div class="ss-act"><button class="btn ghost" type="button"><svg class="ic sm" aria-hidden="true"><use href="#i-file"/></svg>Copy</button><span class="pill"><svg class="ic sm" aria-hidden="true"><use href="#i-file"/></svg>Analyst handbook v4</span><span class="pill"><svg class="ic sm" aria-hidden="true"><use href="#i-file"/></svg>Certification.pdf</span></div></div>
+          </div></div>
+          <div class="ss-req">
+            <div class="row"><span class="pin">3</span><svg class="ic" aria-hidden="true"><use href="#i-plug"/></svg><b>Google Drive · create_document</b><span class="spacer"></span><span class="pill warn"><svg class="ic sm" aria-hidden="true"><use href="#i-clock"/></svg>Waiting on owner</span></div>
+            <span class="sm muted" style="color:var(--ink-2)">Juno wants to save "Week 2 draft" to Priya's Drive. Priya decides.</span>
+          </div>
+          <div class="ss-lock"><span class="pin">4</span><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg><span>You're viewing Priya's chat.</span><button class="btn" type="button">Ask the owner for access</button><button class="btn ss-fill" type="button">Duplicate to my chats</button></div>
+          <div class="row sm" style="color:var(--ink-2)"><span class="pin">5</span><svg class="ic sm" aria-hidden="true"><use href="#i-eye"/></svg>Work log: 12 steps · details hidden for viewers</div>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">No dock, no Retry, Edit or Regenerate. Everything a viewer can't do is gone, not greyed.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>View-only banner</b> <span class="tag derive">derive</span><span class="tag new">New</span><span>Shown when <code>session.userId !== me.user.id</code>. Admins and other users on "all" visibility both land here. The owner's display name is not on <code>PublicSession</code>; backend adds <code>ownerName</code>, until then read "Started by another member".</span></div></li>
+    <li><span class="pin">2</span><div><b>Copy and refs stay</b> <span class="tag data">data</span><span>Copy, citations and file chips need no write access, so they render as usual. Retry, Edit, Regenerate and the dock are not rendered, which keeps the tab order short.</span></div></li>
+    <li><span class="pin">3</span><div><b>Waiting on owner</b> <span class="tag derive">derive</span><span>Pending requests render without buttons, just the question and a warn pill. Any answer would return 403 <code>NOT_SESSION_OWNER</code>, so we never offer one.</span></div></li>
+    <li><span class="pin">4</span><div><b>Access bar</b> <span class="tag backend">backend</span><span class="tag new">New</span><span>Replaces the composer. "Ask the owner" needs an access-request endpoint and a notification. "Duplicate to my chats" needs a cross-owner fork (<code>POST /api/sessions/:id/duplicate</code>); today's branch is owner-only.</span></div></li>
+    <li><span class="pin">5</span><div><b>Trace for viewers</b> <span class="tag backend">backend</span><span>Whether a viewer sees tool args, results and helper traces is a policy call. Default to step names only until backend returns a <code>traceVisibility</code> flag.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 2: streaming health -->
+<div class="board">
+  <div>
+    <div class="ss-strip">
+      <div class="ss-var"><span class="pin pin-at">1</span><h4>Reconnecting</h4><div class="ss-in">
+        <span class="status-pill" style="align-self:flex-start"><span class="pulse warn"></span>Reconnecting…</span>
+        <span class="sm" style="color:var(--ink-2)">Provider is busy. Retrying on its own.</span><span class="ss-ref">PROVIDER_RATE_LIMITED · req_8f21c</span>
+      </div></div>
+      <div class="ss-var"><span class="pin pin-at">2</span><h4>Disconnected</h4><div class="ss-in">
+        <div class="ss-ban warn"><svg class="ic" aria-hidden="true"><use href="#i-plug"/></svg><div class="ss-ban-tx"><b>Live updates stopped</b><span>Usually a restart. Reconnect in a moment.</span></div><button class="btn" type="button"><svg class="ic sm" aria-hidden="true"><use href="#i-retry"/></svg>Reconnect</button></div>
+        <span class="ss-ref">STREAM_ENDED · req_2d9e0</span>
+      </div></div>
+      <div class="ss-var"><span class="pin pin-at">3</span><h4>Resyncing</h4><div class="ss-in">
+        <span class="status-pill" style="align-self:flex-start"><span class="spinner"></span>Refreshing conversation</span>
+        <div class="ss-sk" aria-hidden="true"><i class="b"></i><i></i><i style="width:82%"></i><i style="width:64%"></i></div>
+      </div></div>
+      <div class="ss-var"><span class="pin pin-at">4</span><h4>Interrupting</h4><div class="ss-in">
+        <span class="status-pill" style="align-self:flex-start"><span class="spinner"></span>Stopping…</span>
+        <span class="sm" style="color:var(--ink-2)">Juno finishes its current write, then the turn ends. Stop is disabled until it does.</span>
+      </div></div>
+      <div class="ss-var"><span class="pin pin-at">5</span><h4>Session expired</h4><div class="ss-in">
+        <div class="ss-sheet" role="dialog" aria-label="Sign in again"><b>Sign in to keep going</b><span style="color:var(--ink-2)">Your session timed out. Your chat and draft are saved.</span><button class="btn ss-fill" type="button"><svg class="ic sm" aria-hidden="true"><use href="#i-key"/></svg>Sign in with Google</button></div>
+        <span class="ss-ref">UNAUTHENTICATED · 401</span>
+      </div></div>
+      <div class="ss-var"><span class="pin pin-at">6</span><h4>Not the owner</h4><div class="ss-in">
+        <div class="ss-toast" role="alert"><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg><span>Only the person who started this conversation can change it.</span></div>
+        <span class="ss-ref">NOT_SESSION_OWNER · 403</span>
+      </div></div>
+      <div class="ss-var wide"><span class="pin pin-at">7</span><h4>Session banners</h4><div class="ss-in ss-trio">
+        <div class="ss-ban warn"><svg class="ic" aria-hidden="true"><use href="#i-plug"/></svg><div class="ss-ban-tx"><b>Runner unreachable</b><span>Resumes when you send.</span></div><button class="btn" type="button">Reconnect</button></div>
+        <div class="ss-ban"><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg><div class="ss-ban-tx"><b>This chat ended</b><span>History is read-only.</span></div><button class="btn" type="button">Start a new chat</button></div>
+        <div class="ss-ban"><svg class="ic" aria-hidden="true"><use href="#i-history"/></svg><div class="ss-ban-tx"><b>Archived</b><span>Hidden from your list.</span></div><button class="btn" type="button">Unarchive</button></div>
+      </div></div>
+    </div>
+    <p class="board-cap">One recovery action per state. The pill carries transient trouble; banners are for states that need you.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Reconnecting</b> <span class="tag data">data</span><span>From <code>StreamStatus</code> "Reconnecting" or an <code>error</code> event with <code>willRetry: true</code>. Pill only, no banner, no button. The ref uses <code>code · requestId</code> for support.</span></div></li>
+    <li><span class="pin">2</span><div><b>Disconnected</b> <span class="tag data">data</span><span>After <code>stream.error</code> or CLOSED. Copy follows the code: STREAM_ENDED "Reconnect in a moment", STREAM_FAILED "Reopen the conversation". Reconnect calls a fresh <code>subscribe()</code> with the saved cursor.</span></div></li>
+    <li><span class="pin">3</span><div><b>Resync skeleton</b> <span class="tag derive">derive</span><span class="tag new">New</span><span><code>resync.required</code> or an unparseable frame reloads history. Keep rendered turns, shimmer only the tail until the next <code>snapshot</code> hydrates, so the reader keeps their place.</span></div></li>
+    <li><span class="pin">4</span><div><b>Interrupting</b> <span class="tag derive">derive</span><span>Set when Stop is pressed, cleared on <code>turn.completed</code> or <code>turn.failed</code>. Prevents double-stop and tells you why output still arrives.</span></div></li>
+    <li><span class="pin">5</span><div><b>Sign-in sheet</b> <span class="tag data">data</span><span class="tag new">New</span><span>Any 401 <code>UNAUTHENTICATED</code> in google mode. Keep the composer draft in memory and resubscribe after sign-in. Cross-origin, this breaks until <code>fetch</code> sends <code>credentials: "include"</code> and EventSource uses <code>withCredentials</code> (backend).</span></div></li>
+    <li><span class="pin">6</span><div><b>403 toast</b> <span class="tag data">data</span><span>Fallback when a write races an ownership check. Uses the server message verbatim, then flips the view to board 1.</span></div></li>
+    <li><span class="pin">7</span><div><b>Orphaned, dead, archived</b> <span class="tag data">data</span><span><code>session.status</code> orphaned (resumes on next message), dead (410 <code>THREAD_LOST</code>, read-only) and <code>session.archived</code>. Each banner has exactly one action.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 3: responsive -->
+<div class="board">
+  <div>
+    <div class="ss-devs">
+      <div>
+        <span class="ss-w">390px · keyboard open</span>
+        <div class="ss-phone"><div class="ss-scr">
+          <div class="ss-top"><svg class="ic" aria-hidden="true"><use href="#i-sidebar"/></svg><span class="t">Onboarding plan</span><span class="status-pill" style="height:24px;font-size:12px"><span class="pulse warn"></span>Needs you</span></div>
+          <div class="ss-body">
+            <div class="ss-dim"><i style="width:70%;align-self:flex-end"></i><i></i><i style="width:84%"></i></div>
+            <div class="ss-req" style="margin-top:auto">
+              <div class="row"><span class="pin">1</span><b>Save "Week 2 draft" to Drive?</b></div>
+              <div class="row"><button class="btn ss-fill" type="button">Allow once</button><button class="btn" type="button">Decline</button></div>
+            </div>
+          </div>
+          <div class="ss-mini-comp"><span class="pin">2</span><span class="ss-plus"><svg class="ic sm" aria-hidden="true"><use href="#i-plus"/></svg></span><span class="ph">Also add a buddy sched<span class="caret"></span></span><span class="send" style="width:28px;height:28px"><svg class="ic sm" aria-hidden="true"><use href="#i-send"/></svg></span></div>
+          <div class="ss-kb" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        </div></div>
+        <span class="ss-w" style="margin-top:12px">390px · keyboard closed</span>
+        <div class="ss-phone" style="border-radius:24px"><div class="ss-scr" style="min-height:0;border-radius:17px">
+          <div class="ss-dockbar"><span class="pin" style="align-self:center">3</span><b class="on"><svg class="ic" aria-hidden="true"><use href="#i-activity"/></svg></b><b><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg></b><b><svg class="ic" aria-hidden="true"><use href="#i-target"/></svg><span class="badge">1</span></b><b><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg></b></div>
+        </div></div>
+      </div>
+      <div class="ss-tab">
+        <span class="ss-w">900px · panel as drawer</span>
+        <div class="ss-scr">
+          <div class="ss-top"><svg class="ic" aria-hidden="true"><use href="#i-sidebar"/></svg><span class="t">Onboarding plan for new analysts</span><span class="status-pill"><span class="pulse"></span>Working</span></div>
+          <div class="ss-body"><div class="ss-dim"><i style="width:50%;align-self:flex-end"></i><i></i><i style="width:90%"></i><i style="width:76%"></i><i></i><i style="width:60%"></i></div></div>
+          <div class="ss-scrim"></div>
+          <div class="ss-drawer" role="dialog" aria-label="Session panel">
+            <div class="row"><span class="pin">4</span><b>Helpers</b><span class="spacer"></span><svg class="ic sm" aria-hidden="true"><use href="#i-x"/></svg></div>
+            <div class="hrow tone-0" style="padding:4px 0;border:0"><span class="h-av">A</span>Atlas<span class="spacer"></span><span class="pill ok">Done</span></div>
+            <div class="hrow tone-1" style="padding:4px 0;border:0"><span class="h-av">J</span>Juno<span class="spacer"></span><span class="pill accent">Running</span></div>
+            <div class="bar"><i style="width:38%"></i></div><span style="color:var(--ink-2)">19k of 50k tokens</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">Small screens show one thing at a time, and the request never hides behind the keyboard.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Request above the keyboard</b> <span class="tag derive">derive</span><span>Docked card pins to <code>visualViewport.height</code>, capped at 50% with its own scroll. Buttons stack under 520px (§8.10). fitPanel gives no overlay at ≤720, so the card lives in the stage, never in a drawer.</span></div></li>
+    <li><span class="pin">2</span><div><b>One + button</b> <span class="tag derive">derive</span><span class="tag new">New</span><span>Attach, @ mention, approval mode and model fold into a single sheet behind +. Send stays; Stop sits beside it while running.</span></div></li>
+    <li><span class="pin">3</span><div><b>Dock becomes a bottom bar</b> <span class="tag derive">derive</span><span class="tag new">New</span><span>Hidden while the keyboard is up. Each tab opens a full-height drawer; opening one closes the other and the sidebar, matching fitPanel rule 1. Badges keep their counts.</span></div></li>
+    <li><span class="pin">4</span><div><b>Tablet drawer</b> <span class="tag data">data</span><span>At ≤900 the panel is a fixed overlay (fitPanel <code>overlay: true</code>, §8.10) with a scrim. Esc and the scrim close it and focus returns to the dock button that opened it.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 4: accessibility -->
+<div class="board">
+  <div class="ss-a11y">
+    <div class="ss-blk"><span class="pin pin-at">1</span><h4>Status live region</h4>
+      <div class="ss-live"><code>role="status" aria-live="polite"</code><q>Working</q><q>Needs your approval</q><q>Done</q></div>
+      <div class="ss-nolive">The streaming answer is <b>not</b> in a live region. It gets <code>aria-busy="true"</code> while tokens arrive and is read on demand.</div>
+    </div>
+    <div class="ss-blk"><span class="pin pin-at">2</span><h4>Focus order</h4>
+      <ol class="ss-order"><li class="skip">Skip to composer</li><li>Sidebar</li><li>Topbar and status</li><li>Messages, newest last</li><li>Pending request</li><li>Composer</li><li>Send / Stop</li><li>Dock</li><li>Panel</li></ol>
+    </div>
+    <div class="ss-blk"><span class="pin pin-at">3</span><h4>Reduced motion</h4>
+      <div class="ss-rm">
+        <span class="row"><span class="ss-sk" style="width:60px"><i></i></span>Shimmer</span><span>→</span><span class="row"><span class="ss-dot"></span>Static dot</span>
+        <span class="row"><span class="pulse"></span>Pulse</span><span>→</span><span class="row"><span class="ss-solid">1</span>Solid badge</span>
+        <span class="row">Drawer slide, pin drop</span><span>→</span><span class="row">Instant, no transition</span>
+      </div>
+    </div>
+    <div class="ss-blk"><span class="pin pin-at">4</span><h4>Focus rings</h4>
+      <div class="ss-rings"><div class="ss-fmsg">Week 1 covers workspace setup and the data catalog.</div><div class="ss-fcomp"><span>Add a buddy schedule to week 1</span><span class="send" style="width:28px;height:28px"><svg class="ic sm" aria-hidden="true"><use href="#i-send"/></svg></span></div></div>
+    </div>
+    <div class="ss-blk"><span class="pin pin-at">5</span><h4>Contrast</h4>
+      <div class="ss-tw"><table><thead><tr><th>Pair</th><th>Ratio</th><th>AA</th></tr></thead><tbody>
+        <tr><td><span class="ss-sw" style="background:var(--ink-3)"></span>ink-3 #67757C on white</td><td>4.8:1</td><td class="ss-ok">Pass</td></tr>
+        <tr><td><span class="ss-sw" style="background:var(--ink-2)"></span>ink-2 #5F6D73 on white</td><td>5.4:1</td><td class="ss-ok">Pass</td></tr>
+        <tr><td><span class="ss-sw" style="background:var(--accent-fg)"></span>White on accent-fg #2A72A3</td><td>5.2:1</td><td class="ss-ok">Pass</td></tr>
+        <tr><td><span class="ss-sw" style="background:var(--accent)"></span>White on accent #3691CD</td><td>3.4:1</td><td class="ss-no">Text fails</td></tr>
+        <tr><td>Dark ink-3 #8B999F on #171717</td><td>6.1:1</td><td class="ss-ok">Pass</td></tr>
+      </tbody></table></div>
+    </div>
+    <p class="board-cap">Say state changes once, never read the stream aloud, and never hide focus.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>One polite region</b> <span class="tag derive">derive</span><span class="tag new">New</span><span>Text is derived from the status pill: turn running, a new <code>PendingRequest</code>, turn completed. Debounced so a burst of steps doesn't repeat "Working". Errors that need action use <code>role="alert"</code>.</span></div></li>
+    <li><span class="pin">2</span><div><b>Focus order</b> <span class="tag derive">derive</span><span>DOM order matches visual order. A new request does not steal focus; mod+J jumps to it. Global hotkeys stay live while typing, and Esc follows the fixed order from the composer spec.</span></div></li>
+    <li><span class="pin">3</span><div><b>Reduced motion</b> <span class="tag derive">derive</span><span><code>prefers-reduced-motion</code> swaps shimmer for a static dot, the pulse for a solid badge, and turns transitions off. The spinner stays as a static ring so "busy" is still visible.</span></div></li>
+    <li><span class="pin">4</span><div><b>Focus rings</b> <span class="tag derive">derive</span><span>Messages are focusable (<code>tabindex="-1"</code> via roving arrows) with a 2px accent outline. The composer uses <code>:focus-within</code> for border plus a soft halo, since the textarea itself has no border.</span></div></li>
+    <li><span class="pin">5</span><div><b>Contrast fixes</b> <span class="tag derive">derive</span><span>Ratios computed from token hex, not measured on device. ink-3 darkens to #67757C; text under 13px uses ink-2. White-text buttons fill with accent-fg; accent stays for icons, rings and bars.</span></div></li>
+  </ol>
+</div>
+
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Element</th><th>Source field or event</th><th>Data tag</th></tr></thead>
+  <tbody>
+    <tr><td>View-only banner</td><td><code>session.userId</code> vs <code>me.user.id</code>; owner name needs <code>ownerName</code></td><td><span class="tag derive">derive</span> <span class="tag backend">backend</span></td></tr>
+    <tr><td>Waiting on owner</td><td><code>PendingRequest</code> + ownership check</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Ask for access, Duplicate</td><td>New access-request and cross-owner duplicate endpoints</td><td><span class="tag backend">backend</span></td></tr>
+    <tr><td>Viewer trace detail</td><td>New <code>traceVisibility</code> policy</td><td><span class="tag backend">backend</span></td></tr>
+    <tr><td>Reconnecting pill</td><td><code>StreamStatus</code> "Reconnecting", <code>error.willRetry</code></td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Disconnected banner</td><td><code>stream.error</code> STREAM_FAILED / STREAM_ENDED, <code>requestId</code></td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Resync skeleton</td><td><code>resync.required</code>, <code>onResync()</code>, next <code>snapshot</code></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Interrupting</td><td>Local flag until <code>turn.completed</code> / <code>turn.failed</code></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Sign-in sheet</td><td>401 <code>UNAUTHENTICATED</code>; needs credentialed fetch/EventSource</td><td><span class="tag data">data</span> <span class="tag backend">backend</span></td></tr>
+    <tr><td>403 toast</td><td>403 <code>NOT_SESSION_OWNER</code></td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Orphaned / dead / archived</td><td><code>session.status</code>, 410 <code>THREAD_LOST</code>, <code>session.archived</code></td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Phone bottom bar, + sheet, keyboard fit</td><td><code>fitPanel</code>, <code>visualViewport</code></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Tablet drawer</td><td><code>fitPanel().overlay</code>, ≤900 breakpoint</td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Status live region, focus, reduced motion</td><td>Status pill state, <code>prefers-reduced-motion</code></td><td><span class="tag derive">derive</span></td></tr>
+  </tbody>
+</table></div>
+
+<div class="qs">
+  <div class="q"><b>Can admins act on someone else's chat?</b><span>§7.4 gives admins read only. If support needs to stop a runaway turn, add an admin-only interrupt rather than full write. Recommend keeping read only for alpha.</span></div>
+  <div class="q"><b>What does Duplicate copy?</b><span>Transcript and files, or transcript only? Recommend transcript plus refs, no pending requests and no goal, so the copy starts idle and owned by the viewer.</span></div>
+</div>
+</section>

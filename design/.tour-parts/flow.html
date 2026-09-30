@@ -1,0 +1,255 @@
+<section class="sec" id="flow">
+<style>
+/* route map: three chapter cards joined by a dashed path; stacks to one column on narrow screens */
+#flow .sec-head + .board{grid-template-columns:minmax(0,1fr)}
+#flow .sec-head + .board > .notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px 28px}
+#flow .sec-head + .board > .notes li{border-top:0;padding-top:10px}
+#flow .route{display:grid;grid-template-columns:minmax(0,1fr) 52px minmax(0,1fr) 52px minmax(0,1fr);align-items:start}
+#flow .hop{align-self:stretch;display:flex;flex-direction:column;align-items:center;padding-top:34px;color:var(--doodle)}
+#flow .hop svg{width:52px;height:40px;overflow:visible;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#flow .hop svg .dash{stroke-dasharray:5 6}
+#flow .chap{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:6px 6px 16px 6px;box-shadow:var(--shadow-card);padding:24px 16px 16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+#flow .chap::before{content:"";position:absolute;top:-11px;left:50%;width:84px;height:22px;transform:translateX(-50%) rotate(-2deg);background:var(--tape);border-radius:2px}
+#flow .chap:nth-child(1){transform:rotate(-.6deg)}
+#flow .chap:nth-child(3){transform:rotate(.4deg);margin-top:18px}
+#flow .chap:nth-child(5){transform:rotate(-.3deg);margin-top:6px}
+#flow .chap-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+#flow .chap-head .hand{font:700 25px/1 var(--font-hand);color:var(--accent);display:flex;align-items:baseline;gap:6px}
+#flow .chap-head .hand small{font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+#flow .time{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:999px;background:var(--surface-3);color:var(--ink-2);font:500 11px var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+#flow .stops{list-style:none;margin:0;padding:0;position:relative;display:flex;flex-direction:column;gap:12px}
+#flow .stops::before{content:"";position:absolute;left:13px;top:16px;bottom:16px;border-left:2px dashed color-mix(in srgb,var(--doodle) 45%,transparent)}
+#flow .stop{position:relative;display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:start}
+#flow .sn{position:relative;z-index:1;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--paper);border:2px solid var(--accent);color:var(--accent-fg);font:700 12px/1 var(--font-mono);font-variant-numeric:tabular-nums}
+#flow .stop.is-try .sn{background:var(--accent);color:var(--on-accent)}
+#flow .stop.is-wait .sn{border-style:dashed}
+#flow .sb{min-width:0;display:flex;flex-direction:column;gap:3px;padding:3px 0 0}
+#flow .sb-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+#flow .sb-top b{font-size:14px;font-weight:600;color:var(--ink);margin-right:auto}
+#flow .surf{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-2);min-width:0}
+#flow .surf code{font-size:11px}
+#flow .prep{font:11.5px/1.5 var(--font-mono);color:var(--ink-3);overflow-wrap:anywhere}
+#flow .prep em{font-style:normal;color:var(--accent-fg)}
+#flow .route-sum{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 12px;margin-top:22px;font:500 12px var(--font-mono);color:var(--ink-2);font-variant-numeric:tabular-nums}
+#flow .route-sum .hand{font:700 22px/1 var(--font-hand);color:var(--accent)}
+#flow .route-sum .legend-i{display:inline-flex;align-items:center;gap:6px}
+#flow .route-sum .sn{width:18px;height:18px;font-size:0}
+#flow .route-sum .sn.try{background:var(--accent)}
+#flow .route-sum .sn.wait{border-style:dashed}
+@media (max-width:900px){
+  #flow .route{grid-template-columns:minmax(0,1fr);gap:26px}
+  #flow .hop{display:none}
+  #flow .chap:nth-child(n){margin-top:0}
+}
+@media (max-width:520px){#flow .chap:nth-child(n){transform:none}}
+
+/* state diagram */
+#flow .sm-wrap{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:6px 6px 18px 6px;box-shadow:var(--shadow-card);padding:28px 18px 20px}
+#flow .sm-wrap::before{content:"";position:absolute;top:-11px;left:30%;width:90px;height:22px;transform:rotate(-3deg);background:var(--tape);border-radius:2px}
+#flow .sm{display:grid;grid-template-columns:minmax(0,1fr) 92px minmax(0,1.15fr) 92px minmax(0,1fr);grid-template-areas:"ns e1 run e2 fin" "ns e1 run e3 skp" ". . e4 . ." ". min min min .";gap:12px 0;align-items:center}
+#flow .st{position:relative;border:1px solid var(--line-strong);border-radius:12px;background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;gap:5px;min-width:0;font-size:12.5px;color:var(--ink-2)}
+#flow .st-name{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:var(--ink)}
+#flow .st-name .dot{width:8px;height:8px;border-radius:50%;background:var(--ink-3);flex:none}
+#flow .st .kv{font:11px/1.45 var(--font-mono);color:var(--ink-3);overflow-wrap:anywhere}
+#flow .st .ret{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--accent-fg);border-top:1px dashed var(--line-strong);padding-top:5px;margin-top:2px}
+#flow .st.run{border:2px solid var(--accent);box-shadow:0 0 0 5px var(--accent-soft)}
+#flow .st.run .dot{background:var(--accent);animation:pulse 1.6s infinite}
+#flow .st.fin .dot{background:var(--ok)}
+#flow .st.skp .dot{background:var(--warn)}
+#flow .st.min .dot{background:var(--t0)}
+#flow .st.ns{border-style:dashed;background:var(--surface-2)}
+#flow .st .pin{position:absolute;top:-10px;right:-8px}
+#flow .a-ns{grid-area:ns} #flow .a-run{grid-area:run} #flow .a-fin{grid-area:fin} #flow .a-skp{grid-area:skp} #flow .a-min{grid-area:min;justify-self:center;width:min(100%,250px)}
+#flow .a-e1{grid-area:e1} #flow .a-e2{grid-area:e2} #flow .a-e3{grid-area:e3} #flow .a-e4{grid-area:e4}
+#flow .edge{display:flex;flex-direction:column;align-items:center;gap:5px;padding:0 6px;font:700 16px/1.05 var(--font-hand);color:var(--ink-2);text-align:center;min-width:0}
+#flow .edge .from{display:none}
+#flow .edge i{position:relative;display:block;width:100%;border-top:2px dashed var(--doodle)}
+#flow .edge i::after{content:"";position:absolute;right:0;top:-6px;width:8px;height:8px;border-top:2px solid var(--doodle);border-right:2px solid var(--doodle);transform:rotate(45deg)}
+#flow .edge.v{flex-direction:row;justify-content:center;gap:10px}
+#flow .edge.v i{width:0;height:34px;border-top:0;border-left:2px dashed var(--doodle)}
+#flow .edge.v i::after{right:auto;top:auto;left:-5px;bottom:0;transform:rotate(135deg)}
+#flow .edge.v i::before{content:"";position:absolute;left:-5px;top:0;width:8px;height:8px;border-top:2px solid var(--doodle);border-right:2px solid var(--doodle);transform:rotate(-45deg)}
+#flow .edge.v span{flex:1;min-width:0}
+#flow .edge.v span:first-child{text-align:right}
+#flow .edge.v span:last-child{text-align:left}
+#flow .sm-foot{margin-top:18px;padding-top:12px;border-top:1px dashed var(--line-strong);display:flex;flex-wrap:wrap;gap:6px 14px;font:11.5px var(--font-mono);color:var(--ink-3)}
+#flow .sm-foot b{color:var(--ink-2);font-weight:500}
+@media (max-width:760px){
+  #flow .sm{grid-template-columns:minmax(0,1fr);grid-template-areas:"ns" "e1" "run" "e4" "min" "e2" "fin" "e3" "skp";gap:6px}
+  #flow .a-min{justify-self:stretch;width:auto}
+  #flow .edge{flex-direction:row;justify-content:flex-start;gap:10px;padding:4px 0 4px 18px;text-align:left}
+  #flow .edge .from{display:inline;font:500 11px var(--font-mono);color:var(--ink-3)}
+  #flow .edge i{width:0;height:28px;flex:none;border-top:0;border-left:2px dashed var(--doodle)}
+  #flow .edge i::after{right:auto;top:auto;left:-5px;bottom:0;transform:rotate(135deg)}
+  #flow .edge.v span:first-child{text-align:left;flex:none}
+  #flow .edge.v{justify-content:flex-start}
+}
+@media (prefers-reduced-motion:reduce){#flow .st.run .dot{animation:none}}
+</style>
+
+  <div class="sec-head">
+    <span class="eyebrow">The route</span>
+    <h2>Eleven stops, three chapters</h2>
+    <p>The tour tells, then shows, then hands over. Chapter 1 points at the parts you see on every screen, chapter 2 runs one real prompt so helpers appear on their own, and chapter 3 shows where to go next. About three minutes end to end.</p>
+  </div>
+
+  <div class="board">
+    <div>
+      <div class="route" role="group" aria-label="Tour route: 11 stops in 3 chapters">
+        <div class="chap">
+          <div class="chap-head">
+            <span class="hand"><small>Ch 1</small>First look <span class="pin">1</span></span>
+            <span class="time"><svg class="ic sm"><use href="#i-clock"/></svg>~40s</span>
+          </div>
+          <ol class="stops">
+            <li class="stop"><span class="sn">1</span><div class="sb">
+              <div class="sb-top"><b>Welcome</b><span class="tag look">Look</span></div>
+              <div class="surf"><svg class="ic sm"><use href="#i-spark"/></svg>Centered hero card</div>
+              <div class="prep">prepare: <em>closes popovers, clears composer</em></div>
+            </div></li>
+            <li class="stop"><span class="sn">2</span><div class="sb">
+              <div class="sb-top"><b>Composer</b><span class="tag look">Look</span></div>
+              <div class="surf"><svg class="ic sm"><use href="#i-send"/></svg><code>composer</code></div>
+              <div class="prep">prepare: <em>scrolls composer into view</em></div>
+            </div></li>
+            <li class="stop"><span class="sn">3</span><div class="sb">
+              <div class="sb-top"><b>Status pill</b><span class="tag look">Look</span></div>
+              <div class="surf"><svg class="ic sm"><use href="#i-activity"/></svg><code>status-pill</code></div>
+              <div class="prep">prepare: <em>none, reads current agent</em></div>
+            </div></li>
+            <li class="stop"><span class="sn">4</span><div class="sb">
+              <div class="sb-top"><b>Dock and shortcuts</b><span class="tag look">Look</span></div>
+              <div class="surf"><svg class="ic sm"><use href="#i-layers"/></svg><code>dock</code></div>
+              <div class="prep">prepare: <em>shows shortcut hints on dock</em></div>
+            </div></li>
+          </ol>
+        </div>
+
+        <div class="hop" aria-hidden="true"><svg viewBox="0 0 52 40"><path class="dash" d="M4 26C16 6 34 4 46 16"/><path d="M40 11l6 5-7 3"/></svg></div>
+
+        <div class="chap">
+          <div class="chap-head">
+            <span class="hand"><small>Ch 2</small>See it work</span>
+            <span class="time"><svg class="ic sm"><use href="#i-clock"/></svg>~90s <span class="pin">5</span></span>
+          </div>
+          <ol class="stops">
+            <li class="stop is-try"><span class="sn">5</span><div class="sb">
+              <div class="sb-top"><b>Agent popover</b><span class="tag try">Try</span><span class="pin">2</span></div>
+              <div class="surf"><svg class="ic sm"><use href="#i-bot"/></svg><code>dock-agent</code></div>
+              <div class="prep">prepare: <em>opens agent popover</em><br/>advanceOn: agent picked</div>
+            </div></li>
+            <li class="stop is-try"><span class="sn">6</span><div class="sb">
+              <div class="sb-top"><b>Send the demo prompt</b><span class="tag try">Try</span></div>
+              <div class="surf"><svg class="ic sm"><use href="#i-send"/></svg><code>send</code></div>
+              <div class="prep">prepare: <em>fills in the demo prompt</em><br/>advanceOn: message sent</div>
+            </div></li>
+            <li class="stop is-wait"><span class="sn">7</span><div class="sb">
+              <div class="sb-top"><b>Helper card</b><span class="tag wait">Wait</span><span class="tag look">Look</span><span class="pin">4</span></div>
+              <div class="surf"><svg class="ic sm"><use href="#i-users"/></svg><code>helper-card</code></div>
+              <div class="prep">prepare: <em>scrolls stream to latest turn</em><br/>waitFor: first helper spawns</div>
+            </div></li>
+            <li class="stop"><span class="sn">8</span><div class="sb">
+              <div class="sb-top"><b>Session panel, Agents tab</b><span class="tag look">Look</span><span class="pin">3</span></div>
+              <div class="surf"><svg class="ic sm"><use href="#i-sidebar"/></svg><code>panel-agents</code></div>
+              <div class="prep">prepare: <em>opens panel on Agents tab</em></div>
+            </div></li>
+          </ol>
+        </div>
+
+        <div class="hop" aria-hidden="true"><svg viewBox="0 0 52 40"><path class="dash" d="M4 14C16 34 34 34 46 22"/><path d="M39 21l7 1-4 6"/></svg></div>
+
+        <div class="chap">
+          <div class="chap-head">
+            <span class="hand"><small>Ch 3</small>Make it yours</span>
+            <span class="time"><svg class="ic sm"><use href="#i-clock"/></svg>~40s</span>
+          </div>
+          <ol class="stops">
+            <li class="stop"><span class="sn">9</span><div class="sb">
+              <div class="sb-top"><b>Goal chip</b><span class="tag look">Look</span></div>
+              <div class="surf"><svg class="ic sm"><use href="#i-target"/></svg><code>goal-chip</code></div>
+              <div class="prep">prepare: <em>closes panel, focuses composer</em></div>
+            </div></li>
+            <li class="stop"><span class="sn">10</span><div class="sb">
+              <div class="sb-top"><b>Roster and New agent</b><span class="tag look">Look</span></div>
+              <div class="surf"><svg class="ic sm"><use href="#i-plus"/></svg><code>new-agent</code></div>
+              <div class="prep">prepare: <em>switches to roster</em></div>
+            </div></li>
+            <li class="stop"><span class="sn">11</span><div class="sb">
+              <div class="sb-top"><b>Finish</b><span class="tag look">Look</span></div>
+              <div class="surf"><svg class="ic sm"><use href="#i-check"/></svg>Centered card</div>
+              <div class="prep">prepare: <em>returns to the demo chat</em></div>
+            </div></li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="route-sum">
+        <span class="hand">~40s + ~90s + ~40s</span><span>≈ 2m 50s, call it 3 minutes</span>
+        <span class="legend-i"><span class="sn"></span>Look</span>
+        <span class="legend-i"><span class="sn try"></span>Try</span>
+        <span class="legend-i"><span class="sn wait"></span>Wait</span>
+      </div>
+      <p class="board-cap">tell, show, hand over. The only slow stretch is the real model run in chapter 2.</p>
+    </div>
+
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Three chapters, one arc</b>First look covers what is on screen every time. See it work runs a real prompt. Make it yours points at goals and the roster, then gets out of the way. <span class="tag new">New</span><span class="src">TOUR_STEPS in app.tsx</span></div></li>
+      <li><span class="pin">2</span><div><b>Tags set the pace</b>Look waits for Next. Try disables Next and offers "Skip this" instead, so nobody gets stuck. Wait shows a spinner row until the app catches up.<span class="src">step.kind: look / try / wait</span></div></li>
+      <li><span class="pin">3</span><div><b>prepare() owns the state</b>Each step puts the app where it needs to be, so Back and resume land correctly. Stop 8 opens the panel on Agents itself; copy says this tab lists helpers in this chat, while the sidebar Agents link opens all your agents.<span class="src">step.prepare(), idempotent</span></div></li>
+      <li><span class="pin">4</span><div><b>Stop 7 is the only model-dependent wait</b>It waits for the first helper card. If none appears after 3s, the card centers and offers Next, so a slow run never traps the tour.<span class="src">waitFor: [data-tour="helper-card"]</span></div></li>
+      <li><span class="pin">5</span><div><b>About three minutes</b>Chapter 2 takes the longest because the reply streams while the user reads. Every step also has Esc, so leaving early costs nothing.<span class="src">timing from a dry run of the demo prompt</span></div></li>
+    </ol>
+  </div>
+
+  <div class="board">
+    <div>
+      <div class="sm-wrap">
+        <div class="sm" role="group" aria-label="Tour state diagram: Not started, Running, Minimized, Finished, Skipped">
+          <div class="st ns a-ns"><span class="pin">1</span>
+            <span class="st-name"><span class="dot"></span>Not started</span>
+            <span class="kv">no truex-tour key</span>
+            <span>Fresh install or cleared storage.</span>
+          </div>
+          <div class="edge a-e1"><span class="from">from Not started</span><span>first paint, or Take the tour</span><i></i></div>
+          <div class="st run a-run"><span class="pin">2</span>
+            <span class="st-name"><span class="dot"></span>Running</span>
+            <span class="kv">{v:1, done:false, step:4}</span>
+            <span>Coach card on screen. App hotkeys paused.</span>
+          </div>
+          <div class="edge a-e2"><span class="from">from Running</span><span>Done on stop 11</span><i></i></div>
+          <div class="st fin a-fin"><span class="pin">5</span>
+            <span class="st-name"><span class="dot"></span>Finished</span>
+            <span class="kv">{v:1, done:true}</span>
+            <span class="ret"><svg class="ic sm"><use href="#i-retry"/></svg>new version: What's new</span>
+          </div>
+          <div class="edge a-e3"><span class="from">from Running</span><span>Skip tour or Not now</span><i></i></div>
+          <div class="st skp a-skp"><span class="pin">4</span>
+            <span class="st-name"><span class="dot"></span>Skipped</span>
+            <span class="kv">{v:1, done:false}</span>
+            <span class="ret"><svg class="ic sm"><use href="#i-retry"/></svg>Take the tour restarts</span>
+          </div>
+          <div class="edge v a-e4"><span>Esc or close</span><i></i><span>click chip</span></div>
+          <div class="st min a-min"><span class="pin">3</span>
+            <span class="st-name"><span class="dot"></span>Minimized</span>
+            <span class="kv">{v:1, done:false, step:4}</span>
+            <span class="tour-chip"><span class="mring" style="--p:45"></span>Resume tour · 5 of 11</span>
+          </div>
+        </div>
+        <div class="sm-foot">
+          <span><b>key</b> truex-tour</span>
+          <span><b>shape</b> {v, done, step}</span>
+          <span><b>written</b> on every step change</span>
+        </div>
+      </div>
+      <p class="board-cap">any stored key means we never auto-start again. Replay is always one click away in Account.</p>
+    </div>
+
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Auto-start once</b>On first visit, after first paint and only if there is no truex-tour key. It waits until the app is idle, so it never covers a loading screen. <span class="tag new">New</span><span class="src">useTour() effect in app.tsx</span></div></li>
+      <li><span class="pin">2</span><div><b>Replay from Account</b>"Take the tour" in the Account menu starts at stop 1 from any state, including Finished and Skipped.<span class="src">dock · Account menu</span></div></li>
+      <li><span class="pin">3</span><div><b>Esc minimizes, it does not quit</b>Esc or the close button hides the card and leaves a resume chip with a progress ring. Clicking it runs that step's prepare() again and picks up where you left off. On the finish card, Esc closes the tour instead.<span class="src">tour-chip, above the dock</span></div></li>
+      <li><span class="pin">4</span><div><b>Skip means stop asking</b>"Not now" on Welcome or "Skip tour" stores done:false. The key exists, so the tour never nags again, but we still know it was not finished.</div></li>
+      <li><span class="pin">5</span><div><b>Finish, then What's new</b>Done stores done:true. When the tour version goes up, finished users see a short "What's new" run with only the new or changed stops. Skipped users are left alone.<span class="src">TOUR_VERSION vs stored v</span></div></li>
+    </ol>
+  </div>
+</section>

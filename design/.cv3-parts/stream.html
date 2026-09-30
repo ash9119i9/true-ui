@@ -1,0 +1,357 @@
+<section class="sec" id="stream">
+<style>
+/* stream section (v3): turn anatomy, failures, rich parts, long-chat navigation */
+.sm-wf{display:flex;flex-direction:column;min-width:0}
+.sm-top{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:13px;color:var(--ink-3);min-width:0;flex-wrap:wrap}
+.sm-top .t{font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+.sm-stage{padding:18px 16px 20px;display:flex;flex-direction:column;gap:18px;min-width:0}
+.sm-hand{font:700 19px/1.1 var(--font-hand);color:var(--ink-3)}
+/* user */
+.sm-u{display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:0}
+.sm-u .bubble{max-width:min(86%,440px);overflow-wrap:anywhere;box-shadow:var(--shadow-sm)}
+.sm-meta{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums;flex-wrap:wrap}
+.sm-meta .ok{color:var(--ok)}
+/* hover action bar (drawn in its hovered state) */
+.sm-bar{display:inline-flex;align-items:center;gap:2px;padding:3px;border-radius:10px;border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow-md);flex-wrap:wrap}
+.sm-act{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 8px;border-radius:7px;border:0;background:transparent;color:var(--ink-2);font:500 12px var(--font-sans);white-space:nowrap;cursor:pointer}
+.sm-act:hover,.sm-act:focus-visible{background:var(--surface-3);color:var(--ink)}
+.sm-act.be{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--bad) 35%,transparent)}
+.sm-sep{width:1px;height:16px;background:var(--line-strong);margin:0 2px}
+/* agent */
+.sm-a{display:grid;grid-template-columns:30px minmax(0,1fr);gap:12px;min-width:0}
+.sm-av{width:30px;height:30px;border-radius:10px;background:var(--accent-soft);color:var(--accent-fg);display:grid;place-items:center}
+.sm-a > div{min-width:0;display:flex;flex-direction:column;gap:10px}
+.sm-ah{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;min-height:30px;color:var(--ink-2)}
+.sm-ah b{color:var(--ink);font-weight:600}
+.sm-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);min-width:0;flex-wrap:wrap}
+.sm-row b{color:var(--ink);font-weight:600}
+.sm-row .node{width:22px;height:22px;border-radius:7px}
+/* work group */
+.sm-work{border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:var(--shadow-sm);overflow:hidden;min-width:0}
+.sm-work > summary{list-style:none;display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;font-size:13px;min-width:0}
+.sm-work > summary::-webkit-details-marker{display:none}
+.sm-work[open] > summary{border-bottom:1px solid var(--line);background:var(--surface-2)}
+.sm-work[open] > summary .sm-chev{transform:rotate(180deg)}
+.sm-chev{color:var(--ink-3);transition:transform .2s;margin-left:auto}
+.sm-sq{width:24px;height:24px;border-radius:8px;display:grid;place-items:center;flex:none;background:var(--ok-bg);color:var(--ok)}
+.sm-sum{display:flex;flex-direction:column;min-width:0;flex:1}
+.sm-sum b{color:var(--ink);font-weight:600;overflow-wrap:anywhere}
+.sm-sum small{font-size:12px;color:var(--ink-2)}
+.sm-stack{display:flex;padding-left:5px}
+.sm-stack .h-av{width:20px;height:20px;border-radius:6px;margin-left:-5px;box-shadow:0 0 0 2px var(--surface)}
+.sm-work .log{padding:8px 12px 10px}
+.sm-cmd{margin-top:6px;border-radius:10px;background:var(--surface-3);border:1px solid var(--line);font:12px/1.55 var(--font-mono);color:var(--ink-2);overflow:hidden;min-width:0}
+.sm-cmd .c{padding:7px 10px;color:var(--ink);border-bottom:1px solid var(--line);overflow-x:auto;white-space:pre}
+.sm-cmd .c::before{content:"$ ";color:var(--ink-3)}
+.sm-cmd pre{margin:0;padding:7px 10px;white-space:pre;overflow-x:auto;font:inherit}
+.sm-cmd .ft{display:flex;gap:8px;align-items:center;padding:5px 10px;border-top:1px solid var(--line);font-size:11px;color:var(--ink-2);flex-wrap:wrap}
+.sm-exit{display:inline-flex;align-items:center;gap:4px;height:18px;padding:0 7px;border-radius:999px;background:var(--ok-bg);color:var(--ok);font-weight:600}
+/* answer */
+.sm-ans{line-height:1.65;color:var(--ink);display:flex;flex-direction:column;gap:10px;min-width:0}
+.sm-ans p{max-width:62ch}
+.sm-cite{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border-radius:6px;background:var(--accent-soft);color:var(--accent-fg);font:600 11px var(--font-mono);vertical-align:2px;text-decoration:none}
+.sm-code{border:1px solid var(--line);border-radius:12px;background:var(--surface-2);overflow:hidden;min-width:0}
+.sm-code-h{display:flex;align-items:center;gap:4px;padding:4px 6px 4px 12px;border-bottom:1px solid var(--line);font:500 11px var(--font-mono);color:var(--ink-2);flex-wrap:wrap}
+.sm-code-h span:first-child{margin-right:auto;text-transform:uppercase;letter-spacing:.06em}
+.sm-code pre{margin:0;padding:10px 12px;font:12px/1.6 var(--font-mono);color:var(--ink);overflow-x:auto;white-space:pre;position:relative}
+.sm-code pre::after{content:"";position:absolute;left:0;right:0;bottom:0;height:28px;background:linear-gradient(transparent,var(--surface-2))}
+.sm-code .k{color:var(--t0)} .sm-code .s{color:var(--t1)}
+.sm-more{display:flex;width:100%;justify-content:center;gap:6px;padding:7px;border:0;border-top:1px dashed var(--line-strong);background:var(--surface);color:var(--accent-fg);font:500 12px var(--font-sans);cursor:pointer}
+.sm-src{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-size:12px;color:var(--ink-2)}
+.sm-src > span{display:flex;gap:8px;align-items:center;min-width:0}
+.sm-src .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.sm-src b{font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.sm-foot{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.sm-fu{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.sm-fu .chip{height:auto;min-height:30px;white-space:normal;text-align:left;padding:5px 12px;max-width:100%}
+/* failures */
+.sm-fails{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;min-width:0}
+.sm-fail{position:relative;border:1px solid color-mix(in srgb,var(--bad) 30%,transparent);border-radius:14px;background:var(--bad-bg);padding:12px;display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--ink-2);min-width:0}
+.sm-fail.w{background:var(--warn-bg);border-color:color-mix(in srgb,var(--warn) 40%,transparent)}
+.sm-fail h4{margin:0;display:flex;gap:8px;align-items:center;font-size:14px;color:var(--ink)}
+.sm-fail h4 .ic{color:var(--bad)} .sm-fail.w h4 .ic{color:var(--warn)}
+.sm-tip{padding:7px 9px;border-radius:9px;background:color-mix(in srgb,var(--surface) 70%,transparent);font-size:12px;color:var(--ink-2)}
+.sm-tip b{color:var(--ink);font-weight:600}
+.sm-ref{display:inline-flex;align-items:center;gap:6px;font:11.5px var(--font-mono);color:var(--ink-2);overflow-wrap:anywhere}
+.sm-ref button{border:0;background:none;color:var(--accent-fg);font:500 12px var(--font-sans);cursor:pointer;padding:0}
+.sm-solid{background:var(--accent-fg);color:var(--on-accent);border-color:var(--accent-fg)}
+.sm-partial{border-left:3px solid var(--warn);padding:2px 0 2px 12px;display:flex;flex-direction:column;gap:8px}
+.sm-partial p{color:var(--ink)}
+.sm-cut{color:var(--ink-3)}
+/* visualization and file card */
+.sm-rich{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;min-width:0}
+.sm-viz{position:relative;border:1px solid var(--line);border-radius:14px;background:var(--surface);overflow:hidden;min-width:0;display:flex;flex-direction:column}
+.sm-vh{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-bottom:1px solid var(--line)}
+.sm-vh > div{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.35}
+.sm-vh b{font-size:13px;color:var(--ink)} .sm-vh small{font-size:12px;color:var(--ink-2)}
+.sm-frame{position:relative;background:var(--bg);display:flex;flex-direction:column;justify-content:flex-end;gap:8px;padding:14px}
+.sm-sk{border-radius:6px;background:linear-gradient(90deg,var(--surface-3) 0 40%,var(--surface-2) 50%,var(--surface-3) 60%);background-size:250% 100%;animation:sm-sh 1.6s linear infinite}
+@keyframes sm-sh{from{background-position:100% 0}to{background-position:-150% 0}}
+.sm-h360{height:180px} .sm-h240{height:150px}
+.sm-dim{position:absolute;top:8px;right:10px;font:500 10px var(--font-mono);color:var(--ink-3)}
+.sm-cols{display:flex;align-items:flex-end;gap:10px;height:100%;padding-top:10px}
+.sm-cols i{flex:1;border-radius:5px 5px 0 0;background:color-mix(in srgb,var(--t) 70%,transparent)}
+.sm-menu{position:absolute;top:44px;right:10px;z-index:2;width:176px}
+.sm-alt{padding:7px 12px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-2)}
+.sm-to{display:flex;flex-direction:column;gap:8px;align-items:flex-start;justify-content:center;padding:18px 14px;font-size:13px;color:var(--warn-text);background:var(--warn-bg)}
+.sm-file{display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);align-self:start;min-width:0}
+.sm-file .tile{width:36px;height:36px}
+.sm-file .b{display:flex;flex-direction:column;gap:3px;min-width:0;font-size:12px;color:var(--ink-2)}
+.sm-file .b b{font-size:14px;color:var(--ink);overflow-wrap:anywhere}
+.sm-file a{font-size:13px;font-weight:600;text-decoration:none;display:inline-flex;gap:4px;align-items:center}
+/* long chat */
+.sm-long{display:grid;grid-template-columns:minmax(0,1fr) 128px;min-width:0}
+@media (max-width:560px){.sm-long{grid-template-columns:minmax(0,1fr)}.sm-rail{border-left:0;border-top:1px solid var(--line)}}
+.sm-find{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--surface-2);flex-wrap:wrap}
+.sm-find .input{flex:1;min-width:140px;color:var(--ink)}
+.sm-find .n{font:500 12px var(--font-mono);color:var(--ink-2)}
+.sm-hit{background:var(--warn-bg);color:var(--warn-text);border-radius:3px;padding:0 2px;box-shadow:inset 0 -2px 0 var(--warn)}
+.sm-hit.on{background:color-mix(in srgb,var(--warn) 45%,transparent);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--warn)}
+.sm-old{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px dashed var(--line-strong);border-radius:12px;font-size:12px;color:var(--ink-2);min-width:0}
+.sm-old b{color:var(--ink);font-weight:600}
+.sm-rail{border-left:1px solid var(--line);padding:12px 10px;display:flex;flex-direction:column;gap:2px;font-size:12px;background:var(--surface)}
+.sm-rail a{display:flex;align-items:center;gap:6px;padding:4px 7px;border-radius:7px;color:var(--ink-2);text-decoration:none;font-variant-numeric:tabular-nums}
+.sm-rail a::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--line-strong);flex:none}
+.sm-rail a.on{background:var(--accent-soft);color:var(--accent-fg);font-weight:600}
+.sm-rail a.on::before{background:var(--accent)}
+.sm-rail a.wait::before{background:var(--warn);box-shadow:0 0 0 3px var(--warn-bg)}
+.sm-rail a.hit::after{content:"";margin-left:auto;width:5px;height:5px;border-radius:2px;background:var(--warn)}
+.sm-jump{position:sticky;bottom:10px;align-self:center;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;border-radius:999px;border:0;background:var(--ink);color:var(--bg);font:600 13px var(--font-sans);box-shadow:var(--shadow-card);cursor:pointer}
+.sm-jump em{font-style:normal;background:var(--accent);color:var(--on-accent);border-radius:999px;padding:0 7px;font-size:11px;line-height:18px}
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="sm-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+<symbol id="sm-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16Z"/><path d="m13 7 4 4"/></symbol>
+<symbol id="sm-branch" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 7v10M18 10c0 4-6 3-11 7"/></symbol>
+<symbol id="sm-wrap" viewBox="0 0 24 24"><path d="M4 6h16M4 12h13a3 3 0 0 1 0 6h-4m2-2-2 2 2 2M4 18h5"/></symbol>
+<symbol id="sm-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+</defs></svg>
+
+<div class="sec-head">
+  <span class="eyebrow">Message stream</span>
+  <h2>One turn, read top to bottom</h2>
+  <p>A turn is the user message, a thought line, one folded work group and the answer. Actions appear on hover or focus, failures land inline in the turn that broke, rich parts sit where they arrived, and long chats get an outline, search and a way back to the bottom. Delivery states and typed tool rows carry over from r2.</p>
+</div>
+
+<!-- Board 1: one full turn -->
+<div class="board">
+  <div>
+    <div class="wf sm-wf">
+      <div class="sm-top"><span class="t">Onboarding plan for new analysts</span><span class="pill">Turn 3</span></div>
+      <div class="sm-stage">
+        <div class="sm-u">
+          <div class="sm-bar" role="toolbar" aria-label="Message actions"><span class="pin">2</span>
+            <button class="sm-act"><svg class="ic sm"><use href="#sm-copy"/></svg>Copy</button>
+            <button class="sm-act be"><svg class="ic sm"><use href="#sm-edit"/></svg>Edit and resend</button>
+          </div>
+          <div class="bubble">Add a week-two access checklist from the IT handbook and keep the plan under two pages.</div>
+          <span class="sm-meta"><span class="pin">1</span><svg class="ic sm ok"><use href="#i-check"/></svg>Sent 10:14</span>
+        </div>
+
+        <article class="sm-a" aria-label="Qlik Analyst response">
+          <span class="sm-av"><svg class="ic"><use href="#i-spark"/></svg></span>
+          <div>
+            <div class="sm-ah"><b>Qlik Analyst</b><span>10:14</span></div>
+            <div class="sm-row"><span class="pin">3</span><span class="node k-think"><svg class="ic sm"><use href="#i-brain"/></svg></span><b>Thought</b><span>· 84 words</span><svg class="ic sm"><use href="#i-chevd"/></svg></div>
+            <details class="sm-work" open>
+              <summary><span class="sm-sq"><svg class="ic sm"><use href="#i-check"/></svg></span>
+                <span class="sm-sum"><b>Read 3 docs, ran 1 command, edited 1 file · 2 helpers</b><small>4 steps shown · 1m 04s</small></span>
+                <span class="sm-stack"><span class="h-av tone-0">A</span><span class="h-av tone-1">J</span></span>
+                <span class="pin">4</span><svg class="ic sm sm-chev"><use href="#i-chevd"/></svg></summary>
+              <ol class="log">
+                <li><span class="node k-tool"><svg class="ic sm"><use href="#i-plug"/></svg></span><div class="what"><b>Google Drive · read_file</b><span>IT handbook, access-requests.md, week-one.md</span></div><span class="t">12s</span></li>
+                <li><span class="node k-tool"><svg class="ic sm"><use href="#i-term"/></svg></span><div class="what"><b>Ran a command <span class="pin">5</span></b>
+                  <div class="sm-cmd"><div class="c">wc -w plans/onboarding-plan.md</div><pre>  812 plans/onboarding-plan.md</pre><div class="ft"><span class="sm-exit"><svg class="ic sm"><use href="#i-check"/></svg>exit 0</span><span>0.2s</span></div></div></div><span class="t">3s</span></li>
+                <li><span class="node k-file"><svg class="ic sm"><use href="#i-file"/></svg></span><div class="what"><b>Edited plans/onboarding-plan.md</b><span><span class="mono" style="color:var(--ok)">+14</span> <span class="mono" style="color:var(--bad)">−3</span></span></div><span class="t">9s</span></li>
+              </ol>
+            </details>
+            <div class="sm-ans">
+              <p>Week two now opens with an access checklist taken from the IT handbook <a class="sm-cite" href="#sm-s1">1</a>. The plan is 812 words, which fits on two pages.</p>
+              <div class="sm-code"><div class="sm-code-h"><span>markdown <span class="pin">7</span></span>
+                  <button class="sm-act" aria-label="Copy code"><svg class="ic sm"><use href="#sm-copy"/></svg>Copy</button>
+                  <button class="sm-act" aria-pressed="false"><svg class="ic sm"><use href="#sm-wrap"/></svg>Wrap</button></div>
+<pre><span class="k">## Week 2: access</span>
+- [ ] Qlik Cloud analyst role <span class="s">(request in ServiceNow)</span>
+- [ ] Google Drive: Analytics Handbook folder
+- [ ] Snowflake read role for SALES_MART</pre>
+                <button class="sm-more"><svg class="ic sm"><use href="#i-chevd"/></svg>Show 42 more lines</button></div>
+              <div class="sm-src" id="sm-s1"><b>Sources <span class="pin">8</span></b>
+                <span><span class="sm-cite">1</span><svg class="ic sm"><use href="#i-plug"/></svg><span class="n">IT handbook › Access requests · Google Drive</span></span></div>
+            </div>
+            <div class="sm-bar" role="toolbar" aria-label="Answer actions"><span class="pin">6</span>
+              <button class="sm-act"><svg class="ic sm"><use href="#sm-copy"/></svg>Copy</button>
+              <button class="sm-act be"><svg class="ic sm"><use href="#i-retry"/></svg>Regenerate</button>
+              <button class="sm-act be"><svg class="ic sm"><use href="#sm-branch"/></svg>Branch from here</button>
+              <span class="sm-sep"></span>
+              <button class="sm-act be"><svg class="ic sm"><use href="#i-history"/></svg>Restore checkpoint</button>
+            </div>
+            <div class="sm-foot"><span>1m 04s · 18.2k tokens · gpt-5</span></div>
+            <div class="sm-fu"><span class="pin">9</span>
+              <button class="chip">Add a shadowing schedule for week two <svg class="ic sm"><use href="#i-send"/></svg></button>
+              <button class="chip">Turn the checklist into a table <svg class="ic sm"><use href="#i-send"/></svg></button>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+    <p class="board-cap">Everything above the answer folds to one line. Red-outlined actions need backend work.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Delivery state</b> <span class="tag data">Data</span><span><code>delivery</code> drives the meta line: pending dims the bubble with a spinner, failed and unknown show Retry, accepted shows a check and the time. Kept from r2.</span></div></li>
+    <li><span class="pin">2</span><div><b>User action bar</b> <span class="tag backend">Backend</span><span class="tag new">New</span><span>Shows on hover or focus. Copy uses <code>text</code> today. Edit and resend needs a new endpoint that truncates after this message and reruns the turn.</span></div></li>
+    <li><span class="pin">3</span><div><b>Thought row</b> <span class="tag derive">Derive</span><span>"Thought · 84 words" counts words in the thinking <code>summary</code>. No duration exists, so none is shown. Opens to the summary in serif italic.</span></div></li>
+    <li><span class="pin">4</span><div><b>Folded work group</b> <span class="tag derive">Derive</span><span>One line built from the turn's <code>kind:"item"</code> and <code>agents</code> entries, counted by type, plus helper avatars. Open while running, folded once settled.</span></div></li>
+    <li><span class="pin">5</span><div><b>Command row</b> <span class="tag data">Data</span><span>Typed row for <code>commandExecution</code>: <code>command</code>, <code>aggregatedOutput</code> and an exit pill from <code>exitCode</code>. Non-zero turns the pill bad. MCP and file rows keep their own icons.</span></div></li>
+    <li><span class="pin">6</span><div><b>Answer action bar</b> <span class="tag backend">Backend</span><span class="tag new">New</span><span>Copy works today. Regenerate needs a rerun-turn call, Branch from here needs <code>thread/fork</code> at a turnId, and Restore checkpoint needs file snapshots per turn.</span></div></li>
+    <li><span class="pin">7</span><div><b>Code block</b> <span class="tag derive">Derive</span><span class="tag new">New</span><span>Language label from the fence info string, copy, a wrap toggle, and a collapse after 12 lines ("Show 42 more lines"). Scrolls inside its own box.</span></div></li>
+    <li><span class="pin">8</span><div><b>Citations</b> <span class="tag backend">Backend</span><span class="tag new">New</span><span>Numbered chip links to a sources list under the answer. Needs a <code>citations[]</code> field (source, title, locator) on the message.</span></div></li>
+    <li><span class="pin">9</span><div><b>Follow-ups</b> <span class="tag data">Data</span><span>From <code>splitSuggestions</code>, max 3. Only under the last settled answer when nothing is running or pending. Tap fills the composer.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 2: failures -->
+<div class="board">
+  <div>
+    <div class="wf sm-wf">
+      <div class="sm-top"><span class="t">Turn 5 stopped</span><span class="pill bad">Failed</span></div>
+      <div class="sm-stage">
+        <div class="sm-fails">
+          <div class="sm-fail w"><span class="pin pin-at" style="top:-8px;right:-8px">1</span>
+            <h4><svg class="ic"><use href="#i-layers"/></svg>Conversation too long</h4>
+            <span>Compacting summarizes earlier turns so the work can continue.</span>
+            <div class="row"><button class="btn sm-solid">Compact</button></div>
+            <span class="sm-ref">context_window · req_7f3a91c2 <button>Copy</button></span>
+          </div>
+          <div class="sm-fail"><span class="pin pin-at" style="top:-8px;right:-8px">2</span>
+            <h4><svg class="ic"><use href="#i-alert"/></svg>Out of credits</h4>
+            <span>The model provider account has no usage or credits left.</span>
+            <div class="sm-tip"><b>OpenRouter:</b> add credits in account settings, then send your message again.</div>
+            <span class="sm-ref">quota_exceeded · req_c21e08b4 <button>Copy</button></span>
+          </div>
+          <div class="sm-fail"><span class="pin pin-at" style="top:-8px;right:-8px">3</span>
+            <h4><svg class="ic"><use href="#i-key"/></svg>Access denied</h4>
+            <span>The model provider rejected the configured credentials.</span>
+            <div class="sm-tip"><b>Google Vertex:</b> the service account key was revoked. Ask your administrator for a new one.</div>
+            <div class="row"><button class="btn sm-solid"><svg class="ic sm"><use href="#i-globe"/></svg>Reconnect Google</button></div>
+            <span class="sm-ref">invalid_credentials · req_4b90d7e1 <button>Copy</button></span>
+          </div>
+        </div>
+        <article class="sm-a" aria-label="Qlik Analyst response">
+          <span class="sm-av"><svg class="ic"><use href="#i-spark"/></svg></span>
+          <div>
+            <div class="sm-ah"><b>Qlik Analyst</b><span>Turn 6 · 10:31</span></div>
+            <div class="sm-partial"><span class="pin">4</span>
+              <p>Week three pairs each analyst with a senior reviewer. Sessions run Tuesday and Thursday, and the first review covers the<span class="sm-cut">…</span></p>
+              <div class="row"><span class="pill warn"><svg class="ic sm"><use href="#i-alert"/></svg>Answer may be incomplete</span><button class="btn"><svg class="ic sm"><use href="#i-retry"/></svg>Retry</button></div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+    <p class="board-cap">The failure sits in the turn that broke, not in a banner at the bottom.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Context window</b> <span class="tag data">Data</span><span class="tag new">New</span><span><code>reason:"contextWindow"</code> offers Compact and nothing else. Warn tone, since the work is safe and one click continues it.</span></div></li>
+    <li><span class="pin">2</span><div><b>Quota</b> <span class="tag data">Data</span><span>Fix copy plus <code>providerTip(provider, reason)</code>. No Retry: sending again fails the same way until credits are added.</span></div></li>
+    <li><span class="pin">3</span><div><b>Credentials</b> <span class="tag backend">Backend</span><span>Label, hint and providerTip exist. "Reconnect Google" needs a provider re-auth endpoint; without it the card shows the tip only. No Retry.</span></div></li>
+    <li><span class="pin">4</span><div><b>Partial answer</b> <span class="tag derive">Derive</span><span>Turn is <code>done</code> but the message never went <code>final</code>. Keep the text, add the warn pill and Retry. Every card carries the ErrorRef as <code>code · requestId</code> with Copy.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 3: visualization and file card -->
+<div class="board">
+  <div>
+    <div class="wf sm-wf">
+      <div class="sm-top"><span class="t">Rich parts</span><span class="pill">sandboxed</span></div>
+      <div class="sm-stage">
+        <div class="sm-rich">
+          <figure class="sm-viz" style="margin:0"><span class="pin pin-at" style="top:6px;left:6px">1</span>
+            <div class="sm-vh"><div><b>Hours by focus area</b><small>Loading visual</small></div></div>
+            <div class="sm-frame sm-h360" role="status" aria-label="Loading visual"><span class="sm-dim">360px</span><div class="sm-sk" style="height:14px;width:40%"></div><div class="sm-sk" style="flex:1"></div></div>
+          </figure>
+          <figure class="sm-viz" style="margin:0;position:relative"><span class="pin pin-at" style="top:6px;left:6px">2</span>
+            <div class="sm-vh"><div><b>Hours by focus area</b><small>Weeks 1 to 3</small></div><button class="sm-act" aria-label="Visual options" aria-expanded="true"><svg class="ic sm"><use href="#sm-more"/></svg></button></div>
+            <div class="pop sm-menu" role="menu"><span class="it is-active">Expand</span><span class="it">Reload</span><span class="it">Download HTML</span><span class="it">Ask about this</span></div>
+            <div class="sm-frame sm-h240"><div class="sm-cols"><i class="tone-0" style="height:70%;--t:var(--t0)"></i><i style="height:45%;--t:var(--t1)"></i><i style="height:30%;--t:var(--t2)"></i></div></div>
+            <div class="sm-alt"><span class="pin">3</span> Text: Tools 14h, Data 9h, Shadowing 6h across three weeks.</div>
+          </figure>
+          <figure class="sm-viz" style="margin:0"><span class="pin pin-at" style="top:6px;left:6px">4</span>
+            <div class="sm-vh"><div><b>Reviewer pairing map</b><small>No response after 12s</small></div></div>
+            <div class="sm-to" role="alert"><svg class="ic"><use href="#i-clock"/></svg>The visual may not have rendered correctly.<button class="btn"><svg class="ic sm"><use href="#i-retry"/></svg>Reload</button></div>
+          </figure>
+          <div class="sm-file"><span class="tile"><svg class="ic"><use href="#i-file"/></svg></span>
+            <div class="b"><b>onboarding-plan.md <span class="pin">5</span></b><span>Markdown · 6 KB · Revised version</span>
+              <a href="#stream">Open in canvas <svg class="ic sm"><use href="#i-chev"/></svg></a></div></div>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">The frame reserves 360px before the model's HTML reports its height.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Loading skeleton</b> <span class="tag data">Data</span><span>Reserves the default 360px so the stream does not jump. The frame then resizes to the reported height, clamped 160 to 900px.</span></div></li>
+    <li><span class="pin">2</span><div><b>Overflow menu</b> <span class="tag data">Data</span><span>Expand, Reload, Download HTML and Ask about this already exist as four buttons. They move into one menu so the chart gets the width.</span></div></li>
+    <li><span class="pin">3</span><div><b>Text alternative</b> <span class="tag data">Data</span><span>One line from <code>description</code> under the frame, read by screen readers and kept visible for copy.</span></div></li>
+    <li><span class="pin">4</span><div><b>12s timeout</b> <span class="tag data">Data</span><span>No <code>ready</code> message within 12s shows the warn state with Reload. Fetch errors use the same slot in the bad tone.</span></div></li>
+    <li><span class="pin">5</span><div><b>File card</b> <span class="tag backend">Backend</span><span class="tag new">New</span><span><code>ConversationFile</code> has no turnId, so the stream cannot place it. Needs <code>turnId</code> on the file. "Open in canvas" is a new surface; Revised version comes from <code>sourceId</code>.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 4: long chat -->
+<div class="board">
+  <div>
+    <div class="wf sm-wf">
+      <div class="sm-top"><span class="t">Onboarding plan for new analysts</span><span class="pill">9 turns</span></div>
+      <div class="sm-find" role="search"><span class="pin">3</span><svg class="ic sm"><use href="#i-search"/></svg><span class="input">access</span><span class="n" aria-live="polite">3 of 11</span><button class="sm-act" aria-label="Previous match"><svg class="ic sm" style="transform:rotate(180deg)"><use href="#i-chevd"/></svg></button><button class="sm-act" aria-label="Next match"><svg class="ic sm"><use href="#i-chevd"/></svg></button><button class="sm-act" aria-label="Close search"><svg class="ic sm"><use href="#i-x"/></svg></button></div>
+      <div class="sm-long">
+        <div class="sm-stage">
+          <div class="sm-old"><span class="pin">4</span><svg class="ic sm"><use href="#i-check"/></svg><span><b>Turn 2</b> · Read 5 docs, edited 1 file · 2 helpers</span><svg class="ic sm sm-chev"><use href="#i-chevd"/></svg></div>
+          <div class="sm-old"><svg class="ic sm"><use href="#i-check"/></svg><span><b>Turn 3</b> · Read 3 docs, ran 1 command, edited 1 file</span><svg class="ic sm sm-chev"><use href="#i-chevd"/></svg></div>
+          <div class="sm-ans"><p>Week two now opens with an <mark class="sm-hit on">access</mark> checklist. Each <mark class="sm-hit">access</mark> request links to the ServiceNow form.</p></div>
+          <div class="sm-old"><svg class="ic sm"><use href="#i-check"/></svg><span><b>Turn 4</b> · Searched Drive, 1 helper</span><svg class="ic sm sm-chev"><use href="#i-chevd"/></svg></div>
+          <button class="sm-jump"><span class="pin">1</span><svg class="ic sm"><use href="#i-chevd"/></svg>Jump to latest <em>6 new</em></button>
+        </div>
+        <nav class="sm-rail" aria-label="Turn outline"><span class="pin" style="margin-bottom:6px">2</span>
+          <a href="#stream">Turn 1</a><a href="#stream">Turn 2</a><a href="#stream" class="on hit" aria-current="true">Turn 3</a><a href="#stream" class="hit">Turn 4</a><a href="#stream">Turn 5</a><a href="#stream">Turn 6</a><a href="#stream" class="hit">Turn 7</a><a href="#stream">Turn 8</a><a href="#stream" class="wait">Turn 9 · waiting</a>
+        </nav>
+      </div>
+    </div>
+    <p class="board-cap">Scroll up freely. The stream stops following and counts what you missed.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Jump to latest</b> <span class="tag derive">Derive</span><span class="tag new">New</span><span>Appears when the reader is more than 80px from the bottom (the existing follow threshold). Counts entries added since, and resumes following on click.</span></div></li>
+    <li><span class="pin">2</span><div><b>Turn outline</b> <span class="tag derive">Derive</span><span class="tag new">New</span><span>One link per turnId group, current turn highlighted, search hits marked. The waiting marker goes on the latest turn because <code>PendingRequest</code> has no turnId.</span></div></li>
+    <li><span class="pin">3</span><div><b>In-thread search</b> <span class="tag derive">Derive</span><span class="tag new">New</span><span>Opened from the thread header. Matches loaded text with a live "3 of 11" count, Enter for next. Opens folded groups that hold a match.</span></div></li>
+    <li><span class="pin">4</span><div><b>Older work groups</b> <span class="tag derive">Derive</span><span>Every settled turn except the latest shows its work group as one dashed line. Opening one keeps it open until the page reloads.</span></div></li>
+  </ol>
+</div>
+
+<div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Element</th><th>Source field or event</th><th>Data tag</th></tr></thead>
+    <tbody>
+      <tr><td>Delivery state</td><td><code>Message.delivery</code>, <code>steer</code></td><td><span class="tag data">Data</span></td></tr>
+      <tr><td>Copy (message, answer, code)</td><td><code>Entry.text</code>, fence contents</td><td><span class="tag data">Data</span></td></tr>
+      <tr><td>Edit and resend, Regenerate</td><td>New rerun-from-message endpoint</td><td><span class="tag backend">Backend</span></td></tr>
+      <tr><td>Branch from here</td><td><code>thread/fork</code> with a turnId</td><td><span class="tag backend">Backend</span></td></tr>
+      <tr><td>Restore checkpoint</td><td>New per-turn file snapshot</td><td><span class="tag backend">Backend</span></td></tr>
+      <tr><td>Thought · N words</td><td><code>thinking.summary</code></td><td><span class="tag derive">Derive</span></td></tr>
+      <tr><td>Folded work group</td><td><code>kind:"item"</code> + <code>agents</code> entries per turnId</td><td><span class="tag derive">Derive</span></td></tr>
+      <tr><td>Command row</td><td><code>item.command</code>, <code>aggregatedOutput</code>, <code>exitCode</code></td><td><span class="tag data">Data</span></td></tr>
+      <tr><td>Code block controls</td><td>Markdown fence info string, line count</td><td><span class="tag derive">Derive</span></td></tr>
+      <tr><td>Citations and sources</td><td>New <code>Message.citations[]</code></td><td><span class="tag backend">Backend</span></td></tr>
+      <tr><td>Follow-ups</td><td><code>splitSuggestions()</code></td><td><span class="tag data">Data</span></td></tr>
+      <tr><td>Turn failure card</td><td><code>TurnFailure.reason</code>, <code>providerTip</code>, <code>ErrorRef</code></td><td><span class="tag data">Data</span></td></tr>
+      <tr><td>Reconnect provider</td><td>New provider re-auth endpoint</td><td><span class="tag backend">Backend</span></td></tr>
+      <tr><td>Partial answer</td><td><code>done &amp;&amp; !final</code></td><td><span class="tag derive">Derive</span></td></tr>
+      <tr><td>Visualization states</td><td><code>ready</code>, <code>resize</code>, 12s timer, <code>description</code></td><td><span class="tag data">Data</span></td></tr>
+      <tr><td>File card in stream</td><td><code>ConversationFile</code> + new <code>turnId</code></td><td><span class="tag backend">Backend</span></td></tr>
+      <tr><td>Jump pill, outline, search</td><td>Scroll position, turnId groups, loaded text</td><td><span class="tag derive">Derive</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="qs">
+  <div class="q"><b>Where does a turn failure attach?</b><span><code>TurnFailure</code> reaches the banner and the activity timeline, not an entry. Recommend adding <code>turnId</code> to the failure event so the card lands in its turn; until then attach it to the latest turn.</span></div>
+  <div class="q"><b>Search beyond loaded history?</b><span>Client search only covers entries on the page. Keep it client-side for v3 and add a server search endpoint if chats outgrow one history load.</span></div>
+</div>
+</section>

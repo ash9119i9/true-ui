@@ -1,0 +1,131 @@
+<section class="sec" id="requests">
+<div class="sec-head"><span class="eyebrow">2 · Content, blocking</span><h2>Live requests and the composer</h2><p>A pending request stops the turn until someone answers it, so it can't sit in the scroll where it's easy to miss. It docks above the composer, the stream keeps a quiet placeholder, and the topbar says who the turn is waiting on. The composer picks up slash commands, an approval mode and a Steer action. Model settings move into the agent popover.</p></div>
+
+<div class="board">
+<div>
+<div class="wf">
+  <div class="wf-top">
+    <div class="crumb"><span class="av">QA</span><span class="t">Onboarding plan for new analysts</span></div>
+    <span class="status-pill"><span class="pulse warn"></span>Waiting on you <span class="pin">1</span></span>
+    <span></span>
+  </div>
+  <div class="wf-stage">
+    <div class="msg user"><div class="bubble-wrap"><div class="bubble">Check the onboarding scripts still pass before you draft the plan.</div></div></div>
+    <div class="msg"><span class="av">QA</span><div class="grow">
+      <ul class="steps">
+        <li class="is-done"><span class="mark done"></span>Read package.json in true-ui</li>
+        <li><span class="spinner"></span>Waiting for your answer <span class="spacer"></span><span class="pin">3</span></li>
+      </ul>
+    </div></div>
+  </div>
+  <div class="bottom">
+    <div class="card">
+      <div class="row"><span class="pill warn">Tool approval</span> <span class="pin">4</span><span class="spacer"></span><span class="muted sm">Auto-declines in 0:42</span> <span class="pin">5</span></div>
+      <div class="strong">Run <code>npm test</code> in true-ui</div>
+      <div class="muted sm">Shell command, working directory ~/true-ui. Reads files and runs the test suite. No network.</div>
+      <div class="bar warn" aria-label="42 seconds left"><i style="width:70%"></i></div>
+      <div class="row"><span class="btn primary">Allow once</span><span class="btn">Allow for this chat</span><span class="btn">Always allow</span><span class="btn ghost">Decline</span> <span class="pin">6</span></div>
+    </div>
+    <div class="composer">
+      <div class="ph">Answer the request above to continue</div>
+      <div class="composer-bar"><span class="chip">Goal</span><span class="spacer"></span><span class="send" style="opacity:.35">&uarr;</span></div>
+    </div>
+    <div class="row" style="justify-content:center"><span class="chip">Qlik Analyst</span><span class="chip">Activity <span class="pill warn">1</span></span> <span class="pin">2</span></div>
+  </div>
+</div>
+<p class="board-cap">Tool approval docked in <code>.bottom</code>, between the scroll area and the composer. It never scrolls away.</p>
+</div>
+<ol class="notes">
+  <li><span class="pin">1</span><div><b>Status pill: Waiting on you</b> <span class="tag changed">Changed</span><span>While any request is open the pill switches to a warn pulse and this copy. It goes back to Working once the request is answered.</span><span class="src">Data: <code>pendingRequests.length &gt; 0</code></span></div></li>
+  <li><span class="pin">2</span><div><b>Dock Activity badge</b> <span class="tag new">New</span><span>Count of open requests on the dock Activity item, so a request stays visible when the chat is off screen or the panel is closed.</span><span class="src">Data: <code>pendingRequests.length</code></span></div></li>
+  <li><span class="pin">3</span><div><b>Stream placeholder</b> <span class="tag new">New</span><span>A quiet row where the request was raised. After an answer the card collapses into this spot as an audit row, for example "Allowed once: npm test, by you, 0:18".</span><span class="src">Data: <code>request.id</code>, <code>request.resolution</code></span></div></li>
+  <li><span class="pin">4</span><div><b>Request card</b> <span class="tag new">New</span><span>Pinned above the composer. The label names the method: Tool approval, Question or Plan approval. The title and detail come from the request. Several open requests stack oldest first.</span><span class="src">Data: <code>PendingRequest.method</code>, <code>detail</code></span></div></li>
+  <li><span class="pin">5</span><div><b>Countdown</b> <span class="tag new">New</span><span>Time left from expiry, with a thin bar draining. At zero the request auto-declines and the audit row says so. No countdown when there's no expiry.</span><span class="src">Data: <code>expiresAt</code></span></div></li>
+  <li><span class="pin">6</span><div><b>Decisions</b> <span class="tag new">New</span><span>Allow once is primary. Allow for this chat and Always allow widen the grant. Decline sends a refusal and the turn keeps going. Buttons come from the schema, not hard-coded.</span><span class="src">Data: <code>responseSchema</code>, <code>decisions[]</code></span></div></li>
+</ol>
+</div>
+<div class="board">
+<div>
+<div class="wf">
+  <div class="wf-stage">
+    <div class="card">
+      <div class="row"><span class="pill accent">Question</span> <span class="pin">1</span><span class="spacer"></span><span class="muted sm">Auto-declines in 4:10</span></div>
+      <div class="strong">Which analysts should the plan cover first?</div>
+      <div class="opt is-rec"><span class="radio"></span><div class="grow"><div class="row"><span class="strong">New hires starting in October</span><span class="pill accent">Recommended</span> <span class="pin">2</span></div><span class="muted sm">Six people, all on the Sales app.</span></div></div>
+      <div class="opt"><span class="radio"></span><div class="grow"><span class="strong">Everyone without a Qlik licence</span><span class="muted sm">Larger group, mixed apps.</span></div></div>
+      <div class="field"><span>Anything else? (optional)</span><div class="input">Add a note</div> <span class="pin">3</span></div>
+      <div class="row"><span class="btn primary">Send answer</span><span class="btn ghost">Skip</span></div>
+    </div>
+    <div class="card">
+      <div class="row"><span class="pill warn">Question</span><span class="pill">Secret</span> <span class="pin">4</span><span class="spacer"></span><span class="muted sm">Always asks</span></div>
+      <div class="strong">Paste the Qlik API key</div>
+      <div class="field"><span>API key</span><div class="input mono">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</div></div>
+      <div class="muted sm">Sent to the tool only. Never stored in the transcript.</div>
+      <div class="row"><span class="btn primary">Submit</span><span class="btn ghost">Decline</span></div>
+    </div>
+    <div class="card">
+      <div class="row"><span class="pill warn">Plan approval</span><span class="spacer"></span><span class="muted sm">Always asks</span></div>
+      <div class="strong">Onboarding plan, 4 steps</div>
+      <ol class="muted sm" style="margin:0;padding-left:18px"><li>Licence and space access</li><li>Sales app walkthrough</li><li>First dashboard exercise</li><li>Review with a lead</li></ol>
+      <div class="row"><span class="btn primary">Approve plan</span><span class="btn">Edit</span><span class="btn ghost">Reject</span></div>
+    </div>
+  </div>
+</div>
+<p class="board-cap">Same card, other methods. Each renders its body from the request's schema.</p>
+</div>
+<ol class="notes">
+  <li><span class="pin">1</span><div><b>Clarifying question</b> <span class="tag new">New</span><span>Uses the same docked card with a Question label. Options render as radio rows. The agent keeps waiting until someone answers, skips it or it expires.</span><span class="src">Data: <code>method: "question"</code>, <code>options[]</code></span></div></li>
+  <li><span class="pin">2</span><div><b>Recommended option</b> <span class="tag new">New</span><span>The agent's pick is preselected, outlined in accent and tagged Recommended. Only one option can carry it.</span><span class="src">Data: <code>options[].recommended</code></span></div></li>
+  <li><span class="pin">3</span><div><b>Schema fields</b> <span class="tag new">New</span><span>Extra inputs come from the response schema: text, number, select, boolean. Required fields block Send until filled.</span><span class="src">Data: <code>responseSchema.properties</code>, <code>required[]</code></span></div></li>
+  <li><span class="pin">4</span><div><b>Secret question and plan approval</b> <span class="tag new">New</span><span>Always asks, whatever the approval mode. Even on Auto these two never auto-resolve. Secret input is masked, the value never reaches the stream, and the audit row only says "Key provided".</span><span class="src">Data: <code>method: "secret" | "plan_approval"</code>, <code>field.secret</code></span></div></li>
+</ol>
+</div>
+
+<div class="board">
+<div>
+<div class="wf">
+  <div class="wf-stage">
+    <div class="msg"><span class="av">QA</span><div class="grow">
+      <div class="answer">Drafting step 3, the first dashboard exercise<span class="caret"></span></div>
+    </div></div>
+  </div>
+  <div class="bottom">
+    <div class="pop" role="listbox" aria-label="Slash commands">
+      <div class="it is-active"><code>/goal</code><span class="muted sm">Set a goal with a budget</span></div>
+      <div class="it"><code>/plan</code><span class="muted sm">Ask for a plan before acting</span></div>
+      <div class="it"><code>/help</code><span class="muted sm">Show commands and shortcuts</span></div>
+      <div class="it"><code>/clear</code><span class="muted sm">Start a new conversation</span></div>
+    </div>
+    <div class="composer">
+      <div class="ph" style="color:var(--ink)">/<span class="caret"></span> <span class="pin">1</span></div>
+      <div class="composer-bar">
+        <span class="chip">Goal</span><span class="chip">Budget: 20 min</span> <span class="pin">2</span>
+        <span class="chip">Ask &#9662;</span> <span class="pin">3</span>
+        <span class="spacer"></span>
+        <span class="btn soft">Steer</span><span class="send stop" aria-label="Stop"></span> <span class="pin">4</span>
+      </div>
+    </div>
+    <div class="row"><span class="btn" style="opacity:.5">Stopping&hellip;</span> <span class="pin">5</span><span class="muted sm">Interrupting state</span></div>
+    <div class="pop" style="max-width:300px;align-self:center">
+      <div class="it"><span class="eyebrow">Qlik Analyst settings</span> <span class="pin">6</span></div>
+      <div class="it"><span>Model</span><span class="spacer"></span><span class="muted">Sonnet 5.5</span></div>
+      <div class="it"><span>Effort</span><span class="spacer"></span><span class="muted">Medium</span></div>
+      <div class="it"><span>Reasoning summary</span><span class="spacer"></span><span class="muted">Auto</span></div>
+      <div class="it"><span>Service tier</span><span class="spacer"></span><span class="muted">Default</span></div>
+      <div class="it"><span>Personality</span><span class="spacer"></span><span class="muted">Friendly</span></div>
+    </div>
+    <div class="row" style="justify-content:center"><span class="status-pill"><span class="pulse"></span>Qlik Analyst &middot; Working</span></div>
+  </div>
+</div>
+<p class="board-cap">Composer while a turn runs, with the slash menu open. The settings popover opens from the dock pill, not the composer.</p>
+</div>
+<ol class="notes">
+  <li><span class="pin">1</span><div><b>Slash commands</b> <span class="tag new">New</span><span>Typing / at the start opens a popover above the composer. Arrow keys move, Enter picks, Esc closes. The list filters as you type.</span><span class="src">Data: <code>commands[]</code> (name, description)</span></div></li>
+  <li><span class="pin">2</span><div><b>Goal chip and budget</b> <span class="tag exists">Exists</span><span>Unchanged from the spec. The budget select shows only in goal mode.</span><span class="src">Data: <code>goal</code>, <code>goal.budget</code></span></div></li>
+  <li><span class="pin">3</span><div><b>Approval mode</b> <span class="tag new">New</span><span>Ask, Read-only or Auto, per conversation. Behind a feature flag, hidden when it's off. Plan approval and secret questions ignore it.</span><span class="src">Data: <code>approvalMode</code>, flag <code>composer.approvalMode</code></span></div></li>
+  <li><span class="pin">4</span><div><b>Steer and Stop</b> <span class="tag changed">Changed</span><span>While running, send becomes Steer and stays enabled: the text joins the current turn. A separate stop button interrupts. Today busy swaps send for stop.</span><span class="src">Data: <code>turn.state === "running"</code></span></div></li>
+  <li><span class="pin">5</span><div><b>Stopping</b> <span class="tag changed">Changed</span><span>After Stop, the control shows Stopping&hellip; and is disabled until the turn settles. Steer is disabled too.</span><span class="src">Data: <code>turn.state === "interrupting"</code></span></div></li>
+  <li><span class="pin">6</span><div><b>Agent settings popover</b> <span class="tag changed">Changed</span><span>Model, effort, reasoning summary, service tier and personality live in the agent popover opened from the dock status pill. The composer stays about the message.</span><span class="src">Data: <code>model</code>, <code>effort</code>, <code>reasoningSummary</code>, <code>serviceTier</code>, <code>personality</code></span></div></li>
+</ol>
+</div>
+</section>

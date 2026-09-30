@@ -1,0 +1,410 @@
+<section class="sec" id="create-agent">
+<style>
+/* Fixed colors: robot parts, tint backgrounds and the dark celebration. The only literal colors in this fragment. */
+#create-agent{--rb-graphite:#3A4750;--rb-white:#F4F7F8;--rb-navy:#2E4470;--rb-silver:#D5DDE1;--rb-sand:#D8C3A0;--rb-mint:#BFE3CF;--rb-lilac:#CFC8EC;--rb-peach:#F5C7A8;--rv-1:#1F2A30;--rv-2:#2B3F6B;--rv-3:#16213A;--ra-red:#E07B6E;--ra-blue:#3691CD;--ra-yellow:#F2C94C;--ra-pink:#F0A3B5;--rg-ice:#BCDEE8;--rg-butter:#EBCB8B;--rg-peach:#F0B999;--rg-mint:#A9D5BE;--rg-lilac:#C4BDE3;--tb-ice:#EAF5F8;--tb-mint:#E7F4ED;--tb-butter:#FFF3D9;--tb-peach:#FBE9DD;--tb-lilac:#EFEDF8;
+  --cm-bg:#0E1417;--cm-glow:rgb(235 203 139 / 20%);--cm-ink:#F3F7F8;--cm-ink-2:#B7C3C8;--cm-code:rgb(255 255 255 / 10%);--cm-soft:rgb(255 255 255 / 12%);--cm-line:rgb(255 255 255 / 18%);--cm-paper:#FFFFFF;--cm-pink:#1F2A30;--cm-p3:#849198;--cm-pl:#E3ECEF;--cm-pls:#D8E0E4;--cm-accent:#3691CD;--cm-on:#FFFFFF}
+#create-agent .solo{grid-template-columns:minmax(0,1fr)}
+#create-agent .over{position:relative;padding:18px 16px 20px;flex:1}
+#create-agent .ghost{display:flex;flex-direction:column;gap:10px;padding:0 4px}
+#create-agent .ghost i{display:block;height:10px;border-radius:6px;background:var(--surface-3)}
+#create-agent .dscrim{position:absolute;inset:0;background:color-mix(in srgb,var(--ink) 22%,transparent);border-radius:0 0 15px 15px}
+#create-agent .dlg{position:relative;margin-top:-34px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow-lift)}
+#create-agent .dx{position:absolute;top:10px;right:10px;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:var(--ink-3)}
+#create-agent .form{display:flex;flex-direction:column;gap:11px;padding:18px 16px 16px 18px;min-width:0}
+#create-agent .form h3{margin:0;font:600 19px/1.2 var(--font-sans);letter-spacing:-.02em;color:var(--ink)}
+#create-agent .form .lede{margin:3px 0 0;font-size:12.5px;line-height:1.45;color:var(--ink-2)}
+#create-agent .fl{display:flex;flex-direction:column;gap:5px;min-width:0}
+#create-agent .fll{display:flex;align-items:center;justify-content:space-between;gap:8px;font:600 12px var(--font-sans);color:var(--ink);min-width:0}
+#create-agent .fh{font:500 11px var(--font-mono);color:var(--ink-3);white-space:nowrap}
+#create-agent .fh.live{color:var(--accent-fg)}
+#create-agent .fh.bad{color:var(--bad);white-space:normal;text-align:right}
+#create-agent .inp{display:flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border:1px solid var(--line-strong);border-radius:10px;background:var(--bg);font-size:13px;color:var(--ink);min-width:0;white-space:nowrap;overflow:hidden}
+#create-agent .inp.ph{color:var(--ink-3)}
+#create-agent .inp.ta{align-items:flex-start;min-height:46px;padding-top:7px;white-space:normal;line-height:1.4}
+#create-agent .inp.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+#create-agent .inp.bad{border-color:var(--bad);box-shadow:0 0 0 3px var(--bad-bg)}
+#create-agent .inp .ic{margin-left:auto;color:var(--ink-3)}
+#create-agent .caret{display:inline-block;width:1.5px;height:15px;margin-left:-5px;background:var(--accent);animation:ca-blink 1s steps(1) infinite}
+@keyframes ca-blink{50%{opacity:0}}
+#create-agent .looks{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+#create-agent .lk{aspect-ratio:1;border-radius:9px;display:grid;place-items:center;background:var(--tb);border:1px solid var(--line)}
+#create-agent .lk.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+#create-agent .tints{display:flex;align-items:center;gap:7px;margin-top:3px;font:600 12px var(--font-sans);flex-wrap:wrap}
+#create-agent .tints b{font-weight:600;margin-right:4px}
+#create-agent .tn{width:18px;height:18px;border-radius:50%;background:var(--tb);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ink) 16%,transparent)}
+#create-agent .tn.on{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ink) 16%,transparent),0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
+#create-agent .bot{position:relative;display:block;width:78%;aspect-ratio:1}
+#create-agent .bot::before{content:"";position:absolute;left:15%;right:15%;top:28%;bottom:10%;border-radius:30%;background:var(--bc)}
+#create-agent .bot::after{content:"";position:absolute;left:25%;right:25%;top:45%;height:22%;border-radius:999px;background:radial-gradient(circle at 32% 50%,var(--glow) 0 12%,transparent 13%),radial-gradient(circle at 68% 50%,var(--glow) 0 12%,transparent 13%),var(--vis)}
+#create-agent .bot.ln::after{background:linear-gradient(var(--glow),var(--glow)) center/58% 20% no-repeat,var(--vis)}
+#create-agent .bot b{position:absolute;display:none;background:var(--acc)}
+#create-agent .bot:is(.ant,.cap,.hp,.chef,.hat,.scarf,.bow) b{display:block}
+#create-agent .ant b{left:47%;top:10%;width:6%;height:19%;border-radius:2px;background:var(--vis)}
+#create-agent .ant b::after{content:"";position:absolute;left:-110%;top:-70%;width:320%;aspect-ratio:1;border-radius:50%;background:var(--glow)}
+#create-agent .cap b{left:13%;right:27%;top:20%;height:15%;border-radius:999px 999px 2px 2px}
+#create-agent .cap b::after{content:"";position:absolute;left:70%;right:-40%;bottom:0;height:40%;border-radius:0 999px 999px 0;background:inherit}
+#create-agent .hp b{left:8%;right:8%;top:20%;bottom:36%;background:none;border:solid var(--acc);border-width:3px 3px 0;border-radius:999px 999px 0 0}
+#create-agent .chef b{left:24%;right:24%;top:4%;height:28%;border-radius:999px 999px 4px 4px;background:var(--rb-white);box-shadow:inset 0 0 0 1px var(--rb-silver)}
+#create-agent .hat b{left:12%;right:12%;top:17%;height:17%;border-radius:999px 999px 3px 3px}
+#create-agent .scarf b{left:17%;right:17%;bottom:6%;height:12%;border-radius:4px}
+#create-agent .bow b{left:60%;top:22%;width:24%;height:12%;border-radius:999px}
+#create-agent .r1{--bc:var(--rb-graphite);--vis:var(--rv-1);--glow:var(--rg-ice)}#create-agent .r2{--bc:var(--rb-white);--vis:var(--rv-2);--glow:var(--rg-ice)}#create-agent .r3{--bc:var(--rb-navy);--vis:var(--rv-3);--glow:var(--rg-ice)}
+#create-agent .r4{--bc:var(--rb-silver);--vis:var(--rv-2);--glow:var(--rg-ice);--acc:var(--ra-blue)}#create-agent .r5{--bc:var(--rb-sand);--vis:var(--rb-graphite);--glow:var(--rg-butter);--acc:var(--ra-red)}#create-agent .r6{--bc:var(--rb-white);--vis:var(--rv-1);--glow:var(--rg-mint)}
+#create-agent .r7{--bc:var(--rb-white);--vis:var(--rb-graphite);--glow:var(--rg-butter);--acc:var(--ra-yellow)}#create-agent .r8{--bc:var(--rb-graphite);--vis:var(--rv-1);--glow:var(--rg-peach);--acc:var(--ra-red)}#create-agent .r9{--bc:var(--rb-mint);--vis:var(--rv-3);--glow:var(--rg-mint)}
+#create-agent .r10{--bc:var(--rb-lilac);--vis:var(--rv-2);--glow:var(--rg-lilac);--acc:var(--ra-pink)}#create-agent .r11{--bc:var(--rb-peach);--vis:var(--rb-graphite);--glow:var(--rg-peach);--acc:var(--rb-graphite)}#create-agent .r12{--bc:var(--rb-navy);--vis:var(--rv-3);--glow:var(--rg-butter);--acc:var(--ra-yellow)}
+#create-agent .locks{display:flex;flex-wrap:wrap;gap:6px}
+#create-agent .lock{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:999px;border:1px dashed var(--line-strong);background:var(--surface-2);font:500 11px var(--font-mono);color:var(--ink-2);white-space:nowrap}
+#create-agent .lock .ic{width:11px;height:11px}
+#create-agent .acts{display:flex;align-items:center;gap:8px;justify-content:flex-end;padding-top:4px;flex-wrap:wrap}
+#create-agent .bs,#create-agent .bp{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:10px;font:600 13px var(--font-sans);white-space:nowrap}
+#create-agent .bs{background:var(--surface-3);color:var(--ink);border:1px solid var(--line)}
+#create-agent .bp{background:var(--accent);color:var(--on-accent)}
+#create-agent .bp.dis{background:color-mix(in srgb,var(--accent) 35%,var(--surface-3));color:color-mix(in srgb,var(--on-accent) 75%,transparent)}
+#create-agent .stg{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;padding:0 12px 14px;border-left:1px solid var(--line);border-radius:0 19px 19px 0;background:radial-gradient(circle,var(--line-strong) 1px,transparent 1.5px) 0 0/14px 14px,var(--surface-3)}
+#create-agent .lny{display:flex;flex-direction:column;align-items:center;transform:rotate(var(--sw,0deg));transform-origin:top center}
+#create-agent .strap{width:18px;height:var(--sl,78px);background:var(--strap);border-radius:0 0 3px 3px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ink) 10%,transparent)}
+#create-agent .clip{width:26px;height:12px;margin-top:-2px;border-radius:3px 3px 6px 6px;background:var(--line-strong);border:1px solid var(--ink-3)}
+#create-agent .bdg{position:relative;width:150px;margin-top:-3px;padding:10px 10px 8px;border-radius:12px;background:var(--paper);border:1px solid var(--line);box-shadow:var(--shadow-card);display:flex;flex-direction:column;gap:7px}
+#create-agent .bdg .slot{align-self:center;width:24px;height:4px;border-radius:3px;background:var(--line-strong)}
+#create-agent .bdg .brand{position:absolute;top:8px;right:10px;font:600 9.5px var(--font-mono);letter-spacing:.06em;color:var(--ink-3)}
+#create-agent .bdg .bt{display:grid;place-items:center;height:96px;border-radius:8px;background:var(--tb)}
+#create-agent .bdg .bt .bot{width:88px}
+#create-agent .bdg .bn{font:600 15px/1.15 var(--font-sans);letter-spacing:-.01em;color:var(--ink);overflow-wrap:anywhere}
+#create-agent .bdg .bh{font:500 11px var(--font-mono);color:var(--ink-3);margin-top:2px;overflow-wrap:anywhere}
+#create-agent .bdg .bf{display:flex;justify-content:space-between;gap:6px;padding-top:6px;border-top:1px dashed var(--line-strong);font:500 9.5px var(--font-mono);color:var(--ink-3);white-space:nowrap}
+#create-agent .snote{font:500 10.5px var(--font-mono);color:var(--ink-3);text-align:center}
+#create-agent .taken{position:absolute;z-index:6;right:14px;bottom:14px;width:250px;padding:10px 12px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-lift);transform:rotate(-1.2deg);display:flex;flex-direction:column;gap:8px}
+#create-agent .taken .hand{font:700 17px/1 var(--font-hand);color:var(--doodle)}
+#create-agent .celebrate-mock{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;padding:0 16px 22px;min-height:420px;background:radial-gradient(60% 50% at 50% 30%,var(--cm-glow),transparent 70%),var(--cm-bg);color:var(--cm-ink);border-radius:0 0 19px 19px}
+#create-agent .celebrate-mock .lny{--paper:var(--cm-paper);--ink:var(--cm-pink);--ink-3:var(--cm-p3);--line:var(--cm-pl);--line-strong:var(--cm-pls);--sl:96px}
+#create-agent .celebrate-mock .cx{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:var(--cm-ink-2);background:var(--cm-soft)}
+#create-agent .cc{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:8px 10px;max-width:360px;min-width:0}
+#create-agent .cc h3{margin:0;font:600 22px/1.2 var(--font-sans);letter-spacing:-.02em;color:var(--cm-ink)}
+#create-agent .cc p{margin:0;font-size:13px;line-height:1.5;color:var(--cm-ink-2)}
+#create-agent .cc code{font:500 12px var(--font-mono);padding:1px 6px;border-radius:6px;background:var(--cm-code);color:var(--cm-ink);border:0}
+#create-agent .cc .acts{justify-content:center;padding-top:6px}
+#create-agent .cc .bp{background:var(--cm-accent);color:var(--cm-on)}
+#create-agent .cc .bs{background:var(--cm-soft);border-color:var(--cm-line);color:var(--cm-ink)}
+#create-agent .confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:inherit}
+#create-agent .confetti i{position:absolute;top:var(--y);left:var(--x);width:6px;height:10px;border-radius:2px;background:var(--c);transform:rotate(var(--r))}
+#create-agent .confetti i:nth-child(3n){width:7px;height:7px;border-radius:50%}
+@media (prefers-reduced-motion:no-preference){#create-agent .celebrate-mock .lny{animation:ca-drop 1s cubic-bezier(.3,1.45,.55,1) 1 both}#create-agent .confetti i{animation:ca-fall 1.6s var(--ease-out) 1 both}}
+@keyframes ca-drop{from{transform:translateY(-110%) rotate(0deg)}to{transform:translateY(0) rotate(var(--sw,0deg))}}
+@keyframes ca-fall{from{top:-14px;opacity:0}25%{opacity:1}}
+#create-agent .spot{z-index:4}
+#create-agent .pin-at{z-index:7}
+@media (max-width:720px){#create-agent .dlg{grid-template-columns:minmax(0,1fr)}#create-agent .stg{border-left:0;border-top:1px solid var(--line);border-radius:0 0 19px 19px}}
+@media (max-width:640px){#create-agent .taken{position:relative;right:auto;bottom:auto;width:auto;margin:0 12px 12px;transform:none}}
+@media (prefers-reduced-motion:reduce){#create-agent .caret{animation:none}}
+</style>
+<div class="sec-head">
+  <span class="eyebrow">Agent tour 2</span>
+  <h2>Add a teammate</h2>
+  <p>The first time the New agent dialog opens, five stops walk one example from blank to badge: Handbook Coach, @handbookcoach, which answers new analysts' handbook questions. Every stop is a real field, the badge fills in as you go, and the tour covers creating only, since editing waits on the backend.</p>
+</div>
+<div class="board">
+  <div>
+    <div class="demo" role="img" aria-label="Create 1 of 5: the New agent dialog over a dimmed agents page. The Name field holds Handbook Coach with the live handle @handbookcoach under it, spotlighted. An inset shows the taken state for Research Scout with Create agent disabled">
+      <div class="app">
+        <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/agents</span></div>
+        <div class="app-body solo">
+          <div class="app-stage">
+            <div class="wf-top">
+              <div class="crumb"><svg class="ic"><use href="#i-sidebar"/></svg><span class="t">truex / agents</span></div>
+              <span class="status-pill"><span class="pulse idle"></span>Qlik Analyst · Idle</span>
+              <span></span>
+            </div>
+            <div class="over">
+              <div class="ghost" aria-hidden="true"><i style="width:40%"></i><i style="width:72%"></i><i style="width:58%"></i></div>
+              <div class="dscrim" aria-hidden="true"></div>
+              <div class="dlg">
+                <span class="dx"><svg class="ic"><use href="#i-x"/></svg></span>
+                <div class="form">
+                  <div><h3>New agent</h3><p class="lede">A teammate with its own name, look and instructions. Mention it by handle in any chat.</p></div>
+                  <div class="fl t-anchor" data-tour="agent-name">
+                    <span class="fll">Name<span class="fh live">@handbookcoach</span></span>
+                    <span class="inp on">Handbook Coach<span class="caret"></span></span>
+                    <span class="spot inset" aria-hidden="true"></span>
+                  </div>
+                  <div class="fl"><span class="fll">Purpose<span class="fh">0 / 80</span></span><span class="inp ph">What this teammate is for</span></div>
+                  <div class="fl"><span class="fll">Instructions</span><span class="inp ta ph">Standing instructions for every turn it takes</span></div>
+                  <div class="fl"><span class="fll">Model</span><span class="inp">gpt-5-mini<svg class="ic"><use href="#i-chevd"/></svg></span></div>
+                  <div class="acts"><span class="bs">Cancel</span><span class="bp">Create agent</span></div>
+                </div>
+                <div class="stg">
+                  <div class="lny" style="--sw:-2deg;--strap:var(--ra-blue)">
+                    <span class="strap"></span><span class="clip"></span>
+                    <div class="bdg"><span class="slot"></span><span class="brand">truex</span>
+                      <div class="bt" style="--tb:var(--tb-ice)"><span class="bot r3 ln"><b></b></span></div>
+                      <div><div class="bn">Handbook Coach</div><div class="bh">@handbookcoach</div></div>
+                      <div class="bf"><span>gpt-5-mini</span><span>read-only</span></div>
+                    </div>
+                  </div>
+                  <span class="snote">live preview</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="coach" data-side="below" style="left:30px;top:262px;--caret:44px">
+        <div class="c-eye"><span>Create · 1 of 5</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+        <h4>Give it a <em>name</em></h4>
+        <p>The handle is made from the name as you type. Mention that handle in any chat to call it in.</p>
+        <div class="c-try"><svg class="ic"><use href="#i-steer"/></svg>Type a name to continue</div>
+        <div class="c-foot">
+          <span class="c-dots"><i class="on"></i><i></i><i></i><i></i><i></i></span>
+          <span class="tb quiet">Skip tour</span><span class="tb primary">Next</span>
+        </div>
+      </div>
+      <div class="taken" aria-hidden="true">
+        <span class="hand">if the handle is taken</span>
+        <div class="fl"><span class="fll">Name<span class="fh bad">@researchscout is taken. Choose a different name.</span></span><span class="inp bad">Research Scout</span></div>
+        <div class="acts"><span class="bs">Cancel</span><span class="bp dis">Create agent</span></div>
+      </div>
+      <span class="pin pin-at" style="left:14px;top:150px">1</span>
+      <span class="pin pin-at" style="right:258px;bottom:120px">5</span>
+    </div>
+    <p class="board-cap">Handbook Coach becomes @handbookcoach. Research Scout already exists, so its handle is taken and Create waits.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Trigger and target: agent-name</b> <span class="tag derive">derive</span><span class="tag try">Try</span><span>Starts the first time the New agent dialog opens and parts.create is not set. Skipped while the main tour runs. Target wraps the Name label, the handle hint and the input.</span><span class="src">data-tour="agent-name" · truex-tour.parts.create</span></div></li>
+    <li><span class="pin">2</span><div><b>Copy</b> <span class="tag derive">derive</span><span>"Give it a name." The handle is made from the name as you type. Mention that handle in any chat to call it in. Try line: "Type a name to continue".</span></div></li>
+    <li><span class="pin">3</span><div><b>prepare() and advance</b> <span class="tag derive">derive</span><span>prepare(): wait for the dialog, focus Name, pause app hotkeys. Never type for the user. Next stays off until the handle is valid and free, then Next, → or Enter advance.</span></div></li>
+    <li><span class="pin">4</span><div><b>Fallback</b> <span class="tag derive">derive</span><span>If agent-name is missing after 3s, show a centered card with the same copy and a plain Next.</span></div></li>
+    <li><span class="pin">5</span><div><b>Handle rules</b> <span class="tag data">data</span><span>agentHandle(name): a to z and 0 to 9, max 20 characters, unique. Client checks the GET /api/agents list; the server answers 409 AGENT_HANDLE_TAKEN as backup. Taken copy: "@researchscout is taken. Choose a different name." Create agent disabled.</span></div></li>
+  </ol>
+</div>
+<div class="board">
+  <div>
+    <div class="demo" role="img" aria-label="Create 2 of 5: the New agent dialog with Look and Tint spotlighted. Twelve robot tiles with the chef robot picked and five tint swatches with butter picked. The badge on the right shows Handbook Coach in the chef look on a butter background">
+      <div class="app">
+        <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/agents</span></div>
+        <div class="app-body solo">
+          <div class="app-stage">
+            <div class="over" style="padding-top:44px;padding-bottom:196px">
+              <div class="dscrim" aria-hidden="true"></div>
+              <div class="dlg">
+                <span class="dx"><svg class="ic"><use href="#i-x"/></svg></span>
+                <div class="form">
+                  <div><h3>New agent</h3></div>
+                  <div class="fl"><span class="fll">Name<span class="fh live">@handbookcoach</span></span><span class="inp">Handbook Coach</span></div>
+                  <div class="fl t-anchor" data-tour="agent-look">
+                    <span class="fll">Look<span class="fh">12 looks · 5 tints</span></span>
+                    <div class="looks" style="--tb:var(--tb-butter)">
+                      <span class="lk"><span class="bot r1 ln"><b></b></span></span><span class="lk"><span class="bot r2 ant"><b></b></span></span><span class="lk"><span class="bot r3 ln"><b></b></span></span><span class="lk"><span class="bot r4 hp"><b></b></span></span><span class="lk"><span class="bot r5 ln cap"><b></b></span></span><span class="lk on"><span class="bot r6 chef"><b></b></span></span>
+                      <span class="lk"><span class="bot r7 hat"><b></b></span></span><span class="lk"><span class="bot r8 scarf"><b></b></span></span><span class="lk"><span class="bot r9 ant"><b></b></span></span><span class="lk"><span class="bot r10 bow"><b></b></span></span><span class="lk"><span class="bot r11 ln hp"><b></b></span></span><span class="lk"><span class="bot r12 cap"><b></b></span></span>
+                    </div>
+                    <div class="tints"><b>Tint</b><span class="tn" style="--tb:var(--tb-ice)"></span><span class="tn" style="--tb:var(--tb-mint)"></span><span class="tn on" style="--tb:var(--tb-butter)"></span><span class="tn" style="--tb:var(--tb-peach)"></span><span class="tn" style="--tb:var(--tb-lilac)"></span></div>
+                    <span class="spot inset" aria-hidden="true"></span>
+                  </div>
+                  <div class="fl"><span class="fll">Model</span><span class="inp">gpt-5-mini<svg class="ic"><use href="#i-chevd"/></svg></span></div>
+                  <div class="acts"><span class="bs">Cancel</span><span class="bp">Create agent</span></div>
+                </div>
+                <div class="stg">
+                  <div class="lny" style="--sw:1.5deg;--strap:var(--butter)">
+                    <span class="strap"></span><span class="clip"></span>
+                    <div class="bdg"><span class="slot"></span><span class="brand">truex</span>
+                      <div class="bt" style="--tb:var(--tb-butter)"><span class="bot r6 chef"><b></b></span></div>
+                      <div><div class="bn">Handbook Coach</div><div class="bh">@handbookcoach</div></div>
+                      <div class="bf"><span>gpt-5-mini</span><span>read-only</span></div>
+                    </div>
+                  </div>
+                  <span class="snote">live preview</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="coach" data-side="below" style="left:24px;bottom:14px;--caret:60px">
+        <div class="c-eye"><span>Create · 2 of 5</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+        <h4>Pick a <em>look</em></h4>
+        <p>Choose one of 12 robots and one of 5 tints. The badge on the right changes as you pick.</p>
+        <div class="c-foot">
+          <span class="c-dots"><i class="done"></i><i class="on"></i><i></i><i></i><i></i></span>
+          <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+        </div>
+      </div>
+      <span class="pin pin-at" style="left:14px;bottom:150px">1</span>
+      <span class="pin pin-at" style="right:14px;top:60px">4</span>
+    </div>
+    <p class="board-cap">Chef robot on butter for a coach that serves the handbook. The same look and tint follow it onto the team page.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Target: agent-look</b> <span class="tag derive">derive</span><span class="tag look">Look</span><span>Wraps the Look grid and the Tint row as one hole. Picking is optional; the dialog already has a default look and tint.</span><span class="src">data-tour="agent-look"</span></div></li>
+    <li><span class="pin">2</span><div><b>Copy</b> <span class="tag derive">derive</span><span>"Pick a look." Choose one of 12 robots and one of 5 tints. The badge on the right changes as you pick.</span></div></li>
+    <li><span class="pin">3</span><div><b>prepare(), advance, fallback</b> <span class="tag derive">derive</span><span>prepare(): scroll the Look field into view in the dialog body. Advance on Next, → or Enter. If agent-look is missing after 3s, show a centered card with the same copy.</span></div></li>
+    <li><span class="pin">4</span><div><b>Look, tint and live badge</b> <span class="tag data">data</span><span>look is one of 12 robot ids and tint one of 5, both sent to POST /api/agents. The lanyard badge is the same component the celebration drops in.</span></div></li>
+  </ol>
+</div>
+<div class="board">
+  <div>
+    <div class="demo" role="img" aria-label="Create 3 of 5: the New agent dialog with the Model field set to gpt-5-mini and, under it, two locked facts, read-only sandbox and asks on request, spotlighted together. They are labels with lock icons, not controls">
+      <div class="app">
+        <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/agents</span></div>
+        <div class="app-body solo">
+          <div class="app-stage">
+            <div class="over" style="padding-top:44px">
+              <div class="dscrim" aria-hidden="true"></div>
+              <div class="dlg">
+                <span class="dx"><svg class="ic"><use href="#i-x"/></svg></span>
+                <div class="form">
+                  <div><h3>New agent</h3></div>
+                  <div class="fl"><span class="fll">Name<span class="fh live">@handbookcoach</span></span><span class="inp">Handbook Coach</span></div>
+                  <div class="fl"><span class="fll">Purpose<span class="fh">41 / 80</span></span><span class="inp">Answers new analysts' handbook questions</span></div>
+                  <div class="fl"><span class="fll">Instructions<span class="fh">44 / 20,000</span></span><span class="inp ta">Cite the handbook section for every answer.</span></div>
+                  <div class="fl t-anchor" data-tour="agent-model">
+                    <span class="fll">Model</span>
+                    <span class="inp">gpt-5-mini<svg class="ic"><use href="#i-chevd"/></svg></span>
+                    <div class="locks" aria-label="Set for every new agent">
+                      <span class="lock"><svg class="ic"><use href="#i-lock"/></svg>read-only sandbox</span>
+                      <span class="lock"><svg class="ic"><use href="#i-shield"/></svg>asks on request</span>
+                    </div>
+                    <span class="spot inset" aria-hidden="true"></span>
+                  </div>
+                  <div class="acts"><span class="bs">Cancel</span><span class="bp">Create agent</span></div>
+                </div>
+                <div class="stg">
+                  <div class="lny" style="--sw:1.5deg;--strap:var(--butter)">
+                    <span class="strap"></span><span class="clip"></span>
+                    <div class="bdg"><span class="slot"></span><span class="brand">truex</span>
+                      <div class="bt" style="--tb:var(--tb-butter)"><span class="bot r6 chef"><b></b></span></div>
+                      <div><div class="bn">Handbook Coach</div><div class="bh">@handbookcoach</div></div>
+                      <div class="bf"><span>gpt-5-mini</span><span>read-only</span></div>
+                    </div>
+                  </div>
+                  <span class="snote">live preview</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="coach" data-side="right" style="right:14px;bottom:24px;width:240px;--caret:42px">
+        <div class="c-eye"><span>Create · 3 of 5</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+        <h4>Choose a <em>model</em></h4>
+        <p>gpt-5-mini is quick for handbook answers. Every new agent works read-only and asks before acting. Those two are set for you.</p>
+        <div class="c-foot">
+          <span class="c-dots"><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i></span>
+          <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+        </div>
+      </div>
+      <span class="pin pin-at" style="left:14px;bottom:110px">1</span>
+      <span class="pin pin-at" style="left:14px;bottom:62px">4</span>
+    </div>
+    <p class="board-cap">One real choice, two facts. The lock chips read like labels so nobody hunts for a toggle that the API would reject.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Target: agent-model</b> <span class="tag derive">derive</span><span class="tag look">Look</span><span>Wraps the Model select and the two lock chips as one hole. Opening the select is fine; the tour stays on this stop.</span><span class="src">data-tour="agent-model"</span></div></li>
+    <li><span class="pin">2</span><div><b>Copy</b> <span class="tag derive">derive</span><span>"Choose a model." gpt-5-mini is quick for handbook answers. Every new agent works read-only and asks before acting. Those two are set for you.</span></div></li>
+    <li><span class="pin">3</span><div><b>prepare(), advance, fallback</b> <span class="tag derive">derive</span><span>prepare(): close any open select, scroll Model into view. Advance on Next, → or Enter. If agent-model is missing after 3s, show a centered card with the same copy.</span></div></li>
+    <li><span class="pin">4</span><div><b>Locked facts, never controls</b> <span class="tag data">data</span><span>New agents get sandbox read-only and approvalPolicy on-request. POST /api/agents accepts only name, description, systemPrompt, look, tint and model, so these render as lock chips with no toggle.</span></div></li>
+  </ol>
+</div>
+<div class="board">
+  <div>
+    <div class="demo" role="img" aria-label="Create 4 of 5: the finished New agent form for Handbook Coach, @handbookcoach, chef look on butter, gpt-5-mini, with the Create agent button spotlighted and a coach card below it">
+      <div class="app">
+        <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/agents</span></div>
+        <div class="app-body solo">
+          <div class="app-stage">
+            <div class="over" style="padding-top:44px;padding-bottom:210px">
+              <div class="dscrim" aria-hidden="true"></div>
+              <div class="dlg">
+                <span class="dx"><svg class="ic"><use href="#i-x"/></svg></span>
+                <div class="form">
+                  <div><h3>New agent</h3></div>
+                  <div class="fl"><span class="fll">Name<span class="fh live">@handbookcoach</span></span><span class="inp">Handbook Coach</span></div>
+                  <div class="fl"><span class="fll">Purpose</span><span class="inp">Answers new analysts' handbook questions</span></div>
+                  <div class="fl"><span class="fll">Instructions</span><span class="inp ta">Cite the handbook section for every answer.</span></div>
+                  <div class="fl"><span class="fll">Model</span><span class="inp">gpt-5-mini<svg class="ic"><use href="#i-chevd"/></svg></span></div>
+                  <div class="locks"><span class="lock"><svg class="ic"><use href="#i-lock"/></svg>read-only sandbox</span><span class="lock"><svg class="ic"><use href="#i-shield"/></svg>asks on request</span></div>
+                  <div class="acts"><span class="bs">Cancel</span><span class="bp t-anchor" data-tour="agent-create">Create agent<span class="spot inset" aria-hidden="true"></span></span></div>
+                </div>
+                <div class="stg">
+                  <div class="lny" style="--sw:-1.5deg;--strap:var(--butter);--sl:40px">
+                    <span class="strap"></span><span class="clip"></span>
+                    <div class="bdg"><span class="slot"></span><span class="brand">truex</span>
+                      <div class="bt" style="--tb:var(--tb-butter)"><span class="bot r6 chef"><b></b></span></div>
+                      <div><div class="bn">Handbook Coach</div><div class="bh">@handbookcoach</div></div>
+                      <div class="bf"><span>gpt-5-mini</span><span>read-only</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="coach" data-side="below" style="left:24px;bottom:14px;--caret:240px">
+        <div class="c-eye"><span>Create · 4 of 5</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+        <h4>Put it on the <em>team</em></h4>
+        <p>Create agent adds Handbook Coach to your team. Check the name now; changing it later comes in a future update.</p>
+        <div class="c-try"><svg class="ic"><use href="#i-steer"/></svg>Press Create agent</div>
+        <div class="c-foot">
+          <span class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i></span>
+          <span class="tb quiet">Back</span>
+        </div>
+      </div>
+      <span class="pin pin-at" style="left:14px;top:60px">1</span>
+      <span class="pin pin-at" style="left:14px;bottom:224px">4</span>
+    </div>
+    <p class="board-cap">The only Try with no Next. The real button does the work, and the tour follows the dialog to its success view.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Target: agent-create</b> <span class="tag derive">derive</span><span class="tag try">Try</span><span>Hole on the button only. No Next: advances when the dialog swaps to the success view. If the name is empty or taken, the try line reads "Fix the name first" and Back returns to stop 1.</span><span class="src">data-tour="agent-create"</span></div></li>
+    <li><span class="pin">2</span><div><b>Copy</b> <span class="tag derive">derive</span><span>"Put it on the team." Create agent adds Handbook Coach to your team. Check the name now; changing it later comes in a future update. Try line: "Press Create agent".</span></div></li>
+    <li><span class="pin">3</span><div><b>prepare() and fallback</b> <span class="tag derive">derive</span><span>prepare(): scroll the footer into view, keep keyboard focus in the dialog. → and Enter do nothing here. If agent-create is missing after 3s, show a centered card with the same copy.</span></div></li>
+    <li><span class="pin">4</span><div><b>Request body</b> <span class="tag data">data</span><span>POST /api/agents with name, description, systemPrompt, look, tint and model only. A 409 AGENT_HANDLE_TAKEN returns the tour to stop 1 with the taken hint.</span></div></li>
+  </ol>
+</div>
+<div class="board">
+  <div>
+    <div class="demo" role="img" aria-label="Create 5 of 5: the dark celebration screen. Handbook Coach's butter badge hangs on its lanyard with confetti around it. The copy Handbook Coach is on the team, Mention @handbookcoach anywhere to wake it, with Say hi and Done buttons, is spotlighted, and a coach card sits below it">
+      <div class="app">
+        <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/agents</span></div>
+        <div class="celebrate-mock" style="padding-bottom:200px">
+          <span class="cx"><svg class="ic"><use href="#i-x"/></svg></span>
+          <div class="confetti" aria-hidden="true">
+            <i style="--x:12%;--y:14%;--r:20deg;--c:var(--butter)"></i><i style="--x:24%;--y:34%;--r:-30deg;--c:var(--mint)"></i><i style="--x:34%;--y:8%;--r:60deg;--c:var(--ice)"></i><i style="--x:66%;--y:12%;--r:-15deg;--c:var(--peach)"></i><i style="--x:78%;--y:30%;--r:40deg;--c:var(--lilac)"></i><i style="--x:88%;--y:10%;--r:-50deg;--c:var(--butter)"></i><i style="--x:8%;--y:44%;--r:10deg;--c:var(--peach)"></i><i style="--x:92%;--y:42%;--r:70deg;--c:var(--mint)"></i><i style="--x:56%;--y:4%;--r:-20deg;--c:var(--butter)"></i>
+          </div>
+          <div class="lny" style="--sw:3deg;--strap:var(--butter)">
+            <span class="strap"></span><span class="clip"></span>
+            <div class="bdg"><span class="slot"></span><span class="brand">truex</span>
+              <div class="bt" style="--tb:var(--tb-butter)"><span class="bot r6 chef"><b></b></span></div>
+              <div><div class="bn">Handbook Coach</div><div class="bh">@handbookcoach · new teammate</div></div>
+              <div class="bf"><span>gpt-5-mini</span><span>read-only</span></div>
+            </div>
+          </div>
+          <div class="cc t-anchor" data-tour="agent-celebrate">
+            <h3>Handbook Coach is on the team</h3>
+            <p>Mention <code>@handbookcoach</code> anywhere to wake it.</p>
+            <div class="acts"><span class="bp">Say hi to Handbook Coach</span><span class="bs">Done</span></div>
+            <span class="spot inset" aria-hidden="true"></span>
+          </div>
+        </div>
+      </div>
+      <div class="coach" data-side="below" style="left:24px;bottom:18px;--caret:200px">
+        <div class="c-eye"><span>Create · 5 of 5</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+        <h4>Say <em>hi</em></h4>
+        <p>Say hi opens a new chat with "@handbookcoach hi, " ready in the composer. Done just closes.</p>
+        <div class="c-foot">
+          <span class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i></span>
+          <span class="tb primary">Finish</span>
+        </div>
+      </div>
+      <span class="pin pin-at" style="left:14px;top:60px">1</span>
+      <span class="pin pin-at" style="right:14px;top:60px">5</span>
+    </div>
+    <p class="board-cap">The tour waits for the badge to land, then says one last thing and gets out of the way.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Target: agent-celebrate</b> <span class="tag derive">derive</span><span class="tag wait">Wait</span><span class="tag look">Look</span><span>Wait for the success view, then 900ms for the drop and confetti, then spotlight the copy block. Under reduced motion there is no drop and no delay.</span><span class="src">data-tour="agent-celebrate"</span></div></li>
+    <li><span class="pin">2</span><div><b>Copy</b> <span class="tag data">data</span><span>App copy as is: "Handbook Coach is on the team", "Mention @handbookcoach anywhere to wake it.", Say hi to Handbook Coach, Done. Coach: "Say hi." Say hi opens a new chat with "@handbookcoach hi, " ready in the composer. Done just closes.</span></div></li>
+    <li><span class="pin">3</span><div><b>prepare(), advance, fallback</b> <span class="tag derive">derive</span><span>prepare(): nothing to set. Finish, Say hi, Done or Esc end the tour; Esc closes here because this is the finish card. If agent-celebrate is missing after 3s (dialog closed early), mark the tour done quietly with no card.</span></div></li>
+    <li><span class="pin">4</span><div><b>End state</b> <span class="tag derive">derive</span><span>Every exit sets parts.create to true in truex-tour, so the tour never reopens on its own. Say hi keeps its app behavior: new chat, composer prefilled, cursor after the handle.</span><span class="src">truex-tour.parts.create</span></div></li>
+    <li><span class="pin">5</span><div><b>Editing later</b> <span class="tag backend">backend</span><span>Changing name, look or instructions needs PATCH /api/agents/:id, and removing needs DELETE /api/agents/:id. Not in the tour; mention it only as later.</span></div></li>
+  </ol>
+</div>
+</section>

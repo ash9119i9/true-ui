@@ -1,0 +1,182 @@
+<section class="sec" id="stream">
+<style>
+.st-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-3)}
+.st-status.fail{color:var(--warn-text)}
+.st-status .btn{height:22px;padding:0 8px;font-size:12px}
+.st-cmd{display:inline-flex;align-items:center;height:20px;padding:0 7px;margin-right:6px;border-radius:6px;background:color-mix(in srgb,var(--bg) 18%,transparent);font:500 12px var(--font-mono)}
+.st-res{width:100%;font-size:13px;color:var(--ink-2)}
+.st-lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-ms{font:12px var(--font-mono);color:var(--ink-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.st-sub{margin-left:24px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.st-chart{display:flex;align-items:flex-end;gap:10px;height:84px;padding:4px 2px 0;border-bottom:1px solid var(--line)}
+.st-chart div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%;font:11px var(--font-mono);color:var(--ink-3)}
+.st-chart i{display:block;width:100%;max-width:34px;background:var(--accent);border-radius:4px 4px 0 0}
+.st-axis{display:flex;gap:10px;font-size:11px;color:var(--ink-3)}
+.st-axis span{flex:1;text-align:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-pinrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+</style>
+
+<div class="sec-head">
+  <span class="eyebrow">1 · Content, inline</span>
+  <h2>Conversation stream</h2>
+  <p>Everything a turn produces stays in the stream where it happened: what the user sent, how the agent worked, and what it answered. Work collapses into one quiet steps list so the answer reads first.</p>
+</div>
+
+<!-- Board 1: user messages -->
+<div class="board">
+  <div>
+    <div class="wf">
+      <div class="wf-stage">
+        <div class="msg user">
+          <div class="bubble-wrap">
+            <div class="bubble">Draft a 2-week onboarding plan for new analysts from the handbook</div>
+            <span class="st-status"><span class="pin">1</span> 10:42 · Delivered</span>
+          </div>
+        </div>
+
+        <div class="msg user">
+          <div class="bubble-wrap">
+            <span class="st-pinrow"><span class="pin">2</span><span class="goal-tag">Steered</span></span>
+            <div class="bubble">Keep it to one page</div>
+            <span class="st-status"><span class="spinner"></span> Sending…</span>
+          </div>
+        </div>
+
+        <div class="msg user">
+          <div class="bubble-wrap">
+            <div class="bubble">Can you add a shadowing schedule?</div>
+            <span class="st-status fail"><span class="pin">3</span> Failed · <span class="btn ghost">Retry</span></span>
+          </div>
+        </div>
+
+        <div class="msg user">
+          <div class="bubble-wrap">
+            <div class="bubble"><span class="st-cmd">/goal</span>Ship a one-page onboarding plan analysts can follow on day 1</div>
+            <div class="card st-res">
+              <div class="row"><span class="pin">4</span><span class="mark done"></span><b class="strong">Goal set</b><span class="spacer"></span><span class="pill ok">Succeeded</span></div>
+              <span>Shown in the topbar until you clear it.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="msg user">
+          <div class="bubble-wrap">
+            <div class="bubble"><span class="st-cmd">/export</span>pdf</div>
+            <div class="card bad st-res">
+              <div class="row"><span class="pin">5</span><span class="mark fail"></span><b class="strong">Command failed</b><span class="spacer"></span><span class="pill bad">Failed</span></div>
+              <span>Export needs a finished answer in this chat.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">User side of the stream. One bubble per message; delivery, steer and command state sit inside the same bubble-wrap.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Message and timestamp</b> <span class="tag exists">Exists</span><span>Plain bubble. The status line shows the time once the message is accepted and stays quiet after that.</span><span class="src">Data: <code>message.text</code> <code>message.createdAt</code> <code>delivery.state = accepted</code></span></div></li>
+    <li><span class="pin">2</span><div><b>Steer tag</b> <span class="tag new">New</span><span>A message sent while a turn is running redirects it. Tagged "Steered" above the bubble so the change of course is visible in the history.</span><span class="src">Data: <code>message.steer</code></span></div></li>
+    <li><span class="pin">3</span><div><b>Delivery state</b> <span class="tag new">New</span><span>"Sending…" with a spinner while pending. Failed shows warn text and Retry, which resends the same text. Unknown reads "Not confirmed" with Retry.</span><span class="src">Data: <code>delivery.state</code> pending / accepted / failed / unknown</span></div></li>
+    <li><span class="pin">4</span><div><b>Slash command</b> <span class="tag new">New</span><span>The command renders as a mono chip inside the bubble. A compact card under it carries state and the result. Running shows a spinner in place of the pill.</span><span class="src">Data: <code>command.name</code> <code>command.state</code> <code>command.result</code></span></div></li>
+    <li><span class="pin">5</span><div><b>Command error</b> <span class="tag new">New</span><span>Same card in the bad tone with the error message. No retry here; the user edits and resends.</span><span class="src">Data: <code>command.state = failed</code> <code>command.error</code></span></div></li>
+  </ol>
+</div>
+
+<!-- Board 2: agent working -->
+<div class="board">
+  <div>
+    <div class="wf">
+      <div class="wf-stage">
+        <div class="msg">
+          <div class="av">Q</div>
+          <div class="grow">
+            <div class="msg-meta"><b class="strong">Qlik Analyst</b><span class="muted sm">working</span></div>
+            <ul class="steps">
+              <li class="is-done"><span class="pin">1</span><span class="mark done"></span><span class="st-lbl">Thought for 4s</span></li>
+              <li class="is-done"><span class="pin">2</span><span class="mark done"></span><span class="st-lbl mono">grep -ril "onboarding" docs/handbook</span><span class="st-ms">1.2s</span></li>
+              <li style="display:block"><div class="step-body">docs/handbook/week-one.md
+docs/handbook/access-requests.md
+docs/handbook/shadowing.md
+exit 0</div></li>
+              <li class="is-done"><span class="pin">3</span><span class="mark done"></span><span class="st-lbl">Edited 2 files</span><span class="st-ms">+6 −2</span></li>
+              <li style="display:block"><div class="st-sub"><div class="diff">
+<div class="hd">plans/onboarding.md</div>
+<div class="del">- Week 2: TBD</div>
+<div class="add">+ Week 2: Shadow a live dashboard review</div>
+<div class="add">+ Day 9: Publish a first sheet to the sandbox</div>
+</div></div></li>
+              <li class="is-done"><span class="pin">4</span><span class="mark done"></span><span class="st-lbl"><span class="mono">qlik</span> · list_spaces</span><span class="pill ok">Done</span></li>
+              <li class="is-done"><span class="mark done"></span><span class="st-lbl">Searched the web · "Qlik Sense analyst certification"</span></li>
+              <li class="is-done"><span class="pin">5</span><span class="mark done"></span><span class="st-lbl">Allowed once · auto: run <span class="mono">npm test</span></span></li>
+              <li class="is-done"><span class="mark done"></span><span class="st-lbl">Answered: API key <span class="mono">••••••</span></span></li>
+              <li><span class="pin">6</span><span class="spinner"></span><span class="st-lbl">Thinking about week 2 milestones…</span></li>
+            </ul>
+
+            <div class="hcard">
+              <div class="hcard-head"><span><span class="pin">7</span> 3 helpers</span><span>1 running</span></div>
+              <div class="hrow tone-0"><span class="h-av">A</span><span class="st-lbl"><b class="strong">Atlas</b> · Docs</span><span class="spinner"></span><span class="st-ms">0:38</span><span class="btn ghost">Open</span></div>
+              <div class="hrow tone-1"><span class="h-av">B</span><span class="st-lbl"><b class="strong">Birch</b> · Access</span><span class="pill warn">Limited access</span><span class="st-ms">0:12</span><span class="btn ghost">Open</span></div>
+              <div class="hrow tone-2"><span class="h-av">C</span><span class="st-lbl"><b class="strong">Cedar</b> · Shadowing</span><span class="pill ok">Done</span><span class="st-ms">0:21</span><span class="btn ghost">Open</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">One turn in progress. Steps collapse to a single "Worked for 1m 12s" row when the answer lands; the helper card stays.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Thinking</b> <span class="tag changed">Changed</span><span>Live row with spinner and the reasoning summary while streaming. Collapses to "Thought for 4s" when done; opening it shows the summary, then raw reasoning if present.</span><span class="src">Data: <code>thinking.summary</code> <code>thinking.raw</code> <code>thinking.done</code></span></div></li>
+    <li><span class="pin">2</span><div><b>Command execution</b> <span class="tag changed">Changed</span><span>Row shows the command in mono and duration. Expands to a step-body with output and the exit status. Non-zero exit swaps the mark to fail.</span><span class="src">Data: <code>item.type = commandExecution</code> <code>command</code> <code>output</code> <code>exitCode</code></span></div></li>
+    <li><span class="pin">3</span><div><b>File change</b> <span class="tag changed">Changed</span><span>"Edited 2 files" with a line count. Opens a diff per file.</span><span class="src">Data: <code>item.type = fileChange</code> <code>files[]</code> <code>diff</code></span></div></li>
+    <li><span class="pin">4</span><div><b>MCP, web search, other</b> <span class="tag changed">Changed</span><span>MCP calls read "server · tool" with a status pill. Web search shows the query. Unknown item types fall back to a generic row with the type name. Today .steps only has static labels.</span><span class="src">Data: <code>item.type = mcpToolCall</code> <code>server</code> <code>tool</code> <code>status</code> · <code>webSearch.query</code></span></div></li>
+    <li><span class="pin">5</span><div><b>Approval record</b> <span class="tag new">New</span><span>One quiet row per decision, after the fact. Leads with the decision (Allowed once / session / chat / always, Declined, Expired) and the mode. Answered questions show the question; secret answers are always masked.</span><span class="src">Data: <code>ApprovalRecord.outcome</code> <code>autoMode</code> <code>toolApprovals[].action</code> <code>.decision</code> <code>questions[].answer</code> <code>.secret</code></span></div></li>
+    <li><span class="pin">6</span><div><b>Live step</b> <span class="tag exists">Exists</span><span>The last row is the only one with a spinner. It carries the current step until the next event replaces it.</span><span class="src">Data: latest stream event</span></div></li>
+    <li><span class="pin">7</span><div><b>Helper agents</b> <span class="tag changed">Changed</span><span>One row per helper: tone avatar, name · role, spinner or status, elapsed time, Open. Status maps to Starting, spinner, Done, Error, Stopped, Shut down; Birch shows the warn state for limited access. Open goes to HelperDetail in the session panel Agents tab and replaces SubAgentTranscript.</span><span class="src">Data: <code>SubAgent.nickname</code> <code>role</code> <code>task</code> <code>depth</code> <code>status</code> <code>lastMessage</code> <code>startedAt</code> <code>endedAt</code> <code>transcript</code></span></div></li>
+  </ol>
+</div>
+
+<!-- Board 3: response -->
+<div class="board">
+  <div>
+    <div class="wf">
+      <div class="wf-stage">
+        <div class="msg">
+          <div class="av">Q</div>
+          <div class="grow">
+            <div class="msg-meta"><b class="strong">Qlik Analyst</b></div>
+            <ul class="steps"><li class="is-done"><span class="mark done"></span><span class="st-lbl">Worked for 1m 12s · 7 steps · 3 helpers</span></li></ul>
+            <div class="answer">
+              <p><span class="pin">1</span> Here is a one-page plan built from the handbook. Week 1 covers access and core datasets; week 2 moves to shadowing and a first published sheet.</p>
+              <div class="card" style="margin-top:12px">
+                <div class="row"><span class="pin">2</span><b class="strong">Hours by focus area</b><span class="spacer"></span><span class="muted sm">Weeks 1 and 2</span></div>
+                <div class="st-chart" role="img" aria-label="Bar chart of onboarding hours: Access 6, Datasets 14, Shadowing 12, Build 10">
+                  <div><span>6</span><i style="height:30%"></i></div>
+                  <div><span>14</span><i style="height:70%"></i></div>
+                  <div><span>12</span><i style="height:60%"></i></div>
+                  <div><span>10</span><i style="height:50%"></i></div>
+                </div>
+                <div class="st-axis"><span>Access</span><span>Datasets</span><span>Shadowing</span><span>Build</span></div>
+              </div>
+              <p style="margin-top:12px">Day 1 starts with the access checklist so Birch's request can clear before Datasets<span class="caret"></span></p>
+            </div>
+            <div class="msg-foot"><span class="pin">3</span> 2.6s · 26.6k tokens · Sonnet 5.5 · <span class="btn ghost" style="height:22px;padding:0 6px">Details</span></div>
+            <div class="chips" style="margin-top:8px"><span class="pin">4</span><span class="chip">Add a checklist per day</span><span class="chip">Who owns access requests?</span><span class="chip">Export as PDF</span></div>
+          </div>
+        </div>
+
+        <div class="card bad">
+          <div class="row"><span class="pin">5</span><span class="mark fail"></span><b class="strong">The Qlik connection dropped before the answer finished.</b></div>
+          <div class="row"><span class="mono muted">err_7f3a91c2</span><span class="spacer"></span><span class="btn">Retry</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">Caret shows while streaming; receipt and follow-ups appear only on the final message. The error card is a separate turn shown for comparison.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Response text</b> <span class="tag exists">Exists</span><span>Streams with the caret, then settles to the final text in place. No re-render jump between the two.</span><span class="src">Data: <code>message.role = assistant</code> <code>parts[].text</code> <code>streaming</code></span></div></li>
+    <li><span class="pin">2</span><div><b>Visualization part</b> <span class="tag new">New</span><span>Rich parts render as cards inside the answer at the position they arrive, with a title and a text label for screen readers.</span><span class="src">Data: <code>part.type = "visualization"</code> <code>part.spec</code></span></div></li>
+    <li><span class="pin">3</span><div><b>Receipt</b> <span class="tag changed">Changed</span><span>Duration, tokens and model in one line. Details opens the trace card for this turn. See Observability.</span><span class="src">Data: <code>usage.durationMs</code> <code>usage.totalTokens</code> <code>model</code></span></div></li>
+    <li><span class="pin">4</span><div><b>Suggested follow-ups</b> <span class="tag new">New placement</span><span>Chips under the receipt, final message only. Tapping one sends it as a new user message.</span><span class="src">Data: <code>suggestedQuestions[]</code></span></div></li>
+    <li><span class="pin">5</span><div><b>Stream error</b> <span class="tag new">New</span><span>Inline bad card with the message and a short mono ref for support. Retry reruns the turn. The full ref copies on click.</span><span class="src">Data: <code>error.message</code> <code>error.ref</code></span></div></li>
+  </ol>
+</div>
+</section>

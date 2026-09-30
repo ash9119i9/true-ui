@@ -1,0 +1,311 @@
+<section class="sec" id="nav">
+<style>
+#nav .nv-frame{display:grid;grid-template-columns:260px minmax(0,1fr);gap:10px;padding:10px}
+@media (max-width:720px){#nav .nv-frame{grid-template-columns:minmax(0,1fr)}}
+#nav .nv-side{position:relative;display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px;min-width:0}
+#nav .nv-brand{display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px}
+#nav .nv-brand i{width:22px;height:22px;border-radius:7px;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-style:normal}
+#nav .nv-brand span{color:var(--ink-3);font-weight:500}
+#nav .nv-search{display:flex;align-items:center;gap:8px;height:32px;padding:0 8px 0 10px;border:1px solid var(--line-strong);border-radius:10px;background:var(--surface-2);color:var(--ink-3);font-size:13px;min-width:0}
+#nav .nv-search span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#nav kbd{font:500 10.5px var(--font-mono);color:var(--ink-2);background:var(--surface-3);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 5px;white-space:nowrap}
+#nav .nv-new{display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border-radius:10px;background:var(--ink);color:var(--bg);font-size:13px;font-weight:600}
+#nav .nv-new span{flex:1}
+#nav .nv-new kbd{background:color-mix(in srgb,var(--bg) 16%,transparent);color:var(--bg);border-color:transparent}
+#nav .nv-filter{display:flex;gap:4px;flex-wrap:wrap}
+#nav .nv-filter span{height:24px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:500;color:var(--ink-2);display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line)}
+#nav .nv-filter span.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+#nav .nv-grp{display:flex;flex-direction:column;gap:1px;min-width:0}
+#nav .nv-lab{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);padding:4px 6px}
+#nav .nv-lab .ic{color:var(--ink-3)}
+#nav .nv-row{display:flex;align-items:center;gap:8px;height:32px;padding:0 8px;border-radius:9px;font-size:13px;color:var(--ink);min-width:0}
+#nav .nv-row .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#nav .nv-row .tm{font:500 11px var(--font-mono);color:var(--ink-2);white-space:nowrap}
+#nav .nv-row.on{background:var(--accent-soft);color:var(--accent-fg);font-weight:600}
+#nav .nv-row.in{padding-left:22px}
+#nav .nv-row.arch{color:var(--ink-2)} #nav .nv-row.arch .t{font-style:italic}
+#nav .nv-dot{width:8px;height:8px;border-radius:50%;flex:none;background:transparent}
+#nav .nv-dot.run{background:var(--accent);animation:pulse 1.6s infinite}
+#nav .nv-dot.wait{background:var(--warn);box-shadow:0 0 0 3px color-mix(in srgb,var(--warn) 22%,transparent)}
+#nav .nv-dot.idle{border:1.5px solid var(--line-strong)}
+#nav .nv-user{margin-top:auto;display:flex;align-items:center;gap:8px;padding:8px;border-top:1px solid var(--line)}
+#nav .nv-ava{width:28px;height:28px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
+#nav .nv-who{flex:1;min-width:0;display:flex;flex-direction:column;font-size:12.5px;line-height:1.3}
+#nav .nv-who b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#nav .nv-who span{color:var(--ink-2);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#nav .nv-umenu{position:absolute;left:12px;right:12px;bottom:58px;z-index:2}
+#nav .nv-umenu .it{color:var(--ink)} #nav .nv-umenu .it.bad{color:var(--bad)}
+#nav .nv-umenu hr{border:0;border-top:1px solid var(--line);margin:4px 0}
+#nav .nv-main{display:flex;flex-direction:column;gap:10px;min-width:0}
+#nav .nv-inset{border:1px dashed var(--line-strong);border-radius:14px;background:var(--surface);padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0;font-size:13px;color:var(--ink-2)}
+#nav .nv-inset > .nv-cap{font:700 18px/1 var(--font-hand);color:var(--ink-3)}
+#nav .nv-insets{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+#nav .nv-err{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 8px;border-radius:9px;background:var(--bad-bg);color:var(--bad);font-size:12.5px}
+#nav .nv-err u{color:var(--ink);font-weight:600;text-decoration-color:var(--line-strong)}
+/* palette */
+#nav .nv-scrim{position:relative;padding:28px 14px;background:color-mix(in srgb,var(--ink) 12%,var(--surface-2));border-radius:16px}
+#nav .nv-pal{position:relative;max-width:560px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-lift);overflow:hidden}
+#nav .nv-pin{display:flex;align-items:center;gap:10px;height:52px;padding:0 14px;border-bottom:1px solid var(--line);font-size:15px;min-width:0}
+#nav .nv-pin .nv-q{flex:1;min-width:0}
+#nav .nv-scope{display:flex;gap:4px;padding:8px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+#nav .nv-list{padding:6px;display:flex;flex-direction:column;gap:1px;max-height:none}
+#nav .nv-gh{display:flex;justify-content:space-between;gap:8px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);padding:8px 8px 4px}
+#nav .nv-it{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:9px;font-size:13.5px;min-width:0}
+#nav .nv-it.on{background:var(--accent-soft)}
+#nav .nv-it .grow{min-width:0}
+#nav .nv-it .grow b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#nav .nv-it .grow span{font-size:12px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#nav .nv-it mark{background:color-mix(in srgb,var(--warn) 30%,transparent);color:inherit;border-radius:3px;padding:0 1px}
+#nav .nv-it .tm{font:500 11px var(--font-mono);color:var(--ink-2);white-space:nowrap}
+#nav .nv-ico{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;flex:none;background:var(--surface-3);color:var(--ink-2)}
+#nav .nv-ico.tone-1,#nav .nv-ico.tone-0,#nav .nv-ico.tone-2{background:var(--ts);color:var(--t)}
+#nav .nv-foot{display:flex;gap:14px;flex-wrap:wrap;padding:8px 14px;border-top:1px solid var(--line);background:var(--surface-2);font-size:12px;color:var(--ink-2)}
+#nav .nv-foot span{display:inline-flex;gap:5px;align-items:center}
+/* hero */
+#nav .nv-hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:34px 18px 20px;min-width:0}
+#nav .nv-greet{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 12px;border-radius:999px;background:var(--ts1);color:var(--t1);font-size:13px;font-weight:600}
+#nav .nv-greet i{width:8px;height:8px;border-radius:50%;background:var(--t1)}
+#nav .nv-h1{font-size:clamp(24px,4vw,34px);font-weight:800;letter-spacing:-.035em;line-height:1.1}
+#nav .nv-h1 em{font-family:var(--font-accent);font-weight:400;color:var(--t1)}
+#nav .nv-hero .composer{width:100%;max-width:620px;text-align:left}
+#nav .nv-projchip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 6px 0 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent-fg);font-size:12px;font-weight:600;align-self:flex-start}
+#nav .nv-starts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;width:100%;max-width:620px}
+#nav .nv-start{display:flex;gap:8px;align-items:flex-start;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-size:13px;color:var(--ink);min-width:0}
+#nav .nv-start .ic{color:var(--t1);margin-top:2px}
+#nav .nv-recent{width:100%;max-width:620px;display:flex;flex-direction:column;gap:2px;text-align:left}
+/* keymap sheet */
+#nav .nv-sheet{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-lift);padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+#nav .nv-sheet-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#nav .nv-sheet-h h3{font-size:17px;font-weight:700;flex:1}
+#nav .nv-keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+#nav .nv-kg{display:flex;flex-direction:column;gap:2px;min-width:0}
+#nav .nv-kg h4{margin:0 0 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+#nav .nv-k{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--line);font-size:13px;min-width:0}
+#nav .nv-k > span:first-child{min-width:0}
+#nav .nv-k .ks{display:inline-flex;gap:3px;align-items:center;flex:none;font-size:11px;color:var(--ink-2)}
+#nav .nv-k .new{font-size:10px;padding:0 6px;height:17px}
+#nav .nv-esc{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;counter-reset:e}
+#nav .nv-esc li{counter-increment:e;display:flex;gap:8px;align-items:center;font-size:13px}
+#nav .nv-esc li::before{content:counter(e);width:18px;height:18px;border-radius:50%;background:var(--surface-3);color:var(--ink-2);font:600 10px/18px var(--font-mono);text-align:center;flex:none}
+#nav .nv-note{border-radius:12px;background:var(--warn-bg);color:var(--warn-text);padding:10px 12px;font-size:13px;display:flex;gap:8px;align-items:flex-start}
+#nav .nv-note .ic{margin-top:2px}
+</style>
+
+<div class="sec-head">
+  <span class="eyebrow">Getting around</span>
+  <h2>Sidebar, ⌘K, the empty hero and the keyboard map</h2>
+  <p>The shell already has a grouped chat list, a title-only palette, a greeting hero and four global hotkeys. v3 mounts projects in the sidebar, gives every row a live state, turns ⌘K into one search for chats, commands, agents and turns, makes the hero agent-aware, and publishes every shortcut on a sheet behind <code>?</code>.</p>
+</div>
+
+<!-- Board 1: Sidebar -->
+<div class="board">
+  <div>
+    <div class="app">
+      <div class="app-chrome"><i></i><i></i><i></i><span>truex / sidebar</span></div>
+      <div class="nv-frame">
+        <aside class="nv-side" aria-label="Conversations">
+          <span class="pin pin-at" style="top:44px;right:-8px">1</span>
+          <div class="nv-brand"><i><svg class="ic sm"><use href="#i-spark"/></svg></i>truex<span>/ agents</span></div>
+          <div class="nv-search"><svg class="ic sm"><use href="#i-search"/></svg><span>Search chats, commands…</span><kbd>⌘K</kbd></div>
+          <div class="nv-new"><svg class="ic sm"><use href="#i-plus"/></svg><span>New conversation</span><kbd>⌘J</kbd></div>
+          <div class="nv-filter" style="position:relative"><span class="pin pin-at" style="top:-6px;right:-8px">2</span><span class="on">Active</span><span><svg class="ic sm"><use href="#i-alert"/></svg>Needs you 1</span><span><svg class="ic sm"><use href="#i-history"/></svg>Archived</span></div>
+          <div class="nv-grp" style="position:relative">
+            <span class="pin pin-at" style="top:0;right:-8px">3</span>
+            <div class="nv-lab"><svg class="ic sm"><use href="#i-layers"/></svg>Analyst onboarding</div>
+            <div class="nv-row in on"><i class="nv-dot run"></i><span class="t">Onboarding plan for new analysts</span><span class="tm">9:42</span></div>
+            <div class="nv-row in"><i class="nv-dot wait"></i><span class="t">Drive folder access for Juno</span><span class="tm">9:10</span></div>
+          </div>
+          <div class="nv-grp" style="position:relative">
+            <span class="pin pin-at" style="top:0;right:-8px">4</span>
+            <div class="nv-lab">Today</div>
+            <div class="nv-row"><i class="nv-dot idle"></i><span class="t">Qlik set analysis cheat sheet</span><span class="tm">8:15</span></div>
+            <div class="nv-lab">Earlier</div>
+            <div class="nv-row"><i class="nv-dot idle"></i><span class="t">Handbook glossary cleanup</span><span class="tm">Mon</span></div>
+            <div class="nv-row arch"><svg class="ic sm"><use href="#i-history"/></svg><span class="t">Q3 dashboard review</span><span class="tm">Sep 3</span></div>
+          </div>
+          <div class="nv-umenu pop" role="menu" aria-label="Account">
+            <span class="pin pin-at" style="top:-8px;right:-8px">5</span>
+            <div class="it"><span class="nv-ava">PR</span><span class="nv-who"><b>Priya Raman</b><span>priya.raman@example.com</span></span></div>
+            <hr><div class="it"><svg class="ic sm"><use href="#i-eye"/></svg>Dark mode</div>
+            <div class="it"><svg class="ic sm"><use href="#i-plug"/></svg>Settings</div>
+            <div class="it bad"><svg class="ic sm"><use href="#i-x"/></svg>Sign out</div>
+          </div>
+          <div class="nv-user"><span class="nv-ava">PR</span><span class="nv-who"><b>Priya Raman</b><span>priya.raman@example.com</span></span><svg class="ic sm"><use href="#i-chev"/></svg></div>
+        </aside>
+        <div class="nv-main">
+          <div class="nv-insets">
+            <div class="nv-inset" style="position:relative"><span class="pin pin-at" style="top:-8px;right:-8px">6</span><span class="nv-cap">zero conversations</span>
+              <svg class="ic lg" style="color:var(--ink-3)"><use href="#i-history"/></svg>
+              <b style="color:var(--ink)">No conversations yet</b><span>Start one with the Qlik Analyst, or press ⌘J.</span>
+              <span class="btn soft" style="align-self:flex-start"><svg class="ic sm"><use href="#i-plus"/></svg>New conversation</span></div>
+            <div class="nv-inset" style="position:relative"><span class="pin pin-at" style="top:-8px;right:-8px">7</span><span class="nv-cap">load failed</span>
+              <div class="nv-err" role="alert"><svg class="ic sm"><use href="#i-alert"/></svg>Couldn’t refresh · <u>Retry</u></div>
+              <div class="nv-row"><i class="nv-dot idle"></i><span class="t">Onboarding plan for new analysts</span><span class="tm">9:42</span></div>
+              <span class="sm" style="color:var(--ink-2)">Last good list stays visible below the error.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">Projects as folders, a state dot on every row, and the account menu finally knows who you are.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Search trigger and New</b> <span class="tag data">data</span><span>Existing <code>.search-trigger</code> (⌘K) and <code>.btn-new</code> (⌘J). New stays disabled while <code>busy</code>. Placeholder widens to "chats, commands" once the palette does.</span></div></li>
+    <li><span class="pin">2</span><div><b>Filter chips</b> <span class="tag backend">backend</span><span>Active is today’s list. Archived needs <code>GET /api/sessions?archived=1</code>; the list endpoint drops archived rows. Needs you counts sessions with pending requests, which needs a per-session <code>pendingCount</code>.</span></div></li>
+    <li><span class="pin">3</span><div><b>Project folders</b> <span class="tag data">data</span><span>Mount <code>useProjects</code>: <code>projects</code>, <code>expanded</code>, <code>byProject</code>. Row ⋯ keeps <code>SessionMenu</code> (Add, Move, Remove). New chat in folder sets <code>draftProjectId</code>.</span></div></li>
+    <li><span class="pin">4</span><div><b>Row state dot</b> <span class="tag backend">backend</span><span>Today/Earlier comes from <code>convoGroup</code>. Running (pulse) and waiting on you (warn dot) need a live <code>turnState</code> on <code>PublicSession</code>; <code>status</code> is only active/orphaned/dead. Archived rows use <code>archived</code> when that filter is on.</span></div></li>
+    <li><span class="pin">5</span><div><b>UserMenu</b> <span class="tag backend">backend</span><span>Name and email need a <code>GET /api/me</code>. Home passes only <code>onSettings</code>, so today it shows "Account" and no Sign out. Theme toggle via <code>useTheme</code> works now.</span></div></li>
+    <li><span class="pin">6</span><div><b>Empty list</b> <span class="tag derive">derive</span> <span class="tag new">new</span><span><code>sessions.length === 0</code> after load. Today the sidebar renders nothing, which reads as broken.</span></div></li>
+    <li><span class="pin">7</span><div><b>Load failed</b> <span class="tag data">data</span><span><code>loadError</code> "Couldn’t refresh" + <code>onRetry</code>. Also covers <code>refreshFailed</code> from projects with the same line.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 2: Command palette -->
+<div class="board">
+  <div>
+    <div class="nv-scrim">
+      <div class="nv-pal" role="dialog" aria-label="Search">
+        <div class="nv-pin"><svg class="ic"><use href="#i-search"/></svg><span class="nv-q">handbook<span class="caret"></span></span><kbd>esc</kbd><span class="pin pin-at" style="top:14px;right:-10px">1</span></div>
+        <div class="nv-scope" style="position:relative"><span class="pin pin-at" style="top:6px;right:-10px">2</span><span class="seg"><span class="on">All</span><span>Chats</span><span>Commands</span><span>Agents</span><span>Turns</span></span></div>
+        <div class="nv-list" role="listbox">
+          <div class="nv-gh" style="position:relative"><span>Chats · title</span><span>2</span><span class="pin pin-at" style="top:4px;right:-12px">3</span></div>
+          <div class="nv-it on" role="option"><span class="nv-ico"><svg class="ic sm"><use href="#i-file"/></svg></span><span class="grow"><b>Onboarding plan from <mark>handbook</mark> docs</b><span>Analyst onboarding</span></span><span class="tm">9:42</span></div>
+          <div class="nv-it" role="option"><span class="nv-ico"><svg class="ic sm"><use href="#i-file"/></svg></span><span class="grow"><b><mark>Handbook</mark> glossary cleanup</b><span>Earlier</span></span><span class="tm">Mon</span></div>
+          <div class="nv-gh" style="position:relative"><span>In messages</span><span class="tag backend">backend</span><span class="pin pin-at" style="top:4px;right:-12px">4</span></div>
+          <div class="nv-it" role="option"><span class="nv-ico"><svg class="ic sm"><use href="#i-list"/></svg></span><span class="grow"><b>“…pulled week 1 from the <mark>handbook</mark> onboarding folder…”</b><span>Onboarding plan · turn 3</span></span></div>
+          <div class="nv-gh" style="position:relative"><span>Jump to turn</span><span class="pin pin-at" style="top:4px;right:-12px">5</span></div>
+          <div class="nv-it" role="option"><span class="nv-ico"><svg class="ic sm"><use href="#i-target"/></svg></span><span class="grow"><b>Turn 2 · Read the <mark>handbook</mark> folder</b><span>This chat</span></span><span class="tm">9:31</span></div>
+          <div class="nv-gh" style="position:relative"><span>Commands &amp; agents</span><span class="pin pin-at" style="top:4px;right:-12px">6</span></div>
+          <div class="nv-it" role="option"><span class="nv-ico"><svg class="ic sm"><use href="#i-slash"/></svg></span><span class="grow"><b>/goal</b><span>Set a goal with a token budget</span></span><kbd>↵</kbd></div>
+          <div class="nv-it tone-2" role="option"><span class="nv-ico tone-2"><svg class="ic sm"><use href="#i-bot"/></svg></span><span class="grow"><b>Juno</b><span>Drafting helper · start a chat</span></span></div>
+          <div class="nv-gh" style="position:relative"><span>Recent</span><span class="pin pin-at" style="top:4px;right:-12px">7</span></div>
+          <div class="nv-it" role="option"><span class="nv-ico"><svg class="ic sm"><use href="#i-clock"/></svg></span><span class="grow"><b>Qlik set analysis cheat sheet</b><span>Opened 20 min ago</span></span></div>
+        </div>
+        <div class="nv-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span><kbd>tab</kbd> scope</span><span><kbd>esc</kbd> close</span></div>
+      </div>
+    </div>
+    <p class="board-cap">One box for everything. Title matches work now, message text waits on a search endpoint.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Query input</b> <span class="tag data">data</span><span>Existing combobox, focused 10ms after open, reset on each open. Esc, ↑/↓, Enter keep their current behavior.</span></div></li>
+    <li><span class="pin">2</span><div><b>Scope segment</b> <span class="tag derive">derive</span> <span class="tag new">new</span><span>Tab cycles scope. A leading <code>/</code> jumps to Commands, <code>@</code> to Agents, <code>#</code> to Turns.</span></div></li>
+    <li><span class="pin">3</span><div><b>Chat title matches</b> <span class="tag data">data</span><span>Today’s substring match on <code>title</code>, now with the matched run highlighted and the project name from <code>byProject</code>. Capped at 5 per group.</span></div></li>
+    <li><span class="pin">4</span><div><b>Message content</b> <span class="tag backend">backend</span><span>Needs <code>GET /api/search?q=</code> returning session id, turn id and a snippet. Only the 100 newest sessions are loaded client-side, so a local scan would miss most history.</span></div></li>
+    <li><span class="pin">5</span><div><b>Jump to turn</b> <span class="tag derive">derive</span> <span class="tag new">new</span><span>Built from the open chat’s user messages and the <code>turn-{id}</code> anchors. Enter scrolls and focuses the anchored article.</span></div></li>
+    <li><span class="pin">6</span><div><b>Commands and agents</b> <span class="tag data">data</span><span>Commands from <code>lib/slash-commands.ts</code>, run through <code>applyPrompt</code>. Agents from <code>AgentSummary[]</code> with <code>tintOf(tint)</code>; picking one starts a new chat with it.</span></div></li>
+    <li><span class="pin">7</span><div><b>Recent</b> <span class="tag derive">derive</span><span>Shown when the query is empty. Last 5 opened ids kept in localStorage, wrapped in try/catch, falling back to newest sessions.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 3: Hero -->
+<div class="board">
+  <div>
+    <div class="app">
+      <div class="app-chrome"><i></i><i></i><i></i><span>truex / new chat</span></div>
+      <div class="app-body" style="display:block">
+        <div class="app-stage">
+          <div class="nv-hero">
+            <span class="nv-greet" style="position:relative"><i></i>Good morning, Priya · Qlik Analyst<span class="pin pin-at" style="top:-10px;right:-14px">1</span></span>
+            <div class="nv-h1">What should we <em>work on</em> today?</div>
+            <div class="composer" style="position:relative">
+              <span class="pin pin-at" style="top:-10px;right:-10px">2</span>
+              <span class="nv-projchip"><svg class="ic sm"><use href="#i-layers"/></svg>New chat in Analyst onboarding<svg class="ic sm"><use href="#i-x"/></svg></span>
+              <div class="ph">Ask the Qlik Analyst about your apps, data or docs…</div>
+              <div class="composer-bar"><span class="chip"><svg class="ic sm"><use href="#i-plus"/></svg>Attach</span><span class="chip"><svg class="ic sm"><use href="#i-shield"/></svg>Ask</span><span class="spacer"></span><span class="send"><svg class="ic sm"><use href="#i-send"/></svg></span></div>
+            </div>
+            <div class="nv-starts" style="position:relative">
+              <span class="pin pin-at" style="top:-10px;right:-10px">3</span>
+              <div class="nv-start"><svg class="ic sm"><use href="#i-file"/></svg><span>Build an onboarding plan from the handbook folder</span></div>
+              <div class="nv-start"><svg class="ic sm"><use href="#i-chart"/></svg><span>Explain the KPIs on the Sales Overview app</span></div>
+              <div class="nv-start"><svg class="ic sm"><use href="#i-sigma"/></svg><span>Write a set analysis expression for last quarter</span></div>
+              <div class="nv-start"><svg class="ic sm"><use href="#i-target"/></svg><span>/goal Draft week 1 for new analysts in 50k</span></div>
+            </div>
+            <div class="nv-recent" style="position:relative">
+              <span class="pin pin-at" style="top:-4px;right:-10px">4</span>
+              <div class="nv-lab">Pick up where you left off</div>
+              <div class="nv-row"><i class="nv-dot wait"></i><span class="t">Drive folder access for Juno</span><span class="tm">9:10</span></div>
+              <div class="nv-row"><i class="nv-dot idle"></i><span class="t">Qlik set analysis cheat sheet</span><span class="tm">8:15</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="nv-inset" style="position:relative;margin-top:14px"><span class="pin pin-at" style="top:-8px;right:-8px">5</span><span class="nv-cap">no agents</span>
+      <div class="row"><span class="tile"><svg class="ic"><use href="#i-bot"/></svg></span><div class="grow"><b style="color:var(--ink)">No agents yet</b><span>Create one to start chatting. It gets a model, tools and a color.</span></div></div>
+      <div class="row"><span class="btn primary"><svg class="ic sm"><use href="#i-plus"/></svg>Create agent</span><span class="btn ghost">Ask an admin</span></div>
+    </div>
+    <p class="board-cap">The hero speaks in the agent’s color and hands you real first moves.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Greeting in agent tint</b> <span class="tag data">data</span><span><code>greetingFor(hour)</code> plus <code>agentHue = tintOf(agent.tint).dot</code>, which Home never passes today. The ", Priya" part needs the <code>/api/me</code> name (backend).</span></div></li>
+    <li><span class="pin">2</span><div><b>Composer and project chip</b> <span class="tag data">data</span><span>Same Composer as a live chat. The chip is the existing <code>.composer-project</code>, driven by <code>draftProject(draftProjectId)</code> once folders are mounted. × clears it.</span></div></li>
+    <li><span class="pin">3</span><div><b>Starter prompts</b> <span class="tag backend">backend</span> <span class="tag new">new</span><span>3-4 per agent, each calling <code>applyPrompt</code>; a <code>/goal</code> prompt enters goal mode. Needs <code>starterPrompts[]</code> on <code>AgentSummary</code>. Until then, fall back to generic slash prompts.</span></div></li>
+    <li><span class="pin">4</span><div><b>Recent chats</b> <span class="tag derive">derive</span><span>Top 3 of <code>sessions</code> excluding the draft. Same row and state dot as the sidebar, so it inherits the dot’s backend need.</span></div></li>
+    <li><span class="pin">5</span><div><b>No agents</b> <span class="tag data">data</span> <span class="tag new">new</span><span>Replaces "No agents are available. Contact your Truex administrator." Create agent opens <code>AgentDialog</code> (create exists). Hide it for users who can’t create.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 4: Keyboard sheet -->
+<div class="board">
+  <div>
+    <div class="nv-sheet" role="dialog" aria-label="Keyboard shortcuts">
+      <div class="nv-sheet-h"><svg class="ic lg"><use href="#i-list"/></svg><h3>Keyboard shortcuts</h3><span class="pill">⌘ on Mac · Ctrl elsewhere</span><kbd>esc</kbd></div>
+      <div class="nv-keys">
+        <div class="nv-kg" style="position:relative"><span class="pin pin-at" style="top:-6px;right:-6px">1</span><h4>Anywhere</h4>
+          <div class="nv-k"><span>Search everything</span><span class="ks"><kbd>⌘</kbd><kbd>K</kbd></span></div>
+          <div class="nv-k"><span>Toggle sidebar</span><span class="ks"><kbd>⌘</kbd><kbd>B</kbd></span></div>
+          <div class="nv-k"><span>Toggle activity panel</span><span class="ks"><kbd>⌘</kbd><kbd>.</kbd></span></div>
+          <div class="nv-k"><span>New chat</span><span class="ks"><kbd>⌘</kbd><kbd>J</kbd></span></div>
+        </div>
+        <div class="nv-kg" style="position:relative"><span class="pin pin-at" style="top:-6px;right:-6px">2</span><h4>Composer</h4>
+          <div class="nv-k"><span>Send</span><span class="ks"><kbd>Enter</kbd></span></div>
+          <div class="nv-k"><span>New line</span><span class="ks"><kbd>Shift</kbd><kbd>Enter</kbd></span></div>
+          <div class="nv-k"><span>Slash menu: move, accept</span><span class="ks"><kbd>↑</kbd><kbd>↓</kbd><kbd>Tab</kbd></span></div>
+          <div class="nv-k"><span>Recall queued message</span><span class="ks"><span class="tag new">new</span><kbd>↑</kbd></span></div>
+        </div>
+        <div class="nv-kg" style="position:relative"><span class="pin pin-at" style="top:-6px;right:-6px">3</span><h4>Esc closes, in order</h4>
+          <ol class="nv-esc"><li>Slash or @ menu</li><li>Goal mode</li><li>Popover or panel</li><li>Stop the running turn</li></ol>
+        </div>
+        <div class="nv-kg" style="position:relative"><span class="pin pin-at" style="top:-6px;right:-6px">4</span><h4>Outside text fields</h4>
+          <div class="nv-k"><span>Go to Needs you</span><span class="ks"><span class="tag new">new</span><kbd>g</kbd>then<kbd>n</kbd></span></div>
+          <div class="nv-k"><span>Open this sheet</span><span class="ks"><span class="tag new">new</span><kbd>?</kbd></span></div>
+        </div>
+      </div>
+      <div class="nv-note" style="position:relative"><span class="pin pin-at" style="top:-8px;right:-8px">5</span><svg class="ic sm"><use href="#i-alert"/></svg><span>Global ⌘ shortcuts fire while you type. New combos must not clash with text editing (⌘A, ⌘Z, ⌘C/V/X, ⌘←/→, ⌘Backspace) or the browser (⌘L, ⌘T, ⌘W).</span></div>
+    </div>
+    <p class="board-cap">Every shortcut in one place, with Esc spelled out so Stop is never a surprise.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Global hotkeys</b> <span class="tag data">data</span><span>The four <code>useHotkeys</code> combos. ⌘J is ignored while busy; the row dims then. Labels match the dock tooltips.</span></div></li>
+    <li><span class="pin">2</span><div><b>Composer keys</b> <span class="tag data">data</span><span>Enter and Shift+Enter, slash menu arrows and Tab, IME composition ignored. ↑ on an empty composer pulls the last queued message back to edit (client-kept queue).</span></div></li>
+    <li><span class="pin">3</span><div><b>Esc order</b> <span class="tag derive">derive</span><span>One handler walks the stack: menu, goal mode, popover/panel, then stop. Stop only fires with nothing else open, so a stray Esc can’t kill a turn behind a menu.</span></div></li>
+    <li><span class="pin">4</span><div><b>Sequence keys</b> <span class="tag derive">derive</span> <span class="tag new">new</span><span><code>g n</code> and <code>?</code> are unmodified, so they must skip inputs, textareas and contenteditable. <code>useHotkeys</code> has no focus filter today and needs one for these.</span></div></li>
+    <li><span class="pin">5</span><div><b>Clash rule</b> <span class="tag derive">derive</span><span><code>hotkeyCombo</code> ignores Shift and Alt and calls <code>preventDefault</code> on match, so any new mod-key steals it from the textarea. Prefer unmodified keys outside fields.</span></div></li>
+  </ol>
+</div>
+
+<div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Element</th><th>Source field or event</th><th>Data tag</th></tr></thead>
+    <tbody>
+      <tr><td>Today / Earlier groups</td><td><code>convoGroup(createdAt)</code>, <code>convoTime</code></td><td><span class="tag data">data</span></td></tr>
+      <tr><td>Project folders</td><td><code>useProjects</code>: <code>projects</code>, <code>byProject</code>, <code>expanded</code>; <code>SessionMenu</code></td><td><span class="tag data">data</span></td></tr>
+      <tr><td>Row running / waiting dot</td><td>New <code>PublicSession.turnState</code>, <code>pendingCount</code></td><td><span class="tag backend">backend</span></td></tr>
+      <tr><td>Archived filter</td><td><code>archived</code>; new <code>GET /api/sessions?archived=1</code></td><td><span class="tag backend">backend</span></td></tr>
+      <tr><td>Empty list, load failed</td><td><code>sessions.length</code>, <code>loadError</code>, <code>onRetry</code>, <code>refreshFailed</code></td><td><span class="tag derive">derive</span> / <span class="tag data">data</span></td></tr>
+      <tr><td>UserMenu name, email, Sign out</td><td>New <code>GET /api/me</code>; theme via <code>useTheme</code></td><td><span class="tag backend">backend</span></td></tr>
+      <tr><td>⌘K chats, commands, agents</td><td><code>title</code>, <code>lib/slash-commands.ts</code>, <code>AgentSummary[]</code>, <code>applyPrompt</code></td><td><span class="tag data">data</span></td></tr>
+      <tr><td>⌘K jump to turn, recent</td><td><code>turn-{id}</code> anchors, localStorage ids</td><td><span class="tag derive">derive</span></td></tr>
+      <tr><td>⌘K message content</td><td>New <code>GET /api/search?q=</code></td><td><span class="tag backend">backend</span></td></tr>
+      <tr><td>Hero greeting tint</td><td><code>greetingFor</code>, <code>tintOf(agent.tint).dot</code></td><td><span class="tag data">data</span></td></tr>
+      <tr><td>Starter prompts</td><td>New <code>AgentSummary.starterPrompts[]</code> → <code>applyPrompt</code></td><td><span class="tag backend">backend</span></td></tr>
+      <tr><td>Project chip, no-agents state</td><td><code>draftProject()</code>, <code>agents.length</code>, <code>AgentDialog</code></td><td><span class="tag data">data</span></td></tr>
+      <tr><td>Keyboard sheet</td><td><code>useHotkeys</code> map, composer <code>onKeyDown</code>, new focus filter</td><td><span class="tag derive">derive</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="qs">
+  <div class="q"><b>Where do starter prompts live?</b><span>On the agent record keeps them next to model and tint, but agent edit is backend today. Recommend a <code>starterPrompts[]</code> field set at create, with a generic fallback.</span></div>
+  <div class="q"><b>Should ⌘K open inside a text field?</b><span>It already does, since mod-keys fire while typing. Keep it; it doesn’t clash with editing. Keep new letter shortcuts outside fields.</span></div>
+</div>
+</section>

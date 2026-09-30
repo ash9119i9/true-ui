@@ -1,0 +1,206 @@
+5:## Contents
+18:## Redesign gaps found in the code
+52:## 1. App Shell & Layout
+64:### Page layout tree
+116:### App-level state in `Home` (app/page.tsx)
+191:### Keyboard shortcuts
+212:### RootLayout
+220:### ErrorPage
+231:### GlobalError
+237:### NotFound
+241:### Home
+245:### Shell
+255:### Panel
+277:### Sidebar
+327:### Topbar
+354:### Hero
+374:### FloatingDock
+416:### DockButton (internal)
+422:### Popover
+443:### UserMenu
+460:### SearchPalette
+485:### Icon
+500:### Sheet
+519:### ProjectSidebar / SessionMenu / useProjects
+536:#### useProjects (hook)
+561:#### Menu (internal)
+568:#### MenuItem (internal)
+572:#### NameInput (internal)
+578:#### SessionMenu
+597:#### ProjectSidebar (exported, not mounted)
+617:### AnimatedLink
+624:### Button
+630:### Select
+647:### Hooks and libs
+649:#### useTheme / THEME_BOOT_SCRIPT (`lib/use-theme.ts`)
+659:#### useHotkeys (`lib/use-hotkeys.ts`)
+668:#### fitPanel (`lib/fit-panel.ts`)
+693:#### auto-tab (`lib/auto-tab.ts`) and useFollowActivity (`lib/use-follow-activity.ts`)
+720:#### projects (`lib/projects.ts`)
+743:#### useClock (`components/use-clock.ts`)
+749:### Data types consumed by the shell
+812:### Observations for the redesign
+823:## 2. Composer & Input
+836:### 2.1 Composer wiring (page-level)
+919:#### Keyboard behavior (textarea `onKeyDown`)
+934:#### Submit pipeline (`submitInput()`)
+962:### 2.2 `Composer` and `useRotatingPlaceholder`
+1041:### 2.3 `SmoothTextarea`
+1072:### 2.4 Slash-command menu (inline in page)
+1098:### 2.5 Composer notes and notices
+1113:### 2.6 `PrivacyNote`
+1126:### 2.7 `BudgetField`
+1169:### 2.8 Slash commands (`lib/slash-commands.ts`)
+1212:### 2.9 `ApprovalModePicker` + `lib/approval-mode.ts`
+1270:### 2.10 `SuggestedQuestions` + `lib/suggestions.ts`
+1295:### 2.11 `HelperChip`
+1328:### 2.12 `HelperGroup` / `HelperRow`
+1353:### 2.13 `QuickTools` (conversation tools form)
+1375:### 2.14 `lib/request-input.ts` (request-card answer helpers)
+1399:### 2.15 Limits and validation summary
+1415:### 2.16 Findings worth knowing for the redesign
+1424:## 3. Message Stream & Items
+1461:### 3.0 Data model
+1463:#### 3.0.1 Persisted message — `shared/contracts.ts`
+1497:#### 3.0.2 Display entry union — `lib/chat.ts`
+1541:#### 3.0.3 Approval audit record — `shared/contracts.ts`
+1577:#### 3.0.4 Pending request (live approval/question) — `shared/contracts.ts`, `lib/request-input.ts`
+1609:#### 3.0.5 Plan — `lib/plan.ts`
+1626:#### 3.0.6 Visualization — `shared/visualizations.ts`
+1647:#### 3.0.7 Documents — `shared/assistant-capabilities.ts`, `lib/document-kind.ts`
+1665:#### 3.0.8 Errors — `lib/api.ts`, `shared/errors.ts`, `lib/goal-errors.ts`
+1685:### 3.1 Raw data → display entries (`lib/chat.ts`)
+1734:### 3.2 ChatMessages
+1795:### 3.3 ThinkingBlock
+1811:### 3.4 CommandResult (+ `commandLabel`)
+1851:### 3.5 ApprovalRecordView
+1881:### 3.6 RuntimeItem
+1901:### 3.7 RequestCard (PlanApprovalCard, QuestionCard)
+1918:#### PlanApprovalCard
+1930:#### QuestionCard
+1951:### 3.8 PlanSteps / StepMark
+1965:### 3.9 Visualization
+1999:### 3.10 AssistantTools (documents & saved visuals)
+2026:### 3.11 DocumentIcon & document kinds
+2054:### 3.12 ErrorRef
+2069:### 3.13 Turn error presentation (`lib/goal-errors.ts`)
+2086:### 3.14 LiveDuration
+2098:### 3.15 SessionActivity
+2152:### 3.16 useFollowActivity (follow behaviour)
+2181:### 3.17 Components referenced but outside this slice
+2185:### 3.18 Gaps a redesign should know about
+2195:## 4. Goals
+2212:### 4.0 Data model
+2291:#### Status display table (`frontend/lib/goal.ts` `goalStatus`)
+2311:#### Budget rules (`lib/goal.ts`)
+2322:#### Error reasons (`frontend/lib/goal-errors.ts`, `shared/errors.ts`)
+2357:#### Server error codes (platform)
+2363:#### Client-side messages
+2371:#### API calls
+2386:### 4.1 State diagram
+2418:### 4.2 Page wiring (`frontend/app/page.tsx`)
+2444:### 4.3 Composer goal mode (drafting)
+2461:#### BudgetField (`frontend/components/budget-field.tsx`), shared by composer and goal bar
+2478:### 4.4 GoalBar
+2568:### 4.5 GoalReason
+2590:### 4.6 GoalCompletion
+2630:### 4.7 GoalTimeline
+2692:### 4.8 Goal commands in the chat transcript
+2700:### 4.9 Known gaps (from the status doc and code)
+2709:## 5. Agents, Subagents, Tools & MCP
+2726:### 5.0 Data model (shared/contracts.ts and related)
+2862:### 5.1 lib/agent-look.ts (look + tint palettes)
+2909:### 5.2 lib/agents.ts (dialog helpers + API)
+2927:### 5.3 Robot (components/v2/agent-badge.tsx)
+2936:### 5.4 Badge (components/v2/agent-badge.tsx)
+2950:### 5.5 Confetti (components/v2/agent-badge.tsx)
+2956:### 5.6 AgentDialog (components/v2/agent-dialog.tsx)
+3014:### 5.7 AgentMenu (components/v2/agent-menu.tsx)
+3039:### 5.8 lib/subagents.ts (helper state, status, naming, delegation)
+3082:### 5.9 AgentsPanel (components/agents-panel.tsx)
+3104:#### Lanes (internal)
+3108:#### HelperRow (internal)
+3114:#### HelperDetail (internal)
+3131:### 5.10 StatusChip (components/agents-panel.tsx, exported)
+3134:### 5.11 HelperAvatar (components/agents-panel.tsx, exported)
+3138:### 5.12 HelperChip (components/helper-chip.tsx)
+3144:### 5.13 DelegationSettings (components/session-activity.tsx, internal)
+3153:### 5.14 McpSettings (components/mcp-settings.tsx)
+3193:### 5.15 ConnectedTools (components/connected-tools.tsx), currently unmounted
+3203:### 5.16 Capabilities (components/capabilities.tsx), currently unmounted
+3216:### 5.17 Redesign notes (gaps a designer should know)
+3225:## 6. Observability & Insights
+3282:### Data model (shared/contracts.ts, verbatim)
+3421:#### Privacy vocabulary (shared/privacy.ts)
+3455:### lib/observability.ts: derived metrics and formatters
+3457:#### Frontend-only types
+3503:#### Formatters (units and rounding)
+3535:#### Token math
+3549:#### Session summary
+3561:#### Privacy lines
+3573:#### Receipt
+3582:#### Timeline layout
+3604:#### Rate limits
+3620:#### Reducer
+3635:### TurnReceipt
+3684:### LiveUsage
+3711:### TraceCard
+3749:### DeveloperDetails (private to trace-card.tsx)
+3816:### StepTimeline
+3879:### TokenBar
+3909:### StackedBar (charts.tsx)
+3959:### Meter (charts.tsx)
+3993:### ColumnChart (charts.tsx)
+4038:### InsightsPanel
+4179:### ShareBar (private, insights-panel.tsx)
+4220:### PrivacyCard
+4257:### PrivacyNote
+4296:### useDeveloperMode (hook)
+4325:### Cross-cutting notes for the redesign
+4357:## 7. Data Contracts, API & Streaming
+4365:### 7.1 Client plumbing (`frontend/lib/api.ts`)
+4402:### 7.2 API inventory (everything the frontend calls)
+4406:#### Identity, config, catalog
+4423:#### Sessions (conversations)
+4435:#### Turn lifecycle (`lib/transport.ts`)
+4444:#### Commands and capabilities
+4465:#### Goals
+4472:#### Documents and visualizations
+4483:#### Helper agents and observability (`lib/api.ts`)
+4493:#### Projects (`lib/projects.ts`)
+4504:#### Auth routes (Google mode)
+4516:### 7.3 Entity types (verbatim from source)
+4518:#### 7.3.1 Agent
+4567:#### 7.3.2 Model
+4577:#### 7.3.3 Session (conversation / chat)
+4619:#### 7.3.4 Message
+4664:#### 7.3.5 Session history (GET `/api/sessions/:id`)
+4680:#### 7.3.6 Turn
+4731:#### 7.3.7 Usage and limits
+4753:#### 7.3.8 Approvals and input requests
+4800:#### 7.3.9 Attachment / document
+4821:#### 7.3.10 Goal
+4847:#### 7.3.11 Plan and helper agents
+4867:#### 7.3.12 Project, assistant capabilities
+4882:#### 7.3.13 User and tenant (no shared TS type; server shapes)
+4898:### 7.4 Auth, session and permissions exposed to the UI
+4924:### 7.5 Streaming protocol
+4999:### 7.6 Feature flags that change UI behaviour
+5018:### 7.7 Enum quick reference
+5050:### 7.8 Entity relationships
+5061:## 8. Design Tokens, Styles & Responsive
+5065:### 8.1 Stylesheet pipeline
+5079:### 8.2 Theming mechanism
+5091:### 8.3 Color tokens (`styles/v2/tokens.css`)
+5173:### 8.4 Typography
+5219:### 8.5 Spacing
+5237:### 8.6 Radii
+5256:### 8.7 Shadows / elevation
+5266:### 8.8 Z-index layers
+5282:### 8.9 Motion
+5305:### 8.10 Breakpoints
+5325:### 8.11 Class inventory by file
+5382:### 8.12 Legacy (app/*.css) vs v2 (styles/v2)
+5392:### 8.13 Icon system
+5400:### 8.14 Accessibility-relevant styles
+5411:### 8.15 Spec vs CSS gaps

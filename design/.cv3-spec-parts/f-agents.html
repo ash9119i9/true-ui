@@ -1,0 +1,1347 @@
+<section class="part" id="agents">
+<style>
+/* agents fragment: specimens only, tokens only */
+.ag-sp-strip{display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:360px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);font-size:13px}
+.ag-sp-obj{flex:1 1 120px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);font-weight:500}
+.ag-sp-dots{display:inline-flex;gap:3px}
+.ag-sp-dots i{width:6px;height:6px;border-radius:999px;background:var(--line-strong)}
+.ag-sp-dots i.on{background:var(--accent)}
+.ag-sp-mono{font:11px var(--font-mono);color:var(--ink-2);white-space:nowrap}
+.ag-sp-bar{display:inline-block;width:56px;height:4px;border-radius:999px;background:var(--surface-3);overflow:hidden;vertical-align:middle}
+.ag-sp-bar i{display:block;height:100%;width:84%;background:var(--warn)}
+.ag-sp-pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent-fg);font:500 12px var(--font-sans)}
+.ag-sp-pill i{width:6px;height:6px;border-radius:999px;background:var(--accent)}
+.ag-sp-ib{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:var(--ink-2);border:1px solid var(--line);background:var(--surface)}
+.ag-sp-chips{display:flex;flex-wrap:wrap;gap:6px}
+.ag-sp-chip{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:999px;font:600 11px var(--font-sans);white-space:nowrap}
+.ag-sp-chip.run{background:var(--accent-soft);color:var(--accent-fg)}
+.ag-sp-chip.done{background:var(--ok-bg);color:var(--ok)}
+.ag-sp-chip.stop{background:var(--surface-3);color:var(--ink-2)}
+.ag-sp-chip.warn{background:var(--warn-bg);color:var(--warn-text)}
+.ag-sp-tree{list-style:none;margin:0;padding:0;max-width:360px;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden;font-size:13px}
+.ag-sp-tree li{display:flex;gap:8px;align-items:center;padding:8px 12px;min-width:0}
+.ag-sp-tree li+li{border-top:1px solid var(--line)}
+.ag-sp-tree li.d2{padding-left:36px;background:var(--surface-2)}
+.ag-sp-av{width:18px;height:18px;border-radius:6px;display:grid;place-items:center;font:700 10px var(--font-sans);background:var(--ts0);color:var(--t0);flex:none}
+.ag-sp-av.t1{background:var(--ts1);color:var(--t1)}
+.ag-sp-grow{flex:1;min-width:0}
+</style>
+<h2>Agents, helpers and goals</h2>
+<p>Everything that works on the user's behalf. The goal strip leads with checkpoint progress, then the token budget, and every stop names one fix. Helpers appear as one "Handed off" node per turn in the stream and as a roster in the Agents tab. Persistent agents get an All agents sheet and the existing create dialog. MCP servers get a tools shelf that finally shows scope, warnings and shadowing, which the API already returns.</p>
+<p>Source of truth for today's values: <code>chat-ui-schema.md</code> §4 (Goals) and §5 (Agents, Subagents, Tools and MCP). Target design: the agents boards in the v3 wireframe (<code>design/.cv3-parts/agents.html</code>). Existing visual values: <code>truex-design-spec.html</code> sections Goal tab, Agents tab, Agents roster and New agent dialog. The turn state and the status pill are defined once in <a href="#shell">Shell</a> (<code>deriveTurnState()</code>, see <a href="#nv-topbar">Topbar</a>); this part only reads them.</p>
+<div class="note">Terms. <b>Agent</b> is a persistent specialist stored per tenant (<code>Agent</code> / <code>AgentSummary</code>), mentioned as <code>@handle</code>. <b>Helper</b> is a sub-agent the main agent spawns inside one session (<code>SubAgent</code>). <b>Connected tools</b> are MCP servers attached to an agent. Spacing, z-index and motion tokens (<code>--sp-*</code>, <code>--z-*</code>, <code>--dur-*</code>, <code>--ease-*</code>) come from <a href="#foundations">Foundations</a>. Today's CSS uses <code>--success-bg</code>/<code>--success-text</code> and <code>--warning-bg</code>/<code>--warning-text</code>; this spec names them by their shell equivalents <code>--ok-bg</code>/<code>--ok</code> and <code>--warn-bg</code>/<code>--warn-text</code> at the same values.</div>
+
+<h3 id="ag-goal-data">Goal data and status</h3>
+
+<div class="comp" id="ag-goal-model">
+  <header><h4>Goal data model and status table</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">shared/contracts.ts · frontend/lib/goal.ts · frontend/lib/goal-errors.ts · shared/errors.ts</span></header>
+  <div class="body">
+    <p>One goal per conversation. The Codex runtime works toward it across turns until it is complete, paused, stopped by an error or out of token budget. The assistant marks it <code>complete</code>; the user then accepts it or reopens it with feedback. All types below exist unless tagged.</p>
+    <h4>Data</h4>
+<pre><code>export type GoalStatus =
+  | "active" | "paused" | "blocked" | "usageLimited" | "budgetLimited" | "complete";
+
+export interface Goal {                 // runtime projection
+  objective: string;
+  status: GoalStatus;
+  tokenBudget: number | null;
+  tokensUsed: number;                   // Codex count, enforces the budget
+  timeUsedSeconds: number;
+  createdAt: number | null;             // identifies the goal; objective edits keep it
+  updatedAt: number | null;
+  tokensObserved?: number;              // Truex count; UI total = max of the two
+  usageResetsAt?: string;               // BE-21: ISO time the usage limit resets
+}
+
+export interface SessionGoal {          // on Session, for the conversation list
+  objective: string; status: GoalStatus; updatedAt?: string;
+  createdAt?: number | null; tokensObserved?: number; tokenBudget?: number | null;
+  goalUpdatedAt?: number | null; goalEventAt?: string;
+}
+
+export interface GoalHistoryEntry {
+  at: string;
+  kind: "set" | "objective" | "budget" | "status" | "accepted" | "reopened" | "cleared";
+  objective: string;
+  status?: GoalStatus; tokens?: number; tokenBudget?: number | null;
+  feedback?: string; turnId?: string; tokensUsed?: number;
+}
+
+export interface GoalReview {
+  objective: string; goalCreatedAt: number | null;
+  decision: "accepted" | "reopened"; feedback?: string; at: string;
+}
+
+// Session fields
+goal?: SessionGoal;
+goalReview?: GoalReview;
+goalCleared?: { createdAt: number | null; eventAt?: string }; // blocks replayed older updates
+goalHistory?: GoalHistoryEntry[];                              // server keeps last 60
+
+export type ErrorReason =
+  | "rateLimited" | "quota" | "credentials" | "providerDown" | "contextWindow" | "other";
+export interface TurnFailure { reason: ErrorReason; message: string; httpStatus?: number; }
+
+// Live events: "goal.updated" { goal } and "goal.cleared".
+
+// v3 derived view (new lib/goal-view.ts, derive)
+export type GoalView =
+  | "active" | "working" | "pausing" | "paused" | "blocked" | "usageLimited"
+  | "budgetLimited" | "review" | "accepted";
+export function goalView(goal: Goal, review: GoalReview | null, running: boolean): GoalView;</code></pre>
+    <h4>Status table</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Status</th><th>Label</th><th>Tone</th><th>Pill class</th><th>Hint (title)</th></tr></thead><tbody>
+    <tr><td><code>active</code></td><td>In progress</td><td>good</td><td><code>s-running</code></td><td>The assistant is working toward this goal.</td></tr>
+    <tr><td><code>paused</code></td><td>Paused</td><td>neutral</td><td><code>s-paused</code></td><td>Resume the goal when you want the assistant to continue.</td></tr>
+    <tr><td><code>blocked</code></td><td>Needs input</td><td>warn</td><td><code>s-paused</code></td><td>The assistant stopped. It needs your input or hit an error; check the latest reply, then resume the goal.</td></tr>
+    <tr><td><code>usageLimited</code></td><td>Usage limit reached</td><td>warn</td><td><code>s-paused</code></td><td>Work stopped because model usage ran out. Resume once usage is available again.</td></tr>
+    <tr><td><code>budgetLimited</code></td><td>Budget reached</td><td>warn</td><td><code>s-paused</code></td><td>The token budget is used up. Extend it to let the assistant keep going.</td></tr>
+    <tr><td><code>complete</code></td><td>Complete</td><td>good</td><td><code>s-done</code></td><td>The assistant marked this goal complete.</td></tr>
+    <tr><td>derived "Ready for review"</td><td>Ready for review</td><td>review</td><td><code>s-done</code></td><td><code>awaitingReview()</code>: complete and not accepted</td></tr>
+    <tr><td>derived "Accepted"</td><td>Accepted</td><td>good</td><td><code>s-done</code></td><td><code>goalAccepted()</code>: complete, review decision accepted, review objective and <code>goalCreatedAt</code> match</td></tr>
+    </tbody></table></div>
+    <p><code>s-ended</code> exists in CSS but no status reaches it. Keep it as the unknown-status fallback.</p>
+    <h4>Stop reasons</h4>
+    <p><code>goalFailure(status, failure)</code> returns the failure only for <code>blocked</code> or <code>usageLimited</code>. <code>turnFailure(error)</code> maps unknown reasons to <code>other</code>.</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>Reason</th><th>Label</th><th>Hint</th><th>Today's action</th><th>Signals</th></tr></thead><tbody>
+    <tr><td><code>rateLimited</code></td><td>Rate limited</td><td>The model provider is limiting requests right now. Wait a moment, then resume.</td><td>resume</td><td>429</td></tr>
+    <tr><td><code>quota</code></td><td>Out of credits</td><td>The model provider account has no usage or credits left.</td><td>none, provider tip</td><td><code>usageLimitExceeded</code>, 402</td></tr>
+    <tr><td><code>credentials</code></td><td>Access denied</td><td>The model provider rejected the configured credentials.</td><td>none, provider tip</td><td><code>unauthorized</code>, 401, 403</td></tr>
+    <tr><td><code>providerDown</code></td><td>Provider unavailable</td><td>The model provider is unavailable or the connection dropped. Resume to try again.</td><td>resume</td><td>5xx, overloaded, connection failures</td></tr>
+    <tr><td><code>contextWindow</code></td><td>Conversation too long</td><td>The conversation no longer fits the model's context window. Compacting summarizes earlier turns so the work can continue.</td><td>compact</td><td><code>contextWindowExceeded</code></td></tr>
+    <tr><td><code>other</code></td><td>Stopped by an error</td><td>shows <code>failure.message</code></td><td>resume</td><td>anything else</td></tr>
+    </tbody></table></div>
+    <h4>Transitions</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>From</th><th>Trigger</th><th>Call</th><th>To</th></tr></thead><tbody>
+    <tr><td>none</td><td>Composer goal-mode submit, <code>/goal &lt;text&gt;</code></td><td><code>thread/goal/set {objective, tokenBudget?}</code></td><td>active</td></tr>
+    <tr><td>active</td><td>Pause (strip), <code>/goal pause</code></td><td><code>thread/goal/set {status:"paused"}</code></td><td>paused</td></tr>
+    <tr><td>active</td><td>Composer Stop</td><td>set paused, then interrupt the turn</td><td>paused</td></tr>
+    <tr><td>paused</td><td>Resume, <code>/goal resume</code>, "Keep going" while running</td><td><code>{status:"active"}</code></td><td>active</td></tr>
+    <tr><td>active</td><td>runtime: needs input or error</td><td>event</td><td>blocked</td></tr>
+    <tr><td>active</td><td>runtime: model usage ran out</td><td>event</td><td>usageLimited</td></tr>
+    <tr><td>active</td><td>runtime: tokensUsed reaches tokenBudget</td><td>event</td><td>budgetLimited</td></tr>
+    <tr><td>active</td><td>runtime: assistant marks done</td><td>event</td><td>complete (Ready for review)</td></tr>
+    <tr><td>blocked</td><td>Provide input (focus composer, user replies)</td><td>none</td><td>blocked until resumed</td></tr>
+    <tr><td>blocked, usageLimited</td><td>Resume goal</td><td><code>{status:"active"}</code></td><td>active</td></tr>
+    <tr><td>usageLimited</td><td>Reset time passes (BE-21)</td><td>none; the strip enables Resume</td><td>usageLimited</td></tr>
+    <tr><td>budgetLimited</td><td>Extend 25k / 50k</td><td><code>{tokenBudget: extendedBudget(goal, n), status:"active"}</code></td><td>active</td></tr>
+    <tr><td>budgetLimited</td><td>Set budget (menu)</td><td><code>{tokenBudget}</code></td><td>budgetLimited</td></tr>
+    <tr><td>blocked, usageLimited with <code>contextWindow</code></td><td>Compact</td><td><code>thread/compact/start</code></td><td>same status; Resume afterwards</td></tr>
+    <tr><td>any non-complete</td><td>Edit objective, Set budget</td><td><code>{objective}</code> / <code>{tokenBudget}</code></td><td>same status</td></tr>
+    <tr><td>any non-complete</td><td>Mark complete (confirm)</td><td><code>{status:"complete"}</code> then <code>POST goal/review {decision:"accepted"}</code></td><td>complete (Accepted)</td></tr>
+    <tr><td>complete (review)</td><td>Accept result</td><td><code>POST goal/review {decision:"accepted"}</code></td><td>complete (Accepted)</td></tr>
+    <tr><td>complete (review)</td><td>Not yet, then Reopen goal</td><td><code>POST goal/review {decision:"reopened", feedback?}</code></td><td>active, composer prefilled</td></tr>
+    <tr><td>complete (Accepted)</td><td>Start a follow-up goal</td><td><code>startGoal()</code></td><td>composer goal mode</td></tr>
+    <tr><td>any</td><td>Clear goal (confirm), <code>/goal clear</code>, <code>goal.cleared</code></td><td><code>thread/goal/clear</code></td><td>none</td></tr>
+    <tr><td>any</td><td>Composer goal submit while a goal exists (confirm unless complete)</td><td>clear, then set</td><td>active</td></tr>
+    </tbody></table></div>
+    <p>Any <code>goal.updated</code> with a non-complete status drops the stored review, so a reopened goal is no longer Accepted.</p>
+    <h4>Budget rules</h4>
+    <dl class="kv"><dt>max</dt><dd><code>MAX_TOKEN_BUDGET = 10_000_000</code></dd><dt>parse</dt><dd><code>parseTokenBudget</code>: <code>50000</code>, <code>50,000</code>, <code>50_000</code>, <code>50k</code>; positive safe integer up to 10M, else <code>null</code></dd><dt>help</dt><dd>"Enter a whole number of tokens, like 50000 or 50k (up to 10M)."</dd><dt>presets</dt><dd>No budget, 25k tokens, 100k tokens, 250k tokens, Custom…</dd><dt>extensions</dt><dd><code>[25_000, 50_000]</code>; <code>extendedBudget = min(10M, max(tokenBudget ?? 0, tokensUsed) + extra)</code></dd><dt>meter</dt><dd><code>tokensUsed / tokenBudget</code> (Codex)</dd><dt>total</dt><dd><code>goalTokens = max(tokensUsed, tokensObserved ?? 0)</code> (Truex)</dd><dt>format</dt><dd><code>formatTokens</code>: under 1000 raw, else <code>12.3k</code> / <code>250k</code>. <code>formatDuration</code>: <code>45s</code>, <code>3m 12s</code>, <code>1h 5m</code></dd></dl>
+    <h4>API</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Call</th><th>Body</th><th>Errors</th></tr></thead><tbody>
+    <tr><td><code>POST /api/sessions/:id/capabilities</code></td><td><code>{ method: "thread/goal/set" | "thread/goal/clear" | "thread/goal/get" | "thread/compact/start", params }</code> returns <code>{ goal }</code></td><td>thrown message shown verbatim</td></tr>
+    <tr><td><code>POST /api/sessions/:id/goal/review</code></td><td><code>{ decision, feedback? }</code> returns <code>{ goal, review }</code></td><td>400 <code>INVALID_REVIEW</code> "Choose accepted or reopened" / "Feedback is too long" (over 4000); 409 <code>GOAL_NOT_COMPLETE</code> "Only a goal the assistant has completed can be reviewed"</td></tr>
+    <tr><td><code>GET /api/sessions/:id/goal/history</code></td><td>returns <code>{ entries }</code></td><td>logged via <code>warnFailure</code></td></tr>
+    </tbody></table></div>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li><code>goalView()</code> has a unit test for each of its 9 values, including pausing (paused and running) and accepted with a stale review objective (not accepted).</li>
+      <li><code>extendedBudget</code> never returns more than 10,000,000.</li>
+      <li>A <code>goal.updated</code> to active after acceptance clears the Accepted label.</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="ag-goal">Goal strip, controls and Goal tab</h3>
+<div class="comp" id="ag-goal-strip">
+  <header><h4>Goal strip</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/goal-bar.tsx (GoalBar, strip row) · styles/v2/chat.css .goal-strip* · placement in <a href="#nv-goal-strip">Shell</a></span></header>
+  <div class="body">
+    <p>The pinned one-line summary of the conversation's goal, below the topbar. v3 reorders it so progress reads first and cost second, and gives every stop exactly one primary fix. Rendered when <code>session &amp;&amp; goal</code>, keyed by session id.</p>
+    <div class="specimen" aria-hidden="true"><div class="ag-sp-strip"><span class="ag-sp-obj">Example: Onboarding plan for new analysts</span><span class="ag-sp-dots"><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="ag-sp-mono">2/4</span><span class="ag-sp-bar"><i></i></span><span class="ag-sp-mono">42k / 50k</span><span class="ag-sp-pill"><i></i>In progress</span><span class="ag-sp-ib">॥</span><span class="ag-sp-ib">⋯</span></div></div>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Order</th><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>frame</td><td><code>.goal-bar[data-tone]</code> &gt; <code>.goal-strip</code></td><td>flex, align center, gap 8, min-height 38, padding 8px 12px, bottom border 1px, wraps below 720px. Frame values per <a href="#nv-goal-strip">Shell</a></td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>1</td><td>target icon</td><td>14px, stroke 1.75</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>2</td><td><code>.goal-strip-text</code> objective</td><td>13px/500, flex 1 1 120px, <code>min-width:0</code>, one line, ellipsis; full objective in <code>title</code></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>3</td><td><code>.goal-checkpoints</code> (new)</td><td>dots 6×6 radius 999, gap 3, max 8 dots (then dots hidden, text only) + mono 11px "{done}/{total}". Hidden when there is no plan; then meta shows duration</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>4</td><td><code>.bar[role=progressbar]</code> budget meter</td><td>width 56, height 4, radius 999; fill width <code>used</code>% capped 100. Only when <code>tokenBudget</code> is set</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>5</td><td><code>.goal-strip-meta.mono.sm</code></td><td>11px mono tabular: "{used} / {budget}" with budget, else "{duration} · {total} tokens"</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>6</td><td><code>.goal-status.{s-*}</code> pill</td><td>height 24, padding 0 9, radius 999, 12px/500, 6px <code>.pulse</code> dot; label from <code>goalStateLabel</code></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>7</td><td><code>.goal-strip-actions</code></td><td>Pause or Resume, More (menu), Clear. <code>.icon-btn.ghost</code> 26×26, radius 8, icons 14</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>below</td><td><code>.goal-run</code>, stop block, panels, review, <code>.goal-error</code></td><td>see <a href="#ag-goalbar">GoalBar controls</a></td><td><span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <p>Today the order is icon, objective, meta, bar, pill, actions. v3 order is icon, objective, checkpoints, bar, meta, pill, actions. Below the <code>chat.css</code> breakpoint the bar and meta hide (exists); checkpoints stay as text only.</p>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>frame</dt><dd><code>--surface-2</code>, border <code>--line</code></dd><dt>objective</dt><dd><code>--ink</code></dd><dt>meta, count</dt><dd><code>--ink-2</code> (under 13px)</dd><dt>dot done</dt><dd><code>--accent</code>; pending <code>--line-strong</code></dd><dt>bar track</dt><dd><code>--surface-3</code></dd><dt>bar fill</dt><dd><code>--accent</code> up to 80%; <code>--warn</code> above 80%; <code>--bad</code> at 100% <span class="tag proposal">proposal</span> D-NEW-AG-02</dd><dt>pill s-running</dt><dd><code>--accent-soft</code> / <code>--accent-fg</code>, pulse <code>--accent</code> animated</dd><dt>pill s-paused</dt><dd><code>--surface-3</code> / <code>--ink-2</code>, dot <code>--warn</code> static</dd><dt>pill s-done</dt><dd><code>--surface-3</code> / <code>--ink-2</code>, dot <code>--accent</code> static; Accepted uses <code>--ok-bg</code> / <code>--ok</code></dd><dt>data-tone warn</dt><dd>stop block <code>--warn-bg</code> / <code>--warn-text</code></dd><dt>motion</dt><dd>bar width <code>--dur-3</code> <code>--ease-out</code>; pulse 1.6s, off under reduced motion</dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>goalView</th><th>Condition</th><th>Pill</th><th>Strip actions</th><th>Below strip</th></tr></thead><tbody>
+    <tr><td>active</td><td>active, not running</td><td>s-running "In progress"</td><td>Pause "Pause goal", More, Clear</td><td>nothing</td></tr>
+    <tr><td>working</td><td>active and running</td><td>s-running "In progress"</td><td>Pause "Pause after this turn", More, Clear</td><td><code>.goal-run</code> "Working on the goal[ · turn N]. Stop pauses it now." + "Pause after this turn"</td></tr>
+    <tr><td>pausing</td><td>paused and running</td><td>s-paused "Paused"</td><td>Resume, More, Clear</td><td><code>.goal-run</code> "Pausing after this turn. The assistant finishes its current step, then stops." + "Keep going"</td></tr>
+    <tr><td>paused</td><td>paused, not running</td><td>s-paused "Paused"</td><td>Resume, More, Clear</td><td>nothing</td></tr>
+    <tr><td>blocked</td><td>blocked</td><td>s-paused "Needs input"</td><td>More, Clear</td><td>stop block, fix "Provide input"</td></tr>
+    <tr><td>usageLimited</td><td>usageLimited</td><td>s-paused "Usage limit reached"</td><td>More, Clear</td><td>stop block, fix "Wait for reset" (BE-21)</td></tr>
+    <tr><td>budgetLimited</td><td>budgetLimited</td><td>s-paused "Budget reached"</td><td>More, Clear</td><td>stop block, fixes "Extend 25k" and "Extend 50k"</td></tr>
+    <tr><td>context stop</td><td>blocked or usageLimited with <code>failure.reason === "contextWindow"</code></td><td>as status</td><td>More, Clear</td><td>stop block, fix "Compact"</td></tr>
+    <tr><td>review</td><td>complete, not accepted</td><td>s-done "Ready for review"</td><td>Clear only (not editable)</td><td>review panel</td></tr>
+    <tr><td>accepted</td><td>complete, accepted</td><td>s-done "Accepted"</td><td>Clear only</td><td>"Start a follow-up goal"</td></tr>
+    <tr><td>busy</td><td>request in flight</td><td>unchanged</td><td>all disabled</td><td>unchanged</td></tr>
+    <tr><td>error</td><td>request failed</td><td>unchanged</td><td>unchanged</td><td><code>.goal-error[role=alert]</code> thrown message verbatim</td></tr>
+    </tbody></table></div>
+    <h4 id="ag-goal-stops">Stop reasons and their one fix</h4>
+    <p>Each stop shows the status hint, <a href="#ag-goal-reason">GoalReason</a> when a failure exists, and one primary fix as <code>btn-solid</code>. Resume goal stays as a secondary <code>btn-ghost</code> where resuming makes sense <span class="tag proposal">proposal</span> D-NEW-AG-03. Precedence when several apply: contextWindow, then budgetLimited, then usageLimited, then blocked.</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>Stop</th><th>Primary fix</th><th>Action</th><th>Secondary</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>blocked</td><td>"Provide input"</td><td><code>onProvideInput()</code>: close panel, focus composer. Status stays blocked until resumed</td><td>"Resume goal"</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>usageLimited</td><td>"Wait for reset" with "Resets at {h:mm}" when <code>usageResetsAt</code> exists; disabled until that time, then becomes "Resume goal"</td><td>none until reset; then <code>{status:"active"}</code></td><td>"Resume goal" (always enabled while BE-21 is missing)</td><td><span class="tag backend">BE-21</span></td></tr>
+    <tr><td>usageLimited without BE-21</td><td>"Resume goal"</td><td><code>{status:"active"}</code></td><td>none. Copy: "Try again once usage is available."</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>budgetLimited</td><td>"Extend 25k" and "Extend 50k" (two soft buttons, 50k solid)</td><td><code>{tokenBudget: extendedBudget(goal, n), status:"active"}</code>. Hidden when the result would equal the current budget (already 10M)</td><td>"Set budget" opens the budget panel</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>contextWindow</td><td>"Compact"</td><td><code>thread/compact/start</code>; on success the fix changes to "Resume goal"</td><td>none</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>quota</code> / <code>credentials</code> failure</td><td>none; provider tip is the fix</td><td>no Retry, no Resume as primary</td><td>"Resume goal"</td><td><span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <h4>Codex-token note</h4>
+    <p>The meter follows Codex <code>tokensUsed</code>, which runs lower than the Truex total. The meta <code>title</code> and the budget panel say so. Title with a budget: "{tokensUsed} of {tokenBudget} budget tokens used ({total} in total). The budget counts the runtime's tokens, which run lower than the total. The runtime enforces the stop."</p>
+    <h4>Data</h4>
+<pre><code>interface GoalStripView {
+  objective: string;
+  checkpoints: { done: number; total: number } | null; // derive: latest PlanStep[] of the session
+  used: number | null;           // round(tokensUsed / tokenBudget * 100), cap 100; null without budget
+  meterTone: "ok" | "warn" | "full";   // warn when used &gt; 80, full at 100
+  meta: string;
+  pill: { cls: "s-running" | "s-paused" | "s-done" | "s-ended"; label: string; hint: string };
+  view: GoalView;
+}</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Checkpoints source: the <code>plan</code> the Goal tab already receives (latest <code>PlanStep[]</code>). done = steps with status completed; complete goal shows total/total. <span class="tag proposal">proposal</span> D-NEW-AG-01</li>
+      <li>Meter updates on every <code>goal.updated</code>; it never animates backward except after Extend or Set budget.</li>
+      <li>Pause label is "Pause after this turn" when running, else "Pause goal". Pause shows only for active, Resume only for paused.</li>
+      <li>The "turn N" counter counts turns seen while mounted and appears from 2. It restarts on reload (known gap).</li>
+      <li>Clear always confirms: "Clear this goal? Its progress will no longer be tracked."</li>
+      <li>The status pill in the topbar (<a href="#nv-topbar">Shell</a>) reads "working on goal" from <code>deriveTurnState()</code>; the strip does not duplicate the turn spinner.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Region: <code>role="region"</code>, <code>aria-label="Goal"</code>. Focus order: objective (not focusable), Pause/Resume, More, Clear, then stop-block buttons.</li>
+      <li>Meter: <code>role="progressbar"</code>, <code>aria-label="Token budget used"</code>, <code>aria-valuenow</code> 0-100, <code>aria-valuetext</code> "{used} of {budget} tokens".</li>
+      <li>Checkpoints: dots <code>aria-hidden</code>; text has <code>aria-label</code> "{done} of {total} checkpoints done".</li>
+      <li>Status changes announce once through a polite live region: "Goal {label}". Token-only updates stay silent.</li>
+      <li>Icon buttons carry their visible labels as <code>aria-label</code>: "Pause goal" / "Pause after this turn", "Resume goal", "Goal menu", "Clear goal".</li>
+    </ul>
+    <h4>Copy</h4>
+    <dl class="kv"><dt>fix</dt><dd>"Provide input", "Wait for reset", "Resets at {h:mm}", "Extend 25k", "Extend 50k", "Compact", "Resume goal", "Set budget"</dd><dt>run row</dt><dd>"Working on the goal[ · turn N]. Stop pauses it now.", "Pause after this turn", "Pausing after this turn. The assistant finishes its current step, then stops.", "Keep going"</dd></dl>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>With a 4-step plan and 2 done, the strip reads "2/4" before the budget meter.</li>
+      <li>At 41k of 50k the fill is <code>--warn</code>; at 40k it is <code>--accent</code>.</li>
+      <li>Each stop state shows exactly one solid button.</li>
+      <li>Extend 50k on a 50k budget with 50k used sets tokenBudget 100k and status active in one call.</li>
+      <li>With no budget, no meter renders and meta shows "{duration} · {total} tokens".</li>
+      <li>The meta title explains that the budget counts the runtime's tokens.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-goalbar">
+  <header><h4>GoalBar controls: menu, panels and run row</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/goal-bar.tsx · app/shell.css (.goal-menu, .goal-panel, .goal-run) · styles/v2/chat.css</span></header>
+  <div class="body">
+    <p>Everything under and behind the strip: the overflow menu, the edit and budget panels, the run row and the stop block. Props and state keep their names.</p>
+    <h4>Data</h4>
+<pre><code>interface GoalBarProps {
+  sessionId: string;
+  goal: Goal;
+  review: GoalReview | null;
+  onChange: (goal: Goal | null, review: GoalReview | null) =&gt; void;
+  onReopen: (feedback: string) =&gt; void;
+  onProvideInput: () =&gt; void;
+  onFollowUp: () =&gt; void;
+  running: boolean;
+  entries: Entry[];
+  documents: ConversationFile[];
+  documentHref: (id: string) =&gt; string;
+  failure: TurnFailure | null;
+  provider?: string;
+  plan?: PlanStep[];              // v3, derive: feeds the checkpoints count
+}
+type Panel = "edit" | "budget" | null;
+// state: busy, error, reopening, feedback, panel, draft, budget: BudgetValue,
+//        menuPos: { top: number; right: number } | null, turns
+// derived: accepted, reviewing, editable = status !== "complete",
+//          working = running &amp;&amp; active, finishing = running &amp;&amp; paused,
+//          stoppedBy = goalFailure(status, failure), used, total = goalTokens(goal)</code></pre>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td><code>.goal-menu.menu[role=menu]</code></td><td>position fixed at <code>menuPos</code> (below the trigger, right-aligned), min-width 200, padding 4, radius 12, <code>--shadow-md</code>, <code>--z-menu-fixed</code></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>.menu-item</code></td><td>height 32, padding 0 10, gap 8, radius 8, 13px, icon 14</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Menu items</td><td>"Edit objective" (pencil), "Set budget" (Gauge), "Mark complete" (check), separator, "Clear goal" (x, danger text)</td><td>first three <span class="tag exists">exists</span>; Clear in menu <span class="tag proposal">proposal</span> D-NEW-AG-04</td></tr>
+    <tr><td><code>.goal-run</code></td><td>flex, gap 8, padding 6px 12px, 12px <code>--ink-2</code>; <code>.spinner</code> 12; <code>.text-btn</code> 12px/500 <code>--accent-fg</code></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Stop block</td><td>padding 10px 12px, gap 8, column; <code>.goal-hint</code> 13px; <code>.goal-stuck-actions</code> flex wrap gap 8; buttons height 32 radius 9</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>form.goal-panel</code> edit</td><td>label "Objective"; textarea 3 rows, max 4000, autofocus; note <code>.goal-panel-note</code> 12px; actions "Cancel" (<code>btn-ghost</code>) and "Save objective" (<code>btn-solid</code>)</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>form.goal-panel</code> budget</td><td><code>BudgetField</code> autofocus; note; "Cancel" and "Save budget"</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>.goal-error[role=alert]</code></td><td>12px <code>--bad</code>, padding 0 12px 8px</td><td><span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>menu</dt><dd><code>--surface</code>, border <code>--line</code>, hover <code>--surface-3</code></dd><dt>danger item</dt><dd><code>--bad</code></dd><dt>solid</dt><dd><code>--accent-fg</code> fill, <code>--on-accent</code> text</dd><dt>soft</dt><dd><code>--surface</code>, border <code>--line</code>, hover <code>--surface-3</code></dd><dt>panel note</dt><dd><code>--ink-2</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Menu closed / open</td><td>More click, ArrowDown/ArrowUp on trigger</td><td>trigger <code>aria-expanded</code>, menu at <code>menuPos</code></td><td></td></tr>
+    <tr><td>Edit panel</td><td>"Edit objective"</td><td>panel replaces stop block</td><td>"Time and tokens so far carry over. If the assistant is working, it picks up the change."</td></tr>
+    <tr><td>Edit empty</td><td>blank draft</td><td>Save disabled; submit shows error</td><td>"Describe the goal before saving."</td></tr>
+    <tr><td>Budget panel</td><td>"Set budget"</td><td>panel</td><td>"Counted toward the budget so far: {tokensUsed} tokens ({total} in total). The assistant stops when it reaches the budget."</td></tr>
+    <tr><td>Budget invalid</td><td><code>budget.valid === false</code></td><td>Save disabled, field error</td><td><code>budgetHelp</code></td></tr>
+    <tr><td>Busy</td><td>request in flight</td><td>all action buttons disabled</td><td></td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>More is shown only when editable (not complete).</li>
+      <li>Save objective sends <code>{objective}</code> only when changed; otherwise closes. Save budget sends <code>{tokenBudget}</code> (null removes) and keeps the current review.</li>
+      <li>Mark complete confirms "Mark this goal complete? The assistant stops working on it and the result is accepted.", then sets complete and posts review accepted.</li>
+      <li>Outside click or window resize closes the menu. <code>menuPos</code> is recomputed on open.</li>
+      <li>After any successful call: <code>onChange(goal, review)</code>, which the page mirrors to the sidebar (<code>syncSessionGoal</code>).</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Trigger: ArrowDown opens and focuses the first item; ArrowUp focuses the last.</li>
+      <li>Menu: ArrowUp/Down move, Home/End jump, Escape closes and refocuses the trigger, Tab closes.</li>
+      <li>Panels: Escape cancels; focus returns to the menu trigger. Enter in the objective textarea inserts a newline; submit via the button.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Menu keyboard behavior matches the list above in a Playwright test.</li>
+      <li>Saving an unchanged objective makes no request.</li>
+      <li>Setting the budget while in review keeps the review panel.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-review">
+  <header><h4>Review flow</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/goal-bar.tsx .goal-review · POST /api/sessions/:id/goal/review</span></header>
+  <div class="body">
+    <p>When the assistant marks the goal complete, the strip expands into a review panel. The user accepts the result or reopens with a note.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>panel</dt><dd><code>.goal-review[aria-live=polite]</code>, padding 12, gap 10, column</dd><dt>lead</dt><dd>13px <code>--ink</code></dd><dt>completion</dt><dd><a href="#ag-completion">GoalCompletion</a></dd><dt>actions</dt><dd><code>.goal-review-actions</code> flex end gap 8</dd><dt>feedback</dt><dd>visually hidden label, textarea 2 rows, max 4000, autofocus</dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Buttons</th><th>Call</th></tr></thead><tbody>
+    <tr><td>Default</td><td>"Not yet" (<code>btn-soft</code>), "Accept result" (<code>btn-solid</code>, check)</td><td>Accept: <code>{decision:"accepted"}</code></td></tr>
+    <tr><td>Reopening</td><td>"Cancel" (<code>btn-ghost</code>), "Reopen goal" (<code>btn-solid</code>, RotateCcw)</td><td><code>{decision:"reopened", feedback?}</code>, then <code>onReopen(note)</code></td></tr>
+    <tr><td>Accepted</td><td>"Start a follow-up goal" (<code>btn-soft</code>, target)</td><td><code>onFollowUp()</code> = <code>startGoal()</code></td></tr>
+    <tr><td>Error</td><td>unchanged</td><td>400 / 409 message in <code>.goal-error</code></td></tr>
+    </tbody></table></div>
+    <h4>Copy</h4>
+    <dl class="kv"><dt>lead</dt><dd>"The assistant marked this goal complete after {duration} and {tokens} tokens. Does the result meet your goal?"</dd><dt>feedback</dt><dd>label "What still needs work?", placeholder "What still needs work? (optional)"</dd><dt>reopen prompt</dt><dd>"The goal isn’t complete yet: {feedback}" or "The goal isn’t complete yet. Please keep working on it."</dd></dl>
+    <h4>Behavior</h4>
+    <ul><li>The page loads documents when <code>awaitingReview(goal, review)</code> becomes true so the completion card can list them.</li><li>Reopen sets status active server-side; the page fills the composer with the reopen prompt and focuses it (does not send).</li><li>Feedback over 4000 characters is blocked client-side by <code>maxLength</code>.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Reopen with empty feedback fills "The goal isn’t complete yet. Please keep working on it."</li><li>After Accept, the pill reads Accepted and the only action is "Start a follow-up goal".</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-goal-reason">
+  <header><h4>GoalReason</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/goal-reason.tsx · app/shell.css .goal-reason*</span></header>
+  <div class="body">
+    <p>Explains why a goal stopped, next to the Codex status, never in place of it. Shown only when <code>goalFailure(goal.status, failure)</code> is non-null.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>root</dt><dd><code>div.goal-reason[role=status]</code>, 12.5px/1.45</dd><dt>label</dt><dd><code>span.goal-reason-label</code> 600 <code>--ink</code>: "{label}[ (HTTP {status})]"</dd><dt>hint</dt><dd>reason hint, or safe <code>failure.message</code> for <code>other</code>, <code>--ink-2</code></dd><dt>tip</dt><dd><code>p.goal-reason-tip</code> 12px <code>--ink-2</code>, quota and credentials only</dd></dl>
+    <h4>Data</h4>
+    <pre><code>{ failure: TurnFailure; provider?: string }</code></pre>
+    <h4>Provider tips</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Match on provider</th><th>quota</th><th>credentials</th></tr></thead><tbody>
+    <tr><td><code>/openrouter/i</code></td><td>Check credits on OpenRouter. Free models have low daily request limits.</td><td>Check the OpenRouter API key in the model profile.</td></tr>
+    <tr><td><code>/bedrock|amazon|aws/i</code></td><td>Check the Bedrock service quotas for this model in the AWS console.</td><td>Check the IAM permissions and model access for this Bedrock model.</td></tr>
+    <tr><td><code>/openai/i</code></td><td>Check usage and billing in the OpenAI platform dashboard.</td><td>Check the OpenAI API key and its project access.</td></tr>
+    <tr><td><code>/anthropic|claude/i</code></td><td>Check usage and billing in the Anthropic Console.</td><td>Check the Anthropic API key in the model profile.</td></tr>
+    <tr><td><code>/gemini|google|vertex/i</code></td><td>Check quotas in Google AI Studio or the Google Cloud console.</td><td>Check the Google API key and its access to this model.</td></tr>
+    <tr><td>fallback</td><td>Ask your administrator to check the provider account's usage and billing.</td><td>Ask your administrator to check the API key and model permissions in the model profile.</td></tr>
+    </tbody></table></div>
+    <h4>States</h4>
+    <p>Six reasons, each with or without HTTP status; the tip only for quota and credentials. With BE-21, <code>rateLimited</code> and <code>usageLimited</code> add "Resets at {h:mm}." after the hint <span class="tag backend">BE-21</span>.</p>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A 402 quota failure on an OpenRouter agent shows "Out of credits (HTTP 402)" and the OpenRouter tip.</li><li>An <code>other</code> failure shows its safe message and no tip.</li><li>No provider diagnostics text ever renders.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-completion">
+  <header><h4>GoalCompletion</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/goal-completion.tsx · lib/goal-completion.ts · app/panels.css</span></header>
+  <div class="body">
+    <p>Shows what a completed goal produced: the closing summary and the documents created during the goal. Lives inside the review panel.</p>
+    <h4>Data</h4>
+<pre><code>{ goal: Goal; entries: Entry[]; documents: ConversationFile[]; href?: (id: string) =&gt; string }
+export const SUMMARY_PREVIEW_CHARS = 280;
+export interface ClosingSummary { text: string; preview: string; truncated: boolean; }</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li><code>closingSummary</code>: last <code>final</code> assistant message after the matching <code>thread/goal/set</code> command entry (by <code>createdAt</code>), else from the list start. Chat order stands in for time (known gap).</li>
+      <li><code>previewText</code>: cut at 280, at a word boundary past 60%, append "…".</li>
+      <li><code>goalDocuments</code>: files created between goal <code>createdAt</code> and <code>updatedAt + 999ms</code>, excluding <code>kind === "visualization"</code>, oldest first.</li>
+    </ul>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Nothing to show</td><td>renders null</td><td></td></tr>
+    <tr><td>Summary truncated</td><td><code>.goal-completion-text[data-expanded]</code> + toggle <code>btn-ghost</code>, <code>aria-expanded</code></td><td>"Show more" / "Show less"</td></tr>
+    <tr><td>Summary short</td><td>no toggle</td><td></td></tr>
+    <tr><td>Documents</td><td>heading, rows with <code>DocumentIcon</code>, name ellipsis with title, Download <code>a.btn-soft[download]</code> when <code>href</code></td><td>"1 document created" / "{n} documents created"; "Download", <code>aria-label</code> "Download {name}"</td></tr>
+    </tbody></table></div>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A visualization file created during the goal is not listed.</li><li>A 500-character summary shows 280 or fewer characters until "Show more".</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-goal-tab">
+  <header><h4>Goal tab (GoalTimeline)</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/goal-timeline.tsx · parent components/session-activity.tsx (panel === "goal") · styles/v2/session.css</span></header>
+  <div class="body">
+    <p>The Goal tab: the current goal, checkpoint progress and the change history, newest first. It never mutates the goal. v3 adds the Codex-token note and keeps everything else.</p>
+    <h4>Data</h4>
+<pre><code>{ sessionId?: string; goal: Goal | null; review: GoalReview | null; plan?: PlanStep[] }
+// state: entries: GoalHistoryEntry[]; failed: boolean; missing: string | null
+const pillTone: Record&lt;GoalStatus, "s-running" | "s-paused" | "s-done" | "s-ended"&gt; = {
+  active: "s-running", paused: "s-paused", blocked: "s-paused",
+  usageLimited: "s-paused", budgetLimited: "s-paused", complete: "s-done",
+}; // accepted review forces s-done</code></pre>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th></tr></thead><tbody>
+    <tr><td>Empty <code>.empty-tab</code></td><td>column centered, gap 6, padding 24; <code>.tile.lg</code> 44 with target 20; "No active goal"; muted sm hint</td></tr>
+    <tr><td><code>.goal-head</code></td><td>space-between, margin-bottom 12; pill + mono sm muted "Started {h:mm}" when <code>createdAt</code></td></tr>
+    <tr><td><code>h3.goal-title</code></td><td>16px/600, line-height 1.4, letter-spacing -.01em, margin-bottom 14</td></tr>
+    <tr><td><code>.goal-progress</code></td><td>flex gap 10; <code>.bar[role=progressbar]</code> "Goal progress" + "{pct}%". pct = 100 if complete, else done/total plan steps, else 0</td></tr>
+    <tr><td><code>dl.goal-meta</code></td><td>3 equal columns, gap 8, margin-top 16; cell padding 9px 10px, 1px <code>--line</code>, radius 10, <code>--surface-2</code>; dt 500 10.5px mono uppercase <code>--ink-3</code>; dd 13px/600. Budget "{N} cap" / "No budget"; Used "{total}" + muted " / {budget}", title "{duration} spent"; Checkpoints "done/total" or "—"</td></tr>
+    <tr><td>Token note (new)</td><td><code>.goal-note</code> 12px/1.45 <code>--ink-2</code>, padding 8px 10px, radius 8, <code>--surface-2</code>. Only with a budget <span class="tag derive">derive</span></td></tr>
+    <tr><td><code>ol.checkpoints</code></td><td>gap 2; row flex gap 10, padding 7px 8px, radius 8, 13px; <code>.is-done</code> <code>--ink-2</code>; <code>.is-current</code> <code>--surface-2</code> / <code>--ink</code>, <code>aria-current="step"</code> only while active; <code>StepMark</code> 16 circle</td></tr>
+    <tr><td>History</td><td><code>.section-head</code> + eyebrow "History"; <code>ol.timeline[aria-label="Goal history"]</code> of <code>li.tl-row[data-kind]</code>: <code>.tl-dot</code> icon, <code>.tl-title</code>, <code>.tl-meta</code> objective (not for cleared), <code>q.goal-history-feedback</code>, <code>.goal-history-meta</code>, "View turn" <code>button.link</code></td></tr>
+    </tbody></table></div>
+    <h4>History icons and labels</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>kind</th><th>Icon</th><th>Label</th></tr></thead><tbody>
+    <tr><td>set</td><td>target</td><td>Goal set</td></tr><tr><td>objective</td><td>pencil</td><td>Objective edited</td></tr><tr><td>budget</td><td>gear</td><td>Budget set to {N} tokens / Budget removed</td></tr><tr><td>status</td><td>pulse</td><td>Status: {label} / Status changed</td></tr><tr><td>accepted</td><td>check</td><td>You accepted the result</td></tr><tr><td>reopened</td><td>play</td><td>You reopened the goal</td></tr><tr><td>cleared</td><td>x</td><td>Goal cleared</td></tr>
+    </tbody></table></div>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>No goal</td><td>"No active goal" · "Give the assistant an outcome. It keeps working until it's done, paused or out of budget." History below only if entries exist</td></tr>
+    <tr><td>History failed</td><td>"Goal history couldn’t be loaded."</td></tr>
+    <tr><td>History empty</td><td>"Goal changes will appear here."</td></tr>
+    <tr><td>Turn anchor missing</td><td><code>.goal-note[role=status]</code> "This turn isn’t loaded in the chat."</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Fetch <code>GET /api/sessions/:id/goal/history</code>, debounced 400ms, only when <code>createdAt:objective:status:tokenBudget</code> or <code>review.decision:review.at</code> changes. Token-only updates do not refetch.</li>
+      <li>Meta line: "{Mon d, h:mm} · {N} tokens · +{N} since the last change". <code>tokenChange</code> is null for set, missing counts, non-growth, or across a cleared/set boundary.</li>
+      <li>"View turn" scrolls to <code>#turn-{turnId}</code> (smooth unless reduced motion) and focuses it.</li>
+      <li>Token note copy: "The budget counts the runtime's tokens ({tokensUsed}), which run lower than the Truex total ({total}). The runtime enforces the stop."</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A token-only <code>goal.updated</code> does not refetch history.</li><li>"View turn" on an unloaded turn shows the missing-turn note.</li><li>Checkpoints mark <code>aria-current</code> only while the goal is active.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-goal-mode">
+  <header><h4>Composer goal mode, BudgetField and page wiring</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/composer.tsx (goal props) · components/budget-field.tsx · app/page.tsx</span></header>
+  <div class="body">
+    <p>The composer side of goals is specified in <a href="#cp-goal">Composer: Goal chip</a>. This block lists only the facts the goal strip depends on.</p>
+    <h4>Data</h4>
+<pre><code>// page.tsx state
+[goal, setGoal] = useState&lt;Goal | null&gt;(null)
+[goalReview, setGoalReview] = useState&lt;GoalReview | null&gt;(null)
+[documents, setDocuments] = useState&lt;ConversationFile[]&gt;([])
+[failure, setFailure] = useState&lt;TurnFailure | null&gt;(null)
+[goalMode, setGoalMode] = useState(false)
+[goalBudget, setGoalBudget] = useState&lt;number | null&gt;(null)
+[goalBudgetValid, setGoalBudgetValid] = useState(true)
+
+export type BudgetValue = { tokens: number | null; valid: boolean };
+BudgetField props: { initial: number | null; onChange: (v: BudgetValue) =&gt; void;
+  selectClassName?: string; showError?: boolean /* true */; autoFocus?: boolean /* false */ }</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Session open: <code>goal = snapshot.goal</code>, <code>goalReview = data.goalReview</code>. <code>goal.updated</code> sets goal and syncs the sidebar; <code>goal.cleared</code> clears goal and review.</li>
+      <li>Goal-mode submit: blocks with <code>budgetHelp</code> when invalid; confirms "Replace the current goal with this one?" unless complete; clears then sets. A goal can open a new conversation, whose title is the objective.</li>
+      <li>Stop while active sets paused first. Tooltip "Pause the goal and stop the current response".</li>
+      <li>BudgetField: select (sr-only label "Budget") with presets and "Custom…"; custom input <code>aria-label="Custom token budget"</code>, placeholder "e.g. 50k", <code>aria-invalid</code> once touched. Reports its start value on mount.</li>
+      <li>Toasts: "Goal set.", "Goal updated.", "Goal paused.", "Goal resumed.", "Goal cleared.", "Token budget set to N." Usage error: "Usage: /goal budget &lt;tokens&gt;, for example /goal budget 50k".</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Submitting a goal with budget "abc" shows <code>budgetHelp</code> and sends nothing.</li><li>Replacing a complete goal skips the confirm.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-goal-commands">
+  <header><h4>Goal commands in the transcript</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/chat-messages.tsx (goal-tag) · components/command-result.tsx (CommandResult)</span></header>
+  <div class="body">
+    <p>A user message carrying a <code>thread/goal/*</code> command shows <code>span.goal-tag</code> (target icon, "Goal") above the bubble. <code>CommandResult</code> shows the objective (or "Goal cleared." / "No goal is set."), a status label that follows live state when <code>sameGoal(recorded, currentGoal)</code>, else the recorded status, and a <code>dl</code> of time, tokens (<code>goalTokens</code>) and budget.</p>
+    <p>Follow-ups "Check goal status" (<code>/goal show</code>) and a clear action (<code>/goal clear</code>) fill the composer, never send. Chat turn groups carry <code>id="turn-{turnId}"</code> on their first response for "View turn". Message rendering is owned by <a href="#stream">Stream</a>.</p>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>An old <code>/goal</code> card for a replaced goal keeps its recorded status.</li></ul>
+  </div>
+</div>
+
+<h3 id="ag-agents">Persistent agents</h3>
+
+<div class="comp" id="ag-agent-data">
+  <header><h4>Agent data, look and tint palettes, API helpers</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">shared/contracts.ts · lib/agent-look.ts · lib/agents.ts</span></header>
+  <div class="body">
+    <p>Agents are stored per tenant. The browser only ever sees <code>AgentSummary</code>, <code>ModelOption</code> and MCP summaries, never model profiles or keys.</p>
+    <h4>Data</h4>
+<pre><code>export interface Agent {                 // server shape
+  _id: string; name: string; description: string; modelProfileId: string;
+  systemPrompt: string; persona?: string; scope?: "business" | "general";
+  sandbox: SandboxMode; approvalPolicy: AskForApproval;
+  mcpProfileIds: string[]; skillIds?: string[];
+  handle?: string;                       // no "@", unique per tenant
+  look?: number;                         // 0 to AGENT_LOOK_COUNT - 1
+  tint?: AgentTint; builtin?: boolean;   // builtin never set through the API
+}
+export const AGENT_TINTS = ["ice", "mint", "butter", "peach", "lilac"] as const;
+export const AGENT_LOOK_COUNT = 12;
+export const DEFAULT_AGENT_LOOK = 2;     // "Navy"
+export const DEFAULT_AGENT_TINT = "ice";
+export const AGENT_NAME_MAX = 40;
+export const AGENT_PURPOSE_MAX = 80;
+export const AGENT_INSTRUCTIONS_MAX = 20000;
+export function agentHandle(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 20);
+}
+
+export interface AgentSummary {          // GET /api/agents, page `agents` state
+  id: string; name: string; description: string;
+  provider: string; model: string; sandbox: string;
+  handle?: string; look: number; tint: AgentTint; builtin: boolean;
+  approvalPolicy?: string;               // BE-NEW: roster facts (see New backend items)
+  mcpCount?: number;                     // BE-NEW: roster facts
+  starterPrompts?: string[];             // BE-18
+  ownerId?: string;                      // BE-07: who may edit or delete
+}
+export interface ModelOption { id: string; name: string; provider: string; }
+
+// lib/agents.ts
+export function modelShort(name: string): string;  // "Claude Opus 5.5" → "opus 5.5"
+export interface AgentFields { name: string; description: string; systemPrompt: string;
+  look: number; tint: AgentTint; modelProfileId: string; }
+export function createAgentBody(f: AgentFields): AgentFields;   // trims text fields
+export function handleTaken(handle: string, agents: AgentSummary[]): boolean;
+export const fetchModels = () =&gt; api("/api/models");            // GET
+export const createAgent = (b: AgentFields) =&gt; api("/api/agents", b); // POST
+export const updateAgent = (id: string, b: Partial&lt;AgentFields&gt;) =&gt;   // BE-07
+  api(`/api/agents/${id}`, b, "PATCH");
+export const deleteAgent = (id: string) =&gt; api(`/api/agents/${id}`, undefined, "DELETE"); // BE-07
+
+// lib/agent-look.ts
+export interface Look { name: string; body: string; visor: string; glow: string;
+  face: "line" | "eyes" | "happy"; acc?: string; accColor?: string; }
+export interface Tint { id: AgentTint; label: string; bg: string; dot: string; }
+export const tintOf = (id?: string): Tint;   // falls back to TINTS[0]
+export const lookOf = (i?: number): Look;    // falls back to LOOKS[0]
+export const tone = (hex: string, amt: number): string;
+export const CONFETTI_COLORS = ["#3691CD","#BCDEE8","#A9D5BE","#EBCB8B","#F0B999","#C4BDE3","#F2C94C"];</code></pre>
+    <p><code>api(path, body?)</code> sends POST with a body and GET without. v3 adds an optional method argument for PATCH and DELETE <span class="tag backend">BE-07</span>.</p>
+    <p>Server defaults for <code>POST /api/agents</code>: <code>_id: "agent_" + uuid</code>, <code>sandbox: "read-only"</code>, <code>approvalPolicy: "on-request"</code>, <code>mcpProfileIds: []</code>, <code>skillIds: []</code>, <code>builtin: false</code>, <code>enabled: true</code>. The body accepts only <code>name, description, systemPrompt, look, tint, modelProfileId</code>; unknown fields are rejected.</p>
+    <h4>Tints</h4>
+    <p>Fixed hex, identical in both themes. They are data, not theme tokens, so these hex values are allowed in inline <code>style</code> on the badge, look tiles and agent dot only.</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>id</th><th>label</th><th>bg</th><th>dot (agent hue)</th></tr></thead><tbody>
+    <tr><td>ice (default)</td><td>Ice</td><td><code>#EAF5F8</code></td><td><code>#3691CD</code></td></tr>
+    <tr><td>mint</td><td>Mint</td><td><code>#E7F4ED</code></td><td><code>#A9D5BE</code></td></tr>
+    <tr><td>butter</td><td>Butter</td><td><code>#FFF3D9</code></td><td><code>#EBCB8B</code></td></tr>
+    <tr><td>peach</td><td>Peach</td><td><code>#FBE9DD</code></td><td><code>#F0B999</code></td></tr>
+    <tr><td>lilac</td><td>Lilac</td><td><code>#EFEDF8</code></td><td><code>#C4BDE3</code></td></tr>
+    </tbody></table></div>
+    <h4>Looks</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>#</th><th>name</th><th>body</th><th>visor</th><th>glow</th><th>face</th><th>acc</th><th>accColor</th></tr></thead><tbody>
+    <tr><td>0</td><td>Graphite</td><td>#3A4750</td><td>#1F2A30</td><td>#BCDEE8</td><td>line</td><td>–</td><td>–</td></tr>
+    <tr><td>1</td><td>Antenna</td><td>#F4F7F8</td><td>#2B3F6B</td><td>#BCDEE8</td><td>eyes</td><td>antenna</td><td>–</td></tr>
+    <tr><td>2</td><td>Navy (default)</td><td>#2E4470</td><td>#16213A</td><td>#BCDEE8</td><td>line</td><td>–</td><td>–</td></tr>
+    <tr><td>3</td><td>Listener</td><td>#D5DDE1</td><td>#2B3F6B</td><td>#BCDEE8</td><td>happy</td><td>headphones</td><td>#3691CD</td></tr>
+    <tr><td>4</td><td>Scout</td><td>#D8C3A0</td><td>#3A4750</td><td>#EBCB8B</td><td>line</td><td>cap</td><td>#E07B6E</td></tr>
+    <tr><td>5</td><td>Chef</td><td>#F4F7F8</td><td>#2B3F6B</td><td>#BCDEE8</td><td>eyes</td><td>chef</td><td>–</td></tr>
+    <tr><td>6</td><td>Builder</td><td>#F4F7F8</td><td>#3A4750</td><td>#EBCB8B</td><td>eyes</td><td>hardhat</td><td>#F2C94C</td></tr>
+    <tr><td>7</td><td>Scarf</td><td>#3A4750</td><td>#1F2A30</td><td>#F0B999</td><td>happy</td><td>scarf</td><td>#E07B6E</td></tr>
+    <tr><td>8</td><td>Mint</td><td>#BFE3CF</td><td>#1F2A30</td><td>#A9D5BE</td><td>eyes</td><td>antenna</td><td>–</td></tr>
+    <tr><td>9</td><td>Lilac</td><td>#CFC8EC</td><td>#2B3F6B</td><td>#C4BDE3</td><td>happy</td><td>bow</td><td>#F0A3B5</td></tr>
+    <tr><td>10</td><td>Peach</td><td>#F5C7A8</td><td>#3A4750</td><td>#F0B999</td><td>line</td><td>headphones</td><td>#3A4750</td></tr>
+    <tr><td>11</td><td>Captain</td><td>#2E4470</td><td>#16213A</td><td>#BCDEE8</td><td>eyes</td><td>cap</td><td>#3691CD</td></tr>
+    </tbody></table></div>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li><code>agentHandle("Research Scout")</code> returns <code>researchscout</code>; a 30-letter name yields 20 characters.</li><li><code>tintOf("unknown")</code> returns Ice; <code>lookOf(99)</code> returns Graphite.</li><li>No component reads <code>Agent.systemPrompt</code> outside the dialog.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-robot">
+  <header><h4>Robot</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/agent-badge.tsx (Robot)</span></header>
+  <div class="body">
+    <p>SVG robot avatar for one look. Used at 40px in look tiles, 150px in the badge, and in the All agents roster (v3).</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>props</dt><dd><code>{ look: number; size?: number /* 64 */ }</code></dd><dt>viewBox</dt><dd><code>0 0 120 120</code>, <code>aria-hidden</code></dd><dt>layers</dt><dd>ground shadow, backpack and legs, shell (rx 31) with gradient, sheen and rim light, status LED (hidden for scarf), visor (bezel, glass, bloom), face (line bar, two eyes with catchlights, or two happy arcs), glare, accessory</dd><dt>accessories</dt><dd>antenna with glowing ball, cap with brim, hardhat with ridge and brim, chef hat puffs, headphones band and cups, bow, scarf wrap and tail</dd><dt>ids</dt><dd><code>useId</code> for unique gradient and filter ids</dd><dt>sizes in v3</dt><dd>tile 40, roster row 40, badge 150</dd></dl>
+    <h4>Tokens</h4>
+    <p>None. All shading derives from the look's <code>body</code>, <code>visor</code>, <code>glow</code> and <code>accColor</code> via <code>tone()</code>, so the robot looks the same in both themes.</p>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Two robots on one page do not share gradient ids.</li><li>Look 7 renders no status LED.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-badge">
+  <header><h4>Badge (lanyard)</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/agent-badge.tsx (Badge, Clip) · styles/v2/agent-dialog.css</span></header>
+  <div class="body">
+    <p>Draggable lanyard ID badge: the live preview in the dialog and the hero of the success screen.</p>
+    <h4>Data</h4>
+    <pre><code>{ name: string; handle: string; look: number; tint: string; modelLabel: string;
+  tag?: string; shine?: number /* 0 */ }
+// state: drag: {x, y} | null; refs origin, rest { len: 92, r: 200 }, strapRef</code></pre>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>.badge</dt><dd>256 wide, radius 18, white fill, ink <code>#1F2A30</code>, fixed in both themes</dd><dt>.badge-top</dt><dd>background <code>tintOf(tint).bg</code>, Robot 150</dd><dt>brand</dt><dd>"truex"</dd><dt>name</dt><dd>"Unnamed" with <code>.is-empty</code> when blank</dd><dt>handle</dt><dd>"@{handle || "handle"}" + " · {tag}"</dd><dt>foot</dt><dd><code>modelLabel</code></dd><dt>.strap</dt><dd>24×92, <code>--strap</code> = tint dot; height at least 0.75·len, width 16-24 while dragging</dd><dt>Clip</dt><dd>SVG 56×70 crimp, swivel, split ring, clear tab</dd></dl>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Pointer drag anywhere on the lanyard. Offsets pass through <code>tanh</code>; rotation <code>atan2(dx, r + dy)</code> around the anchor.</li>
+      <li>Release springs back with <code>--ease-spring</code> (same curve as today's <code>cubic-bezier(.34, 1.56, .64, 1)</code>), 700ms.</li>
+      <li>Idle sway ±1.4deg over 6s, paused while dragging. Reduced motion: no sway, no spring, no drop.</li>
+      <li><code>shine &gt; 0</code> replays <code>.badge-shine</code>; v3 edit mode passes <code>shine</code> after a save (BE-07).</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <p>The whole lanyard is <code>aria-hidden</code>. Everything it shows is also in the form fields, so it needs no keyboard access.</p>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Blank name shows "Unnamed" and "@handle".</li><li>With reduced motion, the badge renders still and dragging still works.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-confetti">
+  <header><h4>Confetti</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/agent-badge.tsx (Confetti)</span></header>
+  <div class="body">
+    <p>A burst when an agent is created. No props. 56 memoised pieces: random angle, distance 110-330px, spin ±360deg, every third piece a 7px dot, others 5-9 by 3-12px rects, delay 0-140ms, duration 1500-2400ms, colour cycling <code>CONFETTI_COLORS</code>. Values pass as CSS vars <code>--x --y --r --c --w --h --d --t</code>; <code>@keyframes burst</code> flings then falls 170px and fades. <code>aria-hidden</code>.</p>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>With reduced motion, no confetti renders.</li><li>Confetti never blocks clicks (<code>pointer-events:none</code>).</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-dialog">
+  <header><h4>AgentDialog: create, edit and delete</h4><span class="tag exists">exists</span><span class="tag backend">BE-07</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/agent-dialog.tsx · styles/v2/agent-dialog.css · parent app/page.tsx (always mounted)</span></header>
+  <div class="body">
+    <p>The "New agent" modal with a live badge preview and a celebration step. Create exists today. Edit and delete reuse the same dialog once <code>PATCH</code>/<code>DELETE /api/agents/:id</code> ship (BE-07); until then their entry points stay hidden.</p>
+    <h4>Data</h4>
+<pre><code>interface AgentDialogProps {
+  open: boolean;
+  agents: AgentSummary[];                 // client-side handle collision check
+  onClose: () =&gt; void;
+  onCreated: (a: AgentSummary) =&gt; void;   // page appends to agents
+  onSayHi: (a: AgentSummary) =&gt; void;     // close, newChat(), select, prefill "@{handle} hi, "
+  editing?: AgentSummary &amp; { systemPrompt?: string; modelProfileId?: string }; // BE-07
+  onSaved?: (a: AgentSummary) =&gt; void;    // BE-07: page replaces in agents
+  onDeleted?: (id: string) =&gt; void;       // BE-07: page removes; if current, picks agents[0]
+}
+type Models = { state: "loading" } | { state: "error"; message: string }
+            | { state: "ready"; list: ModelOption[] };
+// state: f: AgentFields (defaults name "", description "", systemPrompt "",
+//        look 2, tint "ice", modelProfileId ""), models, created, submitting,
+//        error, serverTaken
+// v3 (BE-07): dirty: boolean, saved: boolean, confirmDelete: boolean, deleting: boolean</code></pre>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th></tr></thead><tbody>
+    <tr><td><code>.scrim.center</code></td><td>fixed inset 0, <code>--z-scrim</code>, flex centered, padding 16, bg <code>color-mix(in srgb, var(--ink) 18%, transparent)</code>, blur 2px, fade 120ms (<code>--dur-1</code>)</td></tr>
+    <tr><td><code>.agent-dialog</code></td><td>grid <code>minmax(0,1.1fr) minmax(0,.9fr)</code>, max-width 920, max-height <code>calc(100dvh - 32px)</code>, radius 20, <code>--shadow-lg</code>, rise 180ms (<code>--dur-2</code> <code>--ease-out</code>). Single column at 760px and below; dialog scrolls</td></tr>
+    <tr><td><code>.dialog-x</code></td><td>ghost icon button top 12 right 12, x 15, label "Close"</td></tr>
+    <tr><td><code>.nad-form</code></td><td>flex column, gap 16, padding 24px 24px 20px, overflow auto</td></tr>
+    <tr><td>Heading</td><td>h2 20px/1.2 600, -.02em; paragraph 13.5px <code>--ink-2</code>, max 52ch</td></tr>
+    <tr><td><code>.field</code></td><td>gap 6; <code>.field-label</code> flex baseline space-between 12.5px/500 <code>--ink-2</code>; <code>.field-hint</code> 12px mono</td></tr>
+    <tr><td><code>.input</code></td><td>height 40, padding 0 12, radius 10, 14px; textarea rows 3, min-height 84, padding 10px 12px, resize vertical</td></tr>
+    <tr><td><code>.look-grid</code></td><td>6 columns (4 at 760px and below), gap 8; <code>.look</code> aspect 1, 1.5px border, radius 12, bg current tint bg, Robot 40; active border <code>--ink</code></td></tr>
+    <tr><td><code>.tint-row</code></td><td>gap 10; <code>.tint</code> 26 circle, 1px <code>--line-strong</code>; active ring <code>0 0 0 2px var(--surface), 0 0 0 4px var(--ink)</code></td></tr>
+    <tr><td><code>.select.full</code></td><td>height 40, padding 0 32px 0 12px, radius 10, chevron 14 at right 9</td></tr>
+    <tr><td><code>.nad-actions</code></td><td>flex wrap end, gap 8; <code>btn-soft.lg</code> and <code>btn-solid.lg</code> height 38, padding 0 16, 14px</td></tr>
+    <tr><td><code>.nad-stage</code></td><td>min-height 540, padding 16, <code>--surface-3</code>, left border <code>--line</code>; note 12px mono <code>--ink-2</code> <code>aria-live=polite</code></td></tr>
+    </tbody></table></div>
+    <h4>Fields and validation</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Field</th><th>Control</th><th>Default</th><th>Placeholder</th><th>Rules</th></tr></thead><tbody>
+    <tr><td>Name</td><td><code>input.input</code></td><td>""</td><td>Research Scout</td><td>required; maxLength 40. Handle <code>agentHandle(name)</code>: a-z and 0-9 only, at most 20 characters, unique per tenant. Hint "@{handle}", or "@{handle} is taken" (<code>.is-bad</code>, <code>aria-invalid</code>) if in <code>agents</code> or equal to <code>serverTaken</code>. Server 422 <code>AGENT_HANDLE_INVALID</code>, 409 <code>AGENT_HANDLE_TAKEN</code></td></tr>
+    <tr><td>Purpose</td><td><code>input.input</code></td><td>""</td><td>What this specialist owns</td><td>optional, maxLength 80; stored as <code>description</code></td></tr>
+    <tr><td>Instructions</td><td><code>textarea.input</code> rows 3</td><td>""</td><td>Standing instructions injected into every one of its turns</td><td>optional; v3 adds client <code>maxLength</code> 20000 to match the server <span class="tag derive">derive</span>; stored as <code>systemPrompt</code></td></tr>
+    <tr><td>Look</td><td>radiogroup of 12 <code>button.look</code></td><td>2 (Navy)</td><td>–</td><td>integer 0-11; <code>aria-label</code> = look name</td></tr>
+    <tr><td>Tint</td><td>radiogroup of 5 <code>button.tint</code></td><td>ice</td><td>–</td><td>one of <code>AGENT_TINTS</code>; <code>aria-label</code> = tint label</td></tr>
+    <tr><td>Model</td><td>native <code>select</code> in <code>span.select.full</code></td><td>first model</td><td>–</td><td>required; options <code>ModelOption.name</code>; 422 <code>MODEL_UNAVAILABLE</code></td></tr>
+    </tbody></table></div>
+    <p>Submit is enabled when <code>handle &amp;&amp; !taken &amp;&amp; selectedModel &amp;&amp; !submitting</code>. Sandbox and approval are not fields: every new agent gets read-only and on-request, shown as read-only facts in the roster.</p>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Models loading</td><td>each open</td><td>select disabled, submit disabled</td><td>"Loading models…"</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Models error</td><td>GET fails</td><td>select <code>aria-invalid</code>, <code>#nad-model-error.field-hint.is-bad</code></td><td>error message</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>No models</td><td>empty list</td><td>select disabled</td><td>"No models available"</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Empty name</td><td>""</td><td>no hint; badge "Unnamed"</td><td></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Handle taken</td><td>client match or 409</td><td>red hint, submit disabled</td><td>"@{handle} is taken. Choose a different name."</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Handle invalid</td><td>422</td><td>red hint</td><td>"Name needs at least one letter or digit (a–z, 0–9) to form a handle"</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Submitting</td><td>submit</td><td>button disabled</td><td>"Creating…"</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Generic error</td><td>other failure</td><td><code>p.field-hint.is-bad[role=alert]</code> above actions; cleared on any field change</td><td>server message</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Success</td><td>201</td><td>full-viewport dark blurred scrim, close X, Confetti, badge drops 900ms bounce, strap <code>clamp(24px, 16vh, 180px)</code>, tag "new specialist"; copy fades up after 350ms</td><td>"{name} is on the team" · "Mention @handle anywhere to wake it. Drag the badge around while you're here." · "Say hi to {name}" (autofocus) · "Done"</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Edit</td><td><code>editing</code> set</td><td>form seeded, handle fixed (renaming keeps the handle), submit "Save changes"; after save and clean: check + "Saved", badge shine</td><td>title "Edit {saved name}"; sub "Changes apply from its next turn. The handle stays @{handle} so existing mentions keep working."; hint "@{handle} · fixed"; stage note "unsaved changes · drag it around" / "saved"</td><td><span class="tag backend">BE-07</span></td></tr>
+    <tr><td>Edit, empty name</td><td>blank name while editing</td><td>name invalid, Save disabled</td><td></td><td><span class="tag backend">BE-07</span></td></tr>
+    <tr><td>Built-in</td><td><code>builtin</code></td><td>no Edit entry at all in v3; built-ins are read-only</td><td></td><td><span class="tag proposal">proposal</span> D-NEW-AG-05</td></tr>
+    <tr><td>Delete confirm</td><td>"Remove agent" (<code>btn-ghost</code> danger, left of actions)</td><td>inline group replaces the left button</td><td>"Remove {name}?" · "Remove" (<code>.btn-danger</code>, autofocus) · "Keep"</td><td><span class="tag backend">BE-07</span></td></tr>
+    <tr><td>Deleting</td><td>Remove</td><td>all buttons disabled</td><td>"Removing…"</td><td><span class="tag backend">BE-07</span></td></tr>
+    <tr><td>Delete failed / 403 / 404</td><td>error</td><td>alert above actions</td><td>server message; 404 closes the dialog and removes the row</td><td><span class="tag backend">BE-07</span></td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Every open: reset form, <code>GET /api/models</code>, auto-select the first model, focus Name after 30ms.</li>
+      <li>Create sends <code>createAgentBody(f)</code> to <code>POST /api/agents</code> (201 <code>AgentSummary</code>). Any tenant user can create.</li>
+      <li>Edit sends only changed fields with <code>PATCH /api/agents/:id</code>; it never sends <code>handle</code>. Delete uses <code>DELETE /api/agents/:id</code>. Only the owner (or an admin, per the server rule) sees Edit and Remove; the server enforces with 403 (BE-07).</li>
+      <li>Deleting the agent selected in the dock switches the dock to <code>agents[0]</code>. Existing chats keep their agent id; opening them shows the agent as "Removed agent" <span class="tag proposal">proposal</span> D-NEW-AG-06.</li>
+      <li>Escape closes both steps; mousedown on the scrim closes the form step only when not dirty (v3) <span class="tag proposal">proposal</span> D-NEW-AG-07; Enter submits.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li><code>role="dialog"</code>, <code>aria-modal="true"</code>, <code>aria-labelledby</code> the h2. Focus trapped; focus returns to the opener on close.</li>
+      <li>Look and tint are radiogroups: arrows move and select, one tab stop each.</li>
+      <li>Handle hint is linked with <code>aria-describedby</code> on Name so "is taken" is read.</li>
+      <li>Success step: heading receives the announcement through <code>aria-live=polite</code>; "Say hi" autofocused.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Typing "Research Scout" when <code>@researchscout</code> exists disables Create and shows the taken hint.</li>
+      <li>A 409 from the server marks that handle taken until the name changes.</li>
+      <li>POST body has exactly six keys.</li>
+      <li>With BE-07 missing, no Edit or Remove control renders anywhere.</li>
+      <li>After a successful PATCH, the roster and dock show the new name without a reload.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-menu">
+  <header><h4>AgentMenu</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/agent-menu.tsx · parent Popover.pop-agent in app/page.tsx · dock.css, base.css</span></header>
+  <div class="body">
+    <p>The agent picker popover. v3 wires the two props the page never passed: <code>onAll</code> opens the All agents sheet, and <code>onEdit</code> opens the dialog in edit mode once BE-07 exists. With a composer agent chip (<a href="#cp-agent">Composer</a>, D-02) the same menu renders from that chip.</p>
+    <h4>Data</h4>
+<pre><code>export type AgentMenuAgent = { id: string; name: string; description?: string; hue?: string;
+  handle?: string; builtin?: boolean; editable?: boolean };   // v3 derive
+export type AgentMenuProps = {
+  agents: AgentMenuAgent[]; currentId?: string | null;
+  onPick: (id: string) =&gt; void;
+  onEdit?: (id: string) =&gt; void;   // v3: passed only when BE-07 ships; shown when editable
+  onAll?: () =&gt; void;              // v3: setPanel("agents")
+  onNew?: () =&gt; void;              // open AgentDialog
+};
+// page: agents.map(a =&gt; ({ id: a.id, name: a.name, description: a.description,
+//   hue: tintOf(a.tint).dot, handle: a.handle, builtin: a.builtin,
+//   editable: !a.builtin &amp;&amp; canEdit(a) }))</code></pre>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>eyebrow</dt><dd>"Choose agent", <code>.eyebrow.pad</code></dd><dt>row</dt><dd><code>.menu-row</code> &gt; <code>.menu-item</code>: <code>.agent-dot</code> 8 (fallback <code>--accent-soft-2</code>), name strong, description muted sm, check when current</dd><dt>edit</dt><dd><code>.icon-btn.ghost.menu-edit</code> 26×26, pencil 14, on hover or focus-within of the row</dd><dt>actions</dt><dd><code>.menu-sep</code>, "All agents" (grid icon in <code>.menu-plus.solid</code>), "New agent" (plus in <code>.menu-plus</code>)</dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Visual</th></tr></thead><tbody>
+    <tr><td>Current</td><td><code>.is-active</code>, <code>aria-current="true"</code>, check icon</td></tr>
+    <tr><td>Empty list</td><td>eyebrow and action rows only</td></tr>
+    <tr><td>Editable row, BE-07 live</td><td>pencil visible on hover/focus; always visible on touch</td></tr>
+    <tr><td>Running turn</td><td>picking a different agent is disabled with title "Finish or stop this response first" <span class="tag proposal">proposal</span> D-NEW-AG-08</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul><li>Pick: <code>setAgentId</code>, close the popover. All agents: close, <code>setPanel("agents")</code>. New: close, open the dialog. Edit: close, open the dialog with <code>editing</code>.</li></ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li><code>role="menu"</code> in the popover labelled "Choose agent"; items <code>role="menuitemradio"</code> with <code>aria-checked</code>. Arrow keys move, Enter picks, Escape closes and refocuses the trigger.</li><li>Pencil: <code>aria-label</code> "Edit {name}", reachable with Tab from its row.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>"All agents" opens the sheet and moves focus into it.</li><li>No pencil renders on built-in rows.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-all">
+  <header><h4>All agents sheet</h4><span class="tag derive">derive</span><span class="tag phase">P2</span>
+    <span class="path">new components/v2/agents-sheet.tsx · Sheet panel "agents" (see <a href="#nv-sheet">Shell: Sheet</a>) · replaces the unbuilt roster</span></header>
+  <div class="body">
+    <p>A roster to scan and a place to add. It lists <code>GET /api/agents</code> in a Sheet titled "All agents", with a search field, filters and one row per agent. The pinboard roster in the existing spec stays as the visual reference for tint and robot use; v3 ships the list form because it fits the sheet and works at 400px.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Sheet head</td><td>title "All agents", description "{n} specialists · {m} built by you", action "New agent" (<code>btn-solid</code>, plus)</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Tools</td><td>search input height 36 radius 999, placeholder "Search by name, handle or purpose"; filter segmented "All" / "Yours" / "Built-in"</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td><code>ul.ag-roster</code></td><td>column gap 8</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Row</td><td>grid <code>40px minmax(0,1fr) auto</code>, gap 12, padding 12, radius 12, 1px <code>--line</code>; robot tile 40 radius 10 bg tint bg</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Row line 1</td><td>name 14px/600; "Built-in" pill (<code>--surface-3</code>, 11px); handle mono 11px "@{handle}"; "In this chat" dot when current</td><td><span class="tag exists">exists</span> data</td></tr>
+    <tr><td>Row line 2</td><td>description 13px <code>--ink-2</code>, 2-line clamp</td><td><span class="tag exists">exists</span> data</td></tr>
+    <tr><td>Row meta</td><td>mono 11px: "{modelShort(model)}" · "{n} tools" · "read-only" · "asks on request"</td><td>model <span class="tag exists">exists</span>; tools and approval <span class="tag backend">BE-NEW: roster facts</span></td></tr>
+    <tr><td>Row actions</td><td>"Chat" (<code>btn-soft</code>, disabled "Chatting" when current); overflow with Edit and Remove when editable</td><td>Chat <span class="tag derive">derive</span>; Edit/Remove <span class="tag backend">BE-07</span></td></tr>
+    </tbody></table></div>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Loading</td><td>3 skeleton rows, 64px each</td></tr>
+    <tr><td>Load failed</td><td>"Agents couldn't be loaded." + "Try again"</td></tr>
+    <tr><td>No match</td><td>'No agents match "{q}"' + "Clear search"</td></tr>
+    <tr><td>Yours empty</td><td>"You haven't built an agent yet." + "New agent"</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Opened from the sidebar Agents link, the agent menu "All agents", the palette Agents scope and <code>/agents</code>.</li>
+      <li>Search matches name, handle and description, case-insensitive. Filter "Yours" is <code>!builtin</code> (with BE-07 <code>ownerId === me</code>).</li>
+      <li>"Chat" closes the sheet, starts a new chat with that agent and focuses the composer. It never changes the agent of an existing chat.</li>
+      <li>Sort: built-ins first in server order, then yours by name.</li>
+      <li>Sandbox and approval are shown as facts, never as controls, because <code>POST</code> rejects those fields.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>List <code>aria-label="Agents"</code>; each row is a <code>li</code> with its own buttons, not a single button. Search is the first focus on open.</li><li>Result count announced politely after search: "{n} agents".</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>At 400px, rows wrap meta below the name without horizontal scroll.</li><li>Creating an agent from the sheet adds its row without a refetch.</li><li>Built-in rows never show an overflow menu.</li></ul>
+  </div>
+</div>
+
+<h3 id="ag-helpers">Helpers (sub-agents)</h3>
+
+<div class="comp" id="ag-subagents">
+  <header><h4>lib/subagents.ts: state, status, naming and delegation</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">frontend/lib/subagents.ts · shared/contracts.ts (SubAgent)</span></header>
+  <div class="body">
+    <p>The one reducer and helper library every helper surface reads: the Handed off node, HelperGroup, HelperChip, the Agents tab and the tiled view.</p>
+    <h4>Data</h4>
+<pre><code>export type SubAgentStatus =
+  | "pendingInit" | "running" | "interrupted" | "completed"
+  | "errored" | "shutdown" | "notFound";
+export interface SubAgent {
+  threadId: string; path: string | null; nickname: string | null; role: string | null;
+  depth: number;                 // 1 = spawned by main agent; &gt;1 nested ("level N")
+  status: SubAgentStatus; task?: string; lastMessage?: string;
+  startedAt: string; endedAt?: string;              // ISO, server clock
+  parentThreadId?: string;       // BE-08: exact delegation tree
+  helperId?: string;             // BE-08: stable identity across resumes
+  usage?: { inputTokens: number; outputTokens: number; costUsd?: number }; // BE-08 (+ BE-11 currency)
+  turnId?: string;               // BE-08: turn that spawned it
+}
+export interface SubAgentTranscript { agent: SubAgent; messages: { id: string; text: string; final: boolean }[]; }
+export type CollabTool = "spawnAgent" | "sendInput" | "resumeAgent" | "wait" | "closeAgent";
+export interface SubAgentState { agents: SubAgent[]; previews: Record&lt;string, string&gt;; skewMs?: number; }
+export const emptySubAgents: SubAgentState = { agents: [], previews: {} };
+export const PREVIEW_LIMIT = 4000;
+export const TITLE_LIMIT = 48;
+export const isRunning = (a: SubAgent) =&gt; a.status === "running" || a.status === "pendingInit";
+export const statusLabels: Record&lt;SubAgentStatus, string&gt; = {
+  pendingInit: "Starting", running: "Running", interrupted: "Stopped", completed: "Finished",
+  errored: "Failed", shutdown: "Closed", notFound: "Unavailable",
+};
+// v3 derive: one tone function shared by every chip
+export type HelperTone = "running" | "done" | "stopped" | "warn";
+export function helperTone(s: SubAgentStatus | string): HelperTone;
+
+export type DelegationMode = "explicitRequestOnly" | "proactive";
+export interface DelegationPrefs { mode: DelegationMode; maxConcurrent: number; } // 1–5
+export const defaultDelegation = { mode: "explicitRequestOnly", maxConcurrent: 3 };</code></pre>
+    <h4>Status: 7 values in 4 tones</h4>
+    <div class="specimen" aria-hidden="true"><div class="ag-sp-chips"><span class="ag-sp-chip run">◌ Starting</span><span class="ag-sp-chip run">◌ Running</span><span class="ag-sp-chip done">Finished</span><span class="ag-sp-chip stop">Stopped</span><span class="ag-sp-chip stop">Closed</span><span class="ag-sp-chip warn">⚠ Failed</span><span class="ag-sp-chip warn">⚠ Unavailable</span></div></div>
+    <div class="tw"><table class="tbl"><thead><tr><th>status</th><th>label</th><th>tone</th><th>chip class</th><th>extra</th><th>colors</th><th>terminal</th></tr></thead><tbody>
+    <tr><td><code>pendingInit</code></td><td>Starting</td><td>running</td><td><code>is-running</code></td><td>spinner</td><td><code>--accent-soft</code> / <code>--accent-fg</code></td><td>no</td></tr>
+    <tr><td><code>running</code></td><td>Running</td><td>running</td><td><code>is-running</code></td><td>spinner</td><td><code>--accent-soft</code> / <code>--accent-fg</code></td><td>no</td></tr>
+    <tr><td><code>completed</code></td><td>Finished</td><td>done</td><td><code>is-done</code></td><td>–</td><td><code>--ok-bg</code> / <code>--ok</code></td><td>yes</td></tr>
+    <tr><td><code>interrupted</code></td><td>Stopped</td><td>stopped</td><td><code>is-stopped</code></td><td>–</td><td><code>--surface-3</code> / <code>--ink-2</code></td><td>yes</td></tr>
+    <tr><td><code>shutdown</code></td><td>Closed</td><td>stopped</td><td><code>is-stopped</code></td><td>–</td><td><code>--surface-3</code> / <code>--ink-2</code></td><td>yes</td></tr>
+    <tr><td><code>errored</code></td><td>Failed</td><td>warn</td><td><code>is-warn</code></td><td>⚠</td><td><code>--warn-bg</code> / <code>--warn-text</code></td><td>yes</td></tr>
+    <tr><td><code>notFound</code></td><td>Unavailable</td><td>warn</td><td><code>is-warn</code></td><td>⚠</td><td><code>--warn-bg</code> / <code>--warn-text</code></td><td>yes</td></tr>
+    <tr><td>unknown string</td><td>raw status text</td><td>stopped</td><td><code>is-stopped</code></td><td>–</td><td>as stopped</td><td>yes</td></tr>
+    </tbody></table></div>
+    <p>Stopped chips use <code>--ink-2</code> text, not today's <code>--ink-3</code>, because the chip text is 11px (contrast rule). There is no "Limited access" status.</p>
+    <h4>Helper tones (identity color)</h4>
+    <p>Separate from status tone. <code>.tone-N</code> with N = spawn index % 3 sets <code>--t</code> and <code>--ts</code>: tone-0 <span class="sw" style="background:var(--t0)"></span><code>--t0</code>/<code>--ts0</code>, tone-1 <span class="sw" style="background:var(--t1)"></span><code>--t1</code>/<code>--ts1</code>, tone-2 <span class="sw" style="background:var(--t2)"></span><code>--t2</code>/<code>--ts2</code>, main agent <span class="sw" style="background:var(--tm)"></span><code>--tm</code>/<code>--tsm</code>. Nested helpers inherit their parent's tone when <code>parentThreadId</code> exists (BE-08); until then they use their own index.</p>
+    <h4>Behavior</h4>
+    <ul>
+      <li><code>applySubAgentEvent</code>: <code>snapshot</code> sets membership; <code>subagent.spawned|status|completed</code> upsert <code>d.agent</code>; <code>subagent.event</code> kind <code>message.delta</code> appends to the preview (kept to 4000 chars), <code>message.final</code> sets <code>lastMessage</code> and replaces the preview, <code>turn.started</code> clears the preview. Finished helpers never revert to running. Clock skew learned from event <code>at</code>; samples over 10 minutes are ignored.</li>
+      <li>Naming <code>helperName</code>: nickname, else capitalised role (skips "default"), else "Helper N" by spawn order. Nested helpers show "{parent} › {name}" in the Handed off node only when <code>parentThreadId</code> exists (BE-08).</li>
+      <li><code>taskTitle(task)</code>: first sentence, clipped at a word boundary to 48 chars + "…"; empty → "Working on a task".</li>
+      <li><code>previewTail(text, maxChars = 240, maxLines = 4)</code>: markdown-balanced tail prefixed "…".</li>
+      <li><code>formatDuration</code> (lib/observability): "0:38", "1:02:03".</li>
+      <li>Delegation: see <a href="#ag-delegation">DelegationSettings</a>.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li><code>helperTone</code> maps all 7 statuses as in the table and an unknown string to stopped.</li><li>A <code>subagent.status</code> running event after completed leaves the helper completed.</li><li>A helper with nickname null and role "default" is named "Helper 2" when it spawned second.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-handoff">
+  <header><h4>"Handed off" stream node</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/handoff-node.tsx (new) · rendered by the stream work log for entries of kind "agents" · replaces HelperGroup in the work log</span></header>
+  <div class="body">
+    <p>One work-log node per hand-off, not one per helper event. It shows each helper the turn started, its task (the why), a live status in the 4 tones, nesting by depth and the delegation mode label. Details live in the Agents tab. The stream owns node placement and the log rail; see <a href="#stream">Stream</a>.</p>
+    <div class="specimen" aria-hidden="true"><ul class="ag-sp-tree"><li><span class="ag-sp-av">A</span><span class="ag-sp-grow"><b>Atlas</b></span><span class="ag-sp-chip run">◌ Running</span><span class="ag-sp-mono">1:42</span></li><li class="d2"><span class="ag-sp-av">S</span><span class="ag-sp-grow"><b>Scout</b> <span class="ag-sp-mono">level 2</span></span><span class="ag-sp-chip done">Finished</span><span class="ag-sp-mono">0:38</span></li><li><span class="ag-sp-av t1">J</span><span class="ag-sp-grow"><b>Juno</b></span><span class="ag-sp-chip run">◌ Starting</span><span class="ag-sp-mono">0:04</span></li></ul></div>
+    <p class="note warn">Example only: Atlas, Scout and Juno are sample helpers. Real names come from <code>helperName()</code>.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Log node</td><td>work-log row with node kind <code>agent</code> (live dot while any helper runs), time on the right = group elapsed</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Head <code>.ag-hand-head</code></td><td>flex wrap, gap 8, 13px <code>--ink-2</code>: "Handed off" (600 <code>--ink</code>), "{n} helper(s) · {r} running", delegation pill</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Delegation pill</td><td>height 20, padding 0 8, radius 999, 11px <code>--surface-3</code> / <code>--ink-2</code>: "{mode label} · max {n}"</td><td><span class="tag backend">BE-10</span> (browser prefs until then)</td></tr>
+    <tr><td><code>ul.ag-tree</code></td><td>1px <code>--line</code>, radius 12, <code>--surface</code>; rows separated by 1px <code>--line</code></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Row</td><td>grid <code>auto minmax(0,1fr) auto</code>, gap 2px 10px, padding 9px 12px, 13px. Avatar xs 18; name 600; <a href="#ag-statuschip">StatusChip</a>; elapsed mono 11px tabular</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Task line <code>.ag-task</code></td><td>row 2 spanning columns 2-3, 12px <code>--ink-2</code>, <code>taskTitle(task)</code> collapsed, full task when the row is expanded</td><td><span class="tag exists">exists</span> data</td></tr>
+    <tr><td>Depth</td><td>depth ≥ 2: padding-left <code>12 + 24 × (depth - 1)</code>px, capped at depth 4 (84px); <code>--surface-2</code> bg; "level N" chip 600 10px mono, <code>--surface-3</code> / <code>--ink-2</code>, radius 5</td><td><span class="tag derive">derive</span></td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>frame</dt><dd><code>--surface</code>, <code>--line</code></dd><dt>nested</dt><dd><code>--surface-2</code></dd><dt>avatar</dt><dd><code>--ts</code> / <code>--t</code> by tone</dd><dt>chips</dt><dd>see status table above</dd><dt>focus</dt><dd>2px <code>--accent</code> outline, offset 2</dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Live</td><td>any helper <code>isRunning</code></td><td>node dot pulses, clock ticks every 1s</td><td>"{n} helpers · {r} running"</td></tr>
+    <tr><td>Settled</td><td>all terminal</td><td>static dot, group time frozen</td><td>"{n} helpers · {d} done" (+ " · {s} stopped", " · {f} failed" when non-zero)</td></tr>
+    <tr><td>Row expanded</td><td>row click</td><td>full task, output tail (<code>previewTail</code>), "Open in panel" and Stop while running (as <a href="#ag-helper-group">HelperRow</a>)</td><td></td></tr>
+    <tr><td>Nested</td><td>depth ≥ 2</td><td>indent + "level N"</td><td>"level {depth}"</td></tr>
+    <tr><td>Nested, exact tree</td><td><code>parentThreadId</code> (BE-08)</td><td>row placed under its parent; name "{parent} › {name}"</td><td></td></tr>
+    <tr><td>Nested, no BE-08</td><td>no parent id</td><td>rows in spawn order, indent by depth only</td><td></td></tr>
+    <tr><td>Empty match</td><td>no agents for the entry's <code>threadIds</code></td><td>renders null</td><td></td></tr>
+    <tr><td>Delegation unknown</td><td>no BE-10, no stored prefs</td><td>pill hidden</td><td></td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>interface HandoffNodeProps {
+  id: string;                       // entry id
+  threadIds: string[];              // entry.threadIds from the "agents" entry
+  state: SubAgentState;
+  delegation?: { mode: DelegationMode; maxConcurrent: number; source: "session" | "browser" };
+                                    // session = BE-10 Session.delegation; browser = DelegationPrefs
+  sessionId?: string;
+  onOpenAgent: (threadId: string) =&gt; void;   // opens Agents tab detail
+}</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Delegation label: "Only when I ask" for <code>explicitRequestOnly</code>, "Whenever it helps" for <code>proactive</code>. With BE-10 the label shows the session's stored mode; without it, the browser prefs are what the next chat will use, not what this chat used, so the pill is hidden for sessions created before the prefs last changed <span class="tag proposal">proposal</span> D-NEW-AG-09.</li>
+      <li>Ordering: spawn order; with BE-08, depth-first under each parent.</li>
+      <li>Elapsed = <code>(endedAt ?? now + skewMs) - startedAt</code>, formatted with <code>formatDuration</code>.</li>
+      <li>"Open in panel" and a click on the avatar call <code>onOpenAgent</code>, which opens the Agents tab, opens that helper's detail and focuses <code>#agent-card-{threadId}</code> first when the detail closes.</li>
+      <li>When 2 or more helpers run at once, the <a href="#ag-tiles">tiled view</a> renders under the tree.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li><code>section[aria-label="Helper agents"]</code>, <code>tabIndex=-1</code> (HelperChip "View" scrolls and focuses it). Rows are buttons with <code>aria-expanded</code>.</li><li>Polite live region announces the summary on change only: "{n} helpers, {r} running". Timers are silent.</li><li>"level N" is text, so screen readers read nesting.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Three helpers in one turn render one node, not three.</li><li>A depth-3 helper indents 60px and shows "level 3".</li><li>All 7 statuses render with the right tone.</li><li>The delegation pill reads the session value once BE-10 ships.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-helper-group">
+  <header><h4>HelperGroup / HelperRow</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/helper-group.tsx · parent components/chat-messages.tsx (entries of kind "agents") · styles/v2/chat.css .hcard*</span></header>
+  <div class="body">
+    <p>Today's inline transcript card for the helpers one turn started, with expandable output and Stop (schema §2.12). In v3 its markup and logic become the body of the <a href="#ag-handoff">Handed off node</a>: HelperRow is reused as the expandable tree row. Keep the component, keep the <code>section.hcard#helpers-{id}</code> id so the HelperChip "View" fix in <a href="#cp-helper">Composer</a> still finds it.</p>
+    <h4>Data</h4>
+<pre><code>HelperGroup: { id: string; threadIds: string[]; state: SubAgentState; sessionId?: string;
+               onOpenAgent?: (threadId: string) =&gt; void;
+               delegation?: HandoffNodeProps["delegation"] }       // v3
+HelperRow (internal): { agent: SubAgent; tone: number /* i % 3 */; name: string; preview: string;
+               elapsed: number; sessionId?: string; onOpenAgent?: (threadId: string) =&gt; void;
+               depth?: number }                                     // v3 indent
+// HelperRow state: open: boolean, stopping: boolean, error: string</code></pre>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th></tr></thead><tbody>
+    <tr><td><code>section.hcard#helpers-{id}</code></td><td><code>tabIndex=-1</code>, <code>aria-label="Helper agents"</code>; 1px <code>--line</code>, radius 12, <code>--surface</code></td></tr>
+    <tr><td>Header</td><td>summary "{n} helper(s) · {r} running · {d} done" + group <code>LiveDuration</code>, 13px; polite live region with the summary</td></tr>
+    <tr><td>Row button <code>.hcard-row.tone-{0..2}</code></td><td>padding 9px 12px, gap 10; avatar xs 18 (initial); name 600 + task title (<code>taskTitle</code>, 48); <code>.ag-chip</code>; elapsed; "Open" / "Hide" + chevron 14. <code>aria-expanded</code></td></tr>
+    <tr><td><code>.hcard-detail</code></td><td>padding 0 12px 12px 40px; markdown output tail (<code>previewTail</code> 240 chars / 4 lines; live preview while running, else <code>lastMessage</code>), suggestions stripped; full task text; error <code>role=alert</code></td></tr>
+    <tr><td>Actions</td><td>"Open transcript" (<code>btn-soft</code>) → <code>onOpenAgent</code>; while running "Stop" / "Stopping…" (<code>btn-ghost danger</code>, <code>aria-label="Stop {name}"</code>)</td></tr>
+    <tr><td>≤700px</td><td>row status chip hidden; v3 keeps a 6px tone dot instead so status is not lost <span class="tag proposal">proposal</span> D-NEW-AG-10</td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>card</dt><dd><code>--surface</code>, <code>--line</code></dd><dt>row hover</dt><dd><code>--ts</code>, border <code>--t</code></dd><dt>detail text</dt><dd><code>--ink-2</code> 13px</dd><dt>danger</dt><dd><code>--bad</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>No matching agents</td><td>returns null</td><td></td></tr>
+    <tr><td>Row collapsed / open</td><td>chevron rotates 180deg (<code>--dur-2</code>)</td><td>"Open" / "Hide"</td></tr>
+    <tr><td>Running</td><td>chip spinner, Stop visible</td><td>"Stop"</td></tr>
+    <tr><td>Stopping</td><td>Stop disabled</td><td>"Stopping…"</td></tr>
+    <tr><td>Empty output, running</td><td>muted</td><td>"No output yet."</td></tr>
+    <tr><td>Empty output, finished</td><td>muted</td><td>"No output was shared."</td></tr>
+    <tr><td>Stop failed</td><td>alert</td><td>server message</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul><li>Stop calls <code>interruptAgent(sessionId, threadId)</code> (<code>POST /api/sessions/:id/agents/:threadId/interrupt {}</code>); disabled without <code>sessionId</code>.</li><li>Chip class: <code>is-running</code> for running tone, <code>is-done</code> completed, <code>is-warn</code> errored and notFound, <code>is-stopped</code> otherwise, all via <code>helperTone()</code>.</li><li>Viewers who are not the owner (BE-09) never see Stop.</li></ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Row buttons are in tab order; Enter/Space toggle. Stop has its own tab stop inside the open detail.</li><li>Status labels are text, not color only.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>HelperChip "View" scrolls to the last <code>section.hcard[id^="helpers-"]</code> and focuses it.</li><li>Stop on a running helper moves its chip to Stopped when the status event arrives.</li><li>At 700px the row keeps a tone dot.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-tiles">
+  <header><h4>Tiled helper view</h4><span class="tag derive">derive</span><span class="tag phase">P2</span>
+    <span class="path">components/v2/helper-tiles.tsx (new) · under the Handed off node</span></header>
+  <div class="body">
+    <p>Parallel output at a glance. One tile per running helper, fed by the streamed preview. Shown only when 2 or more helpers of the node run at once.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>grid</dt><dd><code>repeat(auto-fit, minmax(200px, 1fr))</code>, gap 8; one column below 440px</dd><dt>tile</dt><dd>padding 10, radius 12, 1px <code>--line</code>, <code>--surface</code>, top border 2px <code>--t</code></dd><dt>head</dt><dd>avatar xs, name 13px/600, spacer, StatusChip</dd><dt>body</dt><dd><code>pre</code> 12px/1.5 mono <code>--ink-2</code>, max 4 lines (<code>previewTail(text, 240, 4)</code>), caret while streaming</dd><dt>max</dt><dd>4 tiles; more shows "+{n} more" linking to the Agents tab</dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>No preview yet</td><td>"Waiting for its first message."</td></tr>
+    <tr><td>Streaming</td><td>tail text + caret (hidden with reduced motion)</td></tr>
+    <tr><td>Helper finishes</td><td>tile fades out over <code>--dur-3</code>; grid reflows; hidden entirely when fewer than 2 run</td></tr>
+    </tbody></table></div>
+    <h4>Behavior and a11y</h4>
+    <ul><li>Tiles are buttons that call <code>onOpenAgent(threadId)</code>, <code>aria-label</code> "Open {name} output".</li><li>The <code>pre</code> is <code>aria-hidden</code>; streaming text is not announced (the Agents tab detail is the accessible reading path).</li><li>Preview updates are throttled to one render per 250ms per tile.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>With one running helper, no tiles render.</li><li>At 400px, tiles stack in one column.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-panel">
+  <header><h4>AgentsPanel (Agents tab)</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/agents-panel.tsx (AgentsPanel, Lanes, HelperRow, HelperDetail) · parent components/session-activity.tsx .ag-tab · styles/v2/session.css</span></header>
+  <div class="body">
+    <p>The Agents tab of the session panel: a roster of helpers with a timeline, and a per-helper detail view. v3 adds a "This turn / Session" scope, per-helper cost (BE-08) and moves DelegationSettings to a settings row at the foot of the tab.</p>
+    <h4>Data</h4>
+<pre><code>interface AgentsPanelProps {
+  sessionId?: string;
+  agents: SubAgent[];
+  previews: Record&lt;string, string&gt;;
+  skewMs?: number;
+  onDetailChange?: (open: boolean) =&gt; void;   // shell widens the panel to detail size
+  turnWindow?: { turnId: string; startedAt: string; endedAt?: string } | null; // v3 derive: selected turn
+  openId?: string | null;                      // v3: controlled open from chat ("Open in panel")
+}
+// state: openId: string | null, lit: string | null, scope: "turn" | "session" (v3, default "session")
+type Helper = { agent: SubAgent; name: string; tone: number; elapsed: number };  // spawn order</code></pre>
+    <h4>Anatomy and sizes (list)</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Scope toggle</td><td>segmented "This turn" / "Session", height 28, radius 10, <code>--surface-3</code> track; hidden when no turn is selected</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td><code>.ag-list</code></td><td>column gap 14</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>.ag-summary</code></td><td>flex baseline space-between, gap 10, 13px; left strong "{n} helper(s) · {r} running · {d} done · {s} stopped" (non-zero parts), right mono total span</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>Lanes</code></td><td>only when ≥ 2 helpers; see below</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>ul.ag-rows[aria-label="Helper agents"]</code></td><td>column gap 8 of HelperRow</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Foot</td><td>per-helper cost total (BE-08), then <a href="#ag-delegation">DelegationSettings</a> row</td><td><span class="tag backend">BE-08</span> / <span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <h4 id="ag-lanes">Lanes (internal)</h4>
+    <p>Props <code>{ helpers: Helper[]; now: number; skewMs?: number; lit: string | null }</code>. Gantt strip, <code>aria-hidden</code>. <code>.ag-timeline</code> column gap 6, padding 12, 1px <code>--line</code>, radius 12, <code>--surface-2</code>. <code>.ag-lane.tone-N</code> grid <code>72px minmax(0,1fr) 40px</code>, gap 10; name 12px <code>--ink-2</code> ellipsis (lit: <code>--ink</code> 500); track height 8 radius 4 <code>--surface-3</code>, lit adds <code>0 0 0 2px var(--ts)</code>; span absolute, min-width 4, radius 4, <code>--t</code>, left = <code>clamp((start - t0)/span·100, 0, 100)%</code>, width = <code>clamp(elapsed/span·100, 0, 100)%</code>, <code>.is-running</code> pulses opacity to .55 over 1.4s; time mono 11px right. <code>.ag-axis</code> "0s" … total, margin <code>0 50px 0 82px</code>, 10.5px mono <code>--ink-3</code>.</p>
+    <h4 id="ag-panel-row">HelperRow (internal, panel)</h4>
+    <p>Props <code>{ helper: Helper; preview: string; lit: boolean; onLit: (id: string | null) =&gt; void; onOpen: () =&gt; void }</code>. Button <code>#agent-card-{threadId}.ag-row.tone-N[.is-lit]</code>: flex start, gap 10, padding 12, 1px <code>--line</code>, radius 12, <code>--surface</code>; hover, focus and lit: border <code>--t</code>, bg <code>--ts</code>, chevron <code>--t</code>; focus-visible outline 2px <code>--t</code> offset 2. Content: <a href="#ag-avatar">HelperAvatar</a> 26; top line name strong + " · {role or taskTitle}" + <a href="#ag-statuschip">StatusChip</a>; meta mono 11px "{duration}[ · working…][ · level N][ · {tokens} tokens]" (tokens BE-08); <code>.ag-preview</code> = <code>previewTail</code> 200 chars / 3 lines of the live preview while running, else <code>lastMessage</code>, 12.5px/1.45 <code>--ink-2</code>; chevron <code>.ag-chev</code> 15. Hover or focus sets <code>lit</code>; click opens detail.</p>
+    <h4 id="ag-detail">HelperDetail (internal)</h4>
+    <p>Props <code>{ sessionId?: string; helper: Helper; index: number; count: number; preview: string; onBack: () =&gt; void; onPage: (step: number) =&gt; void }</code>. State <code>seg: "output" | "task" | "transcript"</code> (default output, resets on helper change), <code>transcript</code>, <code>loading</code>, <code>stopping</code>, <code>copied</code> (1.5s), <code>error</code>.</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th></tr></thead><tbody>
+    <tr><td><code>.ag-detail.tone-N</code></td><td>column gap 16</td></tr>
+    <tr><td><code>.ag-nav</code></td><td>"All helpers" back (<code>btn-ghost</code>, chevron-left 14, autofocused); pager when count &gt; 1: "Previous helper" / "Next helper" icon buttons 15 (wrap), label mono sm "{i} of {n}", min-width 44</td></tr>
+    <tr><td><code>.ag-ident</code></td><td>gap 12; avatar lg 38; name 15.5px/600 ellipsis; sub muted sm "{role} · Level {depth} · {taskTitle}"</td></tr>
+    <tr><td><code>dl.ag-stats</code></td><td>grid <code>repeat(auto-fit, minmax(110px,1fr))</code>, 1px hairlines, radius 12; cells Status (chip), Duration, Started ("h:mm" or "—"); v3 adds Tokens and Cost (BE-08, BE-11), "—" while running or missing</td></tr>
+    <tr><td><code>.ag-warn[role=note]</code></td><td>padding 10px 12px, radius 10, <code>--warn-bg</code>/<code>--warn-text</code>, 13px; errored "This helper failed before finishing."; notFound "This helper is no longer available."</td></tr>
+    <tr><td><code>.ag-error[role=alert]</code></td><td>13px <code>--bad</code></td></tr>
+    <tr><td><code>.ag-seg-tabs[role=tablist]</code></td><td>gap 2, padding 3, radius 10, <code>--surface-3</code>; tab height 28, padding 0 12, radius 8, 13px/500; active <code>--surface</code>, <code>--shadow-sm</code>. Output / Task / Transcript; panel <code>#ag-panel-{threadId}[role=tabpanel]</code></td></tr>
+    </tbody></table></div>
+    <div class="tw"><table class="tbl"><thead><tr><th>Tab</th><th>State</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Output</td><td>interrupted with output</td><td>"Stopped before finishing. Partial output:"</td></tr>
+    <tr><td>Output</td><td>running, empty</td><td>"Working… output appears when this helper finishes."</td></tr>
+    <tr><td>Output</td><td>not running, empty</td><td>"No output yet."</td></tr>
+    <tr><td>Output</td><td>actions</td><td>"Copy output" / "Copied" (not running, has output); "Stop" / "Stopping…" (running; disabled without sessionId); copy failure "Couldn't copy the output."</td></tr>
+    <tr><td>Task</td><td>task or none</td><td>full task in <code>.ag-task</code>, or "No task was recorded."; then "Sent by the main agent"</td></tr>
+    <tr><td>Transcript</td><td>lazy fetch on first open</td><td>no sessionId "Transcript isn't available."; loading spinner "Loading…"; messages <code>.ag-msg.markdown</code>; live tail <code>pre.ag-live[aria-live=polite]</code>; running "Working…"; empty "No output yet."; "Refresh transcript" / "Refreshing…"</td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>row</dt><dd><code>--surface</code>, <code>--line</code>; lit <code>--ts</code>/<code>--t</code></dd><dt>text</dt><dd><code>--ink</code>, meta <code>--ink-2</code></dd><dt>timeline</dt><dd><code>--surface-2</code>, track <code>--surface-3</code>, span <code>--t</code></dd><dt>motion</dt><dd>span width 250ms linear; row colors <code>--dur-2</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Empty</td><td><code>.empty-tab</code>, <code>.tile.lg</code> bot icon</td><td>"No helpers yet" · "When the assistant hands part of a task to a helper, it shows up here."</td></tr>
+    <tr><td>This turn, empty</td><td>same layout</td><td>"No helpers in this turn." + "Show all" (switches to Session) <span class="tag proposal">proposal</span> D-NEW-AG-11</td></tr>
+    <tr><td>List</td><td>summary, lanes (≥2), rows, foot</td><td></td></tr>
+    <tr><td>Detail</td><td>HelperDetail replaces the list; <code>onDetailChange(true)</code></td><td></td></tr>
+    <tr><td>Unavailable helper</td><td>row at opacity .7, warn chip</td><td>"Unavailable"</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li><code>useClock</code> ticks every 1s only while any helper runs.</li>
+      <li>This turn filters by <code>turnId</code> when BE-08 provides it, else by <code>startedAt</code> inside the selected turn's window (derive). Session is today's full list.</li>
+      <li>Opening from the chat (<code>onOpenAgent</code>) switches to the Agents tab and sets <code>openId</code>; Back focuses <code>#agent-card-{threadId}</code>.</li>
+      <li>Stop: <code>interruptAgent</code>. Transcript: <code>GET /api/sessions/:sessionId/agents/:threadId</code>.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Escape in detail returns to the list unless a <code>.scrim</code> or open <code>&lt;dialog&gt;</code> exists.</li><li>Tabs: ArrowLeft/Right move and select, Home/End; <code>aria-controls</code> the panel.</li><li>Lanes are <code>aria-hidden</code>; the rows carry the same information as text.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Lanes render only with 2 or more helpers.</li><li>Hovering a row lights its lane.</li><li>The pager wraps from last to first.</li><li>Opening the Transcript tab fetches once; switching back does not refetch.</li><li>"This turn" hides helpers spawned in other turns.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-statuschip">
+  <header><h4>StatusChip</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/agents-panel.tsx (exported) · base.css .ag-chip*</span></header>
+  <div class="body">
+    <p>The one status chip for helpers, used in the Handed off node, HelperGroup, the Agents tab, the detail stats and the tiles. Props <code>{ agent: SubAgent }</code>. Renders <code>span.ag-chip.{is-running|is-done|is-stopped|is-warn}</code> via <code>helperTone()</code>, with spinner (running tone) or ⚠ (warn tone) and <code>statusLabels[status]</code>. Unknown status: <code>is-stopped</code> with the raw text.</p>
+    <dl class="kv"><dt>size</dt><dd>inline-flex, gap 5, height 20, padding 0 8, radius 999, 11px/600 (today 11.5px/500 in the panel; unify on 11px/600 from the wireframe) <span class="tag proposal">proposal</span> D-01</dd><dt>spinner</dt><dd>9×9 (8×8 in the tree), off under reduced motion (static dot)</dd><dt>colors</dt><dd>see the status table in <a href="#ag-subagents">lib/subagents.ts</a></dd></dl>
+    <h4>Keyboard and a11y</h4>
+    <p>Plain text, not interactive. The ⚠ glyph is <code>aria-hidden</code>; the label carries the meaning.</p>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Every chip has visible text; color is never the only signal.</li><li>Stopped chip text meets 4.5:1 on its fill in both themes.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-avatar">
+  <header><h4>HelperAvatar</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/agents-panel.tsx (exported) · session.css .h-av · chat.css .hcard .h-av.xs</span></header>
+  <div class="body">
+    <p>Props <code>{ name: string; tone: number; size?: "xs" | "lg" }</code>. Renders <code>span.h-av.tone-{tone % 3}</code> with the uppercase first letter (fallback "H"), <code>aria-hidden</code>.</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>Size</th><th>Box</th><th>Radius</th><th>Font</th><th>Used in</th></tr></thead><tbody>
+    <tr><td>xs</td><td>18</td><td>6</td><td>10px/700</td><td>Handed off node, HelperGroup, tiles</td></tr>
+    <tr><td>default</td><td>26</td><td>8</td><td>12px/700</td><td>Agents tab rows</td></tr>
+    <tr><td>lg</td><td>38</td><td>11</td><td>16px/700</td><td>HelperDetail ident</td></tr>
+    </tbody></table></div>
+    <p>Tokens: background <code>var(--ts)</code>, text <code>var(--t)</code>.</p>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Name "" renders "H".</li><li>Tone 4 renders tone-1.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-helperchip">
+  <header><h4>HelperChip</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/helper-chip.tsx · full spec in <a href="#cp-helper">Composer: HelperChip</a></span></header>
+  <div class="body">
+    <p>The pill above the composer while helpers run: <code>.pulse</code> dot, "N helper(s) running · {LiveDuration}" and "View". Props <code>{ state: SubAgentState; onView: () =&gt; void }</code>; renders nothing when none run. Count is announced through a visually hidden polite live region; the timer is silent. Placement, the "View" selector fix and states are owned by the Composer part. This part owns the data it reads (<code>isRunning</code>, <code>SubAgentState</code>).</p>
+  </div>
+</div>
+
+<div class="comp" id="ag-delegation">
+  <header><h4>DelegationSettings</h4><span class="tag exists">exists</span><span class="tag backend">BE-10</span><span class="tag phase">P2</span>
+    <span class="path">components/session-activity.tsx (internal today) · v3 moves to components/v2/delegation-settings.tsx</span></header>
+  <div class="body">
+    <p>Helper delegation preferences. Today they are browser-only, sit below AgentsPanel and apply to new chats. v3 gives them a clear home and, with BE-10, stores the mode per session so the Handed off label is exact.</p>
+    <h4>New home</h4>
+    <ul>
+      <li>Primary: a collapsed settings row at the foot of the Agents tab list, "Delegation: {mode label} · max {n}" with a "Change" link that expands the fieldset in place. Hidden while a detail is open (as today).</li>
+      <li>Secondary: the delegation pill in the Handed off node links here (opens the Agents tab and expands the row).</li>
+      <li>Not in the composer bar: delegation is a standing preference, not per message <span class="tag proposal">proposal</span> D-NEW-AG-12.</li>
+    </ul>
+    <h4>Data</h4>
+<pre><code>{ value: DelegationPrefs; onChange: (prefs: DelegationPrefs) =&gt; void;
+  sessionMode?: DelegationPrefs | null;  // BE-10: Session.delegation, read-only for the current chat
+}
+// storage today: localStorage["truex.delegation"], normalised (mode fallback explicitRequestOnly,
+// maxConcurrent clamped 1–5, default 3)
+// BE-10: POST /api/sessions body gains delegation: DelegationPrefs; Session.delegation returned</code></pre>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>fieldset</dt><dd><code>fieldset.delegation</code> legend "Delegation for new chats", column gap 8, padding 12, 1px <code>--line</code>, radius 12</dd><dt>radios</dt><dd><code>name="delegation-mode"</code>: "Only when I ask" (<code>explicitRequestOnly</code>, default), "Whenever it helps" (<code>proactive</code>); <code>.delegation-opt</code> 13px, gap 8</dd><dt>select</dt><dd>"Max helpers at once" 1-5, default 3, <code>.delegation-max</code> height 32</dd><dt>note</dt><dd>12px <code>--ink-2</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Copy</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Browser only</td><td>"Saved in this browser. Applies to new chats."</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>With BE-10, current chat differs</td><td>"This chat uses {mode label} · max {n}. Changes apply to new chats."</td><td><span class="tag backend">BE-10</span></td></tr>
+    <tr><td>Collapsed row</td><td>"Delegation: {mode label} · max {n}" · "Change"</td><td><span class="tag derive">derive</span></td></tr>
+    </tbody></table></div>
+    <h4>Keyboard and a11y</h4>
+    <p>Native radios and select. "Change" is a button with <code>aria-expanded</code> and <code>aria-controls</code> the fieldset.</p>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Choosing "Whenever it helps" writes <code>{"mode":"proactive","maxConcurrent":3}</code> to <code>truex.delegation</code>.</li><li>A stored maxConcurrent of 9 loads as 5.</li><li>With BE-10, new sessions send the prefs and the Handed off pill reads <code>Session.delegation</code>.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-cost">
+  <header><h4>Per-helper cost</h4><span class="tag backend">BE-08</span><span class="tag phase">P2</span>
+    <span class="path">SubAgent.usage (BE-08) · currency via BE-11 · shown in Agents tab rows, detail stats and panel foot</span></header>
+  <div class="body">
+    <p><code>SubAgent</code> has no usage today, so helpers show elapsed time only. With BE-08 each helper carries its tokens, and with BE-11 its cost in currency.</p>
+    <h4>Data</h4>
+    <pre><code>usage?: { inputTokens: number; outputTokens: number; costUsd?: number }  // BE-08, costUsd BE-11
+// delivered on subagent.status / subagent.completed and in the snapshot</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Row meta appends " · {formatTokens(in + out)} tokens" when usage exists; detail stats show Tokens and Cost ("$0.42", 2 decimals; under $0.01 shows "&lt;$0.01").</li>
+      <li>Panel foot: "Helpers used {total} tokens[ · {cost}]" (sum over the current scope).</li>
+      <li>While running, values show "—" unless the backend streams interim usage.</li>
+      <li>Missing usage never renders "0"; the field is omitted.</li>
+      <li>Helper usage is separate from goal budget counts; the Goal strip does not add it.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Without BE-08, no token or cost text renders for helpers.</li><li>With usage 1200 in and 3400 out, the row reads "4.6k tokens".</li></ul>
+  </div>
+</div>
+
+<h3 id="ag-tools">Connected tools (MCP)</h3>
+
+<div class="comp" id="ag-mcp">
+  <header><h4>McpSettings and the tools shelf</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag backend">BE-06</span><span class="tag phase">P2</span>
+    <span class="path">components/mcp-settings.tsx · Sheet panel "mcp" "Connected tools" in app/page.tsx · app/panels.css .mcp-*</span></header>
+  <div class="body">
+    <p>Attach MCP servers to the current agent, add user servers and, new in v3, see who owns each one, whether it is safe and whether chats will actually use it. The API already returns scope, <code>editable</code>, <code>shadowed</code>, <code>warnings</code>, <code>urlHost</code>, <code>hasKey</code> and <code>tenantProfiles</code>; today's UI drops them. Edit and delete use the existing <code>PATCH</code>/<code>DELETE /api/mcp/:id</code>. Live status and OAuth wait on BE-06.</p>
+    <h4>Data</h4>
+<pre><code>type McpSummary = {
+  id: string;                  // "mcp_" + uuid
+  name: string;
+  scope: "user" | "tenant";    // user = owned by one user; tenant = shared, admin-managed
+  enabled: boolean;            // false → "unavailable"
+  transport: string;           // "http" or "configured" (legacy)
+  hasKey: boolean;             // value never returned
+  urlHost?: string;            // host[:port] only
+  agentIds: string[];
+  warnings?: string[];
+};
+type AgentMcpResponse = {
+  profileIds: string[];
+  profiles: (McpSummary &amp; { editable: boolean; shadowed?: true; attached: boolean })[];
+  tenantProfiles: (McpSummary &amp; { editable: boolean; attached: true })[];   // read-only
+};
+// GET /api/mcp → { userProfiles, tenantProfiles }
+type McpAuth = { kind: "none" | "bearer" | "header"; headerName?: string };  // + write-only apiKey
+
+// BE-06: live status, from the "mcp.status" domain event
+type McpStatus = { id: string; state: "connected" | "connecting" | "error" | "disconnected";
+  toolCount?: number; authRequired?: boolean; message?: string };
+
+// v3 component state (derive)
+type Row = AgentMcpResponse["profiles"][number] &amp; { status?: McpStatus };
+// profiles: Row[]; tenant: Row[]; selected: string[]; ready; busy; error; notice;
+// editing: string | null; confirmDelete: string | null; tab: "yours" | "workspace";
+// tenantDenied: boolean   // GET /api/tenant/mcp returned 403</code></pre>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Sheet</td><td>title "Connected tools", description "MCP servers attached to {agent name | this agent}. Changes apply to new chats." (see <a href="#nv-sheet">Shell: Sheet</a>)</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>New-chats note</td><td><code>.note</code>-style callout, 12.5px: "Changes apply to new chats. This conversation keeps the tools it started with."</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Tabs</td><td>"Yours" / "Workspace", height 28 segmented</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Server row <code>.mcp-row</code></td><td>grid <code>auto minmax(0,1fr) auto</code>, gap 4px 10px, padding 12, radius 12, 1px <code>--line</code>. Col 1 checkbox (attach); col 2 name + badges, meta, warnings; col 3 actions</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>LED</td><td>8×8 circle before the name, 3px ring of its soft color; hidden until BE-06</td><td><span class="tag backend">BE-06</span></td></tr>
+    <tr><td>Name</td><td>14px/600, ellipsis</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Scope badge</td><td>height 18, padding 0 6, radius 5, 10.5px/600 mono: "Yours" (user) or "Workspace" (tenant); <code>--surface-3</code> / <code>--ink-2</code></td><td><span class="tag exists">exists</span> data</td></tr>
+    <tr><td>Key badge</td><td>same size: "Key set" when <code>hasKey</code></td><td><span class="tag exists">exists</span> data</td></tr>
+    <tr><td>Shadowed pill</td><td>"Shadowed"; the row dims to opacity .7 (badges and warning stay full)</td><td><span class="tag exists">exists</span> data</td></tr>
+    <tr><td>Meta</td><td>mono 11px <code>--ink-2</code>: "{transport} · {urlHost}" · "Attached to {n} agent(s)" · "{toolCount} tools" (BE-06)</td><td>data / <span class="tag backend">BE-06</span></td></tr>
+    <tr><td>Warnings</td><td>one line each, 12px, <code>--warn-bg</code> / <code>--warn-text</code>, padding 6px 8px, radius 8, alert icon 12</td><td><span class="tag exists">exists</span> data</td></tr>
+    <tr><td>Actions</td><td>icon buttons 26×26 "Edit {name}" (pencil), "Delete {name}" (x); only when <code>editable</code></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Sign-in</td><td><code>btn-solid</code> height 26, 12px: "Sign in to {name}", when <code>authRequired</code></td><td><span class="tag backend">BE-06</span></td></tr>
+    <tr><td>Save bar</td><td>"Save attachments" <code>btn-solid</code>, sticky at the sheet foot, enabled only when <code>selected</code> differs from <code>profileIds</code></td><td><span class="tag exists">exists</span> (sticky and dirty check derive)</td></tr>
+    <tr><td>Add form</td><td><code>details.mcp-add</code> "Add an MCP server": Name, Endpoint URL, Authentication, Header name, API key, "Create server"</td><td><span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>row</dt><dd><code>--surface</code>, <code>--line</code>; attached row border <code>--accent</code> 40% mix</dd><dt>LED connected</dt><dd><code>--ok</code>, ring <code>--ok-bg</code></dd><dt>LED connecting</dt><dd><code>--accent</code>, pulses</dd><dt>LED auth required</dt><dd><code>--warn</code>, ring <code>--warn-bg</code></dd><dt>LED error, disconnected</dt><dd><code>--bad</code>, ring <code>--bad-bg</code></dd><dt>LED unavailable</dt><dd><code>--ink-3</code>, no ring</dd><dt>warning</dt><dd><code>--warn-bg</code> / <code>--warn-text</code></dd><dt>403 note</dt><dd><code>--surface-3</code> / <code>--ink-2</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>No agent</td><td>no agent selected</td><td>sheet body text only</td><td>"Select an agent to manage its tools."</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Loading</td><td>GET pending</td><td>3 skeleton rows</td><td>"Loading configuration…"</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Load failed</td><td>GET fails</td><td><code>p.error-banner[role=alert]</code> + "Try again"</td><td>server message</td><td>retry <span class="tag derive">derive</span></td></tr>
+    <tr><td>Empty</td><td>no profiles</td><td>empty state + open add form</td><td>"No MCP servers configured yet."</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Unavailable</td><td><code>enabled: false</code></td><td>checkbox can only be unchecked, grey LED</td><td>"Unavailable. Remove the attachment."</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Missing profile</td><td>attached id not in list</td><td>row with id, uncheck only</td><td>"Missing profile: {id}"</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Shadowed</td><td><code>shadowed: true</code></td><td>dimmed, "Shadowed" pill, warning line</td><td>"A workspace MCP server is also named {name}. Chats use the workspace server and skip this one; rename it to use it."</td><td>data; "workspace" replaces "tenant" <span class="tag proposal">proposal</span> D-NEW-AG-13</td></tr>
+    <tr><td>Plain HTTP</td><td>warning present</td><td>warning line</td><td>platform string verbatim: "This connector uses plain HTTP, so its API key and data travel unencrypted. Use HTTPS if the server supports it."</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Other warnings</td><td>any other string</td><td>warning line</td><td>string verbatim</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Editing</td><td>Edit</td><td>row expands into the add form, prefilled with name, URL (host only is known, so the URL field is empty with placeholder "Enter the full URL to change it"), auth kind; API key blank with "Leave blank to keep the current key" when <code>hasKey</code></td><td>"Save server" / "Cancel"</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Delete confirm</td><td>Delete</td><td>inline confirm in the row, "Delete" <code>.btn-danger</code> autofocus, "Keep"</td><td>"Delete {name}? It is attached to {agent names from agentIds}. Chats that already started keep it until they end."; with no agents "Delete {name}?"</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Busy</td><td>request in flight</td><td>fieldsets disabled, button label "Saving…"</td><td></td><td>label <span class="tag derive">derive</span></td></tr>
+    <tr><td>Saved</td><td>POST attachments ok</td><td><code>p.mcp-notice[role=status]</code></td><td>"Saved. Start a new chat to use these MCP servers."</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Created</td><td>POST /api/mcp 201</td><td>notice, new row checked</td><td>"Server created and selected. Save attachments to enable it for this agent."</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Name clash</td><td>409</td><td>field error on Name</td><td>server message</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Connected</td><td><code>mcp.status.state = connected</code></td><td>green LED, "{toolCount} tools"</td><td><code>aria-label</code> "Connected"</td><td><span class="tag backend">BE-06</span></td></tr>
+    <tr><td>Auth required</td><td><code>authRequired</code></td><td>amber LED, sign-in button</td><td>"Sign in to {name}" · "Sign-in needed"</td><td><span class="tag backend">BE-06</span></td></tr>
+    <tr><td>Signing in</td><td>OAuth popup open</td><td>button disabled</td><td>"Waiting for sign-in…"</td><td><span class="tag backend">BE-06</span></td></tr>
+    <tr><td>Connection error</td><td>state error</td><td>red LED, message line</td><td>"Can't reach {name}." + <code>message</code> when safe</td><td><span class="tag backend">BE-06</span></td></tr>
+    <tr><td>Workspace, admin</td><td><code>GET /api/tenant/mcp</code> 200</td><td>tenant rows editable, add form creates tenant servers (<code>POST /api/tenant/mcp</code>)</td><td></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Workspace, non-admin</td><td>403</td><td>neutral note, not an error banner; lists read-only <code>tenantProfiles</code></td><td>"Only workspace admins can manage shared servers. You can still use the ones attached to your agents."</td><td><span class="tag derive">derive</span></td></tr>
+    </tbody></table></div>
+    <h4>Validation (add and edit)</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Field</th><th>Rules</th></tr></thead><tbody>
+    <tr><td>Name</td><td>required, maxLength 64, placeholder "sap-tools". v3 client pattern matches the server: <code>/^[A-Za-z0-9-]+(?:_[A-Za-z0-9-]+)*$/</code>; message "MCP name must be 1–64 letters, digits or hyphens, with single underscores between words"</td></tr>
+    <tr><td>Endpoint URL</td><td>required on create, <code>type=url</code>, placeholder "https://example.com/mcp"; http allowed; show the plain-HTTP warning inline as soon as the URL starts with <code>http://</code></td></tr>
+    <tr><td>Authentication</td><td>None (default) / Bearer token / API key header</td></tr>
+    <tr><td>Header name</td><td>only for header; required, 1-128 HTTP token characters, not reserved; placeholder "x-api-key"</td></tr>
+    <tr><td>API key</td><td>only when auth is not none; <code>type=password</code>, <code>autocomplete=new-password</code>; required on create, optional on edit when <code>hasKey</code>; never echoed back</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Load: <code>GET /api/agents/:id/mcp</code>. Use <code>profiles</code> for "Yours" and <code>tenantProfiles</code> for attached workspace servers. For admins, <code>profiles</code> also contains tenant servers (legacy); split by <code>scope</code> so each server appears once, in its tab.</li>
+      <li>Attach: <code>POST /api/agents/:id/mcp { profileIds }</code> (at most 50 ids, each at most 200 chars) replaces the caller's attachments. Then <code>onSaved()</code> bumps <code>mcpVersion</code>.</li>
+      <li>Create: <code>POST /api/mcp { name, transport: "http", url, auth, apiKey? }</code>. Edit: <code>PATCH /api/mcp/:id</code> with changed fields only; omit <code>apiKey</code> to keep it. Delete: <code>DELETE /api/mcp/:id</code>, then drop it from <code>selected</code>. Tenant equivalents under <code>/api/tenant/mcp/:id</code> for admins.</li>
+      <li>Workspace tab fetches <code>GET /api/tenant/mcp</code> on first open. 403 sets <code>tenantDenied</code> and shows the note; any tenant route 403 for a non-admin is never shown as an error.</li>
+      <li>Live status (BE-06): subscribe to <code>mcp.status</code> events of the active session for LED and tool count. Sign-in opens the OAuth start URL from BE-06 in a popup; on completion the status event flips to connected. Until BE-06, the LED, tool count and sign-in button do not render and the row shows transport and host only.</li>
+      <li>The topbar tool-health button (<a href="#nv-topbar">Shell</a>) reads the same status and opens this sheet.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Each row: checkbox label = server name; badges and warnings linked via <code>aria-describedby</code>.</li>
+      <li>LED has <code>role="img"</code> and <code>aria-label</code> "Connected" / "Connecting" / "Sign-in needed" / "Can't connect" / "Unavailable".</li>
+      <li>Delete confirm moves focus to "Delete"; Escape or "Keep" returns focus to the Delete icon.</li>
+      <li>Notices use <code>role=status</code>; errors <code>role=alert</code>.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>A tenant server shows "Workspace" and no edit or delete for a non-admin.</li>
+      <li>A user server with <code>shadowed: true</code> is dimmed and shows the shadowed warning.</li>
+      <li>Editing without typing a key sends no <code>apiKey</code>, and <code>hasKey</code> stays true.</li>
+      <li>Deleting lists the attached agents by name.</li>
+      <li>A non-admin opening Workspace sees the note, not a red banner.</li>
+      <li>Without BE-06, no LED or sign-in control renders.</li>
+      <li>The new-chats note is visible in every state except No agent.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="ag-connected">
+  <header><h4>ConnectedTools and Capabilities</h4><span class="tag exists">exists</span><span class="tag phase">P3</span>
+    <span class="path">components/connected-tools.tsx · components/capabilities.tsx · both unmounted today</span></header>
+  <div class="body">
+    <p>Both are v1 leftovers that nothing imports. v3 does not mount either.</p>
+    <ul>
+      <li><b>ConnectedTools</b> (pill summarising attached servers, up to 3 <code>.tool-chip</code> + "+N", states "Loading tools…", "Tools unavailable", "Connect tools"). Out of scope: its job moves to the topbar tool-health button, which shows the worst server state and opens the Connected tools sheet (<a href="#nv-topbar">Shell</a>). Its aria copy "Connected tools: a, b (unavailable). Manage connected tools" is reused as the tool-health button label. Delete the component and its <code>app/chat.css</code> rules once tool-health ships.</li>
+      <li><b>Capabilities</b> (JSON-RPC explorer: operation select, JSON parameters, "Run operation", parameter schema, result). Out of scope: a developer tool, not a user surface. User actions it offered (fork, compact, model, effort, archive) are covered by slash commands and QuickTools (<a href="#cp-quicktools">Composer</a>). If kept, it lives only in dev mode behind D-04 in the tools sheet; otherwise delete it.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>No production route imports either component.</li></ul>
+  </div>
+</div>
+
+<h3 id="ag-gaps">Known gaps and redesign notes</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Gap (schema)</th><th>v3 answer</th><th>Tag</th></tr></thead><tbody>
+<tr><td>Rate-limit reset time not shown</td><td>"Wait for reset" with "Resets at {h:mm}"</td><td><span class="tag backend">BE-21</span></td></tr>
+<tr><td>Closing summary picked by chat order</td><td>kept; fixed when messages carry timestamps</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Goal controls not click-tested in a browser</td><td>Acceptance lists above are the Playwright checklist</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Codex vs Truex token counts</td><td>Codex-token note on the strip title, budget panel and Goal tab</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>"turn N" restarts on reload</td><td>kept; shown from turn 2</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Agents create-only; no All agents view</td><td>All agents sheet; edit and delete in the dialog</td><td><span class="tag backend">BE-07</span></td></tr>
+<tr><td>Agent fields not in the form (<code>sandbox</code>, <code>approvalPolicy</code>, <code>persona</code>, <code>scope</code>, <code>skillIds</code>, <code>mcpProfileIds</code>)</td><td>sandbox, approval and tool count shown read-only in the roster; the others stay hidden</td><td><span class="tag backend">BE-NEW: roster facts</span></td></tr>
+<tr><td>MCP flat list</td><td>scope tabs, badges, warnings, shadowed, admin tenant management</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>No live MCP status or OAuth</td><td>LED, tool count, sign-in</td><td><span class="tag backend">BE-06</span></td></tr>
+<tr><td>7 helper states in 4 tones</td><td><code>helperTone()</code> shared by every chip</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>No per-helper usage</td><td>Per-helper cost</td><td><span class="tag backend">BE-08</span></td></tr>
+<tr><td>Delegation is browser-only</td><td>Session delegation label</td><td><span class="tag backend">BE-10</span></td></tr>
+</tbody></table></div>
+
+<h3 id="ag-coverage">Coverage</h3>
+<div class="tw"><table class="tbl cov"><thead><tr><th>Schema heading</th><th>Covered in</th></tr></thead><tbody>
+<tr><td data-schema="4.0 Data model">4.0 Data model</td><td><a href="#ag-goal-model">Goal data model and status table</a></td></tr>
+<tr><td data-schema="Status display table (frontend/lib/goal.ts goalStatus)">Status display table (frontend/lib/goal.ts goalStatus)</td><td><a href="#ag-goal-model">Goal data model: status table</a></td></tr>
+<tr><td data-schema="Budget rules (lib/goal.ts)">Budget rules (lib/goal.ts)</td><td><a href="#ag-goal-model">Goal data model: budget rules</a></td></tr>
+<tr><td data-schema="Error reasons (frontend/lib/goal-errors.ts, shared/errors.ts)">Error reasons (frontend/lib/goal-errors.ts, shared/errors.ts)</td><td><a href="#ag-goal-model">Goal data model: stop reasons</a>, <a href="#ag-goal-reason">GoalReason</a></td></tr>
+<tr><td data-schema="Server error codes (platform)">Server error codes (platform)</td><td><a href="#ag-goal-model">Goal data model: API</a></td></tr>
+<tr><td data-schema="Client-side messages">Client-side messages</td><td><a href="#ag-goalbar">GoalBar controls</a>, <a href="#ag-goal-mode">Composer goal mode</a></td></tr>
+<tr><td data-schema="API calls">API calls</td><td><a href="#ag-goal-model">Goal data model: API</a></td></tr>
+<tr><td data-schema="4.1 State diagram">4.1 State diagram</td><td><a href="#ag-goal-model">Goal data model: transitions</a></td></tr>
+<tr><td data-schema="4.2 Page wiring (frontend/app/page.tsx)">4.2 Page wiring (frontend/app/page.tsx)</td><td><a href="#ag-goal-mode">Composer goal mode and page wiring</a></td></tr>
+<tr><td data-schema="4.3 Composer goal mode (drafting)">4.3 Composer goal mode (drafting)</td><td><a href="#ag-goal-mode">Composer goal mode</a>, full spec in <a href="#cp-goal">Composer</a></td></tr>
+<tr><td data-schema="BudgetField (frontend/components/budget-field.tsx), shared by composer and goal bar">BudgetField (frontend/components/budget-field.tsx), shared by composer and goal bar</td><td><a href="#ag-goal-mode">Composer goal mode and BudgetField</a></td></tr>
+<tr><td data-schema="4.4 GoalBar">4.4 GoalBar</td><td><a href="#ag-goal-strip">Goal strip</a>, <a href="#ag-goalbar">GoalBar controls</a>, <a href="#ag-review">Review flow</a></td></tr>
+<tr><td data-schema="4.5 GoalReason">4.5 GoalReason</td><td><a href="#ag-goal-reason">GoalReason</a></td></tr>
+<tr><td data-schema="4.6 GoalCompletion">4.6 GoalCompletion</td><td><a href="#ag-completion">GoalCompletion</a></td></tr>
+<tr><td data-schema="4.7 GoalTimeline">4.7 GoalTimeline</td><td><a href="#ag-goal-tab">Goal tab</a></td></tr>
+<tr><td data-schema="4.8 Goal commands in the chat transcript">4.8 Goal commands in the chat transcript</td><td><a href="#ag-goal-commands">Goal commands in the transcript</a></td></tr>
+<tr><td data-schema="4.9 Known gaps (from the status doc and code)">4.9 Known gaps (from the status doc and code)</td><td><a href="#ag-gaps">Known gaps and redesign notes</a></td></tr>
+<tr><td data-schema="5.0 Data model (shared/contracts.ts and related)">5.0 Data model (shared/contracts.ts and related)</td><td><a href="#ag-agent-data">Agent data</a>, <a href="#ag-subagents">lib/subagents.ts</a>, <a href="#ag-mcp">McpSettings</a></td></tr>
+<tr><td data-schema="5.1 lib/agent-look.ts (look + tint palettes)">5.1 lib/agent-look.ts (look + tint palettes)</td><td><a href="#ag-agent-data">Agent data: tints and looks</a></td></tr>
+<tr><td data-schema="5.2 lib/agents.ts (dialog helpers + API)">5.2 lib/agents.ts (dialog helpers + API)</td><td><a href="#ag-agent-data">Agent data: API helpers</a></td></tr>
+<tr><td data-schema="5.3 Robot (components/v2/agent-badge.tsx)">5.3 Robot (components/v2/agent-badge.tsx)</td><td><a href="#ag-robot">Robot</a></td></tr>
+<tr><td data-schema="5.4 Badge (components/v2/agent-badge.tsx)">5.4 Badge (components/v2/agent-badge.tsx)</td><td><a href="#ag-badge">Badge</a></td></tr>
+<tr><td data-schema="5.5 Confetti (components/v2/agent-badge.tsx)">5.5 Confetti (components/v2/agent-badge.tsx)</td><td><a href="#ag-confetti">Confetti</a></td></tr>
+<tr><td data-schema="5.6 AgentDialog (components/v2/agent-dialog.tsx)">5.6 AgentDialog (components/v2/agent-dialog.tsx)</td><td><a href="#ag-dialog">AgentDialog</a></td></tr>
+<tr><td data-schema="5.7 AgentMenu (components/v2/agent-menu.tsx)">5.7 AgentMenu (components/v2/agent-menu.tsx)</td><td><a href="#ag-menu">AgentMenu</a>, <a href="#ag-all">All agents sheet</a></td></tr>
+<tr><td data-schema="5.8 lib/subagents.ts (helper state, status, naming, delegation)">5.8 lib/subagents.ts (helper state, status, naming, delegation)</td><td><a href="#ag-subagents">lib/subagents.ts</a></td></tr>
+<tr><td data-schema="5.9 AgentsPanel (components/agents-panel.tsx)">5.9 AgentsPanel (components/agents-panel.tsx)</td><td><a href="#ag-panel">AgentsPanel</a></td></tr>
+<tr><td data-schema="Lanes (internal)">Lanes (internal)</td><td><a href="#ag-lanes">AgentsPanel: Lanes</a></td></tr>
+<tr><td data-schema="HelperRow (internal)">HelperRow (internal)</td><td><a href="#ag-panel-row">AgentsPanel: HelperRow</a></td></tr>
+<tr><td data-schema="HelperDetail (internal)">HelperDetail (internal)</td><td><a href="#ag-detail">AgentsPanel: HelperDetail</a></td></tr>
+<tr><td data-schema="5.10 StatusChip (components/agents-panel.tsx, exported)">5.10 StatusChip (components/agents-panel.tsx, exported)</td><td><a href="#ag-statuschip">StatusChip</a></td></tr>
+<tr><td data-schema="5.11 HelperAvatar (components/agents-panel.tsx, exported)">5.11 HelperAvatar (components/agents-panel.tsx, exported)</td><td><a href="#ag-avatar">HelperAvatar</a></td></tr>
+<tr><td data-schema="5.12 HelperChip (components/helper-chip.tsx)">5.12 HelperChip (components/helper-chip.tsx)</td><td><a href="#ag-helperchip">HelperChip</a>, full spec in <a href="#cp-helper">Composer</a></td></tr>
+<tr><td data-schema="5.13 DelegationSettings (components/session-activity.tsx, internal)">5.13 DelegationSettings (components/session-activity.tsx, internal)</td><td><a href="#ag-delegation">DelegationSettings</a></td></tr>
+<tr><td data-schema="5.14 McpSettings (components/mcp-settings.tsx)">5.14 McpSettings (components/mcp-settings.tsx)</td><td><a href="#ag-mcp">McpSettings and the tools shelf</a></td></tr>
+<tr><td data-schema="5.15 ConnectedTools (components/connected-tools.tsx), currently unmounted">5.15 ConnectedTools (components/connected-tools.tsx), currently unmounted</td><td>Out of scope: not mounted; replaced by the topbar tool-health button, see <a href="#ag-connected">ConnectedTools and Capabilities</a></td></tr>
+<tr><td data-schema="5.16 Capabilities (components/capabilities.tsx), currently unmounted">5.16 Capabilities (components/capabilities.tsx), currently unmounted</td><td>Out of scope: developer explorer, dev mode only under D-04, see <a href="#ag-connected">ConnectedTools and Capabilities</a></td></tr>
+<tr><td data-schema="5.17 Redesign notes (gaps a designer should know)">5.17 Redesign notes (gaps a designer should know)</td><td><a href="#ag-gaps">Known gaps and redesign notes</a></td></tr>
+</tbody></table></div>
+
+<h3 id="ag-new-be">New backend items</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Id</th><th>Item</th><th>Used by</th></tr></thead><tbody>
+<tr><td>BE-NEW: roster facts</td><td><code>AgentSummary</code> gains <code>approvalPolicy</code> and <code>mcpCount</code> (attached server count), so the roster can show them without reading <code>Agent</code></td><td><a href="#ag-all">All agents sheet</a>, <a href="#ag-agent-data">Agent data</a></td></tr>
+</tbody></table></div>
+
+<h3 id="ag-new-d">New decisions</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Id</th><th>Question</th><th>Default chosen</th></tr></thead><tbody>
+<tr><td>D-NEW-AG-01</td><td>Where does the strip's checkpoint count come from with no goal steps field?</td><td>Latest session <code>PlanStep[]</code>; hidden with no plan, meta falls back to duration</td></tr>
+<tr><td>D-NEW-AG-02</td><td>Meter color at 100%?</td><td><code>--bad</code> at 100%, <code>--warn</code> above 80%</td></tr>
+<tr><td>D-NEW-AG-03</td><td>Keep Resume goal next to the one fix?</td><td>Yes, as a secondary ghost button</td></tr>
+<tr><td>D-NEW-AG-04</td><td>Move Clear into the goal menu?</td><td>Both: icon on the strip and a menu item</td></tr>
+<tr><td>D-NEW-AG-05</td><td>Can built-in agents be edited?</td><td>No; read-only in v3</td></tr>
+<tr><td>D-NEW-AG-06</td><td>How do chats show a deleted agent?</td><td>"Removed agent", chat stays readable</td></tr>
+<tr><td>D-NEW-AG-07</td><td>Scrim click with unsaved dialog changes?</td><td>Ignored while dirty; Escape and Cancel still close</td></tr>
+<tr><td>D-NEW-AG-08</td><td>Switch agent while a turn runs?</td><td>Disabled with a tooltip</td></tr>
+<tr><td>D-NEW-AG-09</td><td>Show the browser delegation pref on old sessions before BE-10?</td><td>Hide the pill when the session is older than the last pref change</td></tr>
+<tr><td>D-NEW-AG-10</td><td>Status on narrow HelperGroup rows?</td><td>6px tone dot replaces the hidden chip</td></tr>
+<tr><td>D-NEW-AG-11</td><td>Agents tab default scope?</td><td>Session; "This turn" when opened from a turn</td></tr>
+<tr><td>D-NEW-AG-12</td><td>Delegation control in the composer?</td><td>No; Agents tab foot only</td></tr>
+<tr><td>D-NEW-AG-13</td><td>Rewrite platform "tenant" wording as "workspace" in the shadowed warning?</td><td>Yes, client-side copy for the known shadowed case; other warnings verbatim</td></tr>
+</tbody></table></div>
+</section>

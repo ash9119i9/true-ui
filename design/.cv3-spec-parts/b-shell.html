@@ -1,0 +1,1132 @@
+<section class="part" id="shell">
+<style>
+#shell .nv-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#shell .nv-pill{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-sm);font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap}
+#shell .nv-pill .m{color:var(--ink-2)}
+#shell .nv-dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--accent)}
+#shell .nv-dot.idle{background:var(--ink-3);opacity:.7}
+#shell .nv-dot.warn{background:var(--warn)}
+#shell .nv-dot.bad{background:var(--bad)}
+#shell .nv-dot.ring{background:transparent;box-shadow:inset 0 0 0 1.5px var(--line-strong)}
+#shell .nv-spin{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--line-strong);border-top-color:var(--accent-fg);flex:none}
+#shell .nv-need{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;background:var(--warn-bg);color:var(--warn-text);font-size:13px;font-weight:600;white-space:nowrap}
+#shell .nv-kbd{font:500 11px var(--font-mono);color:var(--ink-2);background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:1px 5px;white-space:nowrap}
+</style>
+<h2>Shell and navigation</h2>
+<p>The page frame, the sidebar, the topbar, the dock, ⌘K, the empty hero, account and share, the shared popover, sheet and toast primitives, error pages, the keyboard map and responsive rules. Today's shell (schema §1) already has a grouped chat list, a title-only palette, a greeting hero, a magnifying dock and four global hotkeys. v3 mounts projects in the sidebar, gives every row a live state, drives every status surface from one derived turn state, turns ⌘K into one search for chats, commands, agents and turns, and publishes every shortcut on a help sheet.</p>
+<div class="note">Placement rule from the wireframe: content is inline in the stream, status is pinned to the topbar, the goal strip and the session panel, and diagnostics stay folded. The shell owns the status edges. Its contents come from <a href="#composer">Composer</a>, <a href="#requests">Requests and Needs you</a>, <a href="#agents">Agents, helpers, goals</a> and <a href="#panel">Session panel</a>.</div>
+<div class="note warn">Sample content in this section (Qlik Analyst, Priya Raman, "Onboarding plan for new analysts", "Analyst onboarding", Google Drive) is an example. Names, titles and counts always come from the data fields named next to them.</div>
+
+<h3 id="nv-state">App-level state owned by Home</h3>
+<div class="comp" id="nv-home-state">
+  <header><h4>Home state and derived values</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">app/page.tsx · Home (default export, "use client") · new lib/turn-state.ts</span></header>
+  <div class="body">
+    <p>Home owns all workspace state (schema §1 "App-level state"). v3 keeps every existing field and name, adds a few local fields, and replaces the ad hoc <code>stateText</code> chain with one <code>deriveTurnState()</code> that every status surface reads.</p>
+    <h4>Data</h4>
+<pre><code>// app/page.tsx. Existing fields keep their names, types and initial values.
+interface HomeState {
+  // data and session (exists)
+  agents: AgentSummary[];               // []
+  agentId: string;                      // ""
+  sessions: PublicSession[];            // []
+  session: Session | null;              // null = draft
+  approvalModes: ApprovalModesConfig;   // approvalModesOff
+  draftMode: ApprovalMode | null;
+  entries: Entry[];
+  events: DomainEvent[];                // last 100 of selected types
+  pending: PendingRequest[];
+  plan: PlanStep[];
+  goal: Goal | null;
+  goalReview: GoalReview | null;
+  failure: TurnFailure | null;
+  subAgents: SubAgentState;
+  loading: boolean;                     // true until GET /api/agents settles
+  busy: boolean;                        // send in flight or turn running
+  running: boolean;                     // turn in progress
+  status: string;                       // "Not connected" | "Reconnecting" | "Disconnected" | ...
+  streamKey: number;
+  slowReconnect: boolean;               // after 30s reconnecting
+  retrying: boolean;
+  sessionsFailed: boolean;
+  error: string; errorDetail: ErrorRef | null;
+  draftProjectId: string | null;
+
+  // layout (exists)
+  panels: { sidebar: boolean; activity: boolean };
+  panelSizes: Record&lt;"list" | "detail", PanelSize&gt;;   // { list: "min", detail: "max" }
+  helperOpen: boolean;
+  vw: number;                           // 1440, then innerWidth
+  paletteOpen: boolean;
+  pop: null | "agent" | "user" | "share" | "needs";  // "share" BE-19, "needs" derive (new members)
+  agentDialogOpen: boolean;
+  panel: "mcp" | "tools" | "agents" | null;
+  composerFocused: boolean;
+  shellReady: boolean;
+
+  // new local state
+  stopRequested: boolean;               // derive: set by stopTurn(), cleared on turn.completed or a 409 from interrupt
+  lastTurnEnd: "completed" | "interrupted" | null;  // derive: from the last turn.completed event, reset on send
+  sessionsLoaded: boolean;              // derive: first GET /api/sessions settled (success or failure)
+  helpOpen: boolean;                    // derive: keyboard shortcuts sheet
+  sidebarFilter: "active" | "needs" | "archived";   // "needs" and "archived" BE-16
+  paletteScope: "all" | "chats" | "commands" | "agents" | "turns";
+  me: Me | null;                        // BE-17
+  toasts: Toast[];                      // proposal D-NEW-5
+}
+
+// Derived on every render. None of these are stored.
+interface ShellDerived {
+  empty: boolean;              // !session &amp;&amp; !entries.length (exists)
+  fit: Fit;                    // fitPanel(vw, PANEL_W[size], CHAT_MIN[size], panels.sidebar, panels.activity) (exists)
+  sidebarShown: boolean;       // panels.sidebar &amp;&amp; fit.sidebar (exists)
+  agent: AgentSummary | null;  // agents.find(a =&gt; a.id === agentId)
+  crumbTitle: string;          // exists, see Topbar
+  crumbProject: Project | null;// derive: projects.projects.find(p =&gt; p._id === session?.projectId)
+  turn: TurnView;              // derive: deriveTurnState(), see Topbar
+  needsYou: NeedsYouItem[];    // derive: spec in #requests; the topbar shows .length
+  toolHealth: ToolHealth;      // derive now, BE-06 for live server state
+  recent: PublicSession[];     // derive: first 3 sessions, excluding session?._id
+  noAgents: boolean;           // !loading &amp;&amp; agents.length === 0
+}</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Every status surface (topbar pill, helper chip, dock badge, Needs-you count, sidebar dot of the open row, live region) reads <code>turn</code>. No surface computes its own state.</li>
+      <li><code>stopTurn()</code> sets <code>stopRequested = true</code> before it pauses the goal and calls interrupt. It clears on <code>turn.completed</code>, on a 409 from interrupt (the turn already ended), and on session change.</li>
+      <li><code>lastTurnEnd</code> resets to <code>null</code> when <code>submitInput()</code> starts a turn and when <code>open(id)</code> or <code>startDraft()</code> runs.</li>
+      <li>Only one of <code>pop</code>, <code>paletteOpen</code>, <code>helpOpen</code> and a Sheet (<code>panel</code>) is open at a time. Opening one closes the others.</li>
+      <li>On mount (exists): health check, <code>GET /api/agents</code>, <code>GET /api/sessions</code>, <code>loadApprovalModes()</code>, <code>loadDelegation()</code>, open <code>?session=</code>. New: <code>GET /api/me</code> (BE-17) and <code>useProjects()</code> mounted in the sidebar.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Grepping for <code>stateText</code> finds only <code>deriveTurnState()</code> and its tests.</li>
+      <li>Pill, dock badge, helper chip and Needs-you count never disagree in any state from the turn state table.</li>
+      <li>Opening the palette while a popover is open closes the popover.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="note">Values tagged <span class="tag proposal">proposal</span> with D-01 come from the v3 wireframe (<code>design/.cv3-parts/map.html</code>, <code>nav.html</code>) and are the target until high-fidelity screens replace them. Spacing, z-index and motion values below are written as px and ms. Use the matching <code>--sp-*</code>, <code>--z-*</code>, <code>--dur-*</code> and <code>--ease-*</code> tokens from <a href="#foundations">Foundations</a>.</div>
+
+<h3 id="nv-layout">Frame and layout</h3>
+<div class="comp" id="nv-frame">
+  <header><h4>Shell, Panel and the layout grid</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/shell.tsx (Shell, Panel) · lib/fit-panel.ts · styles/v2/shell.css</span></header>
+  <div class="body">
+    <p>One flex row: sidebar panel, stage, activity (session) panel. Panels clip-reveal: the outer <code>aside</code> animates width and opacity, the inner card keeps its fixed width so content never reflows mid-animation. <code>fitPanel()</code> decides the panel width, whether the sidebar may show beside it, and whether the panel floats.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Part</th><th>Spec</th><th>Tag</th></tr></thead>
+      <tbody>
+        <tr><td><code>div.shell.layout-main[.is-ready]</code></td><td>flex row, padding 10px, gap 10px, height 100%. <code>.is-ready</code> added after the first rAF enables transitions.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td><code>aside.panel.sidebar</code></td><td>closed width 0, opacity 0; open width 268px (<code>SIDEBAR_W</code>). Inner <code>.panel-inner</code>: width 268, padding 14px 12px, gap 6px, <code>--surface</code>, 1px <code>--line</code>, radius <code>--radius</code> (16px), <code>--shadow-sm</code>. Content width 242px.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td><code>main.stage</code></td><td>flex 1, min-width 0, flex column, <code>--surface-2</code>, 1px <code>--line</code>, radius 16px, overflow hidden. Rows: topbar 56px, goal strip (optional), <code>.scroll</code> flex 1, <code>.bottom</code>.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td><code>aside.panel.activity[.is-overlay]</code></td><td>open width <code>var(--pw, 360px)</code>, <code>--pw</code> set inline from <code>fit.width</code>. <code>PANEL_W = { min: 360, max: 560 }</code>; list mode uses <code>min</code>, helper detail uses <code>max</code>. Overlay: fixed, right/top/bottom 10px, z 30, <code>--shadow-lg</code>.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>Transition</td><td>width 320ms <code>cubic-bezier(.2,.8,.2,1)</code>, opacity 200ms ease. None before <code>.is-ready</code>. None under reduced motion.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td><code>.scroll[role=log]</code></td><td>flex 1, overflow auto. Hero (empty) max 760 centred; <code>.thread</code> max 740, padding 16px 20px 24px, gap 22px.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td><code>.bottom</code></td><td>padding 0 20px 14px, flex column, centred, gap 12px. Children in order: error banner, docked request (see <a href="#requests">Requests</a>), HelperChip, composer (when not empty), <code>.dock-wrap</code>.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>Collapsed sidebar rail</td><td>When the sidebar is closed at vw &gt; 720, a 44px rail shows: <code>sidebar</code> (expand), <code>plus</code>, <code>search</code>, chats, <code>bot</code>. 30×30 icon targets, radius 9, gap 6. Active item <code>--accent-soft</code> fill, <code>--accent-fg</code> icon.</td><td><span class="tag proposal">proposal D-NEW-1</span></td></tr>
+        <tr><td><code>p.sr-only[role=status][aria-live=polite]</code></td><td>Single polite region for follow-activity text and turn state changes (see Topbar).</td><td><span class="tag exists">exists</span></td></tr>
+      </tbody>
+    </table></div>
+    <h4>fitPanel rules</h4>
+<pre><code>// lib/fit-panel.ts (exists, unchanged)
+export const PANEL_W = { min: 360, max: 560 } as const;
+export const CHAT_MIN = { min: 480, max: 640 } as const;
+export const SIDEBAR_W = 268;
+export const GAP = 10;
+export interface Fit { width: number; sidebar: boolean; overlay: boolean }
+export function fitPanel(vw, want, chatMin, sidebarOpen, panelOpen): Fit;
+
+width = min(want, vw - 20)
+chat  = vw - 20 - width - 10</code></pre>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>#</th><th>Condition (first match wins)</th><th>sidebar allowed</th><th>overlay</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><code>vw ≤ 720</code></td><td><code>!panelOpen</code> (one drawer at a time)</td><td>false</td></tr>
+        <tr><td>2</td><td><code>!panelOpen || vw ≤ 900</code></td><td>true</td><td>false (CSS makes the panel a drawer at ≤900)</td></tr>
+        <tr><td>3</td><td><code>!sidebarOpen || chat - 268 - 10 ≥ chatMin</code></td><td>true</td><td><code>!sidebarOpen &amp;&amp; chat &lt; chatMin</code></td></tr>
+        <tr><td>4</td><td><code>chat ≥ chatMin</code></td><td>false (sidebar yields)</td><td>false</td></tr>
+        <tr><td>5</td><td>otherwise</td><td>false</td><td>true</td></tr>
+      </tbody>
+    </table></div>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Panel size</th><th>Sidebar and docked panel</th><th>Sidebar hidden, panel docked</th><th>Panel floats</th></tr></thead>
+      <tbody>
+        <tr><td><code>min</code> (360 / 480)</td><td>vw ≥ 1148</td><td>901 to 1147 (sidebar requested)</td><td>never above 900</td></tr>
+        <tr><td><code>max</code> (560 / 640)</td><td>vw ≥ 1508</td><td>1230 to 1507</td><td>901 to 1229</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note warn">If D-NEW-1 (rail) ships, the rail takes 44px plus a 10px gap whenever the sidebar is closed at vw &gt; 720. <code>fitPanel</code> then needs a <code>RAIL_W = 44</code> term: <code>chat = vw - 20 - width - 10 - (sidebarOpen ? 0 : RAIL_W + GAP)</code>. Without the rail, keep the function unchanged. The known 10px drift (the closed sidebar's gap stays in flow) is fixed by giving the closed sidebar <code>margin-right: -10px</code>.</div>
+    <h4>Tokens</h4>
+    <p>Frame: <code>--bg</code> behind the shell. Cards: <code>--surface</code>, <code>--line</code>, <code>--radius</code>, <code>--shadow-sm</code>; drawers <code>--shadow-lg</code>. Stage <code>--surface-2</code>. Rail active <code>--accent-soft</code> / <code>--accent-fg</code>, rest <code>--ink-2</code>.</p>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>State</th><th>Trigger</th><th>Visual change</th></tr></thead>
+      <tbody>
+        <tr><td>Pre-ready</td><td>First paint</td><td>No transitions. At ≤900 both panels forced closed.</td></tr>
+        <tr><td>Panel closed</td><td><code>open=false</code></td><td>Width 0, opacity 0, <code>aria-hidden</code> and <code>inert</code> on the aside.</td></tr>
+        <tr><td>Panel docked</td><td><code>fit.overlay=false</code>, vw &gt; 900</td><td>In flow beside the stage.</td></tr>
+        <tr><td>Panel overlay</td><td><code>fit.overlay=true</code> or vw ≤ 900</td><td>Fixed drawer, <code>--shadow-lg</code>, z 30.</td></tr>
+        <tr><td>Sidebar yields</td><td><code>fit.sidebar=false</code></td><td>Sidebar renders closed even though <code>panels.sidebar</code> is true; rail (D-NEW-1) shows.</td></tr>
+      </tbody>
+    </table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li><code>toggleSidebar()</code> (exists): if shown, close. Opening wins: with the panel open and the sidebar not allowed at the current size, the panel drops from <code>max</code> to <code>min</code> if <code>min</code> fits, else the panel closes.</li>
+      <li><code>toggleActivity()</code> (exists): closing calls <code>follow.dismiss()</code>. Follow activity (<code>lib/auto-tab.ts</code>, <code>useFollowActivity</code>) may switch tabs (300ms batch, 8000ms manual hold, 60s stale) and only opens the panel when vw &gt; 900, the user did not dismiss it this turn, and opening leaves an open sidebar in place. Tab rules are in <a href="#panel">Session panel</a>.</li>
+      <li>Resize (exists): crossing from &gt;900 to ≤900 closes both panels.</li>
+      <li>Panels start closed on every load (exists). Persisting <code>panels</code> is not in scope for v3.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Sidebar aside <code>aria-label="Conversations"</code>, activity aside <code>aria-label="Session activity"</code>. Closed panels are <code>inert</code>, so nothing inside takes focus.</li>
+      <li>Opening a panel with a hotkey does not move focus. Opening it with a button moves focus to the panel's first control only when it is an overlay drawer.</li>
+      <li>Rail buttons carry <code>aria-label</code> plus a tooltip with the hotkey, same labels as the dock.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>At 1440 wide with both panels open at <code>min</code>, the stage is 772px (1440 − 40 − 268 − 360).</li>
+      <li>At 1300 wide with the sidebar open, opening a helper detail (<code>max</code>) hides the sidebar and docks the panel.</li>
+      <li>At 1000 wide, <code>max</code> with the sidebar closed floats the panel.</li>
+      <li>No layout transition runs on first paint.</li>
+      <li>A closed panel has no focusable descendants.</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="nv-nav">Sidebar</h3>
+<div class="comp" id="nv-sidebar">
+  <header><h4>Sidebar</h4><span class="tag exists">exists</span><span class="tag backend">backend BE-16</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/sidebar.tsx · mounts useProjects and SessionMenu from components/project-sidebar.tsx · replaces unmounted ProjectSidebar</span></header>
+  <div class="body">
+    <p>Left navigation: brand, search, new conversation, main nav, filter chips, project folders, grouped conversations with a state dot, and an account footer. It fetches nothing; Home passes data in.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Order</th><th>Part</th><th>Spec</th><th>Tag</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><code>.brand</code></td><td>flex, gap 6, padding 4px 6px 12px. <code>.brand-mark</code> 24×24, radius 7, <code>--ink</code> fill, <code>--bg</code> icon <code>spark</code> 14 stroke 2. <code>.brand-word</code> "truex" display font 17/700, tracking −.03em. <code>.brand-slash</code> "/" 16px <code>--line-strong</code>. <code>.brand-sub</code> "agents" 14/500 <code>--ink-3</code>.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>2</td><td><code>button.search-trigger</code></td><td>height 34, padding 0 8px 0 10px, radius 10, gap 8, 1px <code>--line</code> (hover <code>--line-strong</code>), <code>--surface-2</code>, text <code>--ink-2</code>. Icon <code>search</code> 15, label flex 1, <code>kbd</code> "⌘K".</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>3</td><td><code>button.btn-new</code></td><td>height 36, padding 0 8px 0 12px, radius 10, gap 8, <code>--ink</code> fill, <code>--bg</code> text 14/500, margin-bottom 10. Icon <code>plus</code> 16 stroke 2. <code>kbd</code> "⌘J" margin-left auto. Active scale .98 over 120ms.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>4</td><td><code>nav.side-nav[aria-label=Main]</code></td><td>flex column, gap 1, padding-bottom 10, bottom border 1px <code>--line</code>. <code>button.side-link</code> height 34, padding 0 10, radius 9, gap 10, icon 16. Items: Chats (<code>doc</code>), Agents (<code>bot</code>). Active: <code>--surface-3</code>, <code>--ink</code>, 500.</td><td><span class="tag exists">exists</span>; Chats item <span class="tag proposal">proposal D-NEW-1</span></td></tr>
+        <tr><td>5</td><td><code>div.side-filter[role=group]</code></td><td>flex wrap, gap 4. Chips height 24, padding 0 9, radius 999, 12/500, 1px <code>--line</code>, <code>--ink-2</code>. Selected: <code>--ink</code> fill, <code>--bg</code> text. Chips: Active, Needs you {n}, Archived.</td><td><span class="tag backend">backend BE-16</span></td></tr>
+        <tr><td>6</td><td><code>div.side-scroll</code></td><td>flex 1, overflow auto, margin 0 −4px, padding 0 4px. Holds error line, Projects group, date groups.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>7</td><td>Projects group <code>section[aria-label=Projects]</code></td><td>Header row: <code>.eyebrow</code> "Projects" + <code>button.row-action</code> <code>plus</code> 14 "New project". Folder row height 32, padding 0 8, radius 9, icon <code>folder</code> 15, name 13/600, chevron rotates 90° when expanded (160ms). Child rows indent padding-left 22.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>8</td><td><code>div.side-group</code> × 2</td><td>padding-top 14. <code>.eyebrow</code> 500 11px mono, tracking .06em, uppercase, <code>--ink-2</code> (was <code>--ink-3</code>; small text uses <code>--ink-2</code>), padding 0 10px 6px. Groups "Today", "Earlier" from <code>convoGroup()</code>.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>9</td><td><code>div.convo-row</code></td><td>height 32, padding 0 8, radius 9, gap 8. Children: state dot 8×8, <code>span.convo-title</code> 13px ellipsis (fallback "New conversation"), <code>span.convo-time</code> 500 11px mono <code>--ink-2</code>, <code>span.convo-menu</code> (SessionMenu trigger 24×24, hidden until hover, focus-within or expanded; time hides when it shows).</td><td><span class="tag exists">exists</span>; dot <span class="tag backend">backend BE-16</span></td></tr>
+        <tr><td>10</td><td>Account footer <code>button.side-user</code></td><td>margin-top auto, padding 8, top border 1px <code>--line</code>, gap 8. Avatar 28 circle <code>--ink</code> / <code>--bg</code> 12/700. Name 12.5/600 ellipsis, email 11.5px <code>--ink-2</code> ellipsis, chevron 14. Opens UserMenu anchored above it. Replaces <code>.side-foot</code> "Settings", which moves into UserMenu.</td><td><span class="tag backend">backend BE-17</span></td></tr>
+      </tbody>
+    </table></div>
+    <h4>State dots</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Dot</th><th>Condition</th><th>Visual</th><th>aria text</th><th>Tag</th></tr></thead>
+      <tbody>
+        <tr><td>Running</td><td>row is the open session and <code>turn.state</code> is working, starting or stopping; or <code>s.turnState === "running"</code></td><td><code>--accent</code> fill, pulse 1.6s (static under reduced motion)</td><td>"Running"</td><td>open row <span class="tag derive">derive</span>, others <span class="tag backend">BE-16</span></td></tr>
+        <tr><td>Waiting on you</td><td>open session with <code>turn.state === "waiting"</code>; or <code>s.pendingCount &gt; 0</code></td><td><code>--warn</code> fill, 3px ring <code>color-mix(in srgb, var(--warn) 22%, transparent)</code></td><td>"Waiting on you"</td><td>open row <span class="tag derive">derive</span>, others <span class="tag backend">BE-16</span></td></tr>
+        <tr><td>Failed</td><td>open session with <code>turn.state === "failed"</code>; or <code>s.turnState === "failed"</code></td><td><code>--bad</code> fill</td><td>"Failed"</td><td>same split</td></tr>
+        <tr><td>Idle</td><td>none of the above</td><td>transparent, 1.5px inset ring <code>--line-strong</code></td><td>none</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>Archived</td><td>Archived filter on</td><td>icon <code>history</code> 14 replaces the dot; title italic <code>--ink-2</code></td><td>"Archived"</td><td><span class="tag backend">BE-16</span></td></tr>
+      </tbody>
+    </table></div>
+    <div class="specimen" aria-label="Example state dots">
+      <div class="nv-row"><span class="nv-dot"></span><span>Running</span><span class="nv-dot warn"></span><span>Waiting on you</span><span class="nv-dot bad"></span><span>Failed</span><span class="nv-dot ring"></span><span>Idle</span></div>
+    </div>
+    <h4>Tokens</h4>
+    <p>Card <code>--surface</code>, <code>--line</code>. Row hover <code>--surface-2</code> with <code>--ink</code>. Active row <code>--accent-soft</code>, <code>--accent-fg</code> title, 600. Time and eyebrow <code>--ink-2</code>. Filter selected <code>--ink</code> / <code>--bg</code>. Error line <code>--bad-bg</code> / <code>--bad</code>. Dots <code>--accent</code>, <code>--warn</code>, <code>--bad</code>, <code>--line-strong</code>.</p>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>State</th><th>Trigger</th><th>Visual change</th><th>Copy</th></tr></thead>
+      <tbody>
+        <tr><td>Loading</td><td><code>!sessionsLoaded</code></td><td>3 skeleton rows 32px, <code>--surface-3</code> bars, no shimmer under reduced motion</td><td>sr-only "Loading conversations"</td></tr>
+        <tr><td>Empty <span class="tag derive">derive</span></td><td><code>sessionsLoaded &amp;&amp; sessions.length === 0 &amp;&amp; !sessionsFailed</code></td><td>Block inside <code>.side-scroll</code>: icon <code>history</code> 20 <code>--ink-3</code>, title 13/600, body 12.5 <code>--ink-2</code>, <code>.btn-soft</code> New conversation</td><td>"No conversations yet" · "Start one with {agent.name}, or press ⌘J." (no agent: "Start one, or press ⌘J.")</td></tr>
+        <tr><td>Filter empty</td><td>Needs you or Archived with zero rows</td><td>One line 12.5 <code>--ink-2</code>, padding 8 10</td><td>"Nothing needs you right now." · "No archived conversations."</td></tr>
+        <tr><td>Load failed</td><td><code>sessionsFailed</code> or <code>projects.refreshFailed</code></td><td><code>p.side-error[role=alert]</code>: padding 6 8, radius 9, <code>--bad-bg</code>, <code>--bad</code> 12.5, icon <code>alert</code> 14, then <code>button.side-retry</code> underlined <code>--ink</code>. The last good list stays below.</td><td>"Couldn’t refresh · Retry"</td></tr>
+        <tr><td>Project mutation failed</td><td><code>projects.error</code></td><td>Same line, dismiss × calls <code>clearError()</code></td><td><code>projects.error</code> ("The change could not be saved." or server message)</td></tr>
+        <tr><td>Busy</td><td><code>busy</code></td><td><code>.btn-new</code> and rows disabled, opacity .55. Search, nav, filters, account stay enabled.</td><td>title on New: "Wait for the current reply to finish"</td></tr>
+        <tr><td>Active row</td><td><code>s._id === activeId</code></td><td><code>--accent-soft</code>, <code>aria-current="true"</code></td><td>none</td></tr>
+        <tr><td>Agents active</td><td>Agents sheet open (<code>panel === "agents"</code>)</td><td>Agents link <code>.is-active</code>, <code>aria-current="page"</code></td><td>none</td></tr>
+        <tr><td>Touch</td><td><code>(hover: none)</code></td><td>row menu always visible, time hidden</td><td>none</td></tr>
+      </tbody>
+    </table></div>
+    <h4>Data</h4>
+<pre><code>// components/v2/sidebar.tsx
+export interface SidebarSession {
+  _id: string;
+  title?: string;
+  createdAt: string;
+  projectId?: string;
+  turnState?: "idle" | "running" | "waiting" | "failed";  // BE-16
+  pendingCount?: number;                                  // BE-16
+  archived?: boolean;                                     // BE-16
+}
+interface SidebarProps&lt;S extends SidebarSession&gt; {
+  sessions: S[];
+  activeId?: string | null;
+  activeTurn?: TurnState;                 // derive: turn.state for the open row
+  onOpen: (id: string) =&gt; void;
+  onNew: () =&gt; void;
+  onSearch: () =&gt; void;
+  agentsActive?: boolean;                 // now passed: panel === "agents"
+  onAgents?: () =&gt; void;                  // now opens the agents sheet, not the popover
+  renderRowMenu?: (session: S) =&gt; ReactNode;   // SessionMenu
+  loadError?: string | null;              // "Couldn’t refresh" when sessionsFailed || projects.refreshFailed
+  onRetry?: () =&gt; void;                   // refreshSessions() and projects.refreshAll()
+  busy?: boolean;
+  loaded: boolean;                        // sessionsLoaded
+  emptyAgentName?: string;                // agent?.name
+  projects: ProjectsState;                // useProjects(refreshSessions)
+  onNewInProject: (projectId: string) =&gt; void;   // startDraft(projectId) sets draftProjectId
+  filter: "active" | "needs" | "archived";
+  onFilter: (f: "active" | "needs" | "archived") =&gt; void;
+  me: Me | null;                          // BE-17
+  onAccount: () =&gt; void;                  // togglePop("user")
+}
+// Helpers kept: convoGroup(createdAt, now) → "Today" | "Earlier";
+// convoTime(createdAt, now) → "h:mm AM/PM" today, short weekday within 7 days, else "Sep 3", "" if invalid.</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>A session with <code>projectId</code> shows under its folder, not in Today or Earlier. Folder children come from <code>projects.byProject[id]</code>; a fresher title in <code>sessions</code> wins (same rule as ProjectSidebar).</li>
+      <li>Folders sort by <code>updatedAt</code> desc, then name (<code>sortProjects</code>). <code>expanded</code> is the source of open folders. <code>assign()</code> into a folder expands it.</li>
+      <li>Folder row menu: New chat in {name} (sets <code>draftProjectId</code> via <code>startDraft(projectId)</code>), Rename (NameInput), Delete (danger, confirm dialog, see Behavior of the Sheet primitive). Delete copy: "Delete project “{name}”? Conversations will stay in Recents."</li>
+      <li>New project: NameInput inline at the top of the group. Validation from <code>checkProjectName</code> (max 80, input maxLength 120): "Enter a project name." / "Use 80 characters or fewer."</li>
+      <li>Row ⋯ menu is SessionMenu (views root, pick, new), unchanged. Disabled while <code>busy</code>.</li>
+      <li>Filter Active is today's list. Needs you shows rows with <code>pendingCount &gt; 0</code> (BE-16), plus the open session when <code>turn.state === "waiting"</code>. Archived calls <code>GET /api/sessions?archived=1</code> (BE-16). Until BE-16 ships, hide the Needs you and Archived chips and the filter row.</li>
+      <li>Retry clears the error line immediately and shows it again only if the refetch fails.</li>
+      <li>Agents link opens the agents sheet (<code>setPanel("agents")</code>) and becomes active. This fixes the bug where it opened the agent popover and <code>agentsActive</code> was never passed.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Tab order: search, New, nav links, filter chips, Projects "+", folders and their rows, date-group rows, account.</li>
+      <li>Folder toggle is a button with <code>aria-expanded</code>. Filter chips are <code>button[aria-pressed]</code> in a <code>role=group</code> labelled "Filter conversations".</li>
+      <li>Each row button's accessible name: "{title}, {dot aria text}, {time}". Menu trigger: "Options for {title}".</li>
+      <li>SessionMenu keys (exists): ↓ on trigger opens, ↑/↓/Home/End move, Esc closes and refocuses the trigger, Tab closes.</li>
+    </ul>
+    <h4>Copy</h4>
+    <dl class="kv"><dt>search</dt><dd>"Search" (label), "⌘K"</dd><dt>new</dt><dd>"New conversation", "⌘J"</dd><dt>nav</dt><dd>"Chats", "Agents"</dd><dt>filters</dt><dd>"Active", "Needs you {n}", "Archived"</dd><dt>groups</dt><dd>"Projects", "Today", "Earlier"</dd><dt>project</dt><dd>"New project", "New chat in {name}", "Rename", "Delete", "No projects yet.", "Loading…", "No conversations yet."</dd><dt>error</dt><dd>"Couldn’t refresh · Retry"</dd></dl>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>With zero sessions after load, the empty block renders and its button starts a draft.</li>
+      <li>With a failed refresh, the error line shows above the last good list.</li>
+      <li>A session with a <code>projectId</code> appears once, under its folder.</li>
+      <li>Clicking Agents opens the agents sheet and the link gets <code>aria-current="page"</code>.</li>
+      <li>The open row's dot matches the topbar pill in every turn state.</li>
+      <li>Without BE-16, no filter row is rendered and non-open rows show the idle ring.</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="nv-top">Topbar</h3>
+<div class="comp" id="nv-topbar">
+  <header><h4>Topbar</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/topbar.tsx · new lib/turn-state.ts (deriveTurnState) · styles/v2/shell.css</span></header>
+  <div class="body">
+    <p>The 56px stage header. Left: the crumb. Centre: the status pill, driven by the one derived turn state. Right: Needs-you count, tool-health dot, Reconnect, theme toggle and Share.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Part</th><th>Spec</th><th>Tag</th></tr></thead>
+      <tbody>
+        <tr><td><code>header.topbar</code></td><td>position relative, z 2, grid <code>1fr auto 1fr</code>, align center, height 56, padding 0 12px 0 18px, bottom border 1px <code>--line</code></td><td><span class="tag exists">exists</span>; border <span class="tag proposal">proposal D-01</span></td></tr>
+        <tr><td><code>.crumb</code></td><td>flex, gap 8, min-width 0. When <code>!sidebarShown</code>: <code>.brand-word.sm</code> "truex" 22/800, tracking −.04em. Then, when a project exists: project name 500 <code>--ink-3</code> nowrap + icon <code>chevronR</code> 14. Then <code>.crumb-title</code> 500 <code>--ink</code> ellipsis. With no title the separator hides.</td><td><span class="tag exists">exists</span>; project <span class="tag derive">derive</span></td></tr>
+        <tr><td><code>button.status-pill</code></td><td>inline-flex, gap 8, height 30, padding 0 12, radius 999, <code>--surface</code>, 1px <code>--line</code>, <code>--shadow-sm</code>, 13/500. Parts: indicator (8×8 dot or 10px spinner), agent name, "·", state label in <code>--ink-2</code>. Max width 320, agent name ellipsis first.</td><td><span class="tag exists">exists</span>; indicator and labels <span class="tag derive">derive</span></td></tr>
+        <tr><td><code>div.top-actions</code></td><td>flex, gap 6, justify end. Order: Needs you, tool-health, Reconnect (conditional), theme, Share.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td><code>button.needs-you</code></td><td>height 28, padding 0 10, radius 999, gap 6, <code>--warn-bg</code> fill, <code>--warn-text</code> 13/600, inset ring 1px <code>color-mix(in srgb, var(--warn) 35%, transparent)</code>. Icon <code>alert</code> 14. Hidden when the count is 0.</td><td><span class="tag derive">derive</span></td></tr>
+        <tr><td><code>button.tool-health</code></td><td><code>.icon-btn</code> 34×34, radius 10, icon <code>plug</code> 16, status dot 8×8 at top 6 / right 6 with a 2px <code>--surface</code> ring. Hidden when the agent has no MCP servers.</td><td><span class="tag derive">derive</span>; live state <span class="tag backend">BE-06</span></td></tr>
+        <tr><td><code>button.text-btn</code> Reconnect</td><td>height 32, padding 0 10, radius 9, 13px <code>--ink-2</code>. Shown when <code>session &amp;&amp; status === "Disconnected"</code>.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>Theme <code>button.icon-btn</code></td><td>34×34, radius 10, 1px <code>--line</code>, icon <code>sun</code> when dark else <code>moon</code>, 16px. Hover <code>--surface-3</code>, <code>--ink</code>, 150ms.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>Share <code>button.icon-btn</code></td><td>34×34, icon <code>share</code> 16. Opens the Share popover (see <a href="#nv-share">Share</a>).</td><td><span class="tag backend">BE-19</span></td></tr>
+      </tbody>
+    </table></div>
+
+    <h4 id="nv-turn-state">Turn state table</h4>
+    <p><code>deriveTurnState()</code> returns one state. The pill, helper chip, dock badge, Needs-you count, open row dot and live region read it. States and inputs are from <code>map.html</code> board 2.</p>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>State</th><th>Inputs</th><th>Pill indicator</th><th>Pill label</th><th>Helper chip</th><th>Dock badge</th><th>Needs you</th><th>Tag</th></tr></thead>
+      <tbody>
+        <tr><td><code>idle</code></td><td><code>!running &amp;&amp; !busy</code></td><td>dot <code>--ink-3</code>, opacity .7, no pulse</td><td>"Ready"</td><td>hidden</td><td>none</td><td>open items only</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td><code>starting</code></td><td><code>busy &amp;&amp; !running</code></td><td>spinner</td><td>"Starting"</td><td>hidden</td><td>none</td><td>unchanged</td><td><span class="tag derive">derive</span></td></tr>
+        <tr><td><code>working</code></td><td><code>running</code>; <code>goal?.status === "active"</code> picks the goal label; <code>retrying</code> picks the retry label</td><td>dot <code>--accent</code>, pulse 1.6s</td><td>"Working" · "Working on goal" · "Retrying…"</td><td>"{n} helpers" when helpers run</td><td>accent dot</td><td>unchanged</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td><code>waiting</code></td><td><code>running &amp;&amp; pending.length &gt; 0</code></td><td>dot <code>--warn</code>, pulse</td><td>"Waiting on you"</td><td>"{helper} needs you" when known, else "Needs you"</td><td>warn badge with <code>pending.length</code></td><td>+ each request</td><td><span class="tag derive">derive</span></td></tr>
+        <tr><td><code>stopping</code></td><td><code>running &amp;&amp; stopRequested</code></td><td>spinner</td><td>"Stopping"</td><td>"Stopping"</td><td>accent dot</td><td>unchanged</td><td><span class="tag derive">derive</span></td></tr>
+        <tr><td><code>interrupted</code></td><td><code>!running &amp;&amp; lastTurnEnd === "interrupted"</code></td><td>dot <code>--ink-3</code>, no pulse</td><td>"Stopped"</td><td>"Stopped"</td><td>none</td><td>+1 if <code>goal.status === "paused"</code></td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td><code>failed</code></td><td><code>failure &amp;&amp; !retrying</code></td><td>dot <code>--bad</code>, no pulse</td><td>"Failed"</td><td>"{n} errored" when helpers errored</td><td>bad badge "!"</td><td>+1 failure</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td><code>reconnecting</code></td><td><code>status</code> is "Reconnecting" or "Disconnected"; <code>slowReconnect</code></td><td>dot <code>--warn</code>, pulse; Disconnected: no pulse</td><td>"Reconnecting…" · "Still reconnecting…" · "Disconnected"</td><td>frozen</td><td>frozen</td><td>frozen</td><td><span class="tag exists">exists</span></td></tr>
+      </tbody>
+    </table></div>
+    <p><b>Priority when inputs overlap</b> (first match wins): <code>reconnecting</code> › <code>failed</code> › <code>stopping</code> › <code>waiting</code> › <code>working</code> › <code>starting</code> › <code>interrupted</code> › <code>idle</code>.</p>
+<pre><code>// lib/turn-state.ts
+export type TurnState =
+  | "idle" | "starting" | "working" | "waiting"
+  | "stopping" | "interrupted" | "failed" | "reconnecting";
+
+export interface TurnInputs {
+  running: boolean; busy: boolean; status: string; slowReconnect: boolean;
+  retrying: boolean; pending: PendingRequest[]; goal: Goal | null;
+  failure: TurnFailure | null; stopRequested: boolean;
+  lastTurnEnd: "completed" | "interrupted" | null;
+}
+export interface TurnView {
+  state: TurnState;
+  label: string;           // pill label from the table
+  indicator: "dot" | "spinner";
+  tone: "idle" | "accent" | "warn" | "bad";
+  pulse: boolean;          // false when prefers-reduced-motion
+  frozen: boolean;         // reconnecting: counts hold their last value
+}
+
+export function deriveTurnState(i: TurnInputs): TurnView {
+  if (i.status === "Reconnecting" || i.status === "Disconnected") return reconnecting(i);
+  if (i.failure &amp;&amp; !i.retrying) return view("failed");
+  if (i.running &amp;&amp; i.stopRequested) return view("stopping");
+  if (i.running &amp;&amp; i.pending.length &gt; 0) return view("waiting");
+  if (i.running) return working(i);          // goal / retry label
+  if (i.busy) return view("starting");
+  if (i.lastTurnEnd === "interrupted") return view("interrupted");
+  return view("idle");
+}</code></pre>
+    <div class="note warn">D-07: a helper request (from a sub-agent thread) turns the pill to Waiting on you the same as a main request. Telling them apart waits on <code>PendingRequest.threadId</code> (BE-02). <code>failure</code> clears on the next send (existing behavior); if it does not, the pill would stay Failed after a successful turn, so the reducer that sets <code>running=true</code> must also clear <code>failure</code>.</div>
+    <div class="specimen" aria-label="Example pills">
+      <div class="nv-row">
+        <span class="nv-pill"><span class="nv-dot idle"></span>Qlik Analyst <span class="m">· Ready</span></span>
+        <span class="nv-pill"><span class="nv-spin"></span>Qlik Analyst <span class="m">· Starting</span></span>
+        <span class="nv-pill"><span class="nv-dot"></span>Qlik Analyst <span class="m">· Working on goal</span></span>
+        <span class="nv-pill"><span class="nv-dot warn"></span>Qlik Analyst <span class="m">· Waiting on you</span></span>
+        <span class="nv-pill"><span class="nv-dot bad"></span>Qlik Analyst <span class="m">· Failed</span></span>
+        <span class="nv-need">Needs you · 2</span>
+      </div>
+    </div>
+
+    <h4>Needs-you count</h4>
+    <p>The count is <code>needsYou.length</code>. The item list, its order and the tray are specified in <a href="#requests">Requests and Needs you</a>. Inputs: open <code>pending[]</code>, a goal stopped for input (<code>blocked</code>, <code>usageLimited</code>, <code>budgetLimited</code>, <code>paused</code> after an interrupt), helpers with an errored or notFound <code>SubAgentStatus</code>, the last <code>failure</code>, and tool problems from tool health. Clicking opens the tray (<code>pop = "needs"</code>). While <code>turn.frozen</code>, the count holds its last value.</p>
+
+    <h4>Tool-health dot</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Health</th><th>Rule</th><th>Dot</th><th>Tooltip</th><th>Tag</th></tr></thead>
+      <tbody>
+        <tr><td><code>ok</code></td><td>servers configured, no tool error this session</td><td><code>--ok</code></td><td>"Connected tools · {n} servers"</td><td><span class="tag derive">derive</span></td></tr>
+        <tr><td><code>error</code></td><td>any tool step failed this session (tool item with error in <code>entries</code>)</td><td><code>--bad</code></td><td>"{server} · {n} tool errors"</td><td><span class="tag derive">derive</span></td></tr>
+        <tr><td><code>auth</code></td><td><code>mcp.status.authRequired</code></td><td><code>--warn</code></td><td>"{server} needs sign-in"</td><td><span class="tag backend">BE-06</span></td></tr>
+        <tr><td><code>down</code></td><td><code>mcp.status.state</code> not connected</td><td><code>--bad</code></td><td>"{server} is offline"</td><td><span class="tag backend">BE-06</span></td></tr>
+        <tr><td><code>unknown</code></td><td>no status data yet</td><td>none (icon only)</td><td>"Connected tools"</td><td><span class="tag exists">exists</span></td></tr>
+      </tbody>
+    </table></div>
+    <p>Click opens the "Connected tools" sheet (<code>setPanel("mcp")</code>). Worst state wins: down › error › auth › ok.</p>
+
+    <h4>Tokens</h4>
+    <p>Pill <code>--surface</code>, <code>--line</code>, <code>--shadow-sm</code>, label <code>--ink-2</code>. Indicators <code>--accent</code>, <code>--warn</code>, <code>--bad</code>, <code>--ink-3</code>. Needs you <code>--warn-bg</code>, <code>--warn-text</code>, <code>--warn</code>. Tool dot <code>--ok</code>, <code>--warn</code>, <code>--bad</code>. Crumb project <code>--ink-3</code> (14px, above the 13px rule).</p>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>State</th><th>Trigger</th><th>Visual change</th><th>Copy</th></tr></thead>
+      <tbody>
+        <tr><td>Loading agents</td><td><code>loading</code></td><td>pill agent part shows loading text, idle dot</td><td>"Loading agents…"</td></tr>
+        <tr><td>No agent</td><td>loaded, no agent selected</td><td>pill agent part</td><td>"No agent"</td></tr>
+        <tr><td>Crumb wordmark</td><td><code>!sidebarShown</code></td><td>"truex" shows first</td><td>"truex"</td></tr>
+        <tr><td>Draft</td><td>no session, no entries</td><td>no title, no separator</td><td>none</td></tr>
+        <tr><td>Draft with entries</td><td>no session, entries</td><td>title</td><td>"New conversation"</td></tr>
+        <tr><td>Untitled</td><td>session with no title</td><td>title</td><td>"Untitled conversation"</td></tr>
+        <tr><td>Disconnected</td><td><code>status === "Disconnected"</code></td><td>Reconnect button shows</td><td>"Reconnect"</td></tr>
+      </tbody>
+    </table></div>
+    <h4>Data</h4>
+<pre><code>interface TopbarProps {
+  sidebarShown: boolean;
+  title?: string | null;          // crumbTitle
+  project?: string | null;        // derive: crumbProject?.name
+  agentName: string;              // "Loading agents…" | agent.name | "No agent"
+  turn: TurnView;                 // replaces stateText and busy
+  onStatusClick?: () =&gt; void;     // togglePop("agent")
+  needsCount: number;             // needsYou.length
+  onNeeds: () =&gt; void;            // togglePop("needs")
+  toolHealth: { state: "ok" | "error" | "auth" | "down" | "unknown"; label: string } | null;
+  onTools: () =&gt; void;            // setPanel("mcp")
+  actions?: ReactNode;            // Reconnect
+  isDark: boolean;
+  onToggleTheme: () =&gt; void;
+  onShare: () =&gt; void;            // togglePop("share"), BE-19
+  shareRef: RefObject&lt;HTMLButtonElement&gt;;
+}</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Crumb title (exists): session title from the list, then <code>session.title</code>, then "Untitled conversation"; a draft with entries shows "New conversation"; else empty.</li>
+      <li>Clicking the pill toggles the agent popover (exists, D-02). Its <code>title</code> is "Edit {agentName}".</li>
+      <li>Reconnect (exists) sets status "Reconnecting" and bumps <code>streamKey</code>.</li>
+      <li>Truncation order when narrow: project name hides first (below 1100 stage width), then the title ellipsizes, then the agent name ellipsizes. The state label never truncates.</li>
+      <li>Live region: on each change of <code>turn.state</code>, write one of "Working", "Waiting on you", "Stopped", "Failed", "Reconnecting", "Done" (working to idle) into the polite region. Throttle to one message per 1000ms. The streaming body never goes in a live region.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Tab order: crumb (not focusable), pill, Needs you, tool health, Reconnect, theme, Share.</li>
+      <li>Pill <code>aria-haspopup="dialog"</code>, <code>aria-expanded</code> with the agent popover, name "{agentName}, {label}. Edit agent".</li>
+      <li>Needs you name "Needs you, {n} items", <code>aria-haspopup="dialog"</code>. Tool health name from the tooltip text.</li>
+      <li>Theme: "Switch to light theme" / "Switch to dark theme". Share: "Share conversation".</li>
+      <li>Pulse and spinner have static fallbacks under reduced motion.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Every row of the turn state table has a unit test on <code>deriveTurnState()</code>, including the overlaps: reconnecting with pending, failed with running, stopping with pending.</li>
+      <li>Between Send and the first <code>turn.started</code>, the pill says Starting, not Ready.</li>
+      <li>After Stop, the pill says Stopping until <code>turn.completed</code>, then Stopped.</li>
+      <li>While reconnecting, the Needs-you count does not drop to zero.</li>
+      <li>Share opens a popover and no longer does nothing.</li>
+      <li>Needs you is hidden at 0 and shows the exact count otherwise.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="nv-goal-strip">
+  <header><h4>Goal strip placement</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/goal-bar.tsx (GoalBar) · moved from .bottom to below the topbar</span></header>
+  <div class="body">
+    <p>The goal strip sits directly under the topbar, full stage width, above <code>.scroll</code>. Contents, states and actions are in <a href="#ag-goal-strip">Goal strip</a>.</p>
+    <dl class="kv"><dt>render when</dt><dd><code>session &amp;&amp; goal</code> (exists condition), any status</dd><dt>position</dt><dd>stage row 2, not sticky inside <code>.scroll</code>, so it never scrolls away</dd><dt>frame</dt><dd>min-height 38, padding 8px 12px, bottom border 1px <code>--line</code>, <code>--surface-2</code> <span class="tag proposal">proposal D-01</span></dd><dt>phones</dt><dd>≤720: the budget meter hides (exists rule <code>.goal-strip .bar { display:none }</code>); the strip keeps objective and step count</dd></dl>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>With a goal, the strip stays visible while the thread scrolls.</li><li>Without a goal, the stage has no empty row.</li></ul>
+  </div>
+</div>
+
+<h3 id="nv-dock-h">Dock</h3>
+<div class="comp" id="nv-dock">
+  <header><h4>FloatingDock and DockButton</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/floating-dock.tsx (FloatingDock, internal DockButton) · styles/v2/dock.css</span></header>
+  <div class="body">
+    <p>A magnifying dock of workspace actions centred at the bottom of the stage. On phones (≤720) it becomes a fixed bottom bar without magnification.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Part</th><th>Spec</th></tr></thead>
+      <tbody>
+        <tr><td><code>nav.dock[aria-label=Workspace]</code></td><td>flex, align end, gap 6, height 56, padding 0 8px 8px, radius 20, background <code>color-mix(in srgb, var(--surface) 78%, transparent)</code>, <code>backdrop-filter: blur(14px) saturate(1.4)</code>, 1px <code>--line</code>, <code>--shadow-lg</code></td></tr>
+        <tr><td><code>.dock-sep</code></td><td>width 1, height 22, margin 8px 2px 0, <code>--line-strong</code>. Before item 3 and item 5 (<code>groups=[3,5]</code>).</td></tr>
+        <tr><td><code>button.dock-btn</code></td><td>circle, 40px at rest (inline size), 1px <code>--line</code>, <code>--surface-3</code>, icon <code>--ink-2</code> 18px stroke 1.75. Hover icon <code>--ink</code>. Transition size 140ms ease-out, colors 150ms.</td></tr>
+        <tr><td><code>.is-active</code></td><td><code>--accent-fg</code> fill and border, <code>--on-accent</code> icon (was <code>--accent</code>; contrast rule). <code>.dock-pip</code> 4×4 at bottom −6, <code>--accent</code>.</td></tr>
+        <tr><td><code>.dock-badge</code></td><td>top 1, right 1. Dot variant 9×9 <code>--accent</code>, 2px <code>--surface</code> border, pulse 1.6s. Count variant min-width 18, height 18, padding 0 5, radius 999, 700 10px mono: warn <code>--warn</code> / <code>--bg</code> text; bad <code>--bad</code> / <code>--bg</code> "!".</td></tr>
+        <tr><td><code>span.dock-tip[role=tooltip]</code></td><td>bottom calc(100% + 10px), centred, padding 4px 8px, radius 8, <code>--ink</code> fill, <code>--bg</code> text 12/500, gap 6, with <code>kbd</code>. Opacity 0 to 1 and rise 4px over 120ms on hover or focus-visible.</td></tr>
+        <tr><td>Magnification</td><td>BASE 40, PEAK 60, REACH 140px. <code>size = 40 + 20·cos²(π·d/280)</code>, <code>d = min(|mx − centre|, 140)</code>. Icon scale <code>0.9 + (size − 40)/20 · 0.35</code>. Reset on mouseleave. Off under reduced motion (read once on mount) and at ≤720.</td></tr>
+      </tbody>
+    </table></div>
+    <h4>Items</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>#</th><th>id</th><th>Label</th><th>Icon</th><th>kbd</th><th>active</th><th>badge</th><th>onClick</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>sidebar</td><td>Sidebar</td><td>sidebar</td><td>⌘B</td><td><code>sidebarShown</code></td><td>none</td><td>toggleSidebar</td></tr>
+        <tr><td>1</td><td>search</td><td>Search</td><td>search</td><td>⌘K</td><td>none</td><td>none</td><td>open palette</td></tr>
+        <tr><td>2</td><td>new</td><td>New chat</td><td>plus</td><td>⌘J</td><td>none</td><td>none</td><td>newChat (disabled while busy)</td></tr>
+        <tr><td>3</td><td>agent</td><td>Agent</td><td>bot</td><td>none</td><td><code>pop === "agent"</code></td><td>none</td><td>togglePop("agent"), ref agentBtn</td></tr>
+        <tr><td>4</td><td>activity</td><td>Activity</td><td>activity</td><td>⌘.</td><td><code>panels.activity</code></td><td>from <code>turn</code> when the panel is closed: working/stopping → dot; waiting → warn count <code>pending.length</code>; failed → bad "!"; reconnecting → last value</td><td>toggleActivity</td></tr>
+        <tr><td>5</td><td>user</td><td>Account</td><td>user</td><td>none</td><td><code>pop === "user"</code></td><td>none</td><td>togglePop("user"), ref userBtn</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note warn">D-NEW-2: on desktop the sidebar becomes primary and holds search, New and account. The dock stays on desktop with all six items (default), because it hosts the agent popover and the activity badge. The alternative is to hide items 0 to 2 and 5 on desktop when the sidebar is shown.</div>
+    <h4>Phone bottom bar (≤720)</h4>
+    <dl class="kv">
+      <dt>frame</dt><dd>fixed, left 0, right 0, bottom 0, height 56 + <code>env(safe-area-inset-bottom)</code>, <code>--surface</code>, top border 1px <code>--line</code>, no radius, no shadow, z above the stage and below drawers <span class="tag proposal">proposal D-01</span></dd>
+      <dt>items</dt><dd>flex, <code>justify-content: space-around</code>. Same six items, 44×44 targets, icon 20, no separators, no magnification, no tooltip. Label under the icon 11/500 <code>--ink-2</code>; active label <code>--accent-fg</code>.</dd>
+      <dt>stage</dt><dd><code>.bottom</code> gets padding-bottom 56 + safe area so the composer sits above the bar.</dd>
+      <dt>keyboard open</dt><dd>when the on-screen keyboard is open (visualViewport height below 75% of innerHeight), the bar hides so the composer and a docked request fit.</dd>
+      <dt>popovers</dt><dd>agent, user, share and needs popovers become bottom sheets (see Sheet).</dd>
+    </dl>
+    <h4>Data</h4>
+<pre><code>export type DockIconName = "sidebar" | "search" | "plus" | "bot" | "activity" | "user";
+export type DockItem = {
+  id: string; label: string; icon: DockIconName; kbd?: string;
+  active?: boolean;                 // undefined = plain action, no aria-pressed
+  badge?: boolean | { tone: "accent" | "warn" | "bad"; text?: string };  // object form new, derive
+  disabled?: boolean;               // new: New chat while busy
+  onClick: () =&gt; void;
+  buttonRef?: Ref&lt;HTMLButtonElement&gt;;
+};
+export type FloatingDockProps = { items: DockItem[]; groups?: number[]; variant?: "float" | "bar" };</code></pre>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Each button: <code>aria-label</code> = label; toggles get <code>aria-pressed</code>; Agent and Account also <code>aria-haspopup="dialog"</code> and <code>aria-expanded</code>.</li>
+      <li>Badge text is in the name: "Activity, 1 waiting on you", "Activity, failed", "Activity, working".</li>
+      <li>Left/Right arrows move focus between dock buttons (roving tabindex; one Tab stop). <span class="tag proposal">proposal D-NEW-2</span></li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>With reduced motion, buttons stay 40px on hover.</li>
+      <li>At 400px wide the dock is a bottom bar with six 44px targets and no horizontal scroll.</li>
+      <li>With the panel closed and a pending request, the Activity badge shows the count in the warn tone.</li>
+      <li>Active fill uses <code>--accent-fg</code>.</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="nv-palette-h">Command palette</h3>
+<div class="comp" id="nv-palette">
+  <header><h4>SearchPalette (⌘K)</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag backend">backend BE-16</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/search-palette.tsx · reads lib/slash-commands.ts, AgentSummary[], turn anchors</span></header>
+  <div class="body">
+    <p>One modal box to find chats, run commands, start a chat with an agent, and jump to a turn in the open chat. Title search works today; message content search needs BE-16.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Part</th><th>Spec</th><th>Tag</th></tr></thead>
+      <tbody>
+        <tr><td><code>div.scrim</code></td><td>fixed, inset 0, z 50, padding 14vh 16px 16px, <code>color-mix(in srgb, var(--ink) 18%, transparent)</code>, blur 2px, fade 120ms. Mousedown closes.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td><code>div.palette[role=dialog][aria-modal=true]</code></td><td>width 100%, max 560 (was 540), <code>--surface</code>, 1px <code>--line</code>, radius 16, <code>--shadow-lg</code>, rise 160ms ease-out</td><td><span class="tag exists">exists</span>; 560 <span class="tag proposal">D-01</span></td></tr>
+        <tr><td><code>.palette-input</code></td><td>height 52, padding 0 14, gap 10, bottom border. Icon <code>search</code> 16 <code>--ink-3</code>, <code>input[role=combobox]</code> 15px, <code>kbd</code> "esc".</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td><code>.palette-scope</code></td><td>padding 8px 12px, bottom border, segmented control: All, Chats, Commands, Agents, Turns. Segment height 26, padding 0 10, radius 7, 12/500.</td><td><span class="tag derive">derive</span></td></tr>
+        <tr><td><code>.palette-list[role=listbox]</code></td><td>padding 6, max-height 360, overflow auto. Group header 11/600 uppercase tracking .06em <code>--ink-2</code>, padding 8px 8px 4px, with a count at right.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>Result row <code>[role=option]</code></td><td>padding 7px 8px, radius 9, gap 10. Icon tile 26×26 radius 8 <code>--surface-3</code> (agents use tint tile). Title 13.5/500 ellipsis; sub 12px <code>--ink-2</code>; time 500 11px mono <code>--ink-2</code>. Active <code>--accent-soft</code>. Match run in <code>&lt;mark&gt;</code> <code>color-mix(in srgb, var(--warn) 30%, transparent)</code>, radius 3.</td><td><span class="tag derive">derive</span></td></tr>
+        <tr><td><code>.palette-foot</code></td><td>padding 8px 14px, top border, <code>--surface-2</code>, 12px <code>--ink-2</code>, gap 14: "↑↓ move", "↵ open", "tab scope", "esc close". Hidden at ≤720.</td><td><span class="tag derive">derive</span></td></tr>
+      </tbody>
+    </table></div>
+    <h4>Groups and sources</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Group</th><th>Source</th><th>Match</th><th>Row</th><th>Enter does</th><th>Tag</th></tr></thead>
+      <tbody>
+        <tr><td>Chats</td><td><code>sessions</code> (<code>title || "New conversation"</code>)</td><td>case-insensitive substring on title</td><td>icon <code>doc</code>, title, project name from <code>projects</code> or group label, <code>convoTime(createdAt)</code></td><td><code>open(id)</code></td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>In messages</td><td><code>GET /api/sessions?q=</code> content search</td><td>server</td><td>icon <code>list</code>, snippet with match, "{title} · turn {n}"</td><td>open session and scroll to <code>turn-{id}</code></td><td><span class="tag backend">BE-16</span></td></tr>
+        <tr><td>Jump to turn</td><td>open chat's user messages, <code>turn-{id}</code> anchors</td><td>substring on message text</td><td>icon <code>target</code>, "Turn {n} · {first 60 chars}", "This chat", time</td><td>scroll to anchor, focus the article</td><td><span class="tag derive">derive</span></td></tr>
+        <tr><td>Commands</td><td><code>lib/slash-commands.ts</code></td><td>prefix on name, substring on description</td><td>icon <code>slash</code>, "/{name}", description, <code>kbd</code> ↵</td><td>close, put the command into the composer via <code>applyPrompt</code>, focus the composer</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>Agents</td><td><code>agents</code>, tint via <code>tintOf(tint)</code></td><td>substring on name and handle</td><td>robot tile in tint, name, description</td><td><code>startDraft()</code> with <code>agentId</code> set; disabled while busy</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>Recent (empty query)</td><td>last 5 opened ids in localStorage <code>truex-recent</code>, else newest 5 sessions</td><td>none</td><td>icon <code>clock</code>, title, "Opened {relative}"</td><td><code>open(id)</code></td><td><span class="tag proposal">D-NEW-3</span></td></tr>
+      </tbody>
+    </table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Open resets query, scope and index; focuses the input after 10ms (exists). Picking closes the palette.</li>
+      <li>Scope prefixes: a leading <code>/</code> sets Commands, <code>@</code> sets Agents, <code>#</code> sets Turns. The prefix stays in the input and is not matched.</li>
+      <li>All scope caps each group at 5 rows; a single scope shows up to 50. Group order: Chats, In messages, Jump to turn, Commands, Agents. Empty groups do not render.</li>
+      <li>Content search (BE-16): debounce 200ms, minimum 2 characters, latest request wins, show "Searching…" row after 300ms. On error the group shows "Message search is unavailable." and title matches stay.</li>
+      <li>localStorage reads and writes are wrapped in try/catch; failure falls back to the newest sessions.</li>
+      <li>Index resets to 0 on each query change and clamps to the list.</li>
+    </ul>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>State</th><th>Trigger</th><th>Copy</th></tr></thead>
+      <tbody>
+        <tr><td>Empty query</td><td><code>q === ""</code></td><td>Recent group, then Commands (first 5)</td></tr>
+        <tr><td>No matches</td><td>all groups empty</td><td>"No matches for “{q}”"</td></tr>
+        <tr><td>No open chat</td><td>Turns scope with no session</td><td>"Open a conversation to jump to a turn."</td></tr>
+        <tr><td>Searching</td><td>content request pending &gt; 300ms</td><td>"Searching messages…"</td></tr>
+      </tbody>
+    </table></div>
+    <h4>Data</h4>
+<pre><code>export type PaletteScope = "all" | "chats" | "commands" | "agents" | "turns";
+export interface SearchItem {
+  id: string;
+  kind: "chat" | "message" | "turn" | "command" | "agent" | "recent";  // new
+  title: string;
+  sub?: string;               // project name, description, "This chat"
+  time: string;               // convoTime(createdAt) or ""
+  match?: [number, number];   // highlighted run in title
+  sessionId?: string; turnId?: string;   // message and turn kinds
+}
+interface SearchPaletteProps {
+  open: boolean; onClose: () =&gt; void;
+  items: SearchItem[];                      // local sources, built by Home
+  searchMessages?: (q: string, signal: AbortSignal) =&gt; Promise&lt;SearchItem[]&gt;;  // BE-16
+  onPick: (item: SearchItem) =&gt; void;       // was (id: string)
+}</code></pre>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Esc closes and restores focus to the opener (exists close; restore is new). ↑/↓ move and wrap. Enter picks. Tab and Shift+Tab cycle scope and keep focus in the input. Home/End jump to the first and last row.</li>
+      <li>Input: <code>role=combobox</code>, <code>aria-expanded=true</code>, <code>aria-controls</code> list id, <code>aria-activedescendant</code> active row id, <code>aria-label="Search chats, commands and agents"</code>.</li>
+      <li>Groups are <code>role=group</code> with <code>aria-labelledby</code> header. Scope segment is <code>role=tablist</code> but not in the Tab order (Tab cycles it from the input).</li>
+      <li>Focus is trapped in the dialog. A polite status line announces "{n} results".</li>
+    </ul>
+    <h4>Copy</h4>
+    <dl class="kv"><dt>placeholder</dt><dd>"Search chats, commands, agents…"</dd><dt>scopes</dt><dd>"All", "Chats", "Commands", "Agents", "Turns"</dd><dt>groups</dt><dd>"Chats", "In messages", "Jump to turn", "Commands", "Agents", "Recent"</dd><dt>sidebar trigger</dt><dd>"Search" stays; tooltip "Search chats, commands…"</dd></dl>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Typing "/go" shows /goal first; Enter puts it in the composer with focus.</li>
+      <li>Picking an agent while busy is not possible (row <code>aria-disabled</code>).</li>
+      <li>Jump to turn scrolls the article into view and focuses it.</li>
+      <li>Without BE-16 no "In messages" group renders.</li>
+      <li>Esc returns focus to the element that opened the palette.</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="nv-empty">Hero and empty state</h3>
+<div class="comp" id="nv-hero">
+  <header><h4>Hero</h4><span class="tag exists">exists</span><span class="tag backend">backend BE-17 BE-18</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/hero.tsx · rendered in .scroll when empty</span></header>
+  <div class="body">
+    <p>The empty-chat greeting. It speaks in the selected agent's tint, holds the composer, offers agent starters and recent chats, and replaces the plain "No agents" line with a real empty state.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Part</th><th>Spec</th><th>Tag</th></tr></thead>
+      <tbody>
+        <tr><td><code>div.hero</code></td><td>max-width 760, margin 0 auto, min-height 100%, flex column, centred, text centre, padding 24px 16px 40px, gap 14, <code>rise</code> 350ms ease-out</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td><code>.hero-greet</code></td><td>inline-flex, gap 8, padding 5px 12px 5px 10px, radius 999, 1px <code>--line</code>, <code>--surface</code>, 13/500 <code>--ink-2</code>, <code>--shadow-sm</code>. <code>.agent-dot</code> 8×8 filled with <code>agentHue</code>. Text: "{greeting}, {me.name first word}" then " · {agent.name}".</td><td><span class="tag exists">exists</span>; name <span class="tag backend">BE-17</span></td></tr>
+        <tr><td><code>h1</code></td><td>"What should we <em>work on</em> today?". Display font, <code>clamp(28px, 4vw, 44px)</code>, line-height 1.08, weight <code>--display-weight</code>, tracking <code>--display-track</code>, balance. <code>em</code>: accent font italic 400, 1.04em, <code>--accent-fg</code>.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td><code>.hero-composer</code></td><td>width 100%, max 620 (was full 760) <span class="tag proposal">D-01</span>, margin-top 28, text left. Textarea min-height 76. Project chip above the textarea when <code>draftProject()</code> returns a project.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>Project chip <code>.composer-project</code></td><td>height 24, padding 0 6px 0 9px, radius 999, <code>--accent-soft</code>, <code>--accent-fg</code> 12/600, icon <code>folder</code> 13, × button 18×18 "Remove project".</td><td><span class="tag exists">exists</span> (now reachable)</td></tr>
+        <tr><td><code>.hero-starters</code></td><td>grid <code>repeat(auto-fit, minmax(180px, 1fr))</code>, gap 8, max 620. Card: padding 10px 12px, radius 12, 1px <code>--line</code>, <code>--surface</code>, 13px <code>--ink</code>, gap 8, icon 15 in the agent tint, text left, 2-line clamp. Hover border <code>--line-strong</code>.</td><td><span class="tag backend">BE-18</span></td></tr>
+        <tr><td><code>.hero-recent</code></td><td>max 620, text left. Label "Pick up where you left off" as sidebar eyebrow. Up to 3 rows, same row and dot as the sidebar.</td><td><span class="tag derive">derive</span></td></tr>
+      </tbody>
+    </table></div>
+    <h4>Agent starters (BE-18)</h4>
+    <ul>
+      <li>Source: <code>agent.starterPrompts[]</code> (BE-18), first 4 shown. Clicking one calls <code>applyPrompt(text)</code>, which fills the composer and focuses it. It does not send. A prompt that starts with <code>/goal</code> enters goal mode through the normal slash path.</li>
+      <li>Icon per card: <code>target</code> for <code>/goal</code> prompts, <code>slash</code> for other slash prompts, else <code>spark</code>.</li>
+      <li>Fallback until BE-18 ships, or when the list is empty: three generic cards built from <code>lib/slash-commands.ts</code> and <code>PLACEHOLDERS</code>: <code>PLACEHOLDERS[1..3]</code> as prompts. No agent-specific text is invented.</li>
+      <li>Switching agent in the popover re-renders the cards and the greeting tint.</li>
+    </ul>
+    <h4>No-agents state</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Case</th><th>Condition</th><th>Render</th><th>Tag</th></tr></thead>
+      <tbody>
+        <tr><td>Can create</td><td><code>noAgents</code> and the user may create agents</td><td>Card replaces starters and composer: tile 36×36 radius 10 <code>--surface-3</code> icon <code>bot</code>; title 14/600; body 13 <code>--ink-2</code>; <code>.btn-solid</code> "Create agent" (<code>--accent-fg</code> fill) opens <code>AgentDialog</code></td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>Cannot create</td><td><code>noAgents</code> and no create permission</td><td>Same card without the button; body tells them to ask an admin</td><td><span class="tag proposal">D-NEW-4</span></td></tr>
+        <tr><td>Load failed</td><td><code>GET /api/agents</code> failed</td><td>Same card, <code>.btn-soft</code> "Retry"</td><td><span class="tag derive">derive</span></td></tr>
+      </tbody>
+    </table></div>
+    <div class="note warn">D-NEW-4: there is no field that says whether a user may create agents. Default: show "Create agent" to everyone (create exists today), and show the ask-an-admin copy only if the create call returns 403.</div>
+    <h4>Tokens</h4>
+    <p>Greeting dot and starter icons: <code>tintOf(agent.tint).dot</code> (data value, allowed inline on the dot only). Default hue <code>#BCDEE8</code> is the existing prop default. Cards <code>--surface</code>, <code>--line</code>. Heading em <code>--accent-fg</code>.</p>
+    <h4>Data</h4>
+<pre><code>interface HeroProps {
+  agentHue?: string;                 // now passed: tintOf(agent.tint).dot
+  name?: string | null;              // me?.name first word, BE-17
+  agentName?: string | null;         // agent?.name
+  starters: string[];                // agent?.starterPrompts ?? fallback, BE-18
+  onStarter: (text: string) =&gt; void; // applyPrompt
+  recent: PublicSession[];           // derived.recent
+  onOpen: (id: string) =&gt; void;
+  noAgents: { canCreate: boolean; failed: boolean } | null;
+  onCreateAgent: () =&gt; void;         // setAgentDialogOpen(true)
+  children?: ReactNode;              // composer
+}
+// AgentSummary gains: starterPrompts?: string[];   // BE-18</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Greeting is computed after mount only (exists): <code>greetingFor(hour)</code> &lt;5 "Working late", &lt;12 "Good morning", &lt;18 "Good afternoon", else "Good evening". Renders <code>&amp;nbsp;</code> before mount.</li>
+      <li>Placeholder rotation (exists): every 3200ms while empty, unfocused, no text and not in goal mode.</li>
+      <li>Recent hides when there are no other sessions. Loading state for recent: nothing rendered.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Starters are buttons in a <code>role=list</code> labelled "Suggested starts". Recent rows are the sidebar row component. Tab order: composer, starters, recent.</li><li>The <code>h1</code> is the page heading when empty.</li></ul>
+    <h4>Copy</h4>
+    <dl class="kv"><dt>heading</dt><dd>"What should we work on today?"</dd><dt>recent</dt><dd>"Pick up where you left off"</dd><dt>no agents</dt><dd>"No agents yet" · "Create one to start chatting. It gets a model, tools and a color." · "Create agent"</dd><dt>cannot create</dt><dd>"No agents are available. Contact your Truex administrator." (existing string)</dd><dt>failed</dt><dd>"Couldn’t load agents" · "Retry"</dd></dl>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>The greeting dot uses the selected agent's tint.</li><li>Clicking a starter fills the composer without sending.</li><li>A <code>/goal</code> starter turns on goal mode.</li><li>With zero agents, no composer is rendered and Create agent opens AgentDialog.</li><li>The project chip appears after "New chat in {name}" and × clears <code>draftProjectId</code>.</li></ul>
+  </div>
+</div>
+
+<h3 id="nv-account">Account and sharing</h3>
+<div class="comp" id="nv-usermenu">
+  <header><h4>UserMenu</h4><span class="tag exists">exists</span><span class="tag backend">backend BE-17</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/user-menu.tsx · in Popover .pop-user (dock) or anchored to the sidebar footer</span></header>
+  <div class="body">
+    <p>Account menu: who is signed in, theme, settings, keyboard shortcuts and sign out.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>popover</dt><dd>width 300, padding 6, radius 14 (Popover primitive)</dd><dt>.user-card</dt><dd>flex, gap 10, padding 8px 10px. <code>.avatar</code> 34 circle <code>--ink</code> / <code>--bg</code> 600, initial of name or email; <code>me.picture</code> as a 34px round image when present. Name 600 ellipsis, email 12px <code>--ink-2</code> ellipsis.</dd><dt>items</dt><dd><code>.menu-item</code> padding 8px 10px, radius 9, gap 10, icon 15. Order: theme · sep · Settings · Keyboard shortcuts · sep · Sign out</dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead>
+      <tbody>
+        <tr><td>Signed in</td><td><code>me</code> loaded</td><td>avatar, name, email</td><td>{me.name}, {me.email}</td></tr>
+        <tr><td>Unknown user</td><td><code>me === null</code> (no BE-17 or failed)</td><td>Icon <code>user</code> avatar, "Account"; no Sign out</td><td>"Account"</td></tr>
+        <tr><td>Signing out</td><td>Sign out clicked</td><td>item disabled, spinner</td><td>"Signing out…"</td></tr>
+        <tr><td>Sign-out failed</td><td>request error</td><td>toast, bad tone</td><td>"Couldn’t sign out. Try again."</td></tr>
+      </tbody>
+    </table></div>
+    <h4>Data</h4>
+<pre><code>interface Me {            // GET /api/me, BE-17
+  name: string;
+  email: string;
+  picture?: string;       // URL
+}
+export type UserMenuProps = {
+  name?: string; email?: string; picture?: string;   // picture new
+  onSettings?: () =&gt; void;        // setPanel("mcp")
+  onShortcuts?: () =&gt; void;       // new: setHelpOpen(true)
+  onSignOut?: () =&gt; void;         // BE-17 sign-out; only passed when me exists
+};</code></pre>
+    <h4>Behavior</h4>
+    <ul><li>Theme item uses <code>useTheme()</code>: "Dark mode" with <code>moon</code> in light, "Light mode" with <code>sun</code> in dark. Toggling keeps the menu open.</li><li>Every other item closes the menu first, then acts.</li><li>Sign out calls the BE-17 sign-out endpoint, then navigates to <code>/</code>. Settings opens the Connected tools sheet.</li></ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Uses the menu primitive: <code>role=menu</code>, items <code>role=menuitem</code>, theme item <code>role=menuitemcheckbox</code> with <code>aria-checked={isDark}</code>. Focus moves to the first item on open.</li><li>Label "Account".</li></ul>
+    <h4>Copy</h4>
+    <dl class="kv"><dt>items</dt><dd>"Dark mode" / "Light mode", "Settings", "Keyboard shortcuts", "Sign out"</dd></dl>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>With BE-17, the card shows real name and email and Sign out appears.</li><li>Without BE-17, the card shows "Account" and no Sign out.</li><li>Keyboard shortcuts opens the help sheet.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="nv-share">
+  <header><h4>Share</h4><span class="tag backend">backend BE-19</span><span class="tag proposal">proposal D-NEW-6</span><span class="tag phase">P2</span>
+    <span class="path">new components/v2/share-popover.tsx · opened from the Topbar Share button (today a no-op)</span></header>
+  <div class="body">
+    <p>Lets the owner share the open conversation as a read-only link. The read-only viewer itself is specified in the states section (BE-09).</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>popover</dt><dd>anchored under the Share button, right-aligned, width 320, padding 12, radius 14, gap 10</dd><dt>header</dt><dd>"Share conversation" 14/600, sub 12.5 <code>--ink-2</code></dd><dt>access row</dt><dd>native <code>select</code> (v2 <code>.select</code>) "Only you" / "Anyone in your workspace with the link"</dd><dt>link row</dt><dd>read-only input 32px mono 12, <code>.btn-soft</code> "Copy link"</dd><dt>footer</dt><dd>12px <code>--ink-2</code> note on what viewers see</dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead>
+      <tbody>
+        <tr><td>Draft</td><td>no session</td><td>Share button disabled, tooltip</td><td>"Send a message first to share this chat"</td></tr>
+        <tr><td>Not shared</td><td><code>share.access === "private"</code></td><td>link row hidden</td><td>"Only you can see this chat."</td></tr>
+        <tr><td>Saving</td><td>access changed</td><td>select disabled, spinner</td><td>none</td></tr>
+        <tr><td>Shared</td><td><code>access === "workspace"</code></td><td>link row shows</td><td>"People with the link can read this chat. They can’t send messages."</td></tr>
+        <tr><td>Copied</td><td>Copy clicked</td><td>button label for 1500ms</td><td>"Copied"</td></tr>
+        <tr><td>Error</td><td>request failed</td><td>inline <code>--bad</code> line</td><td>"Couldn’t update sharing. Try again."</td></tr>
+        <tr><td>Not owner</td><td>viewer is not the owner</td><td>Share hidden</td><td>none</td></tr>
+        <tr><td>No backend</td><td>BE-19 missing (flag off)</td><td>Share button removed from the topbar</td><td>none</td></tr>
+      </tbody>
+    </table></div>
+    <h4>Data</h4>
+<pre><code>// BE-19: GET/PUT /api/sessions/:id/share
+interface ShareState {
+  access: "private" | "workspace";
+  url?: string;           // present when access !== "private"
+  updatedAt?: string;
+}</code></pre>
+    <div class="note warn">D-NEW-6: the access levels are a proposal. Default: two levels, private and workspace link, no public link. The shared view is read-only and follows the BE-09 trace visibility rule.</div>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Popover dialog primitive, label "Share conversation". Focus to the select on open, Esc returns focus to Share.</li><li>"Copied" is announced in the polite region.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>The Share button never renders as a no-op: it opens this popover or is absent.</li><li>Copy writes <code>url</code> to the clipboard and shows "Copied" for 1500ms.</li></ul>
+  </div>
+</div>
+
+<h3 id="nv-primitives">Primitives</h3>
+<div class="comp" id="nv-popover">
+  <header><h4>Popover and menu primitives</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/popover.tsx (Popover) · components/project-sidebar.tsx (Menu, MenuItem, NameInput, SessionMenu) · new components/v2/menu.tsx shared by both</span></header>
+  <div class="body">
+    <p>Two anchored surfaces. <b>Popover</b> is a small non-modal dialog (agent picker, account, share, Needs-you tray). <b>Menu</b> is a list of actions (row ⋯ menus, folder menus, overflow menus). Today Popover has no focus management and Menu has its own roving focus. v3 gives both the same focus rules and one CSS set (v2 <code>.menu</code>, <code>.menu-item</code>, <code>.menu-sep</code>).</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Part</th><th>Spec</th><th>Tag</th></tr></thead>
+      <tbody>
+        <tr><td><code>div.popover[role=dialog]</code></td><td>absolute, bottom calc(100% + 12px) above the dock (or top calc(100% + 8px) under a topbar or sidebar anchor), z 20, width 280 default, <code>--surface</code>, 1px <code>--line</code>, radius 14, <code>--shadow-lg</code>, padding 6, rise 160ms ease-out</td><td><span class="tag exists">exists</span>; top placement <span class="tag derive">derive</span></td></tr>
+        <tr><td>Instances</td><td><code>.pop-agent</code> centred, 280, "Choose agent", AgentMenu. <code>.pop-user</code> right 0, 300, "Account", UserMenu. <code>.pop-share</code> right 0, 320. <code>.pop-needs</code> right 0, 360, tray from <a href="#requests">Requests</a>.</td><td><span class="tag exists">exists</span>; share, needs <span class="tag derive">derive</span></td></tr>
+        <tr><td><code>div.menu[role=menu]</code></td><td>flex column, gap 1. Fixed-position menus: width 208, placed 4px under the trigger, right-aligned, clamped 8px from viewport edges, flip above when they would overflow the bottom.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td><code>button.menu-item[role=menuitem][tabindex=-1]</code></td><td>flex, gap 10, width 100%, padding 8px 10px, radius 9, text left, <code>--ink</code>, icon 15. Hover and focus <code>--surface-3</code>. <code>.danger</code> text <code>--bad</code>. Disabled opacity .45.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td><code>.menu-heading</code></td><td>11/600 uppercase <code>--ink-2</code>, padding 6px 10px 4px ("In {project}")</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td><code>.menu-sep</code></td><td>height 1, <code>--line</code>, margin 6px 0</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td><code>button.row-action</code> trigger</td><td>24×24, radius 7, icon <code>moreHorizontal</code> 14 (new v2 icon replacing lucide), <code>aria-haspopup="menu"</code>, <code>aria-expanded</code></td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td><code>div.project-name-input</code> (NameInput)</td><td>input height 30, radius 8, 1px <code>--line-strong</code>, 13px, placeholder "Project name", maxLength 120, <code>aria-invalid</code>; <code>small[role=alert]</code> 12px <code>--bad</code></td><td><span class="tag exists">exists</span></td></tr>
+      </tbody>
+    </table></div>
+    <h4>Focus management</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Event</th><th>Popover (dialog)</th><th>Menu</th></tr></thead>
+      <tbody>
+        <tr><td>Open</td><td>Focus the first focusable child, or the element with <code>data-autofocus</code>. Opener gets <code>aria-expanded=true</code>.</td><td>Focus the first enabled item (<code>focusFirst()</code>). ↓ on the trigger opens.</td></tr>
+        <tr><td>Tab</td><td>Trapped: Tab and Shift+Tab cycle inside.</td><td>Closes the menu and lets focus move on (exists).</td></tr>
+        <tr><td>Arrows</td><td>Not handled, except inside a nested menu or list.</td><td>↑/↓ roving over <code>[role=menuitem]:not(:disabled), input</code>, wrap; Home/End first and last.</td></tr>
+        <tr><td>Esc</td><td>Closes and returns focus to the opener. Stops propagation so the global Esc handler does not also act.</td><td>Closes and returns focus to the trigger (exists).</td></tr>
+        <tr><td>Outside press</td><td>Closes on document <code>pointerdown</code> outside the root and outside <code>ignoreRef</code>. Focus is not moved.</td><td>Closes on outside pointerdown, any scroll, resize (exists).</td></tr>
+        <tr><td>Item chosen</td><td>Owner decides (<code>onPick</code> closes the agent popover).</td><td><code>close()</code> then action; focus returns to the trigger unless the action moves it.</td></tr>
+      </tbody>
+    </table></div>
+    <h4>Data</h4>
+<pre><code>export type PopoverProps = {
+  open: boolean;
+  onClose: () =&gt; void;
+  className?: string;                     // "pop-agent" | "pop-user" | "pop-share" | "pop-needs"
+  children: ReactNode;
+  ignoreRef?: RefObject&lt;HTMLElement | null&gt;;
+  returnFocusRef?: RefObject&lt;HTMLElement | null&gt;;   // new, usually the same as ignoreRef
+  placement?: "above" | "below";          // new, default "above"
+  "aria-label"?: string;
+};
+// Menu (internal, moves to components/v2/menu.tsx)
+type MenuProps = { label: string; disabled?: boolean;
+  children: (m: { close: () =&gt; void; focusFirst: () =&gt; void }) =&gt; ReactNode };
+type MenuItemProps = { icon?: ReactNode; children: ReactNode; onSelect: () =&gt; void; danger?: boolean };
+type NameInputProps = { initial?: string; label: string;
+  onSubmit: (name: string) =&gt; Promise&lt;unknown&gt;; onCancel: () =&gt; void };</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Only one popover or menu is open at a time. Opening a new one closes the current one.</li>
+      <li>NameInput (exists): Enter submits, Esc and blur cancel, unchanged name cancels, disabled while saving, validation from <code>checkProjectName</code>.</li>
+      <li>SessionMenu views (exists): root ("In {project}" heading, "Add to project" or "Move to project", "Remove from project"), pick ("Back", one item per target, "New project…"), new (NameInput "New project name", create then assign, cancel returns to pick). Focus moves to the first item of each new view.</li>
+      <li>At ≤720 every popover renders as a bottom sheet (see Sheet) with the same content.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Popover: <code>role=dialog</code>, <code>aria-label</code> required, <code>aria-modal</code> not set (non-modal). Menu: <code>role=menu</code>, <code>aria-label</code> = <code>label</code> ("Options for {title}").</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Opening the agent popover from the pill moves focus into it; Esc returns focus to the pill.</li><li>Tab never leaves an open popover.</li><li>Esc inside a popover does not stop a running turn.</li><li>Project menus render with the v2 menu classes, not legacy <code>app/shell.css</code>.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="nv-sheet">
+  <header><h4>Sheet and drawer</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/sheet.tsx (Sheet on native &lt;dialog&gt;) · ported from app/panels.css to styles/v2</span></header>
+  <div class="body">
+    <p>A right slide-over for secondary work: Connected tools, Capabilities, documents and visuals, All agents, and the keyboard shortcuts sheet. On phones the same component becomes a bottom sheet, and popovers use that bottom form too.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Part</th><th>Spec</th><th>Tag</th></tr></thead>
+      <tbody>
+        <tr><td><code>dialog.sheet[aria-labelledby]</code></td><td>desktop: fixed right 10, top 10, bottom 10, width min(480px, 100vw − 20px), <code>--surface</code>, 1px <code>--line</code>, radius 16, <code>--shadow-lg</code>. Enter: translateX 16px to 0 and opacity, 200ms <code>cubic-bezier(.2,.8,.2,1)</code>.</td><td><span class="tag exists">exists</span>; values <span class="tag proposal">D-01</span></td></tr>
+        <tr><td><code>::backdrop</code></td><td><code>color-mix(in srgb, var(--ink) 18%, transparent)</code>, same as the palette scrim</td><td><span class="tag proposal">D-01</span></td></tr>
+        <tr><td><code>header.sheet-head</code></td><td>padding 16px 16px 12px, bottom border. h2 16/600; p 13 <code>--ink-2</code>; close <code>.icon-btn.ghost</code> 32×32 icon <code>x</code> 16, "Close {title}".</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td><code>div.sheet-body</code></td><td>flex 1, overflow auto, padding 16</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>Phone (≤720) bottom sheet</td><td>left 0, right 0, bottom 0, max-height 88dvh, radius 16px 16px 0 0, padding-bottom safe area. Grab handle 36×4 radius 2 <code>--line-strong</code>, centred, margin 8 auto 0. Enter translateY 24px.</td><td><span class="tag proposal">D-01</span></td></tr>
+      </tbody>
+    </table></div>
+    <h4>Instances</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>panel</th><th>Title</th><th>Description</th><th>Opener</th></tr></thead>
+      <tbody>
+        <tr><td><code>"mcp"</code></td><td>"Connected tools"</td><td>"MCP servers attached to {agent name | this agent}. Changes apply to new chats."</td><td>UserMenu Settings, topbar tool-health</td></tr>
+        <tr><td><code>"tools"</code></td><td>"Capabilities, documents &amp; visuals"</td><td>"Start from a capability, or work with this conversation’s files."</td><td>composer <code>/tools</code> mirror (today unreachable; see <a href="#composer">Composer</a>)</td></tr>
+        <tr><td><code>"agents"</code></td><td>"All agents"</td><td>roster, see <a href="#agents">Agents</a></td><td>sidebar Agents link, agent popover "All agents"</td></tr>
+        <tr><td><code>helpOpen</code></td><td>"Keyboard shortcuts"</td><td>"⌘ on Mac · Ctrl elsewhere"</td><td><code>?</code>, UserMenu</td></tr>
+      </tbody>
+    </table></div>
+    <h4>Data</h4>
+<pre><code>interface SheetProps {
+  open: boolean;
+  title: string;
+  description?: string;
+  onClose: () =&gt; void;
+  size?: "md" | "lg";          // new: md 480, lg 720 (help sheet), D-01
+  children: React.ReactNode;   // rendered only while open (exists)
+}</code></pre>
+    <h4>Behavior</h4>
+    <ul><li><code>showModal()</code> and <code>close()</code> sync to <code>open</code> (exists). Backdrop click (target is the dialog) closes. The native close event calls <code>onClose</code>.</li><li>Opening a sheet closes any popover, menu and the palette.</li><li>Confirm dialogs (project delete) use the same dialog with <code>size="md"</code>, a danger <code>.btn-danger</code> and a <code>.btn-soft</code> Cancel. This replaces <code>window.confirm</code>.</li></ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Native modal dialog: focus trap, Esc closes, focus returns to the opener. Initial focus on the first control in the body, else the close button.</li><li><code>aria-labelledby</code> the h2; <code>aria-describedby</code> the description when present.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Esc closes the sheet and focus returns to the opener.</li><li>At 400px wide the sheet is a bottom sheet no taller than 88dvh.</li><li>Project delete no longer uses <code>window.confirm</code>.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="nv-toast">
+  <header><h4>Toast</h4><span class="tag proposal">proposal D-NEW-5</span><span class="tag phase">P1</span>
+    <span class="path">new components/v2/toast.tsx · rendered once in Shell</span></header>
+  <div class="body">
+    <p>Short confirmations and background errors that are not tied to an inline surface: "Link copied", "Moved to Analyst onboarding", "Couldn’t sign out". Turn errors stay in the error banner and failure card, never in a toast.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>region</dt><dd>fixed, bottom 88 (above the dock), centred; ≤720 bottom 56 + safe area + 8. Stack gap 8, max 3 visible, newest at the bottom.</dd><dt>toast</dt><dd>min-height 40, max-width 360, padding 8px 8px 8px 12px, radius 12, <code>--ink</code> fill, <code>--bg</code> text 13/500, <code>--shadow-lg</code>, gap 10. Optional action button: underlined <code>--bg</code> text 13/600, no fill. Close × 24×24.</dd><dt>bad tone</dt><dd>leading 8×8 dot <code>--bad</code></dd><dt>motion</dt><dd>rise 8px and fade in 160ms, fade out 120ms; none under reduced motion</dd></dl>
+    <h4>Data</h4>
+<pre><code>interface Toast {
+  id: string;
+  text: string;
+  tone?: "neutral" | "bad";
+  action?: { label: string; run: () =&gt; void };   // e.g. "Undo" for project moves
+  ttl?: number;                                  // ms, default 4000; bad tone 8000; 0 = sticky
+}</code></pre>
+    <h4>Behavior</h4>
+    <ul><li>Timer pauses on hover and on focus inside the toast. A duplicate text resets the timer instead of stacking.</li><li>Uses: Share "Copied" is inline, not a toast. SessionMenu assign success: "Moved to {project}". Project errors stay inline in the sidebar.</li></ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Region <code>role=status aria-live=polite</code>; bad tone uses <code>role=alert</code>. Toasts never take focus. F6 is not used.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A toast disappears after 4000ms unless hovered.</li><li>No more than 3 toasts show at once.</li><li>No turn error ever appears as a toast.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="nv-kit">
+  <header><h4>Icon, Button, Select and AnimatedLink</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/icon.tsx · components/ui/button.tsx · components/ui/select.tsx · components/animated-link.tsx</span></header>
+  <div class="body">
+    <p>Small shared parts the shell uses or should stop using.</p>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Part</th><th>Today</th><th>v3 rule</th></tr></thead>
+      <tbody>
+        <tr><td>Icon</td><td>24×24 stroked set, size 18, stroke 1.75, round caps, <code>aria-hidden</code>. The dock has its own <code>DOCK_ICONS</code>.</td><td>Keep. Add the new v2 icons from <a href="#foundations">Foundations</a> (including <code>moreHorizontal</code>, <code>folderPlus</code>, <code>folderMinus</code>, <code>history</code>, <code>alert</code>, <code>slash</code>) so shell menus drop lucide. The dock switches to Icon with the same names.</td></tr>
+        <tr><td>Button (<code>components/ui/button.tsx</code>)</td><td>CVA wrapper for legacy <code>.button</code>, <code>.button-primary</code>, <code>.button-outline</code>, <code>.button-ghost</code>; used by capabilities, assistant-tools, quick-tools.</td><td>Not used by the shell. Error pages move to v2 <code>.btn-solid</code>. Porting its three consumers is in the CSS cleanup plan.</td></tr>
+        <tr><td>Select (<code>components/ui/select.tsx</code>)</td><td>Radix wrapper, no importers.</td><td>Out of scope. Share uses the v2 native <code>.select select</code>. Delete in the cleanup PR.</td></tr>
+        <tr><td>AnimatedLink</td><td>Button styled as a link with a growing underline and sliding arrow; used by SuggestedQuestions only.</td><td>Not rendered by the shell. Owned by <a href="#composer">Composer</a> (suggestions).</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<h3 id="nv-doc">Document, theme and error pages</h3>
+<div class="comp" id="nv-root">
+  <header><h4>RootLayout and theme</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">app/layout.tsx · lib/use-theme.ts (useTheme, THEME_BOOT_SCRIPT)</span></header>
+  <div class="body">
+    <p>The HTML document: metadata, fonts, and the theme boot script that sets <code>data-theme</code> before paint.</p>
+    <dl class="kv">
+      <dt>html</dt><dd><code>&lt;html lang="en" suppressHydrationWarning&gt;</code>, <code>THEME_BOOT_SCRIPT</code> in <code>&lt;head&gt;</code></dd>
+      <dt>metadata</dt><dd>title "Truex · Agent workspace", description "A workspace for conversations with your agents"</dd>
+      <dt>fonts</dt><dd>Figtree 400–800, Newsreader italic 400–500, JetBrains Mono 400/500, Caveat 600/700 (Google Fonts link)</dd>
+      <dt>theme</dt><dd><code>Theme = "" | "light" | "dark"</code>; localStorage <code>truex-theme</code>; <code>""</code> follows <code>prefers-color-scheme</code>; <code>toggle()</code> writes the opposite of the resolved theme; one module store keeps Topbar and UserMenu in sync; server snapshot is light until hydration</dd>
+      <dt>new</dt><dd>Add <code>&lt;meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"&gt;</code> so the phone bottom bar can use safe-area insets. Add <code>&lt;meta name="theme-color"&gt;</code> per scheme. <span class="tag proposal">D-01</span></dd>
+    </dl>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>No flash of the wrong theme on load with <code>truex-theme="dark"</code>.</li><li>Toggling in UserMenu updates the Topbar icon in the same frame.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="nv-errors">
+  <header><h4>ErrorPage, GlobalError and NotFound</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">app/error.tsx · app/global-error.tsx · app/not-found.tsx · port .app-error from app/shell.css to styles/v2</span></header>
+  <div class="body">
+    <p>Three full-page fallbacks. They keep their copy and props and move to v2 classes so they match the shell in both themes.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>main.app-error</dt><dd>min-height 100dvh, grid, place-items center, padding 24px 16px, <code>--bg</code></dd><dt>.app-error-card</dt><dd>width 100%, max 440, padding 28px 24px, radius 16, <code>--surface</code>, 1px <code>--line</code>, <code>--shadow-md</code>, gap 12, text left <span class="tag proposal">D-01</span></dd><dt>mark</dt><dd><code>.brand-mark</code> 24×24 above the title</dd><dt>h1</dt><dd>22/600, tracking −.02em, <code>--ink</code></dd><dt>body</dt><dd>14px <code>--ink-2</code></dd><dt>.app-error-ref</dt><dd>500 12px mono <code>--ink-2</code>, with a 24px copy button "Copy reference"</dd><dt>action</dt><dd><code>.btn-solid.lg</code> 38px, <code>--accent-fg</code> fill, <code>--on-accent</code> text (replaces legacy <code>.button.button-primary</code>)</dd></dl>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Page</th><th>Role</th><th>Title</th><th>Body</th><th>Action</th><th>Log</th></tr></thead>
+      <tbody>
+        <tr><td>ErrorPage</td><td><code>role=alert</code> on card</td><td>"Something went wrong"</td><td>existing body copy; "Reference: {digest}" when <code>error.digest</code> exists</td><td>"Try again": <code>retry ?? reset ?? location.reload()</code></td><td><code>[truex] page error</code></td></tr>
+        <tr><td>GlobalError</td><td><code>role=alert</code></td><td>"Truex couldn’t load"</td><td>"Something went wrong while starting the workspace. Try again, or refresh the page." + reference when digest exists</td><td>"Try again"</td><td><code>[truex] app error</code></td></tr>
+        <tr><td>NotFound</td><td>none</td><td>"Page not found"</td><td>"This page doesn’t exist or has moved."</td><td><code>a</code> "Go to the workspace" <code>href="/"</code></td><td>none</td></tr>
+      </tbody>
+    </table></div>
+    <h4>Behavior</h4>
+    <ul><li>GlobalError renders its own <code>&lt;html&gt;&lt;body&gt;</code>. Today it has no theme boot script and no fonts. Fix: inline <code>THEME_BOOT_SCRIPT</code> and the font link in its <code>&lt;head&gt;</code>, and fall back to <code>--font-sans</code> system stack if fonts fail.</li><li>Focus moves to the h1 (<code>tabindex=-1</code>) on mount so screen readers read the error.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>All three pages render correctly in dark theme.</li><li>The reference line appears only when a digest exists, and copy writes the digest.</li><li>No legacy <code>.button</code> class remains on these pages.</li></ul>
+  </div>
+</div>
+
+<h3 id="nv-keys">Keyboard</h3>
+<div class="comp" id="nv-keymap">
+  <header><h4>Keyboard shortcut map and help sheet</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">lib/use-hotkeys.ts (useHotkeys, hotkeyCombo) · new lib/escape-stack.ts · new components/v2/shortcuts-sheet.tsx</span></header>
+  <div class="body">
+    <p>One map of every shortcut, a single Esc handler with a fixed order, and a sheet that lists them. The sheet renders from the same map object, so it can't drift from the code.</p>
+    <h4>Shortcut map</h4>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Group</th><th>Keys</th><th>Action</th><th>Scope</th><th>Tag</th></tr></thead>
+      <tbody>
+        <tr><td>Anywhere</td><td>mod+K</td><td>Toggle search palette</td><td>global, fires while typing</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>Anywhere</td><td>mod+B</td><td>Toggle sidebar</td><td>global, fires while typing</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>Anywhere</td><td>mod+.</td><td>Toggle activity panel</td><td>global, fires while typing</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>Anywhere</td><td>mod+J</td><td>New chat (ignored while busy)</td><td>global, fires while typing</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>Composer</td><td>Enter / Shift+Enter</td><td>Send / new line (Enter while running queues, D-05)</td><td>composer</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>Composer</td><td>↑ ↓, Tab</td><td>Move in slash menu (wraps), accept command</td><td>slash menu open</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>Composer</td><td>↑ on empty composer</td><td>Recall last queued message</td><td>composer, queue not empty</td><td><span class="tag derive">derive</span></td></tr>
+        <tr><td>Outside fields</td><td><kbd class="nv-kbd">g</kbd> then <kbd class="nv-kbd">n</kbd></td><td>Go to Needs you (open tray, focus oldest item)</td><td>not in input, textarea, select or contenteditable; second key within 1000ms</td><td><span class="tag proposal">D-NEW-7</span></td></tr>
+        <tr><td>Outside fields</td><td><kbd class="nv-kbd">?</kbd></td><td>Open the shortcuts sheet</td><td>same filter</td><td><span class="tag proposal">D-NEW-7</span></td></tr>
+        <tr><td>Palette</td><td>↑ ↓ Enter Tab Esc</td><td>Move, open, cycle scope, close</td><td>palette</td><td><span class="tag exists">exists</span>; Tab <span class="tag derive">derive</span></td></tr>
+        <tr><td>Menus</td><td>↓ on trigger, ↑ ↓ Home End, Esc, Tab</td><td>Open, move, close and refocus, close</td><td>menu</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>NameInput</td><td>Enter / Esc</td><td>Submit / cancel (blur cancels)</td><td>input</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>Sheet</td><td>Esc</td><td>Close (native dialog)</td><td>sheet</td><td><span class="tag exists">exists</span></td></tr>
+      </tbody>
+    </table></div>
+    <h4>Esc order (fixed)</h4>
+    <p>Modal layers handle their own Esc first and stop propagation: palette, Sheet, AgentDialog, help sheet. Everything else goes through one window handler in <code>lib/escape-stack.ts</code>, which does the first step that applies and stops:</p>
+    <ol>
+      <li>Close the slash or @ menu.</li>
+      <li>Exit goal mode.</li>
+      <li>Close the open popover or menu, then the open panel (activity panel, or the sidebar drawer at ≤720).</li>
+      <li>Stop the running turn, only when <code>running</code> and nothing above applied.</li>
+    </ol>
+    <ul>
+      <li>Step 4 runs <code>stopTurn()</code> and puts "Stopping" in the pill. It never runs on key repeat (<code>e.repeat</code>), so holding Esc can't stop a turn.</li>
+      <li>D-06: when focus is inside a docked request card, Esc after steps 1 to 3 cancels that request instead of stopping the turn.</li>
+      <li>Inputs that own Esc (NameInput, Share link field) handle it and stop propagation.</li>
+    </ul>
+<pre><code>// lib/escape-stack.ts
+type EscStep = { id: "menu" | "goal" | "overlay" | "request" | "stop"; active: () =&gt; boolean; run: () =&gt; void };
+export function handleEscape(e: KeyboardEvent, steps: EscStep[]): boolean {
+  if (e.key !== "Escape" || e.defaultPrevented || e.isComposing) return false;
+  const step = steps.find(s =&gt; s.active());
+  if (!step || (step.id === "stop" &amp;&amp; e.repeat)) return false;
+  e.preventDefault(); step.run(); return true;
+}</code></pre>
+    <h4>useHotkeys changes</h4>
+<pre><code>export type HotkeyMap = Record&lt;string, (e: KeyboardEvent) =&gt; void&gt;;
+export function hotkeyCombo(e): string;   // ("mod+" if meta||ctrl) + key.toLowerCase() (exists)
+export function useHotkeys(map: HotkeyMap, opts?: { skipFields?: boolean }): void;
+// skipFields (new, derive): ignore events whose target is input, textarea, select
+// or [contenteditable]. Mod combos keep firing while typing (skipFields false).</code></pre>
+    <div class="note warn">Clash rule: <code>hotkeyCombo</code> ignores Shift and Alt and calls <code>preventDefault</code> on match, so any new mod key steals it from the textarea. New mod combos must not clash with text editing (⌘A, ⌘Z, ⌘C/V/X, ⌘←/→, ⌘Backspace) or the browser (⌘L, ⌘T, ⌘W). Prefer unmodified keys outside fields.</div>
+    <h4>Help sheet anatomy</h4>
+    <dl class="kv"><dt>container</dt><dd>Sheet <code>size="lg"</code>, title "Keyboard shortcuts", description "⌘ on Mac · Ctrl elsewhere"</dd><dt>grid</dt><dd><code>repeat(auto-fit, minmax(230px, 1fr))</code>, gap 16. Groups: Anywhere, Composer, Esc closes in order, Outside text fields</dd><dt>group title</dt><dd>11/600 uppercase tracking .06em <code>--ink-2</code></dd><dt>row</dt><dd>flex, space-between, padding 5px 0, bottom border 1px dashed <code>--line</code>, 13px; keys as <code>kbd</code> 500 11px mono, gap 3</dd><dt>Esc list</dt><dd>numbered 18px circles <code>--surface-3</code> / <code>--ink-2</code> 600 10px mono</dd><dt>note</dt><dd><code>--warn-bg</code> / <code>--warn-text</code> box with the clash rule in plain words</dd></dl>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>The platform label shows ⌘ on Mac (<code>navigator.platform</code> or <code>userAgentData.platform</code>) and "Ctrl" elsewhere. Each <code>kbd</code> group has an <code>aria-label</code> such as "Command K".</li><li>The sheet is a list (<code>dl</code>) per group so screen readers pair action and keys.</li></ul>
+    <h4>Copy</h4>
+    <dl class="kv"><dt>rows</dt><dd>"Search everything", "Toggle sidebar", "Toggle activity panel", "New chat", "Send", "New line", "Slash menu: move, accept", "Recall queued message", "Go to Needs you", "Open this sheet"</dd><dt>esc</dt><dd>"Slash or @ menu", "Goal mode", "Popover or panel", "Stop the running turn"</dd></dl>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>With the slash menu open and a turn running, one Esc closes the menu and the turn keeps running.</li><li>In goal mode with a popover open, Esc exits goal mode first, the next Esc closes the popover.</li><li>Holding Esc never stops a turn.</li><li>Typing "?" or "g" in the composer inserts the character.</li><li>Every row on the sheet comes from the shortcut map object.</li></ul>
+  </div>
+</div>
+
+<h3 id="nv-responsive">Responsive behavior</h3>
+<div class="comp" id="nv-breakpoints">
+  <header><h4>Breakpoints</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">styles/v2/shell.css, dock.css · lib/fit-panel.ts · page.tsx resize handler</span></header>
+  <div class="body">
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Width</th><th>Sidebar</th><th>Activity panel</th><th>Topbar</th><th>Dock and bottom</th><th>Tag</th></tr></thead>
+      <tbody>
+        <tr><td>≥ 1508</td><td>docked 268</td><td>docked, <code>min</code> or <code>max</code></td><td>full crumb with project</td><td>floating dock</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>1148 to 1507</td><td>docked; yields when the panel is <code>max</code> (fitPanel 4)</td><td>docked; <code>max</code> floats below 1230 with the sidebar closed</td><td>project hides below 1100 stage width</td><td>floating dock</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>901 to 1147</td><td>yields to an open panel</td><td>docked at <code>min</code>; <code>max</code> floats</td><td>as above</td><td>floating dock</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>721 to 900</td><td>docked (rule 2)</td><td>always a fixed drawer (right/top/bottom 10, z 30, <code>--shadow-lg</code>); follow never auto-opens it</td><td>grid <code>1fr auto 1fr</code></td><td>floating dock</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>≤ 720</td><td>fixed left drawer, radius 0 16px 16px 0, z 30; one drawer at a time</td><td>full height, width <code>min(--pw, 100vw)</code>, size toggle hidden</td><td>padding 0 8px 0 16px, grid <code>auto 1fr auto</code>, crumb hidden, pill in column 1; Needs you shows the count only; Share and theme move into the Account sheet</td><td>shell padding 0, stage no border or radius, <code>.bottom</code> padding 0 16px 12px; dock becomes the bottom bar; composer bar collapses to one overflow button; popovers become bottom sheets</td><td><span class="tag exists">exists</span>; bar, sheets, topbar moves <span class="tag proposal">D-01</span></td></tr>
+        <tr><td>≤ 520</td><td>drawer width min(268, 100vw − 48)</td><td>100vw</td><td>pill agent name hides; the state label stays</td><td>bottom bar labels hide, icons only</td><td><span class="tag proposal">D-01</span></td></tr>
+        <tr><td><code>(hover: none)</code></td><td colspan="4">Row menu always visible, time hidden (exists). Dock tooltips off. Menu edit buttons visible.</td><td><span class="tag exists">exists</span></td></tr>
+        <tr><td>keyboard open</td><td colspan="4">visualViewport height &lt; 75% of innerHeight: bottom bar hides; a docked request plus the composer must fit above the keyboard; the request collapses to one line with its buttons if needed.</td><td><span class="tag proposal">D-01</span></td></tr>
+        <tr><td>reduced motion</td><td colspan="4">No panel width transition, no dock magnification, no pulse or spinner animation (static indicators), no rise or fade.</td><td><span class="tag exists">exists</span></td></tr>
+      </tbody>
+    </table></div>
+    <ul><li>Crossing from &gt;900 to ≤900 closes both panels (exists). Crossing to ≤720 with both requested keeps only the one opened last.</li><li>Drawers at ≤900 get a scrim (<code>color-mix(in srgb, var(--ink) 18%, transparent)</code>); tapping it closes the drawer. Focus moves into the drawer on open and back to the opener on close.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>At 400px: no horizontal page scroll, the pill and the Needs-you count both visible, the bottom bar 56px plus safe area.</li><li>At 800px the activity panel opens as a drawer over the stage.</li><li>At 390px with the keyboard open, a docked request and the composer are both visible.</li></ul>
+  </div>
+</div>
+
+<h3 id="nv-bugs">Known bugs to fix</h3>
+<div class="tw"><table class="tbl">
+  <thead><tr><th>Bug</th><th>Today</th><th>Fix</th><th>Owner block</th></tr></thead>
+  <tbody>
+    <tr><td>Agents link active state</td><td>Sidebar "Agents" opens the agent popover; <code>agentsActive</code> is never passed, so the link is never active.</td><td>Open the agents sheet (<code>setPanel("agents")</code>); pass <code>agentsActive={panel === "agents"}</code>.</td><td><a href="#nv-sidebar">Sidebar</a></td></tr>
+    <tr><td><code>/help</code> missing <code>/agents</code></td><td>The <code>/help</code> output in <code>lib/slash-commands.ts</code> leaves out <code>/agents</code>.</td><td>Build the help list from the command table so every command appears, <code>/agents</code> included.</td><td><a href="#composer">Composer</a></td></tr>
+    <tr><td>Share does nothing</td><td>Topbar Share is a placeholder with a no-op <code>onClick</code>.</td><td>Share popover behind BE-19; remove the button while the flag is off.</td><td><a href="#nv-share">Share</a></td></tr>
+    <tr><td>UserMenu has no identity</td><td>Home passes only <code>onSettings</code>, so it shows "Account" and no Sign out.</td><td>Pass <code>me</code> from BE-17 and <code>onSignOut</code>.</td><td><a href="#nv-usermenu">UserMenu</a></td></tr>
+    <tr><td>Unmounted components</td><td><code>ProjectSidebar</code>, <code>RuntimeItem</code>, <code>ConnectedTools</code> and <code>Capabilities</code> are never rendered; the tools sheet (<code>panel === "tools"</code>) has no opener; <code>draftProjectId</code> can't be set; <code>components/ui/select.tsx</code> has no importers.</td><td>Projects mount in the Sidebar; "New chat in {name}" sets <code>draftProjectId</code>. The other three are owned by their sections (stream, agents); delete ProjectSidebar and Select once replaced.</td><td><a href="#nv-sidebar">Sidebar</a>, <a href="#stream">Stream</a>, <a href="#agents">Agents</a></td></tr>
+    <tr><td>Sidebar busy comment</td><td><code>busy</code> is documented to disable nav links but only disables New and rows.</td><td>Keep the behavior (nav stays usable) and fix the prop comment.</td><td><a href="#nv-sidebar">Sidebar</a></td></tr>
+    <tr><td>Empty sidebar</td><td>Zero conversations renders nothing.</td><td>Empty block.</td><td><a href="#nv-sidebar">Sidebar</a></td></tr>
+    <tr><td>Starting shows Ready</td><td>Between Send and <code>turn.started</code>, <code>stateText</code> reads "ready".</td><td><code>deriveTurnState()</code> starting state.</td><td><a href="#nv-topbar">Topbar</a></td></tr>
+    <tr><td>Popover focus</td><td>No focus management.</td><td>Focus rules in the primitive.</td><td><a href="#nv-popover">Popover</a></td></tr>
+    <tr><td>Two style systems</td><td>Error pages, Sheet and project menus use legacy <code>app/*.css</code>.</td><td>Port each to <code>styles/v2</code>, one PR per surface.</td><td><a href="#nv-errors">Error pages</a>, <a href="#nv-sheet">Sheet</a></td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="nv-coverage">Coverage</h3>
+<div class="tw"><table class="tbl cov"><thead><tr><th>Schema heading</th><th>Covered in</th></tr></thead><tbody>
+<tr><td data-schema="Page layout tree">Page layout tree</td><td><a href="#nv-frame">Shell, Panel and the layout grid</a></td></tr>
+<tr><td data-schema="App-level state in Home (app/page.tsx)">App-level state in Home (app/page.tsx)</td><td><a href="#nv-home-state">Home state and derived values</a></td></tr>
+<tr><td data-schema="Keyboard shortcuts">Keyboard shortcuts</td><td><a href="#nv-keymap">Keyboard shortcut map and help sheet</a></td></tr>
+<tr><td data-schema="RootLayout">RootLayout</td><td><a href="#nv-root">RootLayout and theme</a></td></tr>
+<tr><td data-schema="ErrorPage">ErrorPage</td><td><a href="#nv-errors">ErrorPage, GlobalError and NotFound</a></td></tr>
+<tr><td data-schema="GlobalError">GlobalError</td><td><a href="#nv-errors">ErrorPage, GlobalError and NotFound</a></td></tr>
+<tr><td data-schema="NotFound">NotFound</td><td><a href="#nv-errors">ErrorPage, GlobalError and NotFound</a></td></tr>
+<tr><td data-schema="Home">Home</td><td><a href="#nv-home-state">Home state and derived values</a></td></tr>
+<tr><td data-schema="Shell">Shell</td><td><a href="#nv-frame">Shell, Panel and the layout grid</a></td></tr>
+<tr><td data-schema="Panel">Panel</td><td><a href="#nv-frame">Shell, Panel and the layout grid</a></td></tr>
+<tr><td data-schema="Sidebar">Sidebar</td><td><a href="#nv-sidebar">Sidebar</a></td></tr>
+<tr><td data-schema="Topbar">Topbar</td><td><a href="#nv-topbar">Topbar</a></td></tr>
+<tr><td data-schema="Hero">Hero</td><td><a href="#nv-hero">Hero</a></td></tr>
+<tr><td data-schema="FloatingDock">FloatingDock</td><td><a href="#nv-dock">FloatingDock and DockButton</a></td></tr>
+<tr><td data-schema="DockButton (internal)">DockButton (internal)</td><td><a href="#nv-dock">FloatingDock and DockButton</a></td></tr>
+<tr><td data-schema="Popover">Popover</td><td><a href="#nv-popover">Popover and menu primitives</a></td></tr>
+<tr><td data-schema="UserMenu">UserMenu</td><td><a href="#nv-usermenu">UserMenu</a></td></tr>
+<tr><td data-schema="SearchPalette">SearchPalette</td><td><a href="#nv-palette">SearchPalette (⌘K)</a></td></tr>
+<tr><td data-schema="Icon">Icon</td><td><a href="#nv-kit">Icon, Button, Select and AnimatedLink</a></td></tr>
+<tr><td data-schema="Sheet">Sheet</td><td><a href="#nv-sheet">Sheet and drawer</a></td></tr>
+<tr><td data-schema="ProjectSidebar / SessionMenu / useProjects">ProjectSidebar / SessionMenu / useProjects</td><td><a href="#nv-sidebar">Sidebar</a> (projects group) and <a href="#nv-popover">Popover and menu primitives</a></td></tr>
+<tr><td data-schema="useProjects (hook)">useProjects (hook)</td><td><a href="#nv-sidebar">Sidebar</a> (mounted, <code>projects: ProjectsState</code>)</td></tr>
+<tr><td data-schema="Menu (internal)">Menu (internal)</td><td><a href="#nv-popover">Popover and menu primitives</a></td></tr>
+<tr><td data-schema="MenuItem (internal)">MenuItem (internal)</td><td><a href="#nv-popover">Popover and menu primitives</a></td></tr>
+<tr><td data-schema="NameInput (internal)">NameInput (internal)</td><td><a href="#nv-popover">Popover and menu primitives</a></td></tr>
+<tr><td data-schema="SessionMenu">SessionMenu</td><td><a href="#nv-popover">Popover and menu primitives</a> (views) and <a href="#nv-sidebar">Sidebar</a> (row menu)</td></tr>
+<tr><td data-schema="ProjectSidebar (exported, not mounted)">ProjectSidebar (exported, not mounted)</td><td>Out of scope: replaced by the Sidebar projects group, see <a href="#nv-sidebar">Sidebar</a>; delete after the port</td></tr>
+<tr><td data-schema="AnimatedLink">AnimatedLink</td><td>Out of scope: not rendered by the shell; used by SuggestedQuestions, owned by <a href="#composer">Composer</a>. Noted in <a href="#nv-kit">Icon, Button, Select and AnimatedLink</a></td></tr>
+<tr><td data-schema="Button">Button</td><td><a href="#nv-kit">Icon, Button, Select and AnimatedLink</a> (legacy, not used by the shell)</td></tr>
+<tr><td data-schema="Select">Select</td><td>Out of scope: no importers; delete in the CSS cleanup. See <a href="#nv-kit">Icon, Button, Select and AnimatedLink</a></td></tr>
+<tr><td data-schema="Hooks and libs">Hooks and libs</td><td><a href="#nv-root">RootLayout and theme</a>, <a href="#nv-keymap">Keyboard shortcut map</a>, <a href="#nv-frame">Shell, Panel and the layout grid</a>, <a href="#nv-sidebar">Sidebar</a> (one row per hook below)</td></tr>
+<tr><td data-schema="useTheme / THEME_BOOT_SCRIPT (lib/use-theme.ts)">useTheme / THEME_BOOT_SCRIPT (lib/use-theme.ts)</td><td><a href="#nv-root">RootLayout and theme</a></td></tr>
+<tr><td data-schema="useHotkeys (lib/use-hotkeys.ts)">useHotkeys (lib/use-hotkeys.ts)</td><td><a href="#nv-keymap">Keyboard shortcut map and help sheet</a></td></tr>
+<tr><td data-schema="fitPanel (lib/fit-panel.ts)">fitPanel (lib/fit-panel.ts)</td><td><a href="#nv-frame">Shell, Panel and the layout grid</a></td></tr>
+<tr><td data-schema="auto-tab (lib/auto-tab.ts) and useFollowActivity (lib/use-follow-activity.ts)">auto-tab (lib/auto-tab.ts) and useFollowActivity (lib/use-follow-activity.ts)</td><td><a href="#nv-frame">Shell, Panel and the layout grid</a> (open rules); tab switching in <a href="#panel">Session panel</a></td></tr>
+<tr><td data-schema="projects (lib/projects.ts)">projects (lib/projects.ts)</td><td><a href="#nv-sidebar">Sidebar</a> (checkProjectName, sortProjects, draftProject) and <a href="#nv-hero">Hero</a> (project chip)</td></tr>
+<tr><td data-schema="useClock (components/use-clock.ts)">useClock (components/use-clock.ts)</td><td>Out of scope: not used by shell components; its consumers (request card, agents panel, helper chip) are specified in <a href="#requests">Requests</a> and <a href="#agents">Agents</a></td></tr>
+<tr><td data-schema="Data types consumed by the shell">Data types consumed by the shell</td><td><a href="#nv-home-state">Home state and derived values</a>, <a href="#nv-sidebar">Sidebar</a> (SidebarSession), <a href="#nv-hero">Hero</a> (AgentSummary.starterPrompts)</td></tr>
+<tr><td data-schema="Observations for the redesign">Observations for the redesign</td><td><a href="#nv-bugs">Known bugs to fix</a></td></tr>
+</tbody></table></div>
+
+<h3 id="nv-decisions">New decisions</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Id</th><th>Question</th><th>Default chosen</th></tr></thead><tbody>
+<tr><td>D-NEW-1</td><td>Should a closed sidebar collapse to a 44px icon rail (with a Chats nav item) instead of disappearing?</td><td>Yes at vw &gt; 720, as drawn in map.html. Needs the <code>RAIL_W</code> term in <code>fitPanel</code>. If rejected, keep today's hide-completely behavior.</td></tr>
+<tr><td>D-NEW-2</td><td>Does the desktop dock keep all six items once the sidebar is primary, and does it use roving focus?</td><td>Keep all six on desktop; roving tabindex with Left/Right, one Tab stop.</td></tr>
+<tr><td>D-NEW-3</td><td>Where does ⌘K "Recent" come from?</td><td>Last 5 opened ids in localStorage <code>truex-recent</code> (try/catch), falling back to the newest sessions.</td></tr>
+<tr><td>D-NEW-4</td><td>Who may create agents when there are none?</td><td>Show Create agent to everyone; switch to the ask-an-admin copy only after a 403 from create.</td></tr>
+<tr><td>D-NEW-5</td><td>Add a toast primitive for non-turn confirmations and background errors?</td><td>Yes: bottom centre above the dock, 4000ms (bad 8000ms), max 3, never for turn errors.</td></tr>
+<tr><td>D-NEW-6</td><td>Which Share access levels exist?</td><td>Two: private and workspace link, read-only. No public link.</td></tr>
+<tr><td>D-NEW-7</td><td>Add unmodified shortcuts <code>g n</code> and <code>?</code> outside text fields?</td><td>Yes, with a new <code>skipFields</code> filter in <code>useHotkeys</code>; 1000ms window for the second key.</td></tr>
+</tbody></table></div>
+<p>No new backend items. Content search, turn state, pending count and the archived filter use BE-16; identity and sign-out use BE-17; starters use BE-18; Share uses BE-19; live tool health uses BE-06.</p>
+</section>

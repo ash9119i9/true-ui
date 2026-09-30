@@ -1,0 +1,699 @@
+<section class="part" id="ship">
+<h2>Accessibility, QA and build plan</h2>
+<p>This part holds the rules that apply to the whole page. It covers the accessibility spec, the responsive QA matrix, the build plan by phase, every backend item, the decisions register, conflicts between parts, the global acceptance checklist, the definition of done and performance budgets. Component parts own their own keys, labels and states. This part joins them up and settles clashes. Where a part and this part disagree on a cross-part rule, this part wins and the clash is listed under <a href="#sh-conflicts">Conflict check</a>.</p>
+<p>Inputs: the accessibility and responsive boards in <code>design/.cv3-parts/states.html</code>, the build order board in <code>design/.cv3-parts/system.html</code>, <code>design/convo-v3-plan.html</code>, the global gaps in <code>chat-ui-schema.md</code> (lines 18-51) and the finished parts: <a href="#foundations">Foundations</a>, <a href="#shell">Shell</a>, <a href="#composer">Composer</a>, <a href="#stream">Stream</a>, <a href="#requests">Requests</a> and <a href="#agents">Agents</a>. The <a href="#panel">Panel</a> and <a href="#data">Data</a> parts were still being written when this part was drafted, so their component ids are not listed here. Link to those parts by section until their ids exist.</p>
+<div class="note warn">Full WCAG validation needs manual testing with assistive technology (VoiceOver on macOS and iOS, NVDA or JAWS on Windows, TalkBack on Android) and an expert accessibility review. The rules and contrast ratios here are a build target. The ratios were calculated from token hex values, not measured on devices. Meeting this spec does not make the page WCAG compliant.</div>
+
+<h3 id="sh-a11y">1. Accessibility spec</h3>
+<p>This section is the page-wide contract. Foundations owns the focus ring, <code>.sr-only</code> and the contrast table (<a href="#fd-focus">Focus and accessibility styles</a>, <a href="#fd-contrast">Contrast table</a>). This section says where each rule applies.</p>
+
+<h4 id="sh-landmarks">Landmarks and roles</h4>
+<div class="tw"><table class="tbl"><thead><tr><th>Region</th><th>Element and role</th><th>Accessible name</th><th>Notes</th><th>Tag</th></tr></thead><tbody>
+<tr><td>Skip link</td><td><code>a.sr-only.skip</code>, the first focusable element, visible on focus</td><td>"Skip to message box"</td><td>Moves focus to the composer textarea. In a read-only chat it moves to the viewer bar</td><td><span class="tag proposal">proposal</span> D-NEW-SH-05</td></tr>
+<tr><td>Sidebar</td><td><code>nav</code></td><td>"Conversations"</td><td>The conversation list is <code>ul</code>. The open row has <code>aria-current="page"</code>. As a drawer (≤720) it is a modal dialog, see <a href="#nv-sidebar">Sidebar</a></td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Topbar</td><td><code>header</code> (banner)</td><td>none</td><td>Holds the breadcrumb, the status pill, Needs you, Share and the account button</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Goal strip</td><td><code>section[aria-label]</code></td><td>"Goal"</td><td>Only while a goal exists, see <a href="#ag-goal-strip">Goal strip</a></td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Chat column</td><td><code>main</code></td><td>"Conversation"</td><td>One <code>main</code> per page. The hero is inside it on an empty chat</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Message list</td><td><code>div[role=log][aria-live=off]</code> with <code>aria-busy="true"</code> while a turn streams</td><td>"Messages"</td><td>Newest last. <code>aria-live=off</code> overrides the implicit polite value of <code>log</code>, so the stream is never read aloud. Each turn is an <code>article</code> named by its user text (first 80 characters)</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Request dock</td><td><code>section[aria-label]</code></td><td>"Pending request"</td><td>Sits before the composer in DOM order, so Shift+Tab from the textarea reaches it. See <a href="#rq-dock">RequestDock</a></td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Composer</td><td><code>form</code></td><td>"Send a message"</td><td>Textarea label "Message" or "Goal", see <a href="#cp-frame">Composer frame</a></td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Viewer bar</td><td><code>section[role=region]</code></td><td>"Read-only conversation"</td><td>Replaces the composer for non-owners, see <a href="#rq-viewer">Read-only viewer</a></td><td><span class="tag backend">backend</span> BE-09</td></tr>
+<tr><td>Floating dock</td><td><code>nav</code></td><td>"Tools"</td><td>One Tab stop with roving focus (D-NEW-2), see <a href="#nv-dock">FloatingDock</a></td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Activity panel</td><td><code>aside</code>. As an overlay (≤900) it is a modal dialog</td><td>"Activity"</td><td>Tabs are <code>role=tablist</code>, see the <a href="#panel">Panel</a> part</td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Status region</td><td><code>p.sr-only[role=status][aria-live=polite]</code>, one per page</td><td>none</td><td>Exists today. See the next table</td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Toasts</td><td><code>div[role=status]</code>; bad tone <code>role=alert</code></td><td>none</td><td>Never take focus, see <a href="#nv-toast">Toast</a></td><td><span class="tag proposal">proposal</span> D-NEW-5</td></tr>
+<tr><td>Sheets and dialogs</td><td>native <code>dialog</code> opened with <code>showModal()</code>, <code>aria-labelledby</code> its title</td><td>sheet title</td><td>See <a href="#nv-sheet">Sheet and drawer</a></td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Popovers and menus</td><td><code>role=menu</code> or <code>role=dialog</code> (non-modal)</td><td>trigger label</td><td>See <a href="#nv-popover">Popover and menu primitives</a></td><td><span class="tag derive">derive</span></td></tr>
+</tbody></table></div>
+
+<h4 id="sh-live">Status live region</h4>
+<p>There is one polite region, owned by the Shell (<a href="#nv-topbar">Topbar</a>). Every part writes to it through one helper, <code>announce(text, { key })</code>. No part adds its own polite region, with two exceptions that already exist: the search palette result count and the in-thread search count. Errors that need action use <code>role=alert</code> on the element that shows them.</p>
+<ul>
+  <li>The streaming answer is never in a live region. The message list carries <code>aria-busy="true"</code> while tokens arrive and <code>aria-busy="false"</code> once <code>turn.completed</code> or <code>turn.failed</code> arrives. Screen-reader users read the answer on demand.</li>
+  <li>Throttle: one message per 1000ms (Shell). A newer message in the window replaces the queued one. Same text within 5000ms is dropped. <span class="tag proposal">proposal</span> D-NEW-SH-07</li>
+  <li>Precedence inside one window: a specific request message beats the generic state message. When a request docks, "Waiting on you" is not also said.</li>
+  <li>Text comes from derived state (<code>deriveTurnState()</code>), never from a component's own copy of it.</li>
+</ul>
+<div class="tw"><table class="tbl"><thead><tr><th>Moment</th><th>Source</th><th>Region</th><th>Exact text</th><th>Owner</th></tr></thead><tbody>
+<tr><td>Turn state becomes working</td><td><code>turn.state</code></td><td>polite</td><td>"Working"</td><td><a href="#nv-topbar">Topbar</a></td></tr>
+<tr><td>Turn state becomes waiting</td><td><code>turn.state</code>, no request message in the window</td><td>polite</td><td>"Waiting on you"</td><td><a href="#nv-topbar">Topbar</a></td></tr>
+<tr><td>Stopped</td><td><code>turn.state</code></td><td>polite</td><td>"Stopped"</td><td><a href="#nv-topbar">Topbar</a></td></tr>
+<tr><td>Failed</td><td><code>turn.state</code></td><td>polite, plus the failure card's own <code>role=alert</code></td><td>"Failed"</td><td><a href="#nv-topbar">Topbar</a>, <a href="#sm-failure">TurnFailureCard</a></td></tr>
+<tr><td>Reconnecting</td><td>stream status</td><td>polite</td><td>"Reconnecting"</td><td><a href="#nv-topbar">Topbar</a></td></tr>
+<tr><td>Working to idle</td><td><code>turn.state</code></td><td>polite</td><td>"Done"</td><td><a href="#nv-topbar">Topbar</a></td></tr>
+<tr><td>Request docked (from 0)</td><td><code>PendingRequest</code></td><td>polite</td><td>"Permission needed: {title}." / "Question: {title}." / "Plan ready for review." plus " Shift Tab to answer." when the composer has focus</td><td><a href="#rq-timing">Requests timing</a></td></tr>
+<tr><td>Another request arrives</td><td><code>pending.length</code></td><td>polite</td><td>"{n} requests waiting."</td><td><a href="#rq-timing">Requests timing</a></td></tr>
+<tr><td>Request countdown</td><td>head request only</td><td>polite</td><td>"{title} expires in 1 minute." at 60s, then "30 seconds", then "10 seconds"</td><td><a href="#rq-expiry">ExpiryCountdown</a></td></tr>
+<tr><td>Answer resolved</td><td>badge text</td><td>polite</td><td>for example "Allowed once." or "Answer sent."</td><td><a href="#rq-tool">ToolApprovalCard</a></td></tr>
+<tr><td>Batch done</td><td>batch sheet</td><td>polite</td><td>"All requests answered."</td><td><a href="#rq-batch">BatchBar</a></td></tr>
+<tr><td>g then n with nothing pending</td><td>tray</td><td>polite</td><td>"Nothing needs you right now."</td><td><a href="#rq-needs">NeedsYouTray</a></td></tr>
+<tr><td>Copied</td><td>copy actions</td><td>polite</td><td>"Copied to clipboard" (messages), "Copied" (Share)</td><td><a href="#sm-answer-actions">AnswerActions</a>, <a href="#nv-share">Share</a></td></tr>
+<tr><td>Palette results</td><td>palette</td><td>its own polite line</td><td>"{n} results"</td><td><a href="#nv-palette">SearchPalette</a></td></tr>
+<tr><td>Helper summary</td><td>HelperGroup header</td><td>polite</td><td>"{n} helpers · {r} running" / "{n} helpers · {d} done"</td><td><a href="#ag-helper-group">HelperGroup</a></td></tr>
+<tr><td>Send error, answer error, stop failed</td><td>element error</td><td>alert</td><td>the server message shown on screen</td><td>owning block</td></tr>
+<tr><td>Auto-resolved by approval mode</td><td>none</td><td>none</td><td>nothing is announced</td><td><a href="#rq-timing">Requests timing</a></td></tr>
+</tbody></table></div>
+<div class="note">The States board draws "Needs your approval" as the waiting string. The Shell spec uses "Waiting on you", because the waiting state also covers questions and plans. This part keeps "Waiting on you". See conflict C-09.</div>
+
+<h4 id="sh-focus">Focus order and focus return</h4>
+<p>DOM order matches visual order. Tab order across the page is: skip link, sidebar, topbar (breadcrumb, status pill, Needs you, Share, account), goal strip, message list (one Tab stop, arrows move between messages), request dock, composer (textarea, then the bar left to right), Send or Stop, floating dock (one Tab stop), activity panel. A new request, toast, helper or reconnect never moves focus.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Surface</th><th>On open</th><th>Trap</th><th>On close, focus returns to</th><th>Source</th></tr></thead><tbody>
+<tr><td>Request dock, after answering</td><td>none, the dock never steals focus</td><td>no</td><td>the next docked card's first control, else the composer textarea</td><td><a href="#rq-timing">Requests timing</a></td></tr>
+<tr><td>Request card removed for another reason</td><td></td><td>no</td><td>the composer, only if focus would fall to <code>body</code></td><td><a href="#rq-timing">Requests timing</a></td></tr>
+<tr><td>Floating dock popovers</td><td>first item in the popover</td><td>no; Tab closes</td><td>the dock button that opened it</td><td><a href="#nv-dock">FloatingDock</a></td></tr>
+<tr><td>Composer popovers (agent, model, effort, overflow)</td><td>the checked item</td><td>no; Tab closes</td><td>the chip</td><td><a href="#cp-agent">AgentChip</a>, <a href="#cp-model">ModelChip</a></td></tr>
+<tr><td>Slash and mention menus</td><td>focus stays in the textarea (combobox, <code>aria-activedescendant</code>)</td><td>no</td><td>stays in the textarea</td><td><a href="#cp-slash">SlashMenu</a>, <a href="#cp-mention">MentionMenu</a></td></tr>
+<tr><td>Menus (row, goal, visual options)</td><td>first item</td><td>no; Tab closes</td><td>the trigger</td><td><a href="#nv-popover">Popover primitives</a></td></tr>
+<tr><td>Sheets (All agents, Connected tools, shortcuts, batch review)</td><td>first field or the sheet title</td><td>yes (native modal <code>dialog</code>)</td><td>the opener; if it is gone, the composer</td><td><a href="#nv-sheet">Sheet</a>, <a href="#rq-batch">BatchReviewSheet</a></td></tr>
+<tr><td>Drawers (sidebar ≤720, panel ≤900)</td><td>first item in the drawer</td><td>yes</td><td>the button that opened it</td><td><a href="#nv-sheet">Sheet and drawer</a>, <a href="#fd-breakpoints">Breakpoints</a></td></tr>
+<tr><td>Needs-you tray</td><td>first row's fix button</td><td>no; roving focus in the list</td><td>the Needs you count button. A fix that moves focus elsewhere closes the tray first</td><td><a href="#rq-needs">NeedsYouTray</a></td></tr>
+<tr><td>Search palette</td><td>search input</td><td>yes</td><td>the element focused before mod+K</td><td><a href="#nv-palette">SearchPalette</a></td></tr>
+<tr><td>In-thread search</td><td>search input</td><td>no</td><td>the element focused before it opened</td><td><a href="#sm-search">ThreadSearch</a></td></tr>
+<tr><td>Agent dialog</td><td>Name field; success step: "Say hi to {name}"</td><td>yes</td><td>the opener (menu item or roster row)</td><td><a href="#ag-dialog">AgentDialog</a></td></tr>
+<tr><td>Inline confirms (replace goal, delete agent, delete server)</td><td>the confirming button</td><td>no</td><td>the button that started the confirm</td><td><a href="#cp-goal">Goal mode</a>, <a href="#ag-dialog">AgentDialog</a>, <a href="#ag-mcp">McpSettings</a></td></tr>
+<tr><td>Helper detail</td><td>"All helpers" back button</td><td>no</td><td>the helper row it came from</td><td><a href="#ag-panel">AgentsPanel</a></td></tr>
+</tbody></table></div>
+<ul>
+  <li>Focus return must survive a re-render. Store the opener as an element ref and fall back to a stable selector (<code>[data-focus-id]</code>) if the node was replaced. <span class="tag derive">derive</span></li>
+  <li>Never call <code>focus()</code> on an element with <code>display:none</code> or <code>inert</code>. If the target is gone, use the composer textarea, or the viewer bar in a read-only chat.</li>
+  <li>Opening a modal sets <code>inert</code> on everything outside it (native <code>showModal()</code> does this).</li>
+</ul>
+
+<h4 id="sh-keys">Keyboard parity</h4>
+<p>Every pointer action has a key path. The table lists the page-level paths. Component keys live in each block and in the <a href="#nv-keymap">shortcut map</a>.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Pointer action</th><th>Key path</th><th>Owner</th></tr></thead><tbody>
+<tr><td>Open search, toggle sidebar, toggle panel, new chat</td><td>mod+K, mod+B, mod+., mod+J (fire while typing)</td><td><a href="#nv-keymap">Keymap</a></td></tr>
+<tr><td>Go to what needs me</td><td><kbd>g</kbd> then <kbd>n</kbd> outside fields; Shift+Tab from the composer reaches the dock</td><td><a href="#rq-needs">NeedsYouTray</a></td></tr>
+<tr><td>Show shortcuts</td><td><kbd>?</kbd> outside fields</td><td><a href="#nv-keymap">Keymap</a></td></tr>
+<tr><td>Hover-only message actions</td><td>Focus the message (arrows in the list), then Tab into its toolbar. Actions show on <code>:focus-within</code></td><td><a href="#sm-user-actions">UserActions</a>, <a href="#sm-answer-actions">AnswerActions</a></td></tr>
+<tr><td>Open a folded work group, thinking block or tool row</td><td>Enter or Space on its disclosure button</td><td><a href="#sm-workgroup">WorkGroup</a>, <a href="#sm-thinking">ThinkingBlock</a>, <a href="#sm-runtime">RuntimeItem</a></td></tr>
+<tr><td>Jump to latest</td><td>the pill is a button in Tab order after the list; End with focus in the list</td><td><a href="#sm-jump">JumpToLatest</a></td></tr>
+<tr><td>Answer a request</td><td>Enter picks the first option, 1 to n by position, Esc per D-06</td><td><a href="#rq-tool">ToolApprovalCard</a>, <a href="#rq-question">QuestionCard</a>, <a href="#rq-plan">PlanApprovalCard</a></td></tr>
+<tr><td>Steer, queue, edit a queued message</td><td>mod+Enter steers, Enter queues, ↑ on an empty composer recalls</td><td><a href="#cp-steer">Steer</a>, <a href="#cp-queue">QueueList</a></td></tr>
+<tr><td>Stop the turn</td><td>Stop button, or Esc in the composer when nothing else applies</td><td><a href="#cp-send">Send and Stop</a></td></tr>
+<tr><td>Pick an agent look or tint</td><td>arrows in the radiogroup</td><td><a href="#ag-dialog">AgentDialog</a></td></tr>
+<tr><td>Drag the badge on the success step</td><td>decorative; no key path needed. The badge is <code>aria-hidden</code> and nothing depends on it</td><td><a href="#ag-badge">Badge</a></td></tr>
+<tr><td>Resize the panel</td><td>the size toggle button (min or max); no drag-only width</td><td><a href="#nv-frame">Shell frame</a></td></tr>
+<tr><td>Scrim click to close</td><td>Esc</td><td><a href="#nv-sheet">Sheet</a></td></tr>
+<tr><td>Hover tooltips</td><td>the same text is in <code>aria-label</code> or <code>aria-describedby</code>, and tooltips also show on <code>:focus-visible</code></td><td><a href="#nv-kit">Button kit</a></td></tr>
+<tr><td>Drop files on the composer</td><td>Attach button opens the file picker</td><td><a href="#cp-attach">Attachment button</a></td></tr>
+</tbody></table></div>
+
+<h4 id="sh-esc">Esc order</h4>
+<p>One handler owns Esc, <code>useEscStack</code>. Each open layer pushes an entry, and Esc runs only the top entry, then calls <code>preventDefault</code> and <code>stopPropagation</code>. This replaces the per-part rules, which say the same thing in different words. <span class="tag proposal">proposal</span> D-NEW-SH-01</p>
+<ol>
+  <li>A menu or combobox list (slash, mention, row menu, goal menu, effort list).</li>
+  <li>A popover (agent, model, dock popover, Share, tray).</li>
+  <li>The Other input in a question card, when open and empty.</li>
+  <li>In-thread search.</li>
+  <li>A modal (sheet, dialog, palette, drawer). A card inside the batch sheet runs D-06 first, and the next Esc closes the sheet.</li>
+  <li>Focus context:
+    <ul>
+      <li>in a docked request card: D-06 (Cancel option, or focus the composer)</li>
+      <li>in the textarea while editing a queued item: cancel the edit</li>
+      <li>in goal mode: leave goal mode, keep the draft</li>
+      <li>in helper detail: back to the list</li>
+    </ul>
+  </li>
+  <li>With focus in the composer and a turn running: stop the turn.</li>
+</ol>
+<p>Esc never stops a turn when focus is outside the composer, and never declines a request when focus is in the textarea.</p>
+
+<h4 id="sh-motion">Reduced motion</h4>
+<p>Under <code>prefers-reduced-motion: reduce</code> all <code>--dur-*</code> tokens are 0s (<a href="#fd-motion-tokens">Motion tokens</a>, <a href="#fd-animations">Animation inventory</a>). The table lists what the user still sees.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Motion</th><th>Reduced replacement</th><th>Source</th></tr></thead><tbody>
+<tr><td>Shimmer on streaming and skeletons</td><td>static dot, flat skeleton bars</td><td>States board, <a href="#sm-placeholder">StreamingPlaceholder</a></td></tr>
+<tr><td>Live pulse (dock badge, helper node)</td><td>solid badge, static dot</td><td>States board, <a href="#ag-handoff">Handed off node</a></td></tr>
+<tr><td>Spinner</td><td>static ring, so busy is still visible</td><td>States board</td></tr>
+<tr><td>Drawer slide, panel width, pin drop, dock magnification</td><td>instant, no transition</td><td><a href="#fd-breakpoints">Breakpoints</a></td></tr>
+<tr><td>SmoothTextarea caret spring</td><td>caret jumps</td><td><a href="#cp-frame">Composer frame</a></td></tr>
+<tr><td>Work group auto-fold after 600ms</td><td>folds with no delay and no animation</td><td><a href="#sm-workgroup">WorkGroup</a> (D-NEW-S6)</td></tr>
+<tr><td>Smooth scroll on follow and jump</td><td><code>behavior: "auto"</code></td><td><a href="#sm-follow">Auto-follow</a></td></tr>
+<tr><td>Confetti and badge drop on the agent success step</td><td>not rendered; copy shows at once</td><td><a href="#ag-confetti">Confetti</a></td></tr>
+<tr><td>Streaming caret in helper tiles</td><td>hidden</td><td><a href="#ag-tiles">Tiled helper view</a></td></tr>
+<tr><td>Countdown and delay timers (400ms, 600ms, 2000ms)</td><td>unchanged; they are not motion</td><td><a href="#rq-timing">Requests timing</a></td></tr>
+</tbody></table></div>
+
+<h4 id="sh-targets">Target sizes</h4>
+<ul>
+  <li>Pointer: every interactive target is at least 24×24px (WCAG 2.2 SC 2.5.8), or has 24px of clear spacing around a smaller target.</li>
+  <li>Touch (<code>@media (pointer: coarse)</code>): the hit area is at least 44×44px. Where the visual stays smaller (26px icon buttons, 20px pills, 18px avatars), a <code>::after</code> pseudo-element with <code>inset: -9px</code> (or as needed to reach 44px) extends the hit area. Hit areas of neighbours must not overlap, so rows of icon buttons get 4px more gap on coarse pointers. <span class="tag proposal">proposal</span> D-NEW-SH-06</li>
+  <li>Known small targets to check: composer ghost cancel 26×26, MCP row icons 26×26, "Sign in" 26px tall, tint circles 26, delegation pill 20, scope badges 18, code block Copy and Wrap, message action buttons, HelperGroup "Open".</li>
+  <li>Inline links in running text are exempt from 2.5.8, but links in rows (citations, file cards) are not.</li>
+</ul>
+
+<h4 id="sh-labels">Screen-reader labels for icon-only buttons</h4>
+<p>Every icon-only button has an <code>aria-label</code>. The icon is <code>aria-hidden="true"</code>. A tooltip, when present, repeats the label and never replaces it. Labels with a variable use the data field, never a hard-coded name. Rows tagged <span class="tag proposal">proposal</span> are labels no part has fixed yet. They use the default below until the owner confirms (D-NEW-SH-08).</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Button</th><th>aria-label</th><th>State attribute</th><th>Owner</th><th>Tag</th></tr></thead><tbody>
+<tr><td>Composer attach (+)</td><td>"Attach files"</td><td></td><td><a href="#cp-attach">Attachment button</a></td><td><span class="tag proposal">proposal</span></td></tr>
+<tr><td>Send (↑)</td><td>"Send message"; in goal mode "Start goal"</td><td><code>aria-disabled</code> when it can't send</td><td><a href="#cp-send">Send</a></td><td><span class="tag proposal">proposal</span></td></tr>
+<tr><td>Stop</td><td>"Stop response"; while stopping "Stopping"</td><td><code>aria-disabled</code> while stopping</td><td><a href="#cp-send">Stop</a></td><td><span class="tag proposal">proposal</span></td></tr>
+<tr><td>Remove a file chip</td><td>"Remove {fileName}"</td><td></td><td><a href="#cp-attach">FileChips</a></td><td><span class="tag proposal">proposal</span></td></tr>
+<tr><td>Remove a queued message</td><td>"Remove queued message {i}"</td><td></td><td><a href="#cp-queue">QueueList</a></td><td><span class="tag proposal">proposal</span></td></tr>
+<tr><td>Goal head cancel (x)</td><td>"Cancel goal"</td><td></td><td><a href="#cp-goal">Goal mode</a></td><td><span class="tag proposal">proposal</span></td></tr>
+<tr><td>Sidebar toggle</td><td>"Show sidebar" / "Hide sidebar"</td><td><code>aria-expanded</code></td><td><a href="#nv-sidebar">Sidebar</a></td><td><span class="tag proposal">proposal</span></td></tr>
+<tr><td>Conversation row menu</td><td>"Options for {title}"</td><td><code>aria-haspopup="menu"</code>, <code>aria-expanded</code></td><td><a href="#nv-sidebar">Sidebar</a></td><td><span class="tag proposal">proposal</span></td></tr>
+<tr><td>Dock buttons</td><td>the item name, for example "Activity", "Agents"</td><td><code>aria-pressed</code> when its panel is open</td><td><a href="#nv-dock">FloatingDock</a></td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Panel size toggle</td><td>"Expand panel" / "Shrink panel"</td><td></td><td><a href="#nv-frame">Shell frame</a></td><td><span class="tag proposal">proposal</span></td></tr>
+<tr><td>Theme toggle</td><td>"Use dark theme" / "Use light theme"</td><td></td><td><a href="#nv-root">RootLayout and theme</a></td><td><span class="tag proposal">proposal</span></td></tr>
+<tr><td>Needs you count (count only at ≤720)</td><td>"Needs you, {n} items"</td><td><code>aria-expanded</code></td><td><a href="#rq-needs">NeedsYouTray</a></td><td><span class="tag proposal">proposal</span></td></tr>
+<tr><td>Status pill dot only (≤400)</td><td>the full state text, for example "Working"</td><td></td><td><a href="#nv-topbar">Topbar</a></td><td><span class="tag derive">derive</span></td></tr>
+<tr><td>Message actions (copy, retry, edit, more)</td><td>"Copy message", "Retry", "Edit message", "More actions"</td><td></td><td><a href="#sm-answer-actions">AnswerActions</a>, <a href="#sm-user-actions">UserActions</a></td><td><span class="tag proposal">proposal</span></td></tr>
+<tr><td>Code block Copy and Wrap (icon form)</td><td>"Copy code", "Wrap lines"</td><td><code>aria-pressed</code> on Wrap</td><td><a href="#sm-code">CodeBlock</a></td><td><span class="tag proposal">proposal</span></td></tr>
+<tr><td>Visual overflow</td><td>"Visual options"</td><td><code>aria-haspopup="menu"</code></td><td><a href="#sm-visual">VisualizationCard</a></td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Dialog and sheet close (x)</td><td>"Close"</td><td></td><td><a href="#ag-dialog">AgentDialog</a>, <a href="#nv-sheet">Sheet</a></td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Helper stop</td><td>"Stop {name}"</td><td></td><td><a href="#ag-helper-group">HelperGroup</a></td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Helper pager</td><td>"Previous helper", "Next helper"</td><td></td><td><a href="#ag-panel">AgentsPanel</a></td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Agent edit (pencil)</td><td>"Edit {name}"</td><td></td><td><a href="#ag-menu">AgentMenu</a></td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>MCP row edit and delete</td><td>"Edit {name}", "Delete {name}"</td><td></td><td><a href="#ag-mcp">McpSettings</a></td><td><span class="tag exists">exists</span></td></tr>
+<tr><td>Goal strip clear icon</td><td>"Clear goal"</td><td></td><td><a href="#ag-goal-strip">Goal strip</a></td><td><span class="tag proposal">proposal</span></td></tr>
+<tr><td>Jump to latest (arrow only)</td><td>"Jump to latest message"</td><td></td><td><a href="#sm-jump">JumpToLatest</a></td><td><span class="tag proposal">proposal</span></td></tr>
+<tr><td>Thread search previous and next</td><td>"Previous match", "Next match"</td><td></td><td><a href="#sm-search">ThreadSearch</a></td><td><span class="tag proposal">proposal</span></td></tr>
+</tbody></table></div>
+<p>Lint rule: an <code>Icon</code> inside a <code>button</code> with no text child and no <code>aria-label</code> fails CI (see <a href="#sh-dod">Definition of done</a>).</p>
+
+<h4 id="sh-contrast">Contrast</h4>
+<p>Ratios come from the <a href="#fd-contrast">Foundations contrast table</a> and the States board. They were calculated from token hex values and not measured on devices.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Pair</th><th>Ratio</th><th>Rule</th></tr></thead><tbody>
+<tr><td><code>--ink-3</code> #67757C on white</td><td>4.8:1</td><td>Pass for text at 13px and up. Text under 13px uses <code>--ink-2</code></td></tr>
+<tr><td><code>--ink-2</code> #5F6D73 on white</td><td>5.4:1</td><td>Pass</td></tr>
+<tr><td>White on <code>--accent-fg</code> #2A72A3</td><td>5.2:1</td><td>Pass. Every filled button with light text uses this fill</td></tr>
+<tr><td>White on <code>--accent</code> #3691CD</td><td>3.4:1 (3.45:1 in Foundations)</td><td>Fails for text. <code>--accent</code> is kept for icons, rings and bars only</td></tr>
+<tr><td>Dark <code>--ink-3</code> #8B999F on #171717</td><td>6.1:1</td><td>Pass</td></tr>
+<tr><td>Dark <code>--on-accent</code> #111213 on dark <code>--accent-fg</code> #BCDEE8</td><td>13.17:1</td><td>Pass (Foundations D-NEW: dark on-accent)</td></tr>
+<tr><td><code>--border-control</code> against the page</td><td>1.34:1 light, 1.73:1 dark</td><td>Below 3:1 for non-text UI. Kept in v3 because inputs keep a visible label and the focus halo (Foundations D-NEW: input border contrast). Recheck in the high-fidelity pass</td></tr>
+</tbody></table></div>
+<ul>
+  <li>Status must never be carried by color alone. Every tone (LED, chip, dot) pairs with text or an icon. Where text hides at narrow widths, the accessible name keeps it (see <a href="#ag-helper-group">HelperGroup</a> D-NEW-AG-10).</li>
+  <li>Focus ring: 2px <code>--accent</code> outline, 2px offset, radius 8px (<a href="#fd-focus">Focus styles</a>). It must reach 3:1 against both the element and the page in both themes.</li>
+  <li>Forced colors (<code>@media (forced-colors: active)</code>): focus rings use <code>outline-color: Highlight</code>, and chips and pills keep a 1px border. <span class="tag proposal">proposal</span> D-NEW-SH-09</li>
+</ul>
+
+<h3 id="sh-responsive">2. Responsive QA matrix</h3>
+<p>Test each width in both themes with the sidebar open and closed, and the activity panel closed, at min and at max. Breakpoint values come from <a href="#fd-breakpoints">Foundations breakpoints</a> and <a href="#nv-breakpoints">Shell breakpoints</a>. At every width: no horizontal page scroll, the composer bar stays on screen, and a docked request plus the composer stay fully visible.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Width</th><th>Layout expected</th><th>Verify</th></tr></thead><tbody>
+<tr><td>1440</td><td>Sidebar docked 268, panel docked at min or max, floating dock, full breadcrumb with project</td><td>
+  <ul>
+    <li>Turn outline rail shows at 4 or more turns (D-NEW-S10)</li>
+    <li>Message column max width holds, and the composer is 740px max</li>
+    <li>Panel max floats only below 1230 with the sidebar closed, so it stays docked here</li>
+    <li>Hover-only actions show on hover and on focus</li>
+    <li>Tooltips on the dock and chips</li>
+  </ul></td></tr>
+<tr><td>1180</td><td>Sidebar docked; the panel yields when it is max (fitPanel rule 4)</td><td>
+  <ul>
+    <li>The outline rail threshold (≥1180) is exactly met, and the rail shows</li>
+    <li>At 1179 it hides with no layout jump in the message column</li>
+    <li>Opening the panel at max with the sidebar open closes or floats as specified</li>
+  </ul></td></tr>
+<tr><td>1100</td><td>bp-xl: the project crumb hides; fitPanel closes the sidebar when the panel opens; composer chips show icons only</td><td>
+  <ul>
+    <li>The stage stays at 460px or wider with the panel open</li>
+    <li>Chip labels hide, and each chip keeps its accessible name and a tooltip</li>
+    <li>Closing the panel does not reopen the sidebar on its own</li>
+  </ul></td></tr>
+<tr><td>900</td><td>bp-lg: the activity panel becomes a fixed overlay drawer (z <code>--z-drawer</code>, scrim)</td><td>
+  <ul>
+    <li>Esc and the scrim close the drawer, and focus returns to the dock button</li>
+    <li>Follow activity never auto-opens the drawer</li>
+    <li>Before the first fit, panels are width 0 with no flash</li>
+    <li>Topbar grid is <code>1fr auto 1fr</code></li>
+  </ul></td></tr>
+<tr><td>720</td><td>bp-md: the sidebar is a left drawer, and one drawer at a time; the panel goes edge to edge; the crumb hides; Needs you shows the count only; Share and theme move into the Account sheet</td><td>
+  <ul>
+    <li>Opening one drawer closes the other</li>
+    <li>The Needs you count has its full accessible name</li>
+    <li>Share and theme can be reached in the Account sheet</li>
+    <li>≤700 rules have been merged here (Foundations D-NEW: merge 700 into 720). The HelperGroup tone dot replaces the chip</li>
+    <li>Touch targets are 44px on a coarse pointer</li>
+  </ul></td></tr>
+<tr><td>400</td><td>bp-xxs: gutters drop to <code>--sp-3</code>, the user bubble is 88% wide, the pill shows a dot and a short label, menus go full width minus 16px, and the composer folds agent, model and approval into "Message settings" (D-NEW-02)</td><td>
+  <ul>
+    <li>Tables and code blocks scroll inside their wrapper, and the page does not scroll sideways</li>
+    <li>Request actions are stacked (≤520)</li>
+    <li>Bottom bar shows icons only (≤520)</li>
+    <li>Popovers fit on screen and are not clipped by the viewport edge</li>
+  </ul></td></tr>
+<tr><td>390, keyboard open</td><td>visualViewport height under 75% of innerHeight: the bottom bar hides, and the docked request goes compact when it needs more than 45% of the space above the keyboard and composer</td><td>
+  <ul>
+    <li>The textarea caret stays visible while typing 10 lines</li>
+    <li>A request that arrives while typing does not take focus, and its buttons stay above the keyboard</li>
+    <li>The mention and slash menus open upward within the visible viewport</li>
+    <li>Closing the keyboard restores the bottom bar within one frame after the <code>visualViewport</code> resize</li>
+    <li>iOS Safari and Android Chrome both pass</li>
+  </ul></td></tr>
+</tbody></table></div>
+<ul class="chk">
+  <li>At each width, zoom to 200% and check that text reflows. At 320 CSS px wide (400% zoom on 1280) there is no loss of content or function (WCAG 1.4.10).</li>
+  <li>Text spacing override (line height 1.5, paragraph spacing 2em, letter spacing .12em, word spacing .16em) clips no label (WCAG 1.4.12).</li>
+  <li>Rotating a phone or tablet keeps the open drawer, focus and draft.</li>
+</ul>
+
+<h3 id="sh-plan">3. Build plan by phase</h3>
+<p>Phases follow <code>convo-v3-plan.html</code> and the build order board. Each component's phase tag is in its own block. Where the board and a block disagree, the block's tag is used here and the clash is listed in the <a href="#sh-conflicts">Conflict check</a> (C-10, C-11). Components that are still blocked on backend work ship as disabled controls or stay hidden, then light up without a redesign. <a href="#panel">Panel</a> and <a href="#data">Data</a> components are listed by section until their ids exist.</p>
+<div class="note">BE-01 (credentials on fetch and EventSource, CORS for the exact origin) is "now". It is not a phase item. It blocks production auth on its own and must land before any P1 PR merges to a shared environment.</div>
+
+<div class="comp" id="sh-p0">
+  <header><h4>P0: True to the contract</h4><span class="tag derive">derive</span><span class="tag phase">P0</span>
+    <span class="path">styles/v2/tokens.css, base.css · lib/* contract fixes · no backend</span></header>
+  <div class="body">
+    <p>Tokens, the stylesheet pipeline and the contract fixes that make today's UI match the data. P0 needs no backend work, so it can start today.</p>
+    <h4>Scope</h4>
+    <ul>
+      <li>Tokens: <a href="#fd-theme">Theme mechanism</a>, <a href="#fd-semantic">Semantic colors</a>, <a href="#fd-tones">Helper tones</a>, <a href="#fd-type-presets">Type presets</a>, <a href="#fd-spacing">Spacing</a>, <a href="#fd-layout">Layout constants</a>, <a href="#fd-radii">Radii</a>, <a href="#fd-shadows">Shadows</a>, <a href="#fd-zindex">Z-index</a>, <a href="#fd-motion-tokens">Motion tokens</a>, <a href="#fd-animations">Animation inventory</a>, <a href="#fd-icons">Icon</a></li>
+      <li>Pipeline and a11y base: <a href="#fd-css">Stylesheet pipeline</a> (steps for P0), <a href="#fd-focus">Focus styles</a>, <a href="#fd-contrast">Contrast</a></li>
+      <li>Contract fixes from the build order board (each is the P0 slice of a P1 block):
+        <ul>
+          <li>Remove invented fields: <a href="#rq-data">PendingRequest data</a>, <a href="#sm-entry">Entry union</a></li>
+          <li>Approval mode and Esc copy: <a href="#cp-approval">ApprovalModePicker</a>, <a href="#rq-tool">ToolApprovalCard</a> (D-06)</li>
+          <li>Requests rendered from <code>options[]</code>: <a href="#rq-tool">ToolApprovalCard</a>, <a href="#rq-question">QuestionCard</a></li>
+          <li>Failure card by reason: <a href="#sm-failure">TurnFailureCard</a>, <a href="#sm-errorref">ErrorRef</a></li>
+          <li>Sandboxed visualization: <a href="#sm-visual">VisualizationCard</a></li>
+        </ul></li>
+    </ul>
+    <h4>Dependencies</h4>
+    <p>None. BE-01 runs in parallel.</p>
+    <h4>Suggested PRs</h4>
+    <ol>
+      <li><code>tokens.css</code>: every new token (spacing, z, motion, <code>--ink-3</code>, <code>--accent-fg</code>, <code>--on-accent</code>) and the dark block parity unit test.</li>
+      <li>Focus ring, <code>.sr-only</code>, the skip link and the reduced-motion block in <code>base.css</code>.</li>
+      <li>Contrast swaps: filled buttons to <code>--accent-fg</code>, and small text to <code>--ink-2</code>.</li>
+      <li>Contract fixes for requests (invented fields out, <code>options[]</code> in, audit label punctuation).</li>
+      <li>TurnFailureCard by reason, and ErrorRef.</li>
+      <li>Sandboxed visualization frame, with tokens passed in (Foundations D-NEW: pass tokens into visualization frame).</li>
+    </ol>
+    <h4>Exit criteria</h4>
+    <ul class="chk">
+      <li>No literal color left in <code>styles/v2</code> outside <code>tokens.css</code> (grep check in CI).</li>
+      <li>The parity test passes for the two dark blocks.</li>
+      <li>Every pair in the contrast table meets its rule in both themes.</li>
+      <li>No component reads a field that is missing from <code>shared/contracts.ts</code>.</li>
+      <li>Reduced motion sets every <code>--dur-*</code> to 0s.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="sh-p1">
+  <header><h4>P1: Daily-use core</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">shell, composer, stream, requests, goal and agents core</span></header>
+  <div class="body">
+    <p>The surfaces people touch every few minutes. Most of the gain from v3 comes from this phase.</p>
+    <h4>Scope</h4>
+    <ul>
+      <li>Foundations: <a href="#fd-series">Chart series</a>, <a href="#fd-breakpoints">Breakpoints</a></li>
+      <li>Shell: <a href="#nv-home-state">Home state</a>, <a href="#nv-frame">Shell frame</a>, <a href="#nv-sidebar">Sidebar</a>, <a href="#nv-topbar">Topbar</a>, <a href="#nv-goal-strip">Goal strip placement</a>, <a href="#nv-dock">FloatingDock</a>, <a href="#nv-palette">SearchPalette</a>, <a href="#nv-hero">Hero</a>, <a href="#nv-usermenu">UserMenu</a>, <a href="#nv-popover">Popover primitives</a>, <a href="#nv-sheet">Sheet and drawer</a>, <a href="#nv-toast">Toast</a>, <a href="#nv-kit">Button kit</a>, <a href="#nv-root">RootLayout</a>, <a href="#nv-errors">Error pages</a>, <a href="#nv-keymap">Keymap</a>, <a href="#nv-breakpoints">Shell breakpoints</a></li>
+      <li>Composer: <a href="#cp-frame">Frame</a>, <a href="#cp-bar">Action bar</a>, <a href="#cp-attach">Attach</a>, <a href="#cp-agent">AgentChip</a>, <a href="#cp-model">ModelChip</a>, <a href="#cp-approval">ApprovalModePicker</a>, <a href="#cp-goal">Goal mode</a>, <a href="#cp-mention">MentionMenu</a>, <a href="#cp-slash">SlashMenu</a>, <a href="#cp-submit">Submit pipeline</a>, <a href="#cp-queue">QueueList</a>, <a href="#cp-steer">Steer</a>, <a href="#cp-send">Send and Stop</a>, <a href="#cp-project">ProjectNote</a>, <a href="#cp-privacy">PrivacyNote</a>, <a href="#cp-notices">Notices</a>, <a href="#cp-suggest">SuggestedQuestions</a>, <a href="#cp-helper">HelperChip</a>, <a href="#cp-quicktools">QuickTools (retired)</a>, <a href="#cp-request-input">request-input helpers</a></li>
+      <li>Stream: <a href="#sm-entry">Entry</a>, <a href="#sm-pipeline">Pipeline</a>, <a href="#sm-messages">ChatMessages</a>, <a href="#sm-follow">Auto-follow</a>, <a href="#sm-user">UserMessage</a>, <a href="#sm-user-actions">UserActions</a>, <a href="#sm-command">CommandResult</a>, <a href="#sm-agent">AgentMessage</a>, <a href="#sm-markdown">Markdown</a>, <a href="#sm-answer-actions">AnswerActions</a>, <a href="#sm-code">CodeBlock</a>, <a href="#sm-thinking">ThinkingBlock</a>, <a href="#sm-workgroup">WorkGroup</a>, <a href="#sm-runtime">RuntimeItem</a>, <a href="#sm-helpers">HelperGroup placement</a>, <a href="#sm-plansteps">PlanSteps</a>, <a href="#sm-duration">LiveDuration</a>, <a href="#sm-visual">VisualizationCard</a>, <a href="#sm-doc">DocumentIcon</a>, <a href="#sm-tools">AssistantTools</a>, <a href="#sm-failure">TurnFailureCard</a>, <a href="#sm-errorref">ErrorRef</a>, <a href="#sm-placeholder">StreamingPlaceholder</a>, <a href="#sm-shadow">Shadow message</a>, <a href="#sm-followups">Follow-ups</a>, <a href="#sm-jump">JumpToLatest</a>, <a href="#sm-older">Older work groups</a>, <a href="#sm-activity">SessionActivity</a>, <a href="#sm-follow-activity">useFollowActivity</a></li>
+      <li>Requests: <a href="#rq-data">Data</a>, <a href="#rq-dock">RequestDock</a>, <a href="#rq-anchor">RequestAnchor</a>, <a href="#rq-expiry">ExpiryCountdown</a>, <a href="#rq-tool">ToolApprovalCard</a>, <a href="#rq-question">QuestionCard</a>, <a href="#rq-plan">PlanApprovalCard</a>, <a href="#rq-audit">ApprovalRecordView</a>, <a href="#rq-needs">NeedsYouTray</a>, <a href="#rq-timing">Timing and focus</a></li>
+      <li>Goal and agents: <a href="#ag-goal-model">Goal model</a>, <a href="#ag-goal-strip">Goal strip</a>, <a href="#ag-goalbar">GoalBar controls</a>, <a href="#ag-review">Review flow</a>, <a href="#ag-goal-reason">GoalReason</a>, <a href="#ag-completion">GoalCompletion</a>, <a href="#ag-goal-tab">Goal tab</a>, <a href="#ag-goal-mode">Goal mode wiring</a>, <a href="#ag-goal-commands">Goal commands</a>, <a href="#ag-agent-data">Agent data</a>, <a href="#ag-robot">Robot</a>, <a href="#ag-badge">Badge</a>, <a href="#ag-confetti">Confetti</a>, <a href="#ag-dialog">AgentDialog</a> (create only until BE-07), <a href="#ag-menu">AgentMenu</a>, <a href="#ag-subagents">lib/subagents</a>, <a href="#ag-handoff">Handed off node</a>, <a href="#ag-helper-group">HelperGroup</a>, <a href="#ag-panel">AgentsPanel</a>, <a href="#ag-statuschip">StatusChip</a>, <a href="#ag-avatar">HelperAvatar</a>, <a href="#ag-helperchip">HelperChip</a></li>
+      <li>Panel and Data parts: the P1 blocks in <a href="#panel">Panel</a> and <a href="#data">Data</a></li>
+    </ul>
+    <h4>Dependencies</h4>
+    <dl class="kv">
+      <dt>Blocking</dt><dd>BE-02 (request anchors, oldest-first order, tray), BE-03 (message actions), BE-04 (live tool rows, work groups)</dd>
+      <dt>Light up later</dt><dd>BE-15 (mentions on sent messages), BE-16 (sidebar turn state, search), BE-17 (UserMenu identity, sign-out), BE-18 (starter prompts), BE-NEW: session settings (ModelChip after reload), BE-NEW-S2 (failure turnId), BE-NEW: tool call arguments on approvals</dd>
+    </dl>
+    <h4>Suggested PRs</h4>
+    <ol>
+      <li>Primitives: Popover, Sheet, Toast, Button kit, <code>useEscStack</code>, <code>announce()</code>, <code>useHotkeys</code> with <code>skipFields</code>.</li>
+      <li><code>deriveTurnState()</code> and Home state, then Topbar and the status region on top of it.</li>
+      <li>Shell frame, Sidebar, FloatingDock, breakpoints and <code>fitPanel</code> changes.</li>
+      <li>Composer action bar with its chips (Attach, Agent, Model, Approval, Goal).</li>
+      <li>Mention menu, slash menu refresh.</li>
+      <li>Queue, Steer, Stopping and the submit pipeline.</li>
+      <li>Stream pipeline and Entry union, RuntimeItem mounted, WorkGroup.</li>
+      <li>Markdown, CodeBlock with shiki, ThinkingBlock.</li>
+      <li>Message actions (behind a disabled state until BE-03).</li>
+      <li>Auto-follow, JumpToLatest, older group collapse.</li>
+      <li>RequestDock, cards and anchors (anchors wait for BE-02).</li>
+      <li>NeedsYouTray and <kbd>g</kbd> <kbd>n</kbd>.</li>
+      <li>Goal strip, GoalBar, review and completion.</li>
+      <li>HelperGroup, Handed off node, AgentsPanel, StatusChip.</li>
+    </ol>
+    <h4>Exit criteria</h4>
+    <ul class="chk">
+      <li>Every P1 block's acceptance list passes.</li>
+      <li>The global checklist in <a href="#sh-qa">QA acceptance</a> passes for P1 surfaces.</li>
+      <li>Every P1 control that waits on a BE item shows its fallback state, with no dead buttons.</li>
+      <li>The stream no-layout-jump check passes on a 200-turn chat.</li>
+      <li>The performance budgets in <a href="#sh-perf">Performance</a> are met on the reference machine.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="sh-p2">
+  <header><h4>P2: Multi-agent clarity and trust</h4><span class="tag derive">derive</span><span class="tag phase">P2</span>
+    <span class="path">agents sheet, tools shelf, viewer, share, partial answers, cost</span></header>
+  <div class="body">
+    <p>Shows who is doing what, why and what it cost.</p>
+    <h4>Scope</h4>
+    <ul>
+      <li><a href="#fd-tints">Agent tints</a>, <a href="#nv-share">Share</a>, <a href="#sm-partial">Partial answer</a>, <a href="#rq-batch">BatchBar and BatchReviewSheet</a>, <a href="#rq-viewer">Read-only viewer</a>, <a href="#ag-all">All agents sheet</a>, <a href="#ag-tiles">Tiled helper view</a>, <a href="#ag-delegation">DelegationSettings</a>, <a href="#ag-cost">Per-helper cost</a>, <a href="#ag-mcp">McpSettings and tools shelf</a></li>
+      <li>Edit and delete in <a href="#ag-dialog">AgentDialog</a> and <a href="#ag-menu">AgentMenu</a></li>
+      <li>Receipt, privacy and health blocks in <a href="#panel">Panel</a></li>
+    </ul>
+    <h4>Dependencies</h4>
+    <p>BE-05 (partial answers, retry step), BE-06 (MCP status, sign-in), BE-07 (agent edit and delete), BE-08 (helper cost, exact tree), BE-09 (viewer), BE-10 (delegation per session), BE-19 (Share), BE-20 (privacy findings), BE-21 (rate-limit reset), BE-NEW: roster facts, BE-NEW-S1 (provider re-auth).</p>
+    <h4>Suggested PRs</h4>
+    <ol>
+      <li>Read-only viewer bar and "Waiting on owner" (BE-09).</li>
+      <li>Share popover (BE-19). Until then the button is removed, not left as a no-op.</li>
+      <li>All agents sheet, then edit and delete (BE-07, roster facts).</li>
+      <li>McpSettings scope tabs and badges (data today), then LED and sign-in (BE-06).</li>
+      <li>Partial answer and retry step (BE-05).</li>
+      <li>Per-helper cost and delegation label (BE-08, BE-10).</li>
+      <li>Batch review sheet and tiled helpers.</li>
+    </ol>
+    <h4>Exit criteria</h4>
+    <ul class="chk">
+      <li>A non-owner can open a shared chat and can't send, answer or stop anything.</li>
+      <li>A failed MCP server shows its state in the shelf and the tray.</li>
+      <li>Editing an agent keeps its handle, and old mentions still resolve.</li>
+      <li>Cost cells show "—" until BE-08 and BE-11 data exists, and never 0.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="sh-p3">
+  <header><h4>P3: Safety nets for long sessions</h4><span class="tag proposal">proposal</span><span class="tag phase">P3</span>
+    <span class="path">behind a flag (D-03)</span></header>
+  <div class="body">
+    <p>Drawn now so the layout leaves room for them. They ship behind a flag after the backend work (D-03).</p>
+    <h4>Scope</h4>
+    <ul>
+      <li><a href="#sm-citations">CitationChip and SourcesList</a>, <a href="#sm-file">FileCard and canvas link</a>, <a href="#sm-outline">TurnOutline</a>, <a href="#sm-search">ThreadSearch</a>, <a href="#ag-connected">ConnectedTools and Capabilities</a> (dev mode, D-04)</li>
+      <li>Checkpoint restore action in <a href="#sm-answer-actions">AnswerActions</a>; thinking duration in <a href="#sm-thinking">ThinkingBlock</a></li>
+      <li>Side canvas in <a href="#panel">Panel</a></li>
+    </ul>
+    <h4>Dependencies</h4>
+    <p>BE-11 (cost in currency, thinking duration), BE-12 (checkpoints and restore), BE-13 (citations), BE-14 (versioned files). BE-16 content search for ThreadSearch across unloaded turns.</p>
+    <h4>Suggested PRs</h4>
+    <ol>
+      <li>Feature flag plumbing (<code>autopilot=true</code> style, per D-03).</li>
+      <li>TurnOutline and ThreadSearch (client only on loaded turns).</li>
+      <li>Citations (BE-13).</li>
+      <li>Checkpoints and restore (BE-12), tested on real file changes before the flag is removed.</li>
+      <li>Side canvas (BE-14).</li>
+    </ol>
+    <h4>Exit criteria</h4>
+    <ul class="chk">
+      <li>With the flag off, no P3 element renders and no P3 request is made.</li>
+      <li>Restore has been tested on real file changes in both a success and a conflict case.</li>
+      <li>Mod+F behavior is settled per conflict C-01.</li>
+    </ul>
+  </div>
+</div>
+
+<h4 id="sh-css">CSS consolidation track</h4>
+<p>This track runs alongside P0 to P2. Each step is one PR with a light and dark check. The order comes from the build order board and <a href="#fd-css">Stylesheet pipeline</a>.</p>
+<ol>
+  <li>Port sheets to <code>styles/v2/sheet.css</code>.</li>
+  <li>Port request cards to <code>request.css</code>.</li>
+  <li>Port visualizations and documents to <code>content.css</code>.</li>
+  <li>Port the slash menu, select and error card to <code>feedback.css</code> and <code>base.css</code>.</li>
+  <li>Delete the duplicate classes that v2 now neutralizes (<code>.composer</code>, <code>.menu</code>, <code>.request-card</code> and others), and <code>.visually-hidden</code>. This happens only after the last port.</li>
+  <li>Drop Tailwind and shadcn after replacing Preflight with a short reset (Foundations D-NEW: Tailwind).</li>
+  <li>Move the 11 legacy files from lucide-react (stroke 2) to the v2 <a href="#fd-icons">Icon</a> (stroke 1.75).</li>
+  <li>Merge the ≤700 queries into ≤720 as each surface ports.</li>
+</ol>
+
+<h4 id="sh-bugs">Bug-fix list</h4>
+<p>All are client fixes on data that exists. Ship each alongside the phase that touches the file.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Bug</th><th>Fix</th><th>Block</th><th>Phase</th></tr></thead><tbody>
+<tr><td>HelperChip "View" targets <code>.helper-group</code>, but the class is <code>.hcard</code>, so it always opens the agents panel</td><td>Target <code>#helpers-{id}</code></td><td><a href="#cp-helper">HelperChip</a>, <a href="#ag-helperchip">HelperChip</a></td><td>P1</td></tr>
+<tr><td>Sidebar Agents link never becomes active</td><td>Pass <code>agentsActive={panel === "agents"}</code></td><td><a href="#nv-sidebar">Sidebar</a></td><td>P1</td></tr>
+<tr><td><code>/help</code> leaves out <code>/agents</code></td><td>Build the help list from the command table</td><td><a href="#cp-slash">SlashMenu</a></td><td>P1</td></tr>
+<tr><td>Share does nothing</td><td>Remove the button until BE-19</td><td><a href="#nv-share">Share</a></td><td>P1 (remove), P2 (build)</td></tr>
+<tr><td>UserMenu shows "Account", no sign-out</td><td>Pass <code>me</code> and <code>onSignOut</code> (BE-17)</td><td><a href="#nv-usermenu">UserMenu</a></td><td>P1</td></tr>
+<tr><td><code>RuntimeItem</code>, <code>ProjectSidebar</code>, <code>ConnectedTools</code>, <code>Capabilities</code>, <code>ui/select</code> never mounted</td><td>Mount RuntimeItem in WorkGroup; projects move to the Sidebar; ConnectedTools and Capabilities go to dev mode; delete <code>ui/select</code></td><td><a href="#sm-runtime">RuntimeItem</a>, <a href="#nv-sidebar">Sidebar</a>, <a href="#ag-connected">ConnectedTools</a></td><td>P1</td></tr>
+<tr><td>Status shows "Ready" between Send and <code>turn.started</code></td><td>Starting state in <code>deriveTurnState()</code></td><td><a href="#nv-topbar">Topbar</a></td><td>P1</td></tr>
+<tr><td>Empty sidebar renders nothing</td><td>Empty block</td><td><a href="#nv-sidebar">Sidebar</a></td><td>P1</td></tr>
+<tr><td>Popovers have no focus management</td><td>Focus rules in the primitive</td><td><a href="#nv-popover">Popover primitives</a></td><td>P1</td></tr>
+<tr><td><code>s-ended</code> goal pill tone has no status that produces it</td><td>Delete the tone, or map it in the goal status table</td><td><a href="#ag-goal-model">Goal model</a></td><td>P1</td></tr>
+<tr><td><code>app/observability.css</code> is effectively empty</td><td>Delete it in the consolidation track</td><td><a href="#fd-css">Stylesheet pipeline</a></td><td>P0</td></tr>
+<tr><td>Running placeholder says "steer" but Enter queues (D-05)</td><td>New placeholder copy</td><td><a href="#cp-frame">Composer frame</a></td><td>P1</td></tr>
+</tbody></table></div>
+
+<h3 id="sh-backend">4. Backend items</h3>
+<p>Every canonical item and every new item from the finished parts. The "Components" column lists the blocks that cite the id. Priority is the phase of the earliest block that needs it. Owner is blank on purpose so the team can assign it.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Id</th><th>Name</th><th>Unblocks</th><th>Components</th><th>Priority</th><th>Owner</th></tr></thead><tbody>
+<tr><td>BE-01</td><td>Credentials on fetch and EventSource, CORS for the exact origin</td><td>Production Google cookie sessions when the frontend and API are on different origins; the 401 sign-in sheet</td><td>Every API and stream caller; <a href="#data">Data</a> part</td><td>now</td><td></td></tr>
+<tr><td>BE-02</td><td><code>PendingRequest.turnId</code>, <code>createdAt</code>, <code>threadId</code></td><td>Inline request anchors, oldest-first order, the Needs-you tray, helper request placement</td><td><a href="#rq-data">rq-data</a>, <a href="#rq-dock">rq-dock</a>, <a href="#rq-anchor">rq-anchor</a>, <a href="#rq-expiry">rq-expiry</a>, <a href="#rq-needs">rq-needs</a>, <a href="#rq-batch">rq-batch</a>, <a href="#rq-timing">rq-timing</a>, <a href="#nv-topbar">nv-topbar</a>, <a href="#sm-messages">sm-messages</a>, <a href="#sm-helpers">sm-helpers</a>, <a href="#sm-placeholder">sm-placeholder</a>, <a href="#sm-outline">sm-outline</a>, <a href="#sm-follow-activity">sm-follow-activity</a></td><td>P1</td><td></td></tr>
+<tr><td>BE-03</td><td>Regenerate, edit-and-resend and branch endpoints</td><td>The message action bar</td><td><a href="#sm-entry">sm-entry</a>, <a href="#sm-messages">sm-messages</a>, <a href="#sm-user">sm-user</a>, <a href="#sm-user-actions">sm-user-actions</a>, <a href="#sm-answer-actions">sm-answer-actions</a>, <a href="#sm-follow-activity">sm-follow-activity</a></td><td>P1</td><td></td></tr>
+<tr><td>BE-04</td><td>Live span and item events, emit <code>diff.updated</code></td><td>Tool rows during a turn, the live waterfall, the Changes view</td><td><a href="#sm-entry">sm-entry</a>, <a href="#sm-runtime">sm-runtime</a>, <a href="#sm-workgroup">sm-workgroup</a>; waterfall in <a href="#panel">Panel</a></td><td>P1</td><td></td></tr>
+<tr><td>BE-05</td><td><code>TurnTrace.status</code> enum, <code>StepSpan.error</code>, resume turn, retry step</td><td>"Completed with 1 error", Retry step, partial answers</td><td><a href="#sm-failure">sm-failure</a>, <a href="#sm-partial">sm-partial</a></td><td>P2</td><td></td></tr>
+<tr><td>BE-06</td><td><code>mcp.status</code> payload (state, toolCount, authRequired) and OAuth sign-in</td><td>Tools shelf LED and tool count, sign-in rows in the tray, the topbar tool health</td><td><a href="#ag-mcp">ag-mcp</a>, <a href="#ag-connected">ag-connected</a>, <a href="#nv-home-state">nv-home-state</a>, <a href="#nv-topbar">nv-topbar</a>, <a href="#nv-breakpoints">nv-breakpoints</a>, <a href="#rq-needs">rq-needs</a></td><td>P2</td><td></td></tr>
+<tr><td>BE-07</td><td><code>PATCH</code> and <code>DELETE /api/agents/:id</code></td><td>Edit and delete agents</td><td><a href="#ag-agent-data">ag-agent-data</a>, <a href="#ag-dialog">ag-dialog</a>, <a href="#ag-menu">ag-menu</a>, <a href="#ag-all">ag-all</a>, <a href="#ag-badge">ag-badge</a>, <a href="#ag-connected">ag-connected</a></td><td>P2</td><td></td></tr>
+<tr><td>BE-08</td><td>Per-helper usage, stable helper identity, parent threadId</td><td>Helper cost, the exact delegation tree</td><td><a href="#ag-subagents">ag-subagents</a>, <a href="#ag-handoff">ag-handoff</a>, <a href="#ag-panel">ag-panel</a>, <a href="#ag-cost">ag-cost</a>, <a href="#ag-connected">ag-connected</a></td><td>P2</td><td></td></tr>
+<tr><td>BE-09</td><td>Viewer rules: <code>ownerName</code>, trace visibility, request access, duplicate chat</td><td>Read-only viewer, "Waiting on owner", Ask for access, Duplicate</td><td><a href="#rq-viewer">rq-viewer</a>, <a href="#rq-dock">rq-dock</a>, <a href="#cp-frame">cp-frame</a>, <a href="#nv-share">nv-share</a>, <a href="#sm-messages">sm-messages</a>, <a href="#ag-helper-group">ag-helper-group</a></td><td>P2</td><td></td></tr>
+<tr><td>BE-10</td><td>Per-session delegation mode</td><td>The delegation label on helpers</td><td><a href="#ag-delegation">ag-delegation</a>, <a href="#ag-handoff">ag-handoff</a>, <a href="#ag-connected">ag-connected</a></td><td>P2</td><td></td></tr>
+<tr><td>BE-11</td><td>Cost in currency, thinking duration</td><td>Cost on receipts, "Thought for Ns"</td><td><a href="#sm-thinking">sm-thinking</a>, <a href="#ag-cost">ag-cost</a>, <a href="#ag-panel">ag-panel</a>, <a href="#ag-subagents">ag-subagents</a></td><td>P3</td><td></td></tr>
+<tr><td>BE-12</td><td>Checkpoints and restore</td><td>Restore files to before a turn</td><td><a href="#sm-entry">sm-entry</a>, <a href="#sm-messages">sm-messages</a>, <a href="#sm-answer-actions">sm-answer-actions</a>, <a href="#sm-follow-activity">sm-follow-activity</a></td><td>P3</td><td></td></tr>
+<tr><td>BE-13</td><td><code>citations[]</code> on messages</td><td>Citation chips and the sources list</td><td><a href="#sm-citations">sm-citations</a>, <a href="#sm-entry">sm-entry</a>, <a href="#sm-markdown">sm-markdown</a></td><td>P3</td><td></td></tr>
+<tr><td>BE-14</td><td>Versioned conversation files (canvas)</td><td>File cards with versions, the side canvas</td><td><a href="#sm-file">sm-file</a>, <a href="#sm-entry">sm-entry</a>, <a href="#sm-pipeline">sm-pipeline</a>; canvas in <a href="#panel">Panel</a></td><td>P3</td><td></td></tr>
+<tr><td>BE-15</td><td>Per-session tool list and <code>mentions[]</code> on sent messages</td><td>Tool mentions, mention chips on sent messages and queued items</td><td><a href="#cp-mention">cp-mention</a>, <a href="#cp-queue">cp-queue</a>, <a href="#sm-entry">sm-entry</a>, <a href="#sm-user">sm-user</a></td><td>P1</td><td></td></tr>
+<tr><td>BE-16</td><td>Session list <code>turnState</code>, <code>pendingCount</code>, archived filter, content search</td><td>Sidebar row states, palette content search, search across unloaded turns</td><td><a href="#nv-home-state">nv-home-state</a>, <a href="#nv-sidebar">nv-sidebar</a>, <a href="#nv-palette">nv-palette</a>, <a href="#nv-breakpoints">nv-breakpoints</a>, <a href="#sm-followups">sm-followups</a>, <a href="#sm-search">sm-search</a></td><td>P1</td><td></td></tr>
+<tr><td>BE-17</td><td><code>/api/me</code> (name, email, picture) and sign-out</td><td>UserMenu identity and sign-out, the hero greeting, view-only ownership check</td><td><a href="#nv-usermenu">nv-usermenu</a>, <a href="#nv-hero">nv-hero</a>, <a href="#nv-sidebar">nv-sidebar</a>, <a href="#nv-home-state">nv-home-state</a>, <a href="#nv-breakpoints">nv-breakpoints</a></td><td>P1</td><td></td></tr>
+<tr><td>BE-18</td><td><code>AgentSummary.starterPrompts[]</code></td><td>Per-agent starter prompts in the hero</td><td><a href="#nv-hero">nv-hero</a>, <a href="#ag-agent-data">ag-agent-data</a>, <a href="#nv-breakpoints">nv-breakpoints</a></td><td>P1</td><td></td></tr>
+<tr><td>BE-19</td><td>Share endpoint</td><td>The Share popover</td><td><a href="#nv-share">nv-share</a>, <a href="#nv-topbar">nv-topbar</a>, <a href="#nv-home-state">nv-home-state</a>, <a href="#nv-breakpoints">nv-breakpoints</a></td><td>P2</td><td></td></tr>
+<tr><td>BE-20</td><td>Privacy finding resource, agent and stepId, plus the exclusion rule</td><td>Privacy findings linked to their step, masked samples in dev mode (D-04)</td><td>Privacy blocks in <a href="#panel">Panel</a>; <a href="#cp-privacy">cp-privacy</a> reads today's data only</td><td>P2</td><td></td></tr>
+<tr><td>BE-21</td><td>Rate-limit reset time</td><td>"Resets at {h:mm}" on rate-limit failures and goal stops</td><td><a href="#sm-failure">sm-failure</a>, <a href="#ag-goal-model">ag-goal-model</a>, <a href="#ag-goal-reason">ag-goal-reason</a>, <a href="#ag-goal-strip">ag-goal-strip</a>, <a href="#ag-connected">ag-connected</a></td><td>P2</td><td></td></tr>
+</tbody></table></div>
+
+<h4 id="sh-backend-new">New backend items from the parts</h4>
+<div class="tw"><table class="tbl"><thead><tr><th>Id</th><th>Name</th><th>Unblocks</th><th>Components</th><th>Source</th><th>Priority</th><th>Owner</th></tr></thead><tbody>
+<tr><td>BE-NEW: session settings</td><td><code>Session.settings { model, effort }</code> in <code>PublicSession</code> or <code>GET /api/sessions/:id</code></td><td>ModelChip shows the real values after reload</td><td><a href="#cp-model">cp-model</a></td><td><a href="#composer">Composer</a></td><td>P1</td><td></td></tr>
+<tr><td>BE-NEW-S1: provider re-auth</td><td>Endpoint to reconnect or replace model provider credentials from the chat</td><td>"Reconnect {provider}" on <code>credentials</code> failures</td><td><a href="#sm-failure">sm-failure</a></td><td><a href="#stream">Stream</a></td><td>P2</td><td></td></tr>
+<tr><td>BE-NEW-S2: failure turnId</td><td>Every <code>turn.completed</code> failure and <code>error</code> event carries <code>turnId</code> and <code>ErrorRef</code></td><td>Placing TurnFailureCard in the turn that broke</td><td><a href="#sm-failure">sm-failure</a>, <a href="#sm-errorref">sm-errorref</a></td><td><a href="#stream">Stream</a></td><td>P1</td><td></td></tr>
+<tr><td>BE-NEW: tool call arguments on approvals</td><td>Raw command or arguments (and working directory for shell tools) on <code>InputQuestion</code> for <code>kind:"toolApproval"</code>, redacted server-side</td><td>ToolApprovalCard command preview (until then: <code>action</code> only)</td><td><a href="#rq-tool">rq-tool</a></td><td><a href="#requests">Requests</a></td><td>P1</td><td></td></tr>
+<tr><td>BE-NEW: roster facts</td><td><code>AgentSummary</code> gains <code>approvalPolicy</code> and <code>mcpCount</code></td><td>Approval and tool count in the roster without reading <code>Agent</code></td><td><a href="#ag-all">ag-all</a>, <a href="#ag-agent-data">ag-agent-data</a></td><td><a href="#agents">Agents</a></td><td>P2</td><td></td></tr>
+<tr><td>BE-NEW-D1: sign-in return path</td><td><code>returnTo</code> on <code>/auth/google/start</code>, validated against the allowed origins and honoured by the callback</td><td>Returning to the same chat after the session-expired sheet</td><td><a href="#dt-signin">dt-signin</a></td><td><a href="#data">Data</a></td><td>P2</td><td></td></tr>
+<tr><td>BE-NEW-D2: session status event</td><td>Public <code>session.updated</code> event with <code>{ status, archived }</code></td><td>Orphaned, dead and archived banners switch without a reload</td><td><a href="#dt-banners">dt-banners</a></td><td><a href="#data">Data</a></td><td>P2</td><td></td></tr>
+</tbody></table></div>
+<p>The Foundations, Shell and Panel parts added no new backend items.</p>
+
+<h3 id="sh-decisions">5. Decisions register</h3>
+<p>Every canonical decision and every new decision from the finished parts, grouped by section. Each default is what the spec builds today. Owner and date are blank so the team can sign each one off. Shell's ids <code>D-NEW-1</code> to <code>D-NEW-7</code> and Composer's <code>D-NEW-01</code> to <code>D-NEW-12</code> overlap in number. In this register they are written as <b>SH-</b> and <b>CP-</b> ids (see conflict C-08).</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Id</th><th>Question</th><th>Default</th><th>Impact if changed</th><th>Source</th><th>Owner</th><th>Date</th></tr></thead><tbody>
+<tr><th colspan="7">Canonical</th></tr>
+<tr><td>D-01</td><td>Fidelity</td><td>This spec plus the wireframe; high-fidelity P1 screens later</td><td>A pixel pass before P1 delays P1. Values tagged D-01 may change in that pass</td><td>Brief</td><td></td><td></td></tr>
+<tr><td>D-02</td><td>Where do the model and agent pickers live?</td><td>Composer chips; the status pill keeps the detail view</td><td>Moving them to the pill removes <a href="#cp-agent">AgentChip</a> and <a href="#cp-model">ModelChip</a> and changes the bar collapse</td><td>Brief</td><td></td><td></td></tr>
+<tr><td>D-03</td><td>Do P3 features ship behind a flag?</td><td>Yes</td><td>No flag means restore must pass real-file testing before P3 merges</td><td>Brief</td><td></td><td></td></tr>
+<tr><td>D-04</td><td>What is dev-mode only?</td><td>Waterfall, model context, masked privacy samples</td><td>Making the waterfall public needs BE-04 perf work and a viewer rule (BE-09)</td><td>Brief</td><td></td><td></td></tr>
+<tr><td>D-05</td><td>Enter while running</td><td>Queues; Steer is an explicit button</td><td>If Enter steers, the queue UI and placeholder copy change, and mod+Enter (CP-10) is freed</td><td>Brief</td><td></td><td></td></tr>
+<tr><td>D-06</td><td>Esc on a docked request</td><td>Cancel, only after menus close</td><td>If Esc only closes, requests need an explicit Cancel key; the Esc stack (SH-01) changes step 6</td><td>Brief</td><td></td><td></td></tr>
+<tr><td>D-07</td><td>Does the status pill distinguish helper requests?</td><td>No distinction until BE-02 <code>threadId</code> exists</td><td>Needs BE-02 threadId and new pill copy</td><td>Brief</td><td></td><td></td></tr>
+<tr><td>D-08</td><td>Code block collapse threshold</td><td>30 lines</td><td>Changes <code>CODE_COLLAPSE_LINES</code> and the CodeBlock tests. See C-02</td><td>Brief</td><td></td><td></td></tr>
+
+<tr><th colspan="7">Foundations</th></tr>
+<tr><td>D-NEW: dark on-accent</td><td>Text on the dark <code>--accent-fg</code> fill</td><td><code>--on-accent: #111213</code> (13.17:1)</td><td>White text would fail AA</td><td><a href="#foundations">Foundations</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: primary hover and pressed</td><td>Button hover and pressed fills</td><td>Light #226A9B / #1E5F8C, dark #D8EBF0 / #A6D0DE</td><td>Recheck contrast for the new values</td><td><a href="#foundations">Foundations</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: dark block parity check</td><td>Keep the two dark blocks identical</td><td>Unit test that parses <code>tokens.css</code></td><td>Without it the two blocks drift</td><td><a href="#foundations">Foundations</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: chart series tokens</td><td>Add series and chart tokens?</td><td>Yes, aliased to helper tones, <code>--line</code>, <code>--ink-2</code></td><td>Charts would use literal colors</td><td><a href="#foundations">Foundations</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: pass tokens into visualization frame</td><td>Sandboxed visuals get theme tokens?</td><td>Inject values into <code>srcdoc</code>; re-render on theme change</td><td>Visuals stay light in dark mode</td><td><a href="#foundations">Foundations</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: drop Caveat</td><td>Keep loading Caveat?</td><td>Drop it</td><td>Keeping it costs one font request</td><td><a href="#foundations">Foundations</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: shorthand type tokens</td><td>Add <code>--type-*</code> shorthands?</td><td>Yes</td><td>Parts must spell out font rules</td><td><a href="#foundations">Foundations</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: snap rule</td><td>Off-scale spacing</td><td>Round up, except <code>--shell-gap</code> 10 and <code>--msg-gap</code> 22</td><td>Small layout shifts in every port</td><td><a href="#foundations">Foundations</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: radius names</td><td>Name the radius literals?</td><td><code>--r-xs</code> to <code>--r-pill</code>; 11px snaps to 10px</td><td>Keeping 11px adds a token</td><td><a href="#foundations">Foundations</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: focus radius</td><td>6px or 8px</td><td>8px</td><td>Visual only</td><td><a href="#foundations">Foundations</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: dark shadow-sm</td><td>Redefine in dark?</td><td>Yes, <code>0 1px 2px rgb(0 0 0 / 40%)</code></td><td>Tabs and chips lose depth in dark</td><td><a href="#foundations">Foundations</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: toast layer</td><td>Toast z-index</td><td><code>--z-scrim</code>, after the scrim in DOM order</td><td>A lower layer hides toasts behind sheets</td><td><a href="#foundations">Foundations</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: duration snap</td><td>Snap old durations to tokens?</td><td>Yes, during each port</td><td>Timing differs slightly per surface</td><td><a href="#foundations">Foundations</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: shimmer, toast and collapse motion</td><td>Values</td><td>Shimmer 1.4s linear; toast in 160ms, out 120ms, 4000ms dwell; collapse 200ms <code>--ease-out</code></td><td>Visual only; dwell ties to SH-5</td><td><a href="#foundations">Foundations</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: ≤1100 and ≤400 breakpoints</td><td>Add them?</td><td>Yes</td><td>Removes two rows from the QA matrix and the chip-label and fold rules</td><td><a href="#foundations">Foundations</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: merge 700 into 720</td><td>Keep ≤700 queries?</td><td>Merge into ≤720</td><td>One more QA width</td><td><a href="#foundations">Foundations</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: v2 file split</td><td>Where legacy-only surfaces land</td><td><code>sheet.css</code>, <code>request.css</code>, <code>content.css</code>, <code>feedback.css</code></td><td>Changes the consolidation PR list</td><td><a href="#foundations">Foundations</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: Tailwind</td><td>Adopt or drop?</td><td>Drop, after a short reset replaces Preflight</td><td>Adopting needs a class strategy for every part</td><td><a href="#foundations">Foundations</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: input border contrast</td><td>Darken <code>--border-control</code>?</td><td>No change in v3; revisit in D-01 pass</td><td>A darker value touches every input</td><td><a href="#foundations">Foundations</a></td><td></td><td></td></tr>
+
+<tr><th colspan="7">Shell</th></tr>
+<tr><td>SH-1 (D-NEW-1)</td><td>Closed sidebar as a 44px icon rail?</td><td>Yes at vw &gt; 720; adds <code>RAIL_W</code> to <code>fitPanel</code></td><td>If rejected, keep hide-completely, and the 1100 and 1180 rows change</td><td><a href="#shell">Shell</a></td><td></td><td></td></tr>
+<tr><td>SH-2 (D-NEW-2)</td><td>Desktop dock items and focus</td><td>All six; roving tabindex, one Tab stop</td><td>Focus order in <a href="#sh-focus">§1</a> changes</td><td><a href="#shell">Shell</a></td><td></td><td></td></tr>
+<tr><td>SH-3 (D-NEW-3)</td><td>Source of ⌘K Recent</td><td>Last 5 ids in localStorage <code>truex-recent</code></td><td>A server list needs BE-16</td><td><a href="#shell">Shell</a></td><td></td><td></td></tr>
+<tr><td>SH-4 (D-NEW-4)</td><td>Who may create agents when none exist</td><td>Everyone; ask-an-admin copy after a 403</td><td>Needs a role field to hide it up front</td><td><a href="#shell">Shell</a></td><td></td><td></td></tr>
+<tr><td>SH-5 (D-NEW-5)</td><td>Toast primitive</td><td>Yes: bottom centre above the dock, 4000ms (bad 8000ms), max 3, never for turn errors</td><td>Background errors would have no surface</td><td><a href="#shell">Shell</a></td><td></td><td></td></tr>
+<tr><td>SH-6 (D-NEW-6)</td><td>Share access levels</td><td>Private and workspace link, read-only; no public link</td><td>A public link needs a new viewer rule in BE-09 and BE-19</td><td><a href="#shell">Shell</a></td><td></td><td></td></tr>
+<tr><td>SH-7 (D-NEW-7)</td><td>Unmodified <kbd>g</kbd> <kbd>n</kbd> and <kbd>?</kbd> outside fields</td><td>Yes, with <code>skipFields</code>, 1000ms window</td><td>Without it the tray needs a mod-key (see C-05)</td><td><a href="#shell">Shell</a></td><td></td><td></td></tr>
+
+<tr><th colspan="7">Composer</th></tr>
+<tr><td>CP-01</td><td>Screen-reader hint copy</td><td>"Type / for commands, @ to mention. Enter to send, Shift + Enter for a new line."</td><td>Copy only</td><td><a href="#composer">Composer</a></td><td></td><td></td></tr>
+<tr><td>CP-02</td><td>Bar collapse at narrow widths</td><td>Labels hide at ≤520; agent, model, approval fold into "Message settings" at ≤400, measured on composer width</td><td>Changes the 400 row; clashes with the 1100 chip-label rule, see C-12</td><td><a href="#composer">Composer</a></td><td></td><td></td></tr>
+<tr><td>CP-03</td><td>Files before a session exists</td><td>Hold, upload after <code>ensureSession()</code></td><td>Early upload needs a draft-file endpoint</td><td><a href="#composer">Composer</a></td><td></td><td></td></tr>
+<tr><td>CP-04</td><td>Client file checks and parallelism</td><td>Reject empty, wrong type, over 50 files or 25 MB; 2 at a time</td><td>Copy and limits</td><td><a href="#composer">Composer</a></td><td></td><td></td></tr>
+<tr><td>CP-05</td><td>Model and effort before a session</td><td>Hold in <code>draftSettings</code></td><td>Ties to BE-NEW: session settings</td><td><a href="#composer">Composer</a></td><td></td><td></td></tr>
+<tr><td>CP-06</td><td>Replace-goal confirm format</td><td>Inline alertdialog card</td><td>Keeping <code>window.confirm</code> loses focus return rules</td><td><a href="#composer">Composer</a></td><td></td><td></td></tr>
+<tr><td>CP-07</td><td>Mention picker limits</td><td>5 rows per group, 300ms count announcement, full-width ＠ triggers</td><td>Uses its own announcement; see C-07</td><td><a href="#composer">Composer</a></td><td></td><td></td></tr>
+<tr><td>CP-08</td><td>Queue size and removal</td><td>Max 10, scroll after 4, 5s undo</td><td>Layout of the queue list</td><td><a href="#composer">Composer</a></td><td></td><td></td></tr>
+<tr><td>CP-09</td><td>Idle send with a paused queue</td><td>Joins the end; only Steer jumps ahead</td><td>Send order changes</td><td><a href="#composer">Composer</a></td><td></td><td></td></tr>
+<tr><td>CP-10</td><td>Steer shortcut</td><td>mod+Enter steers while running, sends when idle</td><td>See C-06</td><td><a href="#composer">Composer</a></td><td></td><td></td></tr>
+<tr><td>CP-11</td><td>How long Stopping lasts</td><td>10s, then a notice and Stop returns</td><td>Timer and copy</td><td><a href="#composer">Composer</a></td><td></td><td></td></tr>
+<tr><td>CP-12</td><td>Caret during IME composition</td><td>Hide it</td><td>CJK input shows a misplaced caret</td><td><a href="#composer">Composer</a></td><td></td><td></td></tr>
+
+<tr><th colspan="7">Stream</th></tr>
+<tr><td>D-NEW-S1</td><td>Clamp long user messages?</td><td>12 lines with "Show more"</td><td>Long pastes push the answer off screen</td><td><a href="#stream">Stream</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-S2</td><td>Images in assistant markdown?</td><td>https only, lazy, max-width 100%</td><td>Blocking images drops model output; http adds mixed content</td><td><a href="#stream">Stream</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-S3</td><td>Restore checkpoint confirm copy</td><td>"Restore files to before this turn?" with Cancel and Restore</td><td>Copy only (P3)</td><td><a href="#stream">Stream</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-S4</td><td>Lines shown when a code block is collapsed</td><td>20 (threshold stays 30 per D-08)</td><td>See C-02</td><td><a href="#stream">Stream</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-S5</td><td>Syntax highlighting library</td><td>shiki, JS regex engine, lazy grammars</td><td>Bundle size and perf budget (<a href="#sh-perf">§9</a>)</td><td><a href="#stream">Stream</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-S6</td><td>Delay before a settled work group folds</td><td>600ms, none with reduced motion</td><td>Layout jump risk, see <a href="#sh-qa">§7</a></td><td><a href="#stream">Stream</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-S7</td><td>Max command output lines</td><td>Last 400, then "Show all {n} lines"</td><td>Render cost</td><td><a href="#stream">Stream</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-S8</td><td>Tool verbs in the work summary</td><td>Generic "called {n} tools" until tools carry a category</td><td>See C-03</td><td><a href="#stream">Stream</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-S9</td><td>Follow-up sends or fills the composer?</td><td>Send, as today</td><td>See C-04</td><td><a href="#stream">Stream</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-S10</td><td>When the outline rail shows</td><td>Viewport ≥1180 and ≥4 turns</td><td>Changes the 1180 QA row</td><td><a href="#stream">Stream</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-S11</td><td>In-thread search shortcut</td><td>Mod+F with focus in the stream or composer</td><td>See C-01</td><td><a href="#stream">Stream</a></td><td></td><td></td></tr>
+
+<tr><th colspan="7">Requests</th></tr>
+<tr><td>D-NEW: dock height budget</td><td>Max card height and compact rule</td><td><code>min(52dvh, 460px)</code>; compact when over 45% of space above keyboard and composer</td><td>The 390 keyboard row</td><td><a href="#requests">Requests</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: keep head stable</td><td>Does a sooner-expiring request replace the card in use?</td><td>No; it queues while the head card has focus or a draft</td><td>Focus loss while typing an answer</td><td><a href="#requests">Requests</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: answer while offline</td><td>Answer during reconnect?</td><td>No; controls disabled with reconnect copy</td><td>An answer queue needs idempotent answers</td><td><a href="#requests">Requests</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: audit label punctuation</td><td>Em dash in "No answer — timed out"</td><td>"No answer, timed out" / "No answer, stopped"</td><td>Copy only</td><td><a href="#requests">Requests</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: expired continue copy</td><td>Expired copy names a "recommended" option</td><td>"No reply in time. Continuing with "{options[0].label}"."; plans: "No reply in time. The plan was approved as written."</td><td>Copy must match server behavior</td><td><a href="#requests">Requests</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: turn failure in Needs you</td><td>Plain turn failure as a tray row?</td><td>No; only the goal context-window stop</td><td>Tray row count and <kbd>g</kbd> <kbd>n</kbd> target</td><td><a href="#requests">Requests</a></td><td></td><td></td></tr>
+<tr><td>D-NEW: stale card hide</td><td>Card lifetime after 409/404/410</td><td>2000ms</td><td>Timer only</td><td><a href="#requests">Requests</a></td><td></td><td></td></tr>
+
+<tr><th colspan="7">Agents</th></tr>
+<tr><td>D-NEW-AG-01</td><td>Strip checkpoint count source</td><td>Latest session <code>PlanStep[]</code>; hidden with no plan</td><td>A goal steps field would need backend work</td><td><a href="#agents">Agents</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-AG-02</td><td>Meter color at 100%</td><td><code>--bad</code> at 100%, <code>--warn</code> above 80%</td><td>Visual only</td><td><a href="#agents">Agents</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-AG-03</td><td>Keep Resume goal next to the fix</td><td>Yes, secondary ghost button</td><td>One fewer action</td><td><a href="#agents">Agents</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-AG-04</td><td>Move Clear into the goal menu</td><td>Both icon and menu item</td><td>Label table in §1</td><td><a href="#agents">Agents</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-AG-05</td><td>Edit built-in agents</td><td>No; read-only</td><td>Needs a copy-on-edit rule</td><td><a href="#agents">Agents</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-AG-06</td><td>Chats with a deleted agent</td><td>"Removed agent"; chat stays readable</td><td>BE-07 delete semantics</td><td><a href="#agents">Agents</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-AG-07</td><td>Scrim click with unsaved changes</td><td>Ignored while dirty; Esc and Cancel still close</td><td>Esc also discards; see C-05 note</td><td><a href="#agents">Agents</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-AG-08</td><td>Switch agent while running</td><td>Disabled with a tooltip</td><td>Switching mid-turn needs a stop first</td><td><a href="#agents">Agents</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-AG-09</td><td>Delegation pref on old sessions before BE-10</td><td>Hide the pill when the session is older than the last pref change</td><td>Pill may show wrong values</td><td><a href="#agents">Agents</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-AG-10</td><td>Status on narrow helper rows</td><td>6px tone dot; accessible name keeps the status</td><td>Status lost at ≤720</td><td><a href="#agents">Agents</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-AG-11</td><td>Agents tab default scope</td><td>Session; "This turn" when opened from a turn</td><td>Empty state copy</td><td><a href="#agents">Agents</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-AG-12</td><td>Delegation control in the composer</td><td>No; Agents tab foot only</td><td>One more chip in the bar and the CP-02 fold</td><td><a href="#agents">Agents</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-AG-13</td><td>"tenant" to "workspace" in the shadowed warning</td><td>Yes for the known case; others verbatim</td><td>Copy only</td><td><a href="#agents">Agents</a></td><td></td><td></td></tr>
+
+<tr><th colspan="7">Panel</th></tr>
+<tr><td>D-NEW-G1</td><td>Is the panel freely resizable, and what persists?</td><td>Drag 360-560px, snap within 24px; persist tab, size, width and scope in <code>localStorage["truex:panel"]</code>; restore open only above 900px</td><td>Fixed width drops the resize handle; no persistence means the panel resets on reload</td><td><a href="#panel">Panel</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-G2</td><td>Does the Insights tab get a privacy badge?</td><td>Yes, a warn count for the latest turn</td><td>Findings are only seen by opening the tab</td><td><a href="#panel">Panel</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-G3</td><td>How is lost plan history explained after reload?</td><td>"Earlier versions are kept only while this page is open."</td><td>Copy only</td><td><a href="#panel">Panel</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-G4</td><td>Add an M unit to <code>formatTokens</code>?</td><td>Yes, "1.2M" at 1,000,000 and up</td><td>Large counts read as "1200k"</td><td><a href="#panel">Panel</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-G5</td><td>Does the receipt show privacy text when all is fine?</td><td>No, only on warn</td><td>Longer receipt line on every turn</td><td><a href="#panel">Panel</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-G6</td><td>Does a receipt problem line raise the Needs-you count?</td><td>Yes, until fixed or dismissed</td><td>Changes the tray aggregation in <a href="#requests">Requests</a></td><td><a href="#panel">Panel</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-G7</td><td>How long can the outcome sentence get?</td><td>3 phrases, then ", and more"</td><td>Copy only</td><td><a href="#panel">Panel</a></td><td></td><td></td></tr>
+<tr><th colspan="7">Data</th></tr>
+<tr><td>D-NEW-D1</td><td>Same-site or cross-site deploy?</td><td>Same-site, <code>SameSite=Lax; Secure</code>, reuse the CSRF allowed-origin list</td><td>Cross-site needs <code>SameSite=None</code> and stricter CSRF checks (BE-01)</td><td><a href="#data">Data</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-D2</td><td>Paths for new routes</td><td>As written in the API inventory, each behind one <code>lib/</code> function</td><td>A rename touches one function</td><td><a href="#data">Data</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-D3</td><td>Watchdog timings for stuck stop and start</td><td>15000ms after Stop, 30000ms after accept; reload history once</td><td>Shorter values cause needless reloads</td><td><a href="#data">Data</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-D4</td><td>Auto-reconnect from Disconnected?</td><td>On online and tab visible, max once per 10s; STREAM_ENDED retries once; STREAM_FAILED never</td><td>Without it users must press Reconnect</td><td><a href="#data">Data</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-D5</td><td>Banner for slow reconnect?</td><td>Yes, warn banner after 30s</td><td>Long silent reconnects</td><td><a href="#data">Data</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-D6</td><td>Keep the draft across a sign-in redirect?</td><td>Yes, in sessionStorage, deleted after restore</td><td>Unsent text is lost on re-sign-in</td><td><a href="#data">Data</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-D7</td><td>Can admins act on someone else's chat?</td><td>No, read only</td><td>Needs a new permission and audit trail</td><td><a href="#data">Data</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-D8</td><td>What does Duplicate copy?</td><td>Transcript and file refs; no pending requests, no goal</td><td>Copying requests would let a viewer answer the owner's approvals</td><td><a href="#data">Data</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-D9</td><td>Where is the P3 flag stored?</td><td>Build-time env <code>NEXT_PUBLIC_TRUEX_P3</code>, never localStorage</td><td>A runtime flag allows per-tenant rollout but needs a config endpoint</td><td><a href="#data">Data</a></td><td></td><td></td></tr>
+<tr><th colspan="7">This part (Ship)</th></tr>
+<tr><td>D-NEW-SH-01</td><td>One Esc owner for the page</td><td><code>useEscStack</code>, top entry only, fixed order in <a href="#sh-esc">§1</a></td><td>Parts keep separate handlers and double-fire</td><td><a href="#ship">Ship</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-SH-02</td><td>Mod+F for in-thread search</td><td>Only while ThreadSearch is enabled (P3 flag) and focus is in the message list; never from the textarea; a second Mod+F while the search is open falls through to browser find</td><td>See C-01</td><td><a href="#ship">Ship</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-SH-03</td><td>Virtualize long chats</td><td>Windowed list above 150 turns (see <a href="#sh-perf">§9</a>)</td><td>Find-in-page and screen-reader browse only see rendered turns</td><td><a href="#ship">Ship</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-SH-04</td><td>Performance budgets</td><td>As in <a href="#sh-perf">§9</a></td><td>Exit criteria for P1</td><td><a href="#ship">Ship</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-SH-05</td><td>Skip link</td><td>"Skip to message box", first focusable element</td><td>Keyboard users tab through the sidebar on every load</td><td><a href="#ship">Ship</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-SH-06</td><td>Touch hit areas</td><td>44px through <code>::after</code> on coarse pointers, 4px more gap</td><td>Visual sizes would grow instead</td><td><a href="#ship">Ship</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-SH-07</td><td>Duplicate announcements</td><td>Same text within 5000ms is dropped</td><td>Repeated "Working" on bursts</td><td><a href="#ship">Ship</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-SH-08</td><td>Unconfirmed icon button labels</td><td>Defaults in <a href="#sh-labels">§1 labels</a></td><td>Copy only</td><td><a href="#ship">Ship</a></td><td></td><td></td></tr>
+<tr><td>D-NEW-SH-09</td><td>Forced colors support</td><td><code>Highlight</code> rings and 1px chip borders</td><td>Chips vanish in Windows high contrast</td><td><a href="#ship">Ship</a></td><td></td><td></td></tr>
+</tbody></table></div>
+
+<h3 id="sh-conflicts">6. Conflict check</h3>
+<p>These clashes come from scanning the decisions, shortcuts and phase tags across the finished parts. Each row gives a recommended resolution. The owning part applies the change in its next revision. Until then, this table decides.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>#</th><th>Clash</th><th>Where</th><th>Recommendation</th></tr></thead><tbody>
+<tr><td>C-01</td><td>D-NEW-S11 binds Mod+F to in-thread search with focus in the stream or the composer. Browser find already owns Mod+F. The Shell rule says mod combos fire while typing (<code>skipFields</code> false), so Mod+F would take over browser find from the textarea too.</td><td><a href="#sm-search">ThreadSearch</a>, <a href="#nv-keymap">Keymap</a></td><td>Adopt D-NEW-SH-02. Mod+F opens ThreadSearch only when the P3 flag is on and focus is inside the message list. It never fires from the textarea or any other field, so register it with <code>skipFields: true</code> as an exception to the mod-key rule. A second Mod+F while search is open is not prevented, so browser find still works. It also appears in the shortcut sheet under "Conversation". Before virtualization this is safe. Once the list is windowed (D-NEW-SH-03), browser find misses unrendered turns, so ThreadSearch becomes the main path. Recheck the binding at that point.</td></tr>
+<tr><td>C-02</td><td>Stream shows 20 lines for a collapsed code block. D-08 sets a 30-line threshold.</td><td><a href="#sm-code">CodeBlock</a></td><td>These are consistent and are two separate values. A block with more than 30 lines collapses (<code>CODE_COLLAPSE_LINES = 30</code>, D-08). A collapsed block shows its first 20 lines (D-NEW-S4). A 31-line block shows 20 lines plus "Show 11 more lines". No block ever hides fewer than 11 lines, which is why the gap is kept. Add <code>CODE_PREVIEW_LINES = 20</code> next to the threshold, so neither value is a literal.</td></tr>
+<tr><td>C-03</td><td>D-NEW-S8 changes the work-group summary from the wireframe's "Read 3 docs" to "called {n} tools".</td><td><a href="#sm-workgroup">WorkGroup</a></td><td>Keep the generic copy for P1. The data carries no tool category, and a verb map keyed by tool name breaks for MCP tools with custom names. Follow-up: ask the backend for a <code>category</code> on tool items (<code>read</code>, <code>search</code>, <code>write</code>, <code>run</code>, <code>other</code>) as part of BE-04, then switch to verbs with "called {n} tools" as the fallback. Flag the change to design so the high-fidelity pass (D-01) uses the generic copy.</td></tr>
+<tr><td>C-04</td><td>D-NEW-S9 keeps follow-ups sending. The wireframe note says they fill the composer.</td><td><a href="#sm-followups">Follow-ups</a>, <a href="#cp-suggest">SuggestedQuestions</a></td><td>Keep sending, as today, which also matches <code>askSuggestion</code> in Composer. While a turn runs, a follow-up click queues (D-05), and never steers. Add a secondary path to edit a follow-up before sending: Alt+click or the row's "Edit first" menu item fills the composer. Update the wireframe note.</td></tr>
+<tr><td>C-05</td><td><kbd>g</kbd> then <kbd>n</kbd> and <kbd>?</kbd> are defined in Shell (D-NEW-7) and in Requests. Both say "outside fields, 1000ms", so they agree. Risk: <kbd>?</kbd> on some layouts needs Shift, and <kbd>g</kbd> collides with screen-reader browse-mode quick keys (NVDA, JAWS use <kbd>g</kbd> for graphics).</td><td><a href="#nv-keymap">Keymap</a>, <a href="#rq-needs">NeedsYouTray</a></td><td>Keep one definition, in the Shell keymap, and have Requests link to it. Match <kbd>?</kbd> on <code>event.key === "?"</code>, not on key code. In screen-reader browse mode the reader takes the keys first, which is expected. Keep Shift+Tab to the dock and the Needs you button as the paths that don't depend on the shortcut. Add a Settings toggle to turn single-key shortcuts off (WCAG 2.1.4).</td></tr>
+<tr><td>C-06</td><td>mod+Enter is defined three times: Steer or send in the composer (CP-10), send an edit in message edit mode (Stream), and send Revise in the plan card (Requests).</td><td><a href="#cp-steer">Steer</a>, <a href="#sm-user-actions">UserActions</a>, <a href="#rq-plan">PlanApprovalCard</a></td><td>No real clash, because each one is scoped to the focused textarea. Rule: mod+Enter means "submit this field". It is handled by the field's own <code>onKeyDown</code> and never by <code>useHotkeys</code>, and it calls <code>stopPropagation</code>. List all three in the shortcut sheet under their context. Edit mode must not steer: sending an edit while running queues the edit, per BE-03 rules.</td></tr>
+<tr><td>C-07</td><td>Some parts add their own polite regions: palette count, thread search count, mention count (CP-07), the <code>pre.ag-live</code> helper live tail, and the <code>.nad-stage</code> note.</td><td><a href="#nv-palette">Palette</a>, <a href="#sm-search">ThreadSearch</a>, <a href="#cp-mention">MentionMenu</a>, <a href="#ag-panel">AgentsPanel</a>, <a href="#ag-dialog">AgentDialog</a></td><td>Keep the counts local to their open widget, since they only speak while it has focus. Remove <code>aria-live</code> from <code>pre.ag-live</code>. It streams helper output, which breaks the rule that streaming text is never read aloud. The transcript tab uses <code>aria-busy</code> like the main list instead. The <code>.nad-stage</code> note may stay polite, because it changes once per save.</td></tr>
+<tr><td>C-08</td><td>Decision ids clash. Shell uses <code>D-NEW-1..7</code> and Composer uses <code>D-NEW-01..12</code>, so "D-NEW-7" and "D-NEW-07" name different things. Foundations and Requests use names instead of numbers.</td><td>All parts</td><td>Use prefixed ids in the register (SH-, CP-, S, AG-, SH-0x for this part). Each part should rename its ids to the prefixed form on its next edit. Until then, cross-part links cite the part name with the id.</td></tr>
+<tr><td>C-09</td><td>The waiting announcement is "Needs your approval" on the States board and "Waiting on you" in Shell.</td><td><a href="#nv-topbar">Topbar</a></td><td>Use "Waiting on you". It covers questions and plans. The specific request text ("Permission needed: {title}.") carries the approval detail.</td></tr>
+<tr><td>C-10</td><td>The build order board puts "Failure card by reason" and "Sandboxed visualization" in P0. The blocks tag them P1.</td><td><a href="#sm-failure">TurnFailureCard</a>, <a href="#sm-visual">VisualizationCard</a></td><td>Do both. The contract slice (reason mapping, sandbox attributes) ships in P0 with no new UI. The v3 visual design ships in P1. The <a href="#sh-p0">P0 scope</a> lists them this way.</td></tr>
+<tr><td>C-11</td><td>The board puts "Goal strip, long-chat nav" in P1 and "Batch review, tiled helpers" in P3. The blocks tag TurnOutline and ThreadSearch P3, and BatchReviewSheet and tiled helpers P2.</td><td><a href="#sm-outline">TurnOutline</a>, <a href="#sm-search">ThreadSearch</a>, <a href="#rq-batch">BatchBar</a>, <a href="#ag-tiles">Tiled helpers</a></td><td>Follow the blocks. Long-chat nav in P1 is <a href="#sm-jump">JumpToLatest</a> and <a href="#sm-older">Older work groups</a>. The outline and search need virtualization first (D-NEW-SH-03). Batch and tiles are client-only, so they can ship in P2. Update the board.</td></tr>
+<tr><td>C-12</td><td>Chip labels hide at ≤1100 viewport (Foundations bp-xl) and at ≤520 composer width (CP-02).</td><td><a href="#fd-breakpoints">Breakpoints</a>, <a href="#cp-bar">Action bar</a></td><td>Use one rule: measure the composer width with a ResizeObserver. Labels hide below 560px of composer width, which covers the 1100 case with both side columns open. The fold into "Message settings" happens below 400px of composer width. Drop the viewport rule from bp-xl.</td></tr>
+<tr><td>C-13</td><td>The States board says "mod+J jumps to" a new request. The Shell keymap binds mod+J to New chat.</td><td><a href="#nv-keymap">Keymap</a>, States board</td><td>Keep mod+J as New chat (exists). The key path to a request is <kbd>g</kbd> <kbd>n</kbd>, or Shift+Tab from the composer. Fix the board note.</td></tr>
+<tr><td>C-14</td><td>Esc order is written three ways: Composer's keyboard table, Stream ("search before any other Esc"), and Requests (D-06, stopPropagation). The panel-close step and the stop-turn step both sit at the bottom of Composer's list.</td><td><a href="#cp-send">Send and Stop</a>, <a href="#sm-search">ThreadSearch</a>, <a href="#rq-timing">Requests timing</a></td><td>Use the single <a href="#sh-esc">Esc stack</a> (D-NEW-SH-01). Closing the side panel counts as a popover or drawer layer, so it comes before stopping the turn. Stop runs only when focus is in the composer and no layer is open.</td></tr>
+<tr><td>C-15</td><td>D-NEW-AG-07 ignores a scrim click while the dialog is dirty, but Esc still closes it and discards the changes.</td><td><a href="#ag-dialog">AgentDialog</a></td><td>Keep it. Esc is an explicit key, not a stray click. Show "Discard changes?" with "Discard" and "Keep editing" only if the draft is over 200 characters. Otherwise Esc closes at once.</td></tr>
+</tbody></table></div>
+
+<h3 id="sh-qa">7. QA acceptance checklist</h3>
+<p>Run this for every phase exit, on Chrome, Safari and Firefox (latest), iOS Safari and Android Chrome.</p>
+<ul class="chk">
+  <li>Both themes: every surface in light, dark, and system with a live OS switch. No literal colors, and sandboxed visuals re-render on a theme change.</li>
+  <li>All widths: every row of the <a href="#sh-responsive">QA matrix</a> passes, with no horizontal page scroll at 400 and 390.</li>
+  <li>Keyboard only: with no pointer, a user can send, queue, steer, stop, answer each request kind, open and close every popover, sheet and drawer, use the tray, create an agent, attach a file, and open every folded block. Focus is visible at every step and never lands on <code>body</code>.</li>
+  <li>Focus return: each row of the <a href="#sh-focus">focus table</a> returns focus to the listed target.</li>
+  <li>Esc: each step of the <a href="#sh-esc">Esc stack</a> runs alone, and one Esc never does two things.</li>
+  <li>Screen reader passes: VoiceOver with Safari (macOS and iOS), NVDA with Firefox or Chrome, TalkBack with Chrome. Landmarks are listed as in <a href="#sh-landmarks">§1</a>. A full turn gives "Working" then "Done", with no streamed text read aloud. A docked request is announced once. Every icon button has its name.</li>
+  <li>Reduced motion: every row of the <a href="#sh-motion">reduced motion table</a> holds, and busy states are still visible without animation.</li>
+  <li>Slow network (Chrome "Slow 3G") and reconnect: drop the connection during a stream. The pill says "Reconnecting", request controls disable with the reconnect copy, and the stream resyncs with no duplicate messages. The draft and the queue survive.</li>
+  <li>Read-only viewer (BE-09): the composer is replaced by the viewer bar, requests show "Waiting on owner", and no send, answer, stop, edit or delete control can be reached by mouse or keyboard.</li>
+  <li>Long chats: a 200-turn chat with code, tools and helpers opens within the budget in <a href="#sh-perf">§9</a>. Scrolling holds 60fps on the reference machine. JumpToLatest, the outline (P3) and search find turns outside the rendered window.</li>
+  <li>Streaming, no layout jump: while tokens arrive, the content above the stream does not move (CLS 0 for content above the viewport bottom). Auto-follow keeps the bottom pinned only when the user was at the bottom. The work group fold after 600ms does not move the user's reading position. Code blocks reserve their collapsed height as soon as the fence opens.</li>
+  <li>Zoom 200% and 400% reflow, and text spacing override, pass (see <a href="#sh-responsive">§2</a>).</li>
+  <li>Touch: every target meets 44px on a coarse pointer, and hover-only actions are always visible on the last turn.</li>
+  <li>Contrast: the pairs in <a href="#sh-contrast">§1 contrast</a> are spot-checked with a color picker in both themes, and in forced colors mode.</li>
+  <li>Axe or Lighthouse accessibility scan has no critical or serious issues. This is a floor, not a pass (see the note at the top).</li>
+</ul>
+
+<h3 id="sh-dod">8. Definition of done for each component</h3>
+<p>A component block is done when every item holds. Reviewers tick this list in the PR description.</p>
+<ul class="chk">
+  <li>Matches its block: anatomy, sizes, tokens, states, copy and data interface. Any change goes back into the spec in the same PR.</li>
+  <li>Uses tokens only. No literal color, spacing, z-index or duration in its CSS.</li>
+  <li>Every state in its States table can be reached in Storybook or a test fixture, in light and dark.</li>
+  <li>Every acceptance item in its block is an automated test (unit, component or Playwright), or is marked "manual" with a reason.</li>
+  <li>Keyboard and a11y subsection implemented: roles, names, focus return and key paths. Icon-only buttons pass the label lint rule.</li>
+  <li>Announcements go through <code>announce()</code> only, and use the exact strings in <a href="#sh-live">§1</a>.</li>
+  <li>Reduced motion and forced colors checked.</li>
+  <li>Works at 400px and inside the ≤900 drawer, where it can appear there.</li>
+  <li>Backend-blocked parts show their fallback state and are behind a capability check, not a commented-out block.</li>
+  <li>Proposal values cite their D-id in code comments, so the value can be found when the decision changes.</li>
+  <li>No new legacy class names (<a href="#fd-css">pipeline rule</a>), and no Tailwind classes.</li>
+  <li>Render cost stays within the <a href="#sh-perf">performance budget</a> for stream components.</li>
+</ul>
+
+<h3 id="sh-perf">9. Performance budgets</h3>
+<p><span class="tag proposal">proposal</span> D-NEW-SH-04. None of these numbers are measured yet. The reference machine is a mid-range 2022 laptop with 4x CPU throttle in Chrome DevTools for the "low end" column.</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Metric</th><th>Definition</th><th>Budget</th><th>Low end</th></tr></thead><tbody>
+<tr><td>Time to first token display</td><td>First token event received to its glyphs painted</td><td>≤ 50ms</td><td>≤ 100ms</td></tr>
+<tr><td>Send to Working</td><td>Send pressed to the pill and placeholder showing the starting state</td><td>≤ 100ms (no network wait)</td><td>≤ 150ms</td></tr>
+<tr><td>Stream render cost</td><td>Main-thread time per token batch. Batch tokens per animation frame, and never re-render per token</td><td>≤ 4ms per frame at 60fps</td><td>≤ 8ms</td></tr>
+<tr><td>Markdown reparse</td><td>Only the last open block is re-parsed on each batch; closed blocks are memoized</td><td>≤ 2ms per batch for a 4,000-word answer</td><td>≤ 5ms</td></tr>
+<tr><td>Syntax highlight</td><td>shiki runs on a closed fence only, off the main thread or in idle time; plain text while open</td><td>≤ 16ms per block, grammar lazy-loaded</td><td>≤ 40ms</td></tr>
+<tr><td>Open a chat</td><td>Route change to the last turn painted</td><td>≤ 400ms for 50 turns, ≤ 800ms for 200 turns</td><td>≤ 1.2s for 200 turns</td></tr>
+<tr><td>Input latency</td><td>Keypress in the composer to paint, during a stream</td><td>≤ 50ms (INP)</td><td>≤ 100ms</td></tr>
+<tr><td>Layout shift</td><td>CLS during a full turn, for content above the viewport bottom</td><td>0</td><td>0</td></tr>
+<tr><td>JS added by v3</td><td>Initial route bundle, gzip, excluding lazy grammars and P3</td><td>≤ 60 KB</td><td></td></tr>
+</tbody></table></div>
+<h4 id="sh-virtualize">When to virtualize the list</h4>
+<p>D-NEW-SH-03. Proposed rule: render every turn up to 150 turns, or 3,000 DOM nodes in the list, whichever comes first. Above that, switch to a windowed list that keeps the latest 40 turns and the viewport's neighbours (2 screens above and below) mounted. The rest become measured placeholders, with heights cached by turn id.</p>
+<ul>
+  <li>The streaming turn, any turn with a docked request anchor, and any turn holding focus are always mounted.</li>
+  <li>Heights come from a ResizeObserver per mounted turn. Unknown heights use a per-kind estimate and are corrected without moving the reading position (scroll anchoring).</li>
+  <li>Screen readers: a turn that is not mounted can't be read in browse mode. Keep the turn <code>article</code> headings in a hidden outline list, so a user can jump to a turn by heading. ThreadSearch (P3) and BE-16 content search cover find.</li>
+  <li>Browser find misses unmounted turns. This is why C-01 is rechecked when virtualization lands.</li>
+  <li>Before that point, the older work group collapse (<a href="#sm-older">sm-older</a>) is the first way to cut DOM size.</li>
+</ul>
+
+<h3 id="sh-coverage">Coverage</h3>
+<div class="tw"><table class="tbl cov"><thead><tr><th>Schema heading</th><th>Covered in</th></tr></thead><tbody>
+<tr><td data-schema="Accessibility-relevant styles (8.14 cross-ref)">Accessibility-relevant styles (8.14 cross-ref)</td><td><a href="#sh-a11y">Accessibility spec</a>. The styles themselves are owned by <a href="#fd-focus">Foundations</a></td></tr>
+</tbody></table></div>
+
+<h3 id="sh-new-be">New backend items</h3>
+<p>This part adds no backend items. All items from the other parts are collected in <a href="#sh-backend-new">§4</a>.</p>
+
+<h3 id="sh-new-d">New decisions</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Id</th><th>Question</th><th>Default chosen</th></tr></thead><tbody>
+<tr><td>D-NEW-SH-01</td><td>One Esc owner for the page?</td><td><code>useEscStack</code> with the fixed order in §1</td></tr>
+<tr><td>D-NEW-SH-02</td><td>How does Mod+F coexist with browser find?</td><td>Only in the message list, P3 flag on, never from fields; a second press falls through</td></tr>
+<tr><td>D-NEW-SH-03</td><td>When to virtualize the message list?</td><td>Above 150 turns or 3,000 list nodes</td></tr>
+<tr><td>D-NEW-SH-04</td><td>Performance budgets?</td><td>As in §9</td></tr>
+<tr><td>D-NEW-SH-05</td><td>Skip link?</td><td>"Skip to message box", first focusable</td></tr>
+<tr><td>D-NEW-SH-06</td><td>Touch hit areas?</td><td>44px via <code>::after</code>, 4px more gap on coarse pointers</td></tr>
+<tr><td>D-NEW-SH-07</td><td>Duplicate announcements?</td><td>Drop identical text within 5000ms</td></tr>
+<tr><td>D-NEW-SH-08</td><td>Unconfirmed icon button labels?</td><td>Defaults in the label table</td></tr>
+<tr><td>D-NEW-SH-09</td><td>Forced colors?</td><td><code>Highlight</code> focus rings, 1px chip borders</td></tr>
+</tbody></table></div>
+</section>

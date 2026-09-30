@@ -1,0 +1,939 @@
+<section class="part" id="foundations">
+<style>
+/* Fixed-in-both-themes tint tokens, defined here only so the swatches render (the shell does not define them). */
+#foundations{--tint-ice-dot:#3691CD;--tint-mint-dot:#A9D5BE;--tint-butter-dot:#EBCB8B;--tint-peach-dot:#F0B999;--tint-lilac-dot:#C4BDE3}
+#foundations .fd-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+#foundations .fd-btn{height:32px;padding:0 12px;border:0;border-radius:9px;font:500 13px var(--font-sans);background:var(--accent-fg);color:var(--on-accent);cursor:pointer}
+#foundations .fd-btn:focus-visible{outline:2px solid var(--accent-fg);outline-offset:2px}
+#foundations .fd-meta{font-size:12px;color:var(--ink-2)}
+#foundations .fd-mute{font-size:13px;color:var(--ink-3)}
+#foundations .fd-ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;color:var(--ink)}
+#foundations .fd-icons{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+#foundations .fd-icons span{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font:11.5px var(--font-mono);color:var(--ink-2);min-width:0;text-align:center;overflow-wrap:anywhere}
+</style>
+<h2>Foundations</h2>
+<p>This part defines every token the other parts reference: color, type, spacing, layout constants, radii, shadows, z-index, motion, breakpoints and icons. It also sets the CSS file layout and how the legacy <code>app/*.css</code> files are retired. Values that exist in <code>styles/v2/tokens.css</code> or <code>truex-design-spec.html</code> are tagged <span class="tag exists">exists</span>. Tokens that only name a literal already in the CSS are <span class="tag derive">derive</span>. Anything else is <span class="tag proposal">proposal</span> with a decision id.</p>
+<div class="note">Source of truth today: <code>frontend/styles/v2/tokens.css</code> (copied from the design spec Appendix) and literal values across <code>styles/v2/*.css</code> (schema §8). All new tokens in this part go into <code>tokens.css</code>. Components never use a literal hex, px spacing step, z number or duration once their surface is ported.</div>
+
+<!-- ============ 1. COLOR ============ -->
+<h3 id="fd-color">1. Color tokens</h3>
+
+<div class="comp" id="fd-theme">
+  <header><h4>Theme mechanism</h4><span class="tag exists">exists</span><span class="tag phase">P0</span>
+    <span class="path">lib/use-theme.ts · app/layout.tsx (THEME_BOOT_SCRIPT) · styles/v2/tokens.css</span></header>
+  <div class="body">
+    <p>Light is the <code>:root</code> default. Dark applies from the system preference unless the user forced light, or from a forced <code>data-theme="dark"</code>. Keep this mechanism unchanged in v3.</p>
+    <h4>Anatomy</h4>
+    <dl class="kv">
+      <dt>Light</dt><dd><code>:root { color-scheme: light; … }</code></dd>
+      <dt>System dark</dt><dd><code>@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { … } }</code></dd>
+      <dt>Forced dark</dt><dd><code>:root[data-theme="dark"] { … }</code>, identical values to the media block</dd>
+      <dt>Storage</dt><dd><code>localStorage["truex-theme"]</code> = <code>"" | "light" | "dark"</code>. Empty follows the system.</dd>
+      <dt>Boot</dt><dd><code>THEME_BOOT_SCRIPT</code> inlined in <code>&lt;head&gt;</code> before paint. <code>&lt;html suppressHydrationWarning&gt;</code>.</dd>
+      <dt>Toggles</dt><dd>Topbar theme button and account menu item.</dd>
+    </dl>
+    <h4>Data</h4>
+<pre><code>type ThemePref = "" | "light" | "dark";   // localStorage["truex-theme"]
+// write(): sets or removes document.documentElement.dataset.theme
+// subscribes to matchMedia("(prefers-color-scheme: dark)") changes
+</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Every new token in this part is declared in all three blocks. A token left out of the dark blocks keeps its light value in dark, so only leave one out on purpose (brand ramp, tints).</li>
+      <li>The two dark blocks must stay byte-identical. Add a lint check in CI (proposal, D-NEW: dark block parity check; default: a unit test that parses <code>tokens.css</code> and diffs the two blocks).</li>
+      <li>Fixed-in-both-themes colors stay fixed by design: agent badge (<code>#FFFFFF</code> bg, <code>#1F2A30</code> text), <code>.strap</code> mixes, celebrate scrim <code>rgb(12 15 17 / 78%)</code> with text <code>#F4F7F8</code>. They become named tokens in <a href="#fd-tints">Agent tints</a>.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>No theme flash on reload with <code>truex-theme="dark"</code> and a light OS setting.</li>
+      <li>Clearing the preference follows the OS live, without reload.</li>
+      <li>The two dark blocks in <code>tokens.css</code> contain the same declarations.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="fd-semantic">
+  <header><h4>Semantic color tokens</h4><span class="tag exists">exists</span><span class="tag derive">derive (AA fixes)</span><span class="tag phase">P0</span>
+    <span class="path">styles/v2/tokens.css</span></header>
+  <div class="body">
+    <p>The full light and dark set. Rows marked "v3 fix" change a value or a usage rule. Swatches render the page's current theme.</p>
+    <h4>Brand ramp (light only, not redefined in dark)</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Token</th><th>Value</th><th>Role</th></tr></thead><tbody>
+      <tr><td><code>--brand-50</code></td><td>#F8FCFD</td><td>lightest tint</td></tr>
+      <tr><td><code>--brand-100</code></td><td>#F4FAFC</td><td>tint</td></tr>
+      <tr><td><code>--brand-200</code></td><td>#EAF5F8</td><td>ice, same as light <code>--accent-soft</code></td></tr>
+      <tr><td><code>--brand-300</code></td><td>#D8EBF0</td><td>mist</td></tr>
+      <tr><td><code>--brand-400</code></td><td>#BCDEE8</td><td>pastel, signature</td></tr>
+      <tr><td><code>--brand-500</code></td><td>#3691CD</td><td>primary blue</td></tr>
+      <tr><td><code>--brand-600</code></td><td>#2A7DB4</td><td>strong</td></tr>
+      <tr><td><code>--brand-700</code></td><td>#226A9B</td><td>pressed</td></tr>
+    </tbody></table></div>
+    <h4>Semantic set</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Token</th><th>Light</th><th>Dark</th><th>Role</th><th>Status</th></tr></thead><tbody>
+      <tr><td><span class="sw" style="background:var(--bg)"></span><code>--bg</code></td><td>#FFFFFF</td><td>#171717</td><td>page background</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><span class="sw" style="background:var(--surface)"></span><code>--surface</code></td><td>#FFFFFF</td><td>#171717</td><td>panels, cards</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><span class="sw" style="background:var(--surface-2)"></span><code>--surface-2</code></td><td>#FFFFFF</td><td>#171717</td><td>stage, hover</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><span class="sw" style="background:var(--surface-3)"></span><code>--surface-3</code></td><td>#F6F9FA</td><td>#242424</td><td>soft surface, active row, code bg</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><span class="sw" style="background:var(--line)"></span><code>--line</code></td><td>#E3ECEF</td><td>#2A2A2A</td><td>borders, dividers</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><span class="sw" style="background:var(--line-strong)"></span><code>--line-strong</code></td><td>#D8E0E4</td><td>#363636</td><td>hover borders, separators</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><code>--border-control</code></td><td>#D8E0E4</td><td>#404040</td><td>input and select borders</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><span class="sw" style="background:var(--ink)"></span><code>--ink</code></td><td>#1F2A30</td><td>#EEF4F6</td><td>primary text (graphite)</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><span class="sw" style="background:var(--ink-2)"></span><code>--ink-2</code></td><td>#5F6D73</td><td>#B7C3C8</td><td>secondary text. All text under 13px.</td><td><span class="tag derive">v3 usage rule</span></td></tr>
+      <tr><td><span class="sw" style="background:var(--ink-3)"></span><code>--ink-3</code></td><td><s>#849198</s> → <b>#67757C</b></td><td><s>#8B999F</s> → <b>#98A6AC</b></td><td>muted text at 13px and up, placeholders, idle icons. Never on <code>--accent-soft</code>.</td><td><span class="tag derive">v3 fix</span></td></tr>
+      <tr><td><code>--ink-disabled</code></td><td>#B4BEC3</td><td>#4E5C62</td><td>disabled text and icons (exempt from contrast minimums)</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><span class="sw" style="background:var(--accent)"></span><code>--accent</code></td><td>#3691CD</td><td>#3691CD</td><td>non-text fills: active dots, progress, selected strokes. No longer a text-button fill.</td><td><span class="tag derive">v3 usage rule</span></td></tr>
+      <tr><td><code>--accent-2</code></td><td>#2A7DB4</td><td>#5AA8DC</td><td>strong: dots, progress, input focus border</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><code>--accent-hover</code></td><td>#2A7DB4</td><td>#2A7DB4</td><td>legacy solid hover. Replaced by <code>--accent-fg-hover</code> on buttons.</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><code>--accent-pressed</code></td><td>#226A9B</td><td>#226A9B</td><td>legacy pressed</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><span class="sw" style="background:var(--accent-soft)"></span><code>--accent-soft</code></td><td>#EAF5F8</td><td>#14283A</td><td>ice: selected, soft button, focus halo</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><code>--accent-soft-2</code></td><td>#BCDEE8</td><td>#1F4461</td><td>pastel border, <code>::selection</code></td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><code>--signature</code></td><td>#BCDEE8</td><td>(light value)</td><td>signature pastel</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><span class="sw" style="background:var(--accent-fg)"></span><code>--accent-fg</code></td><td>#2A72A3</td><td>#BCDEE8</td><td>blue text and icons, focus ring, <b>and the fill of every text-bearing primary button</b></td><td><span class="tag derive">v3 fix</span></td></tr>
+      <tr><td><code>--accent-text</code></td><td>#2A72A3</td><td>#BCDEE8</td><td>alias of <code>--accent-fg</code>. Delete after port.</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><code>--accent-fg-hover</code></td><td>#226A9B</td><td>#D8EBF0</td><td>primary button hover</td><td><span class="tag proposal">proposal D-NEW</span></td></tr>
+      <tr><td><code>--accent-fg-pressed</code></td><td>#1E5F8C</td><td>#A6D0DE</td><td>primary button pressed</td><td><span class="tag proposal">proposal D-NEW</span></td></tr>
+      <tr><td><code>--accent-ink</code></td><td>#1F2A30</td><td>#1F2A30</td><td>content on pastel fills</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><span class="sw" style="background:var(--on-accent)"></span><code>--on-accent</code></td><td>#FFFFFF</td><td><s>#FFFFFF</s> → <b>#111213</b></td><td>text and icons on <code>--accent-fg</code> or <code>--accent</code> fills</td><td><span class="tag proposal">v3 fix, D-NEW</span></td></tr>
+      <tr><td><code>--warn</code></td><td>#7D5D1D</td><td>#E6C27A</td><td>paused dot. Same value as <code>--warning-text</code>.</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><span class="sw" style="background:var(--ok-bg)"></span><code>--success-bg</code> / <code>--success-text</code></td><td>#E7F4ED / #35624E</td><td>#16291F / #A8D8BE</td><td>done, allowed, connected</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><span class="sw" style="background:var(--warn-bg)"></span><code>--warning-bg</code> / <code>--warning-text</code></td><td>#FFF3D9 / #7D5D1D</td><td>#2E2512 / #E6C27A</td><td>paused, needs you, limits</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><span class="sw" style="background:var(--bad-bg)"></span><code>--error-bg</code> / <code>--error-text</code></td><td>#FBE7E7 / #8D4545</td><td>#2F1A1A / #EDB0B0</td><td>failed, denied, destructive</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><code>--info-bg</code> / <code>--info-text</code></td><td>#EAF5F8 / #2A72A3</td><td>#14283A / #BCDEE8</td><td>info notes</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><code>--neutral-bg</code> / <code>--neutral-text</code></td><td>#F6F9FA / #5F6D73</td><td>#242424 / #8B999F</td><td>neutral chips</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><code>--glow-1</code></td><td>rgb(188 222 232 / 60%)</td><td>rgb(54 145 205 / 16%)</td><td>hero glow</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><code>--glow-2</code></td><td>rgb(234 245 248 / 90%)</td><td>rgb(188 222 232 / 6%)</td><td>hero glow</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><code>--scrim</code></td><td colspan="2">color-mix(in srgb, var(--ink) 18%, transparent)</td><td>modal and drawer scrim (today a literal mix)</td><td><span class="tag derive">derive</span></td></tr>
+    </tbody></table></div>
+    <h4>Button fill rule (v3 AA fix)</h4>
+    <p>Any button that carries text uses <code>background: var(--accent-fg); color: var(--on-accent)</code>. In light that is white on #2A72A3. In dark it is <code>--on-accent</code> (#111213, the value the spec shell already uses) text on the #BCDEE8 fill. Icon-only primary controls (send, dock active) follow the same rule so one component covers both.</p>
+    <div class="specimen" aria-label="Example: primary button and muted text after the fix">
+      <div class="fd-row"><button type="button" class="fd-btn">Approve plan</button><span class="fd-mute">13px muted, --ink-3</span><span class="fd-meta">12px meta, --ink-2</span></div>
+    </div>
+    <h4>r2 aliases</h4>
+    <p>The r2 wireframes used short names. They become aliases so there is one vocabulary and dark mode comes for free. New code uses the app names. Aliases live in <code>base.css</code> next to the legacy aliases and are deleted with them.</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>r2 name</th><th>Maps to</th><th>Light</th><th>Dark</th></tr></thead><tbody>
+      <tr><td><code>--ok</code></td><td><code>var(--success-text)</code></td><td>#35624E</td><td>#A8D8BE</td></tr>
+      <tr><td><code>--ok-bg</code></td><td><code>var(--success-bg)</code></td><td>#E7F4ED</td><td>#16291F</td></tr>
+      <tr><td><code>--bad</code></td><td><code>var(--error-text)</code></td><td>#8D4545</td><td>#EDB0B0</td></tr>
+      <tr><td><code>--bad-bg</code></td><td><code>var(--error-bg)</code></td><td>#FBE7E7</td><td>#2F1A1A</td></tr>
+      <tr><td><code>--warn</code></td><td><code>var(--warning-text)</code></td><td>#7D5D1D</td><td>#E6C27A</td></tr>
+      <tr><td><code>--warn-bg</code></td><td><code>var(--warning-bg)</code></td><td>#FFF3D9</td><td>#2E2512</td></tr>
+    </tbody></table></div>
+    <p><code>--warn</code> already exists with the same values, so redefining it as <code>var(--warning-text)</code> changes nothing visible. <code>--warn-bg</code> is already a legacy alias of <code>--warning-bg</code>.</p>
+    <h4>Legacy aliases (base.css, "delete each once its area is rebuilt")</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Alias</th><th>Maps to</th></tr></thead><tbody>
+      <tr><td><code>--background</code></td><td><code>var(--bg)</code></td></tr>
+      <tr><td><code>--foreground</code></td><td><code>var(--ink)</code></td></tr>
+      <tr><td><code>--fg-2</code></td><td><code>var(--ink-2)</code></td></tr>
+      <tr><td><code>--muted</code>, <code>--subtle</code></td><td><code>var(--ink-3)</code> (picks up the fix automatically)</td></tr>
+      <tr><td><code>--border</code> / <code>--border-strong</code></td><td><code>var(--line)</code> / <code>var(--line-strong)</code></td></tr>
+      <tr><td><code>--surface-hover</code></td><td><code>var(--surface-3)</code></td></tr>
+      <tr><td><code>--ring</code></td><td><code>var(--accent-fg)</code></td></tr>
+      <tr><td><code>--good</code></td><td><code>var(--success-text)</code></td></tr>
+      <tr><td><code>--warn-fg</code> / <code>--warn-border</code></td><td><code>var(--warning-text)</code> / <code>color-mix(in srgb, var(--warning-text) 25%, var(--line))</code></td></tr>
+      <tr><td><code>--danger</code></td><td><code>var(--error-text)</code></td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Text under 13px uses <code>--ink-2</code>, never <code>--ink-3</code>. This covers <code>.eyebrow</code>, <code>.convo-time</code>, <code>.msg-foot</code>, <code>.sm</code>, <code>.tab-count</code>, <code>.field-hint</code>.</li>
+      <li><code>--ink-3</code> is never text on <code>--accent-soft</code> (4.29:1 calculated). Use <code>--ink-2</code> there.</li>
+      <li><code>.btn-solid</code>, plan Approve, request submit and <code>.btn-new</code>-style solid buttons move from <code>--accent</code> to <code>--accent-fg</code>. <code>.btn-ghost</code> default text moves from <code>--ink-3</code> to <code>--ink-2</code>.</li>
+      <li>Hard-coded literals left in CSS become tokens as their surface ports: <code>.badge-name.is-empty #A3AFB5</code> → <code>--badge-ink-empty</code>, <code>.badge-foot #E3ECEF / #5F6D73</code> → <code>--badge-foot-bg</code> / <code>--badge-foot-ink</code>, legacy <code>.sheet::backdrop</code> → <code>--scrim</code>.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li><code>grep -E '#[0-9a-fA-F]{3,8}' styles/v2/*.css</code> matches only <code>tokens.css</code>.</li>
+      <li>Every button with a text label renders white on #2A72A3 in light and #111213 on #BCDEE8 in dark.</li>
+      <li>No element under 13px computes <code>color</code> to <code>--ink-3</code>.</li>
+      <li><code>--ok</code>, <code>--bad</code>, <code>--warn</code> render the same as the app tokens in both themes.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="fd-tones">
+  <header><h4>Helper tone tokens</h4><span class="tag exists">exists</span><span class="tag phase">P0</span>
+    <span class="path">styles/v2/tokens.css · .tone-0 | .tone-1 | .tone-2 | .tone-main</span></header>
+  <div class="body">
+    <p>Four tones for multi-agent lanes and charts. The token comment says they were validated with the dataviz <code>validate_palette.js</code>, <code>--pairs all</code>, in both modes. Values unchanged in v3.</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>Token</th><th>Light</th><th>Dark</th><th>Role</th></tr></thead><tbody>
+      <tr><td><span class="sw" style="background:var(--t0)"></span><code>--tone-0</code> / <code>--tone-0-soft</code></td><td>#2872b8 / #eef5fc</td><td>#3691cd / #0f1f2c</td><td>helper 1 (blue)</td></tr>
+      <tr><td><span class="sw" style="background:var(--t1)"></span><code>--tone-1</code> / <code>--tone-1-soft</code></td><td>#0f7a55 / #e6f5ee</td><td>#199e70 / #0e211a</td><td>helper 2 (green)</td></tr>
+      <tr><td><span class="sw" style="background:var(--t2)"></span><code>--tone-2</code> / <code>--tone-2-soft</code></td><td>#b84a1b / #fcece4</td><td>#d95926 / #24120a</td><td>helper 3 (orange)</td></tr>
+      <tr><td><span class="sw" style="background:var(--tm)"></span><code>--tone-main</code> / <code>--tone-main-soft</code></td><td>#6b6b6b / #f0f0f0</td><td>#8f8f8f / #262626</td><td>main agent, "other"</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Classes set local <code>--t</code> (strong) and <code>--ts</code> (soft). Consumers: <code>.hcard-mark</code>, <code>.h-av</code>, <code>.ag-row</code>, <code>.ag-span</code>, <code>.ag-lane.is-lit</code>, <code>.in-seg</code>, <code>.in-swatch</code>, <code>.in-row-bar</code>, <code>.tc-step</code>.</li>
+      <li>Helper index to tone: helper order in the turn, modulo 3 (<code>tone-0..2</code>). The main agent is always <code>tone-main</code>. The index comes from helper order in data, not from a name.</li>
+      <li>A tone never carries meaning alone. Every tone mark sits next to the helper name or a legend label.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="fd-tints">
+  <header><h4>Agent tints and fixed colors</h4><span class="tag derive">derive</span><span class="tag phase">P2</span>
+    <span class="path">styles/v2/tokens.css · TINTS constant (app.tsx:61-67 in the spec) · agent-dialog.css</span></header>
+  <div class="body">
+    <p>Agent tints are fixed hex values with no dark variant. v3 names them as tokens so <code>TINTS</code> can reference <code>var()</code> instead of hex, and the agent dialog, badge and roster stop repeating literals. The agent's tint id comes from <code>AgentSummary.tint</code>; the chat avatar fill comes from <code>agent.hue</code>. Neither is hard-coded per agent name.</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>Token</th><th>bg</th><th>dot</th><th>Caption ink (inkOn)</th></tr></thead><tbody>
+      <tr><td><span class="sw" style="background:var(--tint-ice-dot)"></span><code>--tint-ice-bg</code> / <code>--tint-ice-dot</code></td><td>#EAF5F8</td><td>#3691CD</td><td>#1F2A30</td></tr>
+      <tr><td><span class="sw" style="background:var(--tint-mint-dot)"></span><code>--tint-mint-bg</code> / <code>--tint-mint-dot</code></td><td>#E7F4ED</td><td>#A9D5BE</td><td>#1F2A30</td></tr>
+      <tr><td><span class="sw" style="background:var(--tint-butter-dot)"></span><code>--tint-butter-bg</code> / <code>--tint-butter-dot</code></td><td>#FFF3D9</td><td>#EBCB8B</td><td>#1F2A30</td></tr>
+      <tr><td><span class="sw" style="background:var(--tint-peach-dot)"></span><code>--tint-peach-bg</code> / <code>--tint-peach-dot</code></td><td>#FBE9DD</td><td>#F0B999</td><td>#1F2A30</td></tr>
+      <tr><td><span class="sw" style="background:var(--tint-lilac-dot)"></span><code>--tint-lilac-bg</code> / <code>--tint-lilac-dot</code></td><td>#EFEDF8</td><td>#C4BDE3</td><td>#1F2A30</td></tr>
+    </tbody></table></div>
+    <h4>Fixed-in-both-themes tokens</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Token</th><th>Value</th><th>Replaces</th></tr></thead><tbody>
+      <tr><td><code>--badge-bg</code></td><td>#FFFFFF</td><td><code>.badge</code> background literal</td></tr>
+      <tr><td><code>--badge-ink</code></td><td>#1F2A30</td><td><code>.badge</code> text, <code>.strap</code> mix, <code>--accent-ink</code> twin</td></tr>
+      <tr><td><code>--badge-ink-empty</code></td><td>#A3AFB5</td><td><code>.badge-name.is-empty</code></td></tr>
+      <tr><td><code>--badge-foot-bg</code> / <code>--badge-foot-ink</code></td><td>#E3ECEF / #5F6D73</td><td><code>.badge-foot</code></td></tr>
+      <tr><td><code>--celebrate-scrim</code></td><td>rgb(12 15 17 / 78%)</td><td><code>.scrim.celebrate</code></td></tr>
+      <tr><td><code>--celebrate-ink</code></td><td>#F4F7F8</td><td>celebrate text</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Tint tokens are declared only on <code>:root</code>, never in dark blocks. This keeps them fixed by design.</li>
+      <li>Unknown tint id falls back to <code>ice</code> (existing <code>tintOf(id)</code> behavior).</li>
+      <li>Caption ink stays computed by <code>inkOn(dot)</code>. All five dots resolve to #1F2A30.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Agent dialog, badge and celebrate CSS contain no hex literals.</li><li>Toggling the theme leaves badge and tint colors unchanged.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="fd-series">
+  <header><h4>Chart series tokens</h4><span class="tag proposal">proposal D-NEW</span><span class="tag phase">P1</span>
+    <span class="path">styles/v2/tokens.css · session.css (.in-*) · visualization frame</span></header>
+  <div class="body">
+    <p>Charts in the Insights tab and trace card use named series tokens that alias the validated helper tones, plus grid and axis tokens so no chart hard-codes grey.</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>Token</th><th>Value</th><th>Use</th></tr></thead><tbody>
+      <tr><td><span class="sw" style="background:var(--t0)"></span><code>--series-1</code></td><td><code>var(--tone-0)</code></td><td>first series</td></tr>
+      <tr><td><span class="sw" style="background:var(--t1)"></span><code>--series-2</code></td><td><code>var(--tone-1)</code></td><td>second series</td></tr>
+      <tr><td><span class="sw" style="background:var(--t2)"></span><code>--series-3</code></td><td><code>var(--tone-2)</code></td><td>third series</td></tr>
+      <tr><td><span class="sw" style="background:var(--tm)"></span><code>--series-other</code></td><td><code>var(--tone-main)</code></td><td>"Other", main agent, remainder</td></tr>
+      <tr><td><span class="sw" style="background:var(--line)"></span><code>--chart-grid</code></td><td><code>var(--line)</code></td><td>gridlines, 1px</td></tr>
+      <tr><td><span class="sw" style="background:var(--ink-2)"></span><code>--chart-axis</code></td><td><code>var(--ink-2)</code></td><td>axis labels and ticks</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>More than three categories: the top three get series 1 to 3, the rest fold into <code>--series-other</code> with the label "Other".</li>
+      <li>Model-generated visualizations run in a sandboxed iframe. They get these tokens only if the frame injects a <code>:root</code> block with resolved values into <code>srcdoc</code> (proposal, D-NEW: pass tokens into visualization frame; default: inject resolved light or dark values at render, re-render on theme change).</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Insights charts contain no literal colors.</li><li>Series colors switch with the theme.</li></ul>
+  </div>
+</div>
+
+<!-- ============ 2. TYPE ============ -->
+<h3 id="fd-type">2. Typography</h3>
+<div class="comp" id="fd-type-presets">
+  <header><h4>Type presets</h4><span class="tag exists">exists (values)</span><span class="tag derive">derive (names)</span><span class="tag phase">P0</span>
+    <span class="path">app/layout.tsx (Google Fonts link) · styles/v2/tokens.css · base.css</span></header>
+  <div class="body">
+    <p>Fonts load through a Google Fonts <code>&lt;link&gt;</code> in <code>layout.tsx</code>, not <code>next/font</code>, which would rename families and break the <code>--font-*</code> tokens. Preconnect to <code>fonts.googleapis.com</code> and <code>fonts.gstatic.com</code>, <code>display=swap</code>.</p>
+    <h4>Font tokens</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Token</th><th>Value</th></tr></thead><tbody>
+      <tr><td><code>--font-sans</code></td><td>"Figtree", ui-sans-serif, system-ui, sans-serif (400, 500, 600, 700, 800)</td></tr>
+      <tr><td><code>--font-display</code></td><td>"Figtree", ui-sans-serif, system-ui, sans-serif</td></tr>
+      <tr><td><code>--font-accent</code></td><td>"Newsreader", ui-serif, Georgia, serif (italic 400 to 500 only)</td></tr>
+      <tr><td><code>--font-mono</code></td><td>"JetBrains Mono", ui-monospace, monospace (400, 500)</td></tr>
+      <tr><td><code>--display-weight</code> / <code>--display-track</code></td><td>600 / -.035em</td></tr>
+      <tr><td><code>--accent-style</code> / <code>--accent-weight</code> / <code>--accent-scale</code></td><td>italic / 400 / 1.04</td></tr>
+    </tbody></table></div>
+    <p>Caveat 600/700 is loaded but <code>--font-hand</code> is not defined anywhere, so the download is unused. Remove <code>Caveat</code> from the link (proposal, D-NEW: drop Caveat; default: drop, since the roster pinboard is not built). The <code>data-type</code> presets (grotesk, literary, geist) are not implemented and stay out of v3; editorial is the only preset.</p>
+    <p>The two legacy hard-coded mono stacks at <code>app/shell.css:706</code> and <code>:786</code> switch to <code>var(--font-mono)</code>.</p>
+    <h4>Preset table</h4>
+    <p>Each role is a preset. Components pick a role, never a raw size. v3 adds <code>--type-*</code> shorthand tokens so a rule reads <code>font: var(--type-body)</code> (proposal, D-NEW: shorthand type tokens; default: add them in <code>tokens.css</code>, tracking and transform stay in the rule). Values are the ones in v2 CSS today.</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>Role / token</th><th>Size</th><th>Line-height</th><th>Weight</th><th>Tracking</th><th>Family</th><th>Used by</th></tr></thead><tbody>
+      <tr><td><code>--type-hero</code></td><td>clamp(28px, 4vw, 44px)</td><td>1.08</td><td>var(--display-weight)</td><td>var(--display-track)</td><td>display, balance</td><td><code>.hero h1</code></td></tr>
+      <tr><td>hero accent</td><td>calc(1.04 * 1em)</td><td>inherit</td><td>400 italic</td><td>-.01em</td><td>accent, <code>--accent-fg</code></td><td><code>.hero h1 em</code></td></tr>
+      <tr><td><code>--type-celebrate</code></td><td>32px (26px at max-height ≤720)</td><td>1.2</td><td>display-weight</td><td>display-track</td><td>display</td><td><code>.celebrate-copy h2</code>, <code>.nad-done-copy h2</code></td></tr>
+      <tr><td><code>--type-badge-name</code></td><td>24px</td><td>1.15</td><td>700</td><td>-.03em</td><td>display</td><td><code>.badge-name</code></td></tr>
+      <tr><td><code>--type-brand-sm</code></td><td>22px</td><td>1</td><td>800</td><td>-.04em</td><td>sans</td><td><code>.brand-word.sm</code></td></tr>
+      <tr><td><code>--type-dialog-title</code></td><td>20px</td><td>1.2</td><td>display-weight</td><td>-.02em</td><td>display</td><td><code>.nad-head h2</code></td></tr>
+      <tr><td><code>--type-kpi</code></td><td>20px</td><td>1.25</td><td>600</td><td>0</td><td>sans, tabular</td><td><code>.in-kpi dd</code></td></tr>
+      <tr><td><code>--type-brand</code></td><td>17px</td><td>normal</td><td>700</td><td>-.03em</td><td>display</td><td><code>.brand-word</code></td></tr>
+      <tr><td><code>--type-lg</code></td><td>16px</td><td>normal</td><td>400 (700 on <code>.h-av.lg</code>)</td><td>0</td><td>sans</td><td><code>.brand-slash</code>, <code>.h-av.lg</code></td></tr>
+      <tr><td><code>--type-input</code></td><td>15px</td><td>1.5</td><td>400</td><td>0</td><td>sans</td><td><code>.composer textarea</code>, <code>.palette-input input</code></td></tr>
+      <tr><td><code>--type-body</code></td><td>14px</td><td>1.5</td><td>400</td><td>0</td><td>sans</td><td>body, <code>.bubble</code>, <code>.input</code>, <code>.btn-*.lg</code></td></tr>
+      <tr><td><code>--type-answer</code></td><td>14px</td><td>1.65</td><td>400</td><td>0</td><td>sans</td><td><code>.answer</code> (markdown)</td></tr>
+      <tr><td><code>--type-title</code></td><td>14px</td><td>1.5</td><td>600</td><td>0</td><td>sans</td><td><code>.p-title</code>; <code>.brand-sub</code> at 500</td></tr>
+      <tr><td><code>--type-panel</code></td><td>13.5px</td><td>1.5</td><td>400</td><td>0</td><td>sans</td><td><code>.nad-head p</code>, <code>.ag-panel</code></td></tr>
+      <tr><td><code>--type-ui</code></td><td>13px</td><td>normal</td><td>500</td><td>0</td><td>sans</td><td><code>.btn-solid/.btn-soft/.btn-ghost</code>, <code>.chip</code>, <code>.status-pill</code>, <code>.tab</code>, <code>.goal-strip</code>, <code>.hcard-row</code></td></tr>
+      <tr><td><code>--type-label</code></td><td>12.5px</td><td>1.45</td><td>500</td><td>0</td><td>sans</td><td><code>.field-label</code>, <code>.composer-note</code>, <code>.ag-preview</code></td></tr>
+      <tr><td><code>--type-code</code></td><td>12.5px</td><td>1.6</td><td>400</td><td>0</td><td>mono</td><td>inline and block code in <code>.answer</code> <span class="tag proposal">proposal D-NEW</span></td></tr>
+      <tr><td><code>--type-sm</code></td><td>12px</td><td>normal</td><td>400 to 500</td><td>0</td><td>sans (mono for <code>.field-hint</code>)</td><td><code>.sm</code>, <code>.msg-foot</code>, <code>.goal-tag</code>, <code>.goal-status</code>, <code>.dock-tip</code>, <code>.link</code></td></tr>
+      <tr><td><code>--type-chip-sm</code></td><td>11.5px</td><td>normal (1.5 on <code>.tc-json</code>)</td><td>500</td><td>0</td><td>sans; mono on <code>.tc-json</code></td><td><code>.ag-chip</code>, <code>.tc-json</code></td></tr>
+      <tr><td><code>--type-eyebrow</code></td><td>11px</td><td>normal</td><td>500 (400 on <code>.convo-time</code>)</td><td>.06em, uppercase</td><td>mono</td><td><code>.eyebrow</code>, <code>.badge-handle</code>, <code>.delegation legend</code>, <code>kbd</code> (no transform), <code>.convo-time</code></td></tr>
+      <tr><td><code>--type-count</code></td><td>10.5px</td><td>normal</td><td>600</td><td>0</td><td>mono</td><td><code>.tab-count</code></td></tr>
+      <tr><td><code>--type-mark</code></td><td>10px</td><td>1</td><td>700</td><td>0</td><td>sans</td><td><code>.hcard-mark</code>, <code>.h-av.xs</code></td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Numeric readouts use <code>font-variant-numeric: tabular-nums</code>: <code>.msg-note</code>, <code>.msg-foot</code>, <code>.hcard-time</code>, <code>.goal-strip-meta</code>, <code>.in-kpi dd</code>, <code>.in-row-val</code>, <code>.helper-chip</code>, and every new timer, count or cost.</li>
+      <li>Every role under 13px uses <code>--ink-2</code> or stronger (see <a href="#fd-semantic">color rules</a>).</li>
+      <li>Only the hero uses fluid type. All other sizes are fixed px.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Computed font-family on any v2 element resolves to Figtree, Newsreader or JetBrains Mono.</li><li>No network request for Caveat after the change.</li><li>All numbers in the status pill, receipts and timers are tabular.</li></ul>
+  </div>
+</div>
+
+<!-- ============ 3. SPACE ============ -->
+<h3 id="fd-space">3. Spacing, layout, radii and shadows</h3>
+<div class="comp" id="fd-spacing">
+  <header><h4>Spacing scale</h4><span class="tag derive">derive</span><span class="tag phase">P0</span>
+    <span class="path">styles/v2/tokens.css</span></header>
+  <div class="body">
+    <p>No spacing token exists today. Values are literal px from the recurring set 1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 40. The scale names the common ones.</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>Token</th><th>Value</th><th>Typical use</th></tr></thead><tbody>
+      <tr><td><code>--sp-0_5</code></td><td>2px</td><td>icon-to-badge nudge, tight stacks</td></tr>
+      <tr><td><code>--sp-1</code></td><td>4px</td><td>chip inner gap, list gaps</td></tr>
+      <tr><td><code>--sp-1_5</code></td><td>6px</td><td>sidebar nav gap, icon to label</td></tr>
+      <tr><td><code>--sp-2</code></td><td>8px</td><td>control groups, menu padding</td></tr>
+      <tr><td><code>--sp-3</code></td><td>12px</td><td>button x-padding, message avatar gap, bottom gap</td></tr>
+      <tr><td><code>--sp-4</code></td><td>16px</td><td>panel body padding, dialog form gap, phone gutter</td></tr>
+      <tr><td><code>--sp-5</code></td><td>20px</td><td>thread x-padding, bottom x-padding</td></tr>
+      <tr><td><code>--sp-6</code></td><td>24px</td><td>section head top, dialog padding, thread bottom</td></tr>
+      <tr><td><code>--sp-7</code></td><td>28px</td><td>hero composer top margin</td></tr>
+      <tr><td><code>--sp-10</code></td><td>40px</td><td>hero bottom padding</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>1px hairlines (borders, rails) stay literal.</li>
+      <li>Leftover values 10, 14, 18 and 22 snap to the scale during the v2 port of each surface (proposal, D-NEW: snap rule; default: round up, so 10→12, 14→16, 18→20, 22→24). Two exceptions keep their value as layout constants: shell padding and gap <code>--shell-gap: 10px</code>, and the message gap <code>--msg-gap: 22px</code>.</li>
+      <li>Snapping a surface is a visual change. Do it in the same PR as that surface's port, with before and after screenshots.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="fd-layout">
+  <header><h4>Layout constants</h4><span class="tag derive">derive</span><span class="tag phase">P0</span>
+    <span class="path">styles/v2/tokens.css · shell.css · fitPanel (JS)</span></header>
+  <div class="body">
+    <div class="tw"><table class="tbl"><thead><tr><th>Token</th><th>Value</th><th>Replaces</th></tr></thead><tbody>
+      <tr><td><code>--thread-max</code></td><td>740px</td><td><code>.thread</code> and <code>.composer</code> / <code>.composer-form</code> max-width. Shared so they never drift.</td></tr>
+      <tr><td><code>--hero-max</code></td><td>760px</td><td><code>.hero</code> max-width</td></tr>
+      <tr><td><code>--topbar-h</code></td><td>56px</td><td><code>.stage .topbar</code> height</td></tr>
+      <tr><td><code>--dock-h</code></td><td>56px</td><td><code>.dock</code> height</td></tr>
+      <tr><td><code>--panel-w</code></td><td>360px</td><td>default for <code>var(--pw, 360px)</code></td></tr>
+      <tr><td><code>--panel-w-min</code> / <code>--panel-w-max</code></td><td>360px / 560px</td><td><code>PANEL_W = { min: 360, max: 560 }</code> in JS. CSS uses them only for clamping.</td></tr>
+      <tr><td><code>--sidebar-w</code></td><td>268px</td><td><code>.panel.sidebar.is-open</code> width</td></tr>
+      <tr><td><code>--shell-gap</code></td><td>10px (0 at ≤720px)</td><td><code>.shell</code> padding and gap</td></tr>
+      <tr><td><code>--msg-gap</code></td><td>22px</td><td><code>.chat-messages</code> gap</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li><code>--pw</code> stays an inline style set from <code>fitPanel().width</code>. The rule becomes <code>width: clamp(var(--panel-w-min), var(--pw, var(--panel-w)), var(--panel-w-max))</code>, and at ≤720px <code>min(var(--pw, var(--panel-w)), 100vw)</code>.</li>
+      <li>Key paddings map to the scale: thread <code>var(--sp-4) var(--sp-5) var(--sp-6)</code>; bottom <code>0 var(--sp-5) 14px</code> (14 snaps to <code>--sp-4</code> under D-NEW snap rule); session panel body <code>var(--sp-4)</code>; agent dialog form <code>var(--sp-6) var(--sp-6) var(--sp-5)</code>, gap <code>var(--sp-4)</code>; sidebar <code>14px 12px</code>, gap <code>--sp-1_5</code>; topbar <code>0 12px 0 18px</code>.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Thread and composer share one max-width token.</li><li>Dragging the panel never goes below 360px or above 560px.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="fd-radii">
+  <header><h4>Radii</h4><span class="tag exists">exists (values)</span><span class="tag proposal">proposal (names) D-NEW</span><span class="tag phase">P0</span>
+    <span class="path">styles/v2/tokens.css</span></header>
+  <div class="body">
+    <p>Only <code>--radius: 16px</code> exists, plus legacy aliases <code>--radius-sm 6px</code>, <code>--radius-md 10px</code> ("old --radius"), <code>--radius-lg 14px</code>. v3 names the literals in use. Names use the <code>--r-</code> prefix so they do not collide with the legacy aliases.</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>Token</th><th>Value</th><th>Used by</th></tr></thead><tbody>
+      <tr><td><code>--r-xs</code></td><td>8px</td><td><code>.agent-avatar</code>, <code>.h-av</code>, <code>.dock-tip</code>, <code>.ag-seg-tab</code>, <code>:focus-visible</code> ring</td></tr>
+      <tr><td><code>--r-btn</code></td><td>9px</td><td><code>.btn-*</code>, <code>.side-link</code>, <code>.convo</code>, <code>.menu-item</code>, <code>.tile</code>, <code>.select select</code></td></tr>
+      <tr><td><code>--r-ctl</code></td><td>10px</td><td><code>.icon-btn</code>, <code>.input</code>, <code>.search-trigger</code>, <code>.btn-new</code>, <code>.goal-meta &gt; div</code>, <code>.ag-warn</code>. 11px on <code>.send</code> and <code>.h-av.lg</code> snaps here.</td></tr>
+      <tr><td><code>--r-card</code></td><td>12px</td><td><code>.goal-strip</code>, <code>.goal-menu</code>, <code>.hcard-output</code>, <code>.ag-row</code>, <code>.ag-stats</code>, <code>.look</code>, <code>.tile.lg</code>, images, code blocks</td></tr>
+      <tr><td><code>--r-pop</code></td><td>14px</td><td><code>.popover</code></td></tr>
+      <tr><td><code>--radius</code> (<code>--r-panel</code>)</td><td>16px</td><td><code>.panel-inner</code>, <code>.stage</code>, <code>.in-kpi</code>, <code>.in-card</code>, <code>.palette</code>; bubble <code>16px 16px 4px 16px</code></td></tr>
+      <tr><td><code>--r-composer</code></td><td>18px</td><td><code>.composer</code>, <code>.badge</code></td></tr>
+      <tr><td><code>--r-dock</code></td><td>20px</td><td><code>.dock</code>, <code>.agent-dialog</code></td></tr>
+      <tr><td><code>--r-pill</code></td><td>999px</td><td>chips, pills, <code>.goal-tag</code>, <code>.goal-status</code>, <code>.ag-chip</code>, <code>.dock-btn</code>, <code>.avatar</code>; dots use 50%</td></tr>
+    </tbody></table></div>
+    <p>Focus ring radius: the app uses 8px, the spec page 6px. Keep 8px (<code>--r-xs</code>) (D-NEW: focus radius; default 8px).</p>
+  </div>
+</div>
+
+<div class="comp" id="fd-shadows">
+  <header><h4>Shadows and blur</h4><span class="tag exists">exists</span><span class="tag phase">P0</span>
+    <span class="path">styles/v2/tokens.css</span></header>
+  <div class="body">
+    <div class="tw"><table class="tbl"><thead><tr><th>Token</th><th>Light</th><th>Dark</th><th>Use</th></tr></thead><tbody>
+      <tr><td><code>--shadow-sm</code></td><td>0 1px 2px rgb(31 42 48 / 5%)</td><td>today: not redefined. v3: <b>0 1px 2px rgb(0 0 0 / 40%)</b> <span class="tag proposal">D-NEW</span></td><td>panels, status pill, hero greet</td></tr>
+      <tr><td><code>--shadow-md</code></td><td>0 1px 2px rgb(31 42 48 / 4%), 0 8px 24px -8px rgb(31 42 48 / 10%)</td><td>0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -8px rgb(0 0 0 / 50%)</td><td>composer, <code>.in-tip</code>, toast</td></tr>
+      <tr><td><code>--shadow-lg</code></td><td>0 2px 4px rgb(31 42 48 / 4%), 0 10px 35px rgb(31 42 48 / 8%)</td><td>0 2px 4px rgb(0 0 0 / 30%), 0 24px 48px -16px rgb(0 0 0 / 70%)</td><td>dock, popovers, palette, dialogs, drawers, goal menu</td></tr>
+      <tr><td><code>--blur-glass</code></td><td colspan="2">blur(14px) saturate(1.4)</td><td>dock backdrop <span class="tag derive">derive</span></td></tr>
+      <tr><td><code>--blur-scrim</code></td><td colspan="2">blur(2px)</td><td>scrim <span class="tag derive">derive</span></td></tr>
+      <tr><td><code>--blur-celebrate</code></td><td colspan="2">blur(6px)</td><td>celebrate scrim <span class="tag derive">derive</span></td></tr>
+    </tbody></table></div>
+    <p>Dark <code>--shadow-sm</code> at 5% graphite is nearly invisible on #171717, so v3 redefines it in both dark blocks.</p>
+  </div>
+</div>
+
+<!-- ============ 4. Z ============ -->
+<h3 id="fd-z">4. Z-index layers</h3>
+<div class="comp" id="fd-zindex">
+  <header><h4>Z-index tokens</h4><span class="tag derive">derive</span><span class="tag phase">P0</span>
+    <span class="path">styles/v2/tokens.css</span></header>
+  <div class="body">
+    <p>No z-index tokens exist. Eight named layers replace the raw numbers in §8.8. Values stay the same, so the stacking does not change.</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>Token</th><th>Value</th><th>What goes on it</th><th>Today</th></tr></thead><tbody>
+      <tr><td><code>--z-base</code></td><td>1</td><td>thread scroll, timeline dots</td><td><code>.scroll</code>, <code>.tl-dot</code></td></tr>
+      <tr><td><code>--z-sticky</code></td><td>2</td><td>topbar, in-chart tooltip, confetti, badge shine, clip, jump-to-latest pill</td><td><code>.stage .topbar</code>, <code>.in-tip</code>, <code>.confetti</code>, <code>.badge-shine</code>, <code>.clip</code></td></tr>
+      <tr><td><code>--z-composer</code></td><td>3</td><td>composer area, docked request card, dialog close, celebrate copy</td><td><code>.bottom</code>, <code>.dialog-x</code>, <code>.celebrate-copy</code></td></tr>
+      <tr><td><code>--z-menu</code></td><td>5</td><td>slash and @ menus anchored to the composer</td><td><code>.slash-menu</code></td></tr>
+      <tr><td><code>--z-popover</code></td><td>20</td><td>dock popovers, goal menu, row menus, composer chip menus</td><td><code>.popover</code>, legacy <code>.goal-menu</code></td></tr>
+      <tr><td><code>--z-drawer</code></td><td>30</td><td>activity panel overlay (≤900 and overlay mode), sidebar drawer (≤720)</td><td><code>.activity.is-overlay.is-open</code>, <code>.panel.sidebar.is-open</code></td></tr>
+      <tr><td><code>--z-scrim</code></td><td>50</td><td>scrim plus its content: search palette, agent dialog, celebrate, Radix select content, toasts</td><td><code>.scrim</code>, legacy <code>.select-content</code></td></tr>
+      <tr><td><code>--z-menu-fixed</code></td><td>60</td><td>legacy fixed <code>.menu</code>. Delete once that menu ports to <code>.popover</code>.</td><td>legacy <code>.menu</code></td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Native <code>&lt;dialog&gt;</code> sheets (<code>.sheet</code>) use the browser top layer and ignore z-index. Keep them there.</li>
+      <li>The docked request card sits in <code>--z-composer</code>, so popovers and menus always open above it.</li>
+      <li>Toasts render on <code>--z-scrim</code>, after the scrim in DOM order, so they show above drawers and scrim dialogs (proposal, D-NEW: toast layer; default as stated).</li>
+      <li>A drawer's own scrim uses <code>calc(var(--z-drawer) - 1)</code>.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li><code>grep -E 'z-index:\s*[0-9]' styles/v2/*.css</code> returns nothing.</li><li>A popover opened while a request card is docked renders above the card.</li></ul>
+  </div>
+</div>
+
+<!-- ============ 5. MOTION ============ -->
+<h3 id="fd-motion">5. Motion</h3>
+<div class="comp" id="fd-motion-tokens">
+  <header><h4>Duration and easing tokens</h4><span class="tag derive">derive</span><span class="tag phase">P0</span>
+    <span class="path">styles/v2/tokens.css</span></header>
+  <div class="body">
+    <p>No duration or easing tokens exist today. Five durations and three easings cover every transition in §8.9. The "spec-only motion" rule still applies: no animation beyond the ones listed here.</p>
+    <div class="grid2">
+      <div class="tw"><table class="tbl"><thead><tr><th>Token</th><th>Value</th><th>Replaces</th></tr></thead><tbody>
+        <tr><td><code>--dur-1</code></td><td>120ms</td><td>fade scrim, tooltip, press, dock hover (.14s snaps here)</td></tr>
+        <tr><td><code>--dur-2</code></td><td>160ms</td><td>popover and palette rise, generic hover (.15s)</td></tr>
+        <tr><td><code>--dur-3</code></td><td>200ms</td><td>panel opacity, goal strip rise, dialog (.18s), sheet (.22s)</td></tr>
+        <tr><td><code>--dur-4</code></td><td>320ms</td><td>panel width, message rise (.3s), hero rise (.35s)</td></tr>
+        <tr><td><code>--dur-5</code></td><td>400ms</td><td>progress bar width, celebrate copy</td></tr>
+      </tbody></table></div>
+      <div class="tw"><table class="tbl"><thead><tr><th>Token</th><th>Value</th><th>Use</th></tr></thead><tbody>
+        <tr><td><code>--ease-out</code></td><td>cubic-bezier(.2, .8, .2, 1)</td><td>panels, drawers, sheet, popovers, rise</td></tr>
+        <tr><td><code>--ease-spring</code></td><td>cubic-bezier(.34, 1.56, .64, 1)</td><td>lanyard, strap, badge drop (agent dialog only)</td></tr>
+        <tr><td><code>--ease-std</code></td><td>ease</td><td>progress bar width, hover color</td></tr>
+      </tbody></table></div>
+    </div>
+    <p>Snapping .14s, .15s, .18s, .22s, .3s and .35s to the nearest token is a small visual change (proposal, D-NEW: duration snap; default: snap during each surface's port). Decorative long durations stay literal and local to agent-dialog.css: <code>sway</code> 6s, <code>shine</code> .9s, <code>drop</code> .9s, strap .7s, confetti <code>burst</code>.</p>
+  </div>
+</div>
+
+<div class="comp" id="fd-animations">
+  <header><h4>Animation inventory</h4><span class="tag derive">derive</span><span class="tag phase">P0</span>
+    <span class="path">styles/v2/base.css (keyframes) · chat.css · session.css · dock.css</span></header>
+  <div class="body">
+    <p>Every animation in the v3 app. Rows tagged proposal are new in v3 and cite D-NEW entries below.</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>Animation</th><th>Where</th><th>Keyframes</th><th>Duration</th><th>Easing</th><th>Iterations</th><th>Reduced-motion fallback</th></tr></thead><tbody>
+      <tr><td>Shimmer <span class="tag proposal">proposal</span></td><td>skeleton rows, history resync tail, loading chips</td><td><code>shimmer</code>: <code>background-position</code> 200% → -200% (replaces unused <code>obs-running</code>)</td><td>1.4s</td><td>linear</td><td>infinite</td><td>static <code>--surface-3</code> block; region keeps <code>aria-busy="true"</code></td></tr>
+      <tr><td>Pulse</td><td><code>.pulse</code>, <code>.dock-badge</code>, <code>.goal-status.s-running .pulse</code></td><td><code>pulse</code>: ring grows to 7px, fades</td><td>1.6s</td><td>ease-out</td><td>infinite</td><td>solid dot, no ring; visible "Working" label beside it</td></tr>
+      <tr><td>Running span</td><td><code>.ag-span.is-running</code>, <code>.tc-step.is-running</code></td><td><code>ag-pulse</code>: opacity .55 at 50%</td><td>1.4s</td><td>ease-in-out</td><td>infinite</td><td>full opacity, running label; explicit <code>animation: none</code></td></tr>
+      <tr><td>Spinner</td><td><code>.spinner</code> (10px)</td><td><code>spin</code>: rotate 360deg</td><td>700ms</td><td>linear</td><td>infinite</td><td>static ring with a gap, so "busy" still reads</td></tr>
+      <tr><td>Caret</td><td><code>.caret</code> at the end of streaming text</td><td><code>blink</code>: opacity 0 at 50%</td><td>1s</td><td>steps(2)</td><td>infinite</td><td>solid caret, no blink</td></tr>
+      <tr><td>Rise</td><td><code>.hero</code>, <code>.msg.agent</code>, <code>.goal-strip</code>, <code>.palette</code>, <code>.popover</code>, <code>.agent-dialog</code></td><td><code>rise</code>: opacity 0, translateY(6px)</td><td>hero, msg: <code>--dur-4</code>; strip: <code>--dur-3</code>; palette, popover: <code>--dur-2</code>; dialog: <code>--dur-3</code></td><td><code>--ease-out</code></td><td>1</td><td>appears at final state</td></tr>
+      <tr><td>Popover</td><td>dock popovers, chip menus, row menus</td><td><code>rise</code></td><td><code>--dur-2</code> (160ms)</td><td><code>--ease-out</code></td><td>1</td><td>appears instantly</td></tr>
+      <tr><td>Scrim fade</td><td><code>.scrim</code>, <code>.scrim.celebrate</code></td><td><code>fade</code>: opacity 0</td><td><code>--dur-1</code>; celebrate 250ms</td><td><code>--ease-out</code></td><td>1</td><td>appears instantly</td></tr>
+      <tr><td>Drawer / panel</td><td><code>.panel</code> open/close, ≤900 overlay, ≤720 sidebar drawer</td><td>transition <code>width</code> 0 → target, <code>opacity</code> 0 → 1 (clip reveal; inner keeps full width)</td><td>width <code>--dur-4</code>, opacity <code>--dur-3</code></td><td><code>--ease-out</code></td><td>1</td><td>instant open and close, no width transition</td></tr>
+      <tr><td>Sheet</td><td><code>.sheet[open]</code> (native dialog)</td><td><code>sheet-in</code>: translateX(24px), opacity 0</td><td>220ms → <code>--dur-3</code></td><td><code>--ease-out</code></td><td>1</td><td>appears instantly</td></tr>
+      <tr><td>Toast <span class="tag proposal">proposal</span></td><td>403 fallback, copy confirmations, restore done</td><td><code>rise</code> in; <code>fade</code> reversed out</td><td>in <code>--dur-2</code>, out <code>--dur-1</code>; stays 4000ms, pauses on hover and focus</td><td><code>--ease-out</code></td><td>1</td><td>no motion; still auto-dismisses after 4000ms</td></tr>
+      <tr><td>Collapse <span class="tag proposal">proposal</span></td><td>step detail, helper detail, code block (30-line threshold, D-08), older work groups</td><td>transition <code>grid-template-rows</code> 0fr ↔ 1fr, chevron rotate 90deg</td><td><code>--dur-3</code></td><td><code>--ease-out</code></td><td>1</td><td>instant toggle; chevron changes without rotation</td></tr>
+      <tr><td>Progress</td><td><code>.bar span</code>, <code>.in-meter span</code>, <code>.in-row-bar</code></td><td>transition <code>width</code></td><td><code>--dur-5</code></td><td><code>--ease-std</code></td><td>1</td><td>width jumps to value</td></tr>
+      <tr><td>Press</td><td><code>.btn-new:active</code> scale(.98), <code>.send:active</code> scale(.94)</td><td>transition <code>transform</code></td><td><code>--dur-1</code></td><td><code>--ease-out</code></td><td>1</td><td>no scale</td></tr>
+      <tr><td>Hover</td><td>buttons, rows, dock</td><td>transition <code>background-color, color, border-color</code></td><td><code>--dur-2</code> (dock <code>--dur-1</code>)</td><td><code>--ease-std</code></td><td>1</td><td>instant color change</td></tr>
+      <tr><td>Tooltip</td><td><code>.dock-tip</code></td><td>transition <code>opacity</code></td><td><code>--dur-1</code></td><td><code>--ease-out</code></td><td>1</td><td>instant</td></tr>
+      <tr><td>Agent dialog set</td><td><code>sway</code>, <code>shine</code>, <code>drop</code>, <code>burst</code>, strap spring</td><td>as in agent-dialog.css</td><td>6s / .9s / .9s / per-piece / .7s</td><td><code>--ease-spring</code> for drop and strap</td><td>sway infinite, rest 1</td><td>all off; badge shown at rest, no confetti</td></tr>
+    </tbody></table></div>
+    <h4>Reduced motion</h4>
+    <p>v3 turns animations and transitions off, instead of shortening them to <code>0ms</code> as the global rule in <code>tokens.css</code> does today. Infinite animations with 0ms duration stop in an arbitrary frame, which can leave <code>ag-pulse</code> at half opacity.</p>
+<pre><code>@media (prefers-reduced-motion: reduce) {
+  :root { --dur-1: 0s; --dur-2: 0s; --dur-3: 0s; --dur-4: 0s; --dur-5: 0s; }
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .pulse { box-shadow: none; }           /* solid dot, label carries meaning */
+  .spinner { border-right-color: transparent; }  /* static ring with a gap */
+  .shimmer { background: var(--surface-3); }
+}</code></pre>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>With reduced motion on, no element has a running animation (<code>document.getAnimations().length === 0</code> after load).</li>
+      <li>Every animated busy state has a visible text label that still shows with motion off.</li>
+      <li>No transition uses a literal duration in <code>styles/v2</code> except the agent-dialog decorative set.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============ 6. BREAKPOINTS ============ -->
+<h3 id="fd-bp">6. Breakpoints</h3>
+<div class="comp" id="fd-breakpoints">
+  <header><h4>Breakpoints</h4><span class="tag exists">exists</span><span class="tag proposal">proposal (≤1100, ≤400) D-NEW</span><span class="tag phase">P1</span>
+    <span class="path">styles/v2/shell.css · chat.css · session.css · agent-dialog.css · app/panels.css · app/responsive.css</span></header>
+  <div class="body">
+    <p>All queries are <code>max-width</code> (desktop-first). Rules cascade, so at ≤720 the ≤900 rules also apply. CSS custom properties can't be used in media queries, so the values are listed here and repeated as literals, with a comment naming the breakpoint (<code>/* bp-md */</code>). Width fitting beyond CSS stays in JS (<code>fitPanel</code>).</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>Name</th><th>Query</th><th>Status</th><th>What changes</th></tr></thead><tbody>
+      <tr><td><code>bp-xl</code></td><td>≤1100px</td><td><span class="tag proposal">proposal</span></td><td>With sidebar and panel both open the stage drops under about 460px. <code>fitPanel</code> closes the sidebar to make room when the panel opens. The composer bar hides chip labels and keeps icons plus tooltips.</td></tr>
+      <tr><td><code>bp-lg</code></td><td>≤900px</td><td><span class="tag exists">exists</span></td><td>Activity panel becomes a fixed overlay: <code>right/top/bottom: 10px</code>, <code>z-index: var(--z-drawer)</code>, inner <code>--shadow-lg</code>. Before first fit (<code>.shell:not(.is-ready)</code>) panels are forced to <code>width: 0; opacity: 0</code>. v3 adds a scrim; Esc and the scrim close it and focus returns to the dock button that opened it.</td></tr>
+      <tr><td><code>bp-dialog</code></td><td>≤760px</td><td><span class="tag exists">exists</span></td><td>Agent dialog goes to one column, <code>overflow: auto</code>; form padding <code>20px 16px</code>; stage on top (<code>order: -1</code>), <code>min-height: 380px</code>, border-bottom instead of border-left; strap 56px; look grid 6 → 4 columns.</td></tr>
+      <tr><td><code>bp-md</code></td><td>≤720px</td><td><span class="tag exists">exists</span></td><td>Shell padding and gap 0; stage loses radius and border. Sidebar is a fixed left drawer (<code>--z-drawer</code>, inner radius <code>0 16px 16px 0</code>, <code>--shadow-lg</code>). Activity overlay goes edge to edge at <code>min(var(--pw, 360px), 100vw)</code>. Bottom padding <code>0 16px 12px</code>. Topbar padding <code>0 8px 0 16px</code>, grid <code>auto 1fr auto</code>, <code>.crumb</code> hidden, status pill in column 1. Goal strip hides <code>.bar</code> and <code>.goal-strip-meta</code>. <code>.p-head .p-size</code> hidden. v3: one drawer at a time, composer bar collapses into one overflow button.</td></tr>
+      <tr><td><code>bp-sm+</code></td><td>≤700px</td><td><span class="tag exists">exists</span></td><td><code>.hcard-row .ag-chip</code> hidden; <code>.hcard-detail</code> padding-left 12px. Legacy: <code>.select-trigger</code> max-width 150px, <code>.transcript</code> padding 16px, <code>.error-banner</code> margin <code>8px 16px</code>. v3 folds this into ≤720 when those surfaces port (D-NEW: merge 700 into 720; default: merge).</td></tr>
+      <tr><td><code>bp-sm</code></td><td>≤640px</td><td><span class="tag exists">exists</span></td><td>Approval-mode <code>&lt;select&gt;</code> max-width 128px (190px otherwise).</td></tr>
+      <tr><td><code>bp-xs</code></td><td>≤520px</td><td><span class="tag exists">exists</span></td><td>Request approval actions stack vertically; request card head wraps.</td></tr>
+      <tr><td><code>bp-xxs</code></td><td>≤400px</td><td><span class="tag proposal">proposal</span></td><td>Gutters drop to <code>--sp-3</code>. User bubble max-width 80% → 88%. Status pill shows the dot and a short label only. Menus and popovers go full width minus 16px.</td></tr>
+      <tr><td><code>bp-short</code></td><td>max-height ≤720px</td><td><span class="tag exists">exists</span></td><td>Celebrate strap 20px, heading 26px.</td></tr>
+      <tr><td><code>touch</code></td><td>hover: none</td><td><span class="tag exists">exists</span></td><td>Row menus (<code>.convo-menu</code>, <code>.menu-edit</code>) always visible; convo time hidden when a menu exists. v3: hover-only message actions are always visible on the last turn.</td></tr>
+      <tr><td><code>motion</code></td><td>prefers-reduced-motion: reduce</td><td><span class="tag exists">exists</span></td><td>See <a href="#fd-animations">Animation inventory</a>.</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Panel widths: sidebar <code>--sidebar-w</code> open, 0 closed; activity <code>var(--pw, var(--panel-w))</code>, resizable 360 to 560. The dock (56px) has no breakpoint of its own and stays centered in <code>.bottom</code>.</li>
+      <li>The docked request card pins to <code>visualViewport.height</code>, capped at 50% with its own scroll, so it fits with the phone keyboard open.</li>
+      <li>The page must work at 360px wide with no horizontal scroll. Tables and code scroll inside their own wrapper.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>At 1100, 900, 720, 640, 520, 400 and 360px wide, no horizontal page scroll.</li>
+      <li>At ≤720 only one drawer is open at a time.</li>
+      <li>At ≤900 Esc closes the overlay panel and focus returns to its dock button.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============ 7. ICONS ============ -->
+<h3 id="fd-icon">7. Icon system</h3>
+<div class="comp" id="fd-icons">
+  <header><h4>Icon</h4><span class="tag exists">exists</span><span class="tag derive">derive (9 new)</span><span class="tag phase">P0</span>
+    <span class="path">components/v2/icon.tsx · replaces lucide-react in 11 files and 8 ad-hoc inline SVGs</span></header>
+  <div class="body">
+    <p>One <code>&lt;Icon name size stroke /&gt;</code> component renders inline SVG from a <code>PATHS</code> map. v3 adds nine icons and removes <code>lucide-react</code>, so every icon in the app shares one grid and one stroke.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv">
+      <dt>viewBox</dt><dd><code>0 0 24 24</code>, 24×24 grid, 2px live-area margin</dd>
+      <dt>Paint</dt><dd><code>fill="none"</code>, <code>stroke="currentColor"</code>, <code>stroke-linecap="round"</code>, <code>stroke-linejoin="round"</code></dd>
+      <dt>Defaults</dt><dd><code>size = 18</code>, <code>stroke = 1.75</code></dd>
+      <dt>Path rule</dt><dd>One <code>d</code> string per icon. Several shapes join as subpaths (<code>M…zM…</code>). Circles, rects and ellipses are converted to arcs, so the component renders a single <code>&lt;path&gt;</code>.</dd>
+      <dt>Common sizes</dt><dd>11 (step check, stroke 2.5), 13, 14, 15, 16 (sidebar nav), 18 (dock, default), 20 (empty-state tile). Send is <code>arrowUp</code> 17 at stroke 2.25; stop is 12 at stroke 3. These overrides exist today and stay.</dd>
+    </dl>
+    <h4>Tokens</h4>
+    <p>Color comes from the parent's <code>color</code> only. Idle icons use <code>--ink-3</code> (13px and up rule applies to icons 16px and up), active icons <code>--ink</code> or <code>--accent-fg</code>, status icons the matching <code>--*-text</code> token.</p>
+    <h4>Data</h4>
+<pre><code>type IconName =
+  | "sidebar" | "activity" | "user" | "bot" | "plus" | "search" | "home" | "folder"
+  | "book" | "gear" | "arrowUp" | "paperclip" | "globe" | "at" | "mic" | "check"
+  | "chart" | "table" | "doc" | "sun" | "moon" | "share" | "chevron" | "chevronR"
+  | "chevronL" | "upDown" | "x" | "pulse" | "expand" | "shrink" | "spark" | "stop"
+  | "target" | "plug" | "pause" | "play" | "pencil" | "lock" | "grid" | "logout"
+  // v3 additions
+  | "shield" | "shieldAlert" | "shieldCheck" | "code" | "clock"
+  | "coins" | "alert" | "retry" | "copy";
+
+interface IconProps {
+  name: IconName;      // typed union, so a typo fails the build
+  size?: number;       // default 18
+  stroke?: number;     // default 1.75
+  label?: string;      // v3: when set, role="img" + aria-label; otherwise aria-hidden
+}</code></pre>
+    <h4>Existing 40 icons</h4>
+    <p><code>sidebar activity user bot plus search home folder book gear arrowUp paperclip globe at mic check chart table doc sun moon share chevron chevronR chevronL upDown x pulse expand shrink spark stop target plug pause play pencil lock grid logout</code>. Paths as in the design spec Foundations §5.</p>
+    <h4>Nine new icons</h4>
+    <div class="specimen" aria-label="The nine new icons at 18px, stroke 1.75">
+      <div class="fd-icons">
+        <span><svg class="fd-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6z"/></svg>shield</span>
+        <span><svg class="fd-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6zM12 8v4M12 15.5h.01"/></svg>shieldAlert</span>
+        <span><svg class="fd-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6zM9 12l2 2 4-4"/></svg>shieldCheck</span>
+        <span><svg class="fd-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 7-5 5 5 5M16 7l5 5-5 5"/></svg>code</span>
+        <span><svg class="fd-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/></svg>clock</span>
+        <span><svg class="fd-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 10c3.3 0 6-1.3 6-3S12.3 4 9 4 3 5.3 3 7s2.7 3 6 3zM3 7v5c0 1.7 2.7 3 6 3s6-1.3 6-3V7M9 15v2c0 1.7 2.7 3 6 3s6-1.3 6-3v-5c0-1.7-2.7-3-6-3"/></svg>coins</span>
+        <span><svg class="fd-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 20h20zM12 10v4M12 17h.01"/></svg>alert</span>
+        <span><svg class="fd-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v4h4"/></svg>retry</span>
+        <span><svg class="fd-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 9h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2zM15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/></svg>copy</span>
+      </div>
+    </div>
+    <div class="tw"><table class="tbl"><thead><tr><th>Name</th><th>Path d</th><th>Used for</th><th>Source</th></tr></thead><tbody>
+      <tr><td><code>shield</code></td><td><code>M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6z</code></td><td>tool approval, approval mode</td><td>new path</td></tr>
+      <tr><td><code>shieldAlert</code></td><td><code>M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6zM12 8v4M12 15.5h.01</code></td><td>privacy flag, receipt finding</td><td>new path</td></tr>
+      <tr><td><code>shieldCheck</code></td><td><code>M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6zM9 12l2 2 4-4</code></td><td>approved record, privacy clear</td><td>wireframe sprite <code>i-shield</code></td></tr>
+      <tr><td><code>code</code></td><td><code>m8 7-5 5 5 5M16 7l5 5-5 5</code></td><td>code block header, raw view</td><td>new path</td></tr>
+      <tr><td><code>clock</code></td><td><code>M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2</code></td><td>request timer, timestamps, expiry</td><td>sprite <code>i-clock</code> (circle converted)</td></tr>
+      <tr><td><code>coins</code></td><td><code>M9 10c3.3 0 6-1.3 6-3S12.3 4 9 4 3 5.3 3 7s2.7 3 6 3zM3 7v5c0 1.7 2.7 3 6 3s6-1.3 6-3V7M9 15v2c0 1.7 2.7 3 6 3s6-1.3 6-3v-5c0-1.7-2.7-3-6-3</code></td><td>token budget, usage</td><td>new path (ellipse converted)</td></tr>
+      <tr><td><code>alert</code></td><td><code>M12 3 2 20h20zM12 10v4M12 17h.01</code></td><td>failure card, warnings, error banner</td><td>sprite <code>i-alert</code></td></tr>
+      <tr><td><code>retry</code></td><td><code>M4 12a8 8 0 1 0 2.3-5.7M4 4v4h4</code></td><td>Retry, regenerate, resync</td><td>sprite <code>i-retry</code></td></tr>
+      <tr><td><code>copy</code></td><td><code>M11 9h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2zM15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3</code></td><td>message action bar, code copy, error ref copy</td><td>new path (rect converted)</td></tr>
+    </tbody></table></div>
+    <h4>Lucide removal plan</h4>
+    <ol>
+      <li>Add the nine icons and the <code>IconName</code> union in one PR.</li>
+      <li>Replace lucide imports file by file, each with the surface's port PR or on its own: <code>project-sidebar</code>, <code>connected-tools</code>, <code>sheet</code>, <code>assistant-tools</code>, <code>runtime-item</code>, <code>goal-bar</code>, <code>ui/select</code>, <code>observability/receipt</code>, <code>trace-card</code>, <code>privacy-card</code>, <code>privacy-note</code>. Map each lucide glyph to the nearest <code>IconName</code>. If none fits, add a path on the same grid rather than keeping lucide.</li>
+      <li>Replace the 8 ad-hoc inline <code>&lt;svg&gt;</code> icons (for example <code>document-icon.tsx</code>) with <code>Icon</code>. Chart SVGs are not icons and stay.</li>
+      <li>When <code>grep -r "lucide-react" frontend/</code> returns nothing, remove <code>lucide-react</code> (<code>^0.468.0</code>) from <code>package.json</code> and the lockfile.</li>
+    </ol>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>Default <code>aria-hidden="true"</code>. The control that holds the icon gets the accessible name (<code>aria-label</code> on icon-only buttons).</li>
+      <li>A standalone meaningful icon (a status icon with no text next to it) passes <code>label</code>, which renders <code>role="img"</code> and <code>aria-label</code>.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li><code>lucide-react</code> is absent from <code>package.json</code> and all imports.</li>
+      <li>Every icon in the app renders at stroke 1.75 unless listed in the size overrides above.</li>
+      <li>Passing an unknown name fails type-checking.</li>
+      <li>No icon-only button lacks an accessible name (axe <code>button-name</code> rule passes).</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============ 8. CSS ARCHITECTURE ============ -->
+<h3 id="fd-arch">8. CSS architecture</h3>
+<div class="comp" id="fd-css">
+  <header><h4>Stylesheet pipeline and file layout</h4><span class="tag exists">exists</span><span class="tag proposal">proposal (new files, Tailwind) D-NEW</span><span class="tag phase">P0 to P2</span>
+    <span class="path">app/globals.css · styles/v2/*.css · retires app/shell.css, chat.css, panels.css, observability.css, responsive.css</span></header>
+  <div class="body">
+    <p><code>app/layout.tsx</code> imports only <code>app/globals.css</code>. Today it imports Tailwind, then the five legacy files, then the v2 files last so they win on shared class names, then two inline rules (<code>button { cursor: pointer }</code>, <code>::selection { background: var(--accent-soft-2) }</code>). v3 keeps the order and shrinks the legacy block one surface per PR.</p>
+    <h4>Target file layout</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>File</th><th>Owns</th><th>Status</th></tr></thead><tbody>
+      <tr><td><code>styles/v2/tokens.css</code></td><td>all tokens (this part), reduced-motion rule, <code>.tone-*</code>. No selectors except <code>:root</code>, theme blocks and tone classes.</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><code>styles/v2/base.css</code></td><td>reset, utilities (<code>.grow .strong .muted .sm .mono .eyebrow .sr-only kbd</code>), buttons, chips, status, menus, forms, keyframes, aliases</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><code>styles/v2/shell.css</code></td><td>frame, sidebar, stage, topbar, hero, search palette</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><code>styles/v2/dock.css</code></td><td>dock, popovers, user card</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><code>styles/v2/chat.css</code></td><td>messages, steps, helper card, markdown, composer, goal strip</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><code>styles/v2/session.css</code></td><td>session panel tabs, timeline, agents, plan, insights, trace card</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><code>styles/v2/agent-dialog.css</code></td><td>new agent dialog, badge, celebrate</td><td><span class="tag exists">exists</span></td></tr>
+      <tr><td><code>styles/v2/sheet.css</code></td><td>native dialog sheets, MCP settings, assistant tools, capabilities</td><td><span class="tag proposal">proposal</span></td></tr>
+      <tr><td><code>styles/v2/request.css</code></td><td>request and plan-approval cards, docked request, Needs-you tray</td><td><span class="tag proposal">proposal</span></td></tr>
+      <tr><td><code>styles/v2/content.css</code></td><td>visualizations frame, documents, code blocks, citations, runtime items</td><td><span class="tag proposal">proposal</span></td></tr>
+      <tr><td><code>styles/v2/feedback.css</code></td><td>error banner, app error card, toasts, skeleton shimmer</td><td><span class="tag proposal">proposal</span></td></tr>
+    </tbody></table></div>
+    <p>The new files are the proposal for where legacy-only surfaces land (D-NEW: v2 file split; default as listed). Each is imported in <code>globals.css</code> after <code>agent-dialog.css</code>.</p>
+    <h4>Naming rules</h4>
+    <ul>
+      <li>One short component prefix per block, matching today's v2 style: <code>.hcard-*</code>, <code>.ag-*</code>, <code>.in-*</code>, <code>.tc-*</code>, <code>.nad-*</code>, <code>.pl-*</code>. New v3 blocks pick a prefix that no legacy or v2 class uses.</li>
+      <li>States are <code>.is-*</code> (<code>.is-open</code>, <code>.is-active</code>, <code>.is-running</code>). Status variants are <code>.s-*</code> (<code>.s-running</code>, <code>.s-paused</code>, <code>.s-done</code>, <code>.s-ended</code>). Tone is <code>.tone-*</code>.</li>
+      <li>Prefer ARIA state over classes when one exists: <code>[aria-pressed]</code>, <code>[aria-expanded]</code>, <code>[aria-invalid="true"]</code>, <code>[aria-selected]</code>.</li>
+      <li>No ids in selectors, no element-only selectors outside <code>base.css</code>, no <code>!important</code> except the reduced-motion rule.</li>
+      <li>Values: tokens only. Literal hex, z-index numbers and durations are allowed only in <code>tokens.css</code> and the agent-dialog decorative set.</li>
+      <li>No new class may reuse a legacy name. The duplicated names v2 currently overrides (<code>.composer</code>, <code>.chat-messages</code>, <code>.goal-*</code>, <code>.menu</code>, <code>.menu-item</code>, <code>.menu-sep</code>, <code>.request-card</code>, <code>.request-option</code>, <code>.runtime-item</code>, <code>.budget-field</code>, <code>.sidebar</code>, <code>.sr-only</code>/<code>.visually-hidden</code>, <code>.eyebrow</code>, <code>.muted</code>, <code>.brand</code>, <code>.topbar</code>) keep their v2 rule; the legacy rule is deleted in the port PR.</li>
+    </ul>
+    <h4>Legacy retirement, one surface per PR</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Order</th><th>Surface</th><th>Legacy source</th><th>Lands in</th></tr></thead><tbody>
+      <tr><td>1</td><td>Sheets: MCP settings, assistant tools, capabilities, quick tools</td><td><code>app/panels.css</code></td><td><code>sheet.css</code></td></tr>
+      <tr><td>2</td><td>Request and plan-approval cards (base layout)</td><td><code>app/panels.css</code></td><td><code>request.css</code></td></tr>
+      <tr><td>3</td><td>Visualizations, documents, runtime items, thinking body</td><td><code>app/panels.css</code></td><td><code>content.css</code></td></tr>
+      <tr><td>4</td><td>Slash menu, Radix select, error banner, app error card, animated link, smooth caret, live duration</td><td><code>app/chat.css</code>, <code>app/shell.css</code></td><td><code>chat.css</code>, <code>base.css</code>, <code>feedback.css</code></td></tr>
+      <tr><td>5</td><td>Project sidebar sections, legacy goal bar, legacy buttons</td><td><code>app/shell.css</code></td><td><code>shell.css</code> or delete with the unmounted component</td></tr>
+      <tr><td>6</td><td>Delete <code>app/observability.css</code> (only comments and unused <code>obs-running</code>) and <code>app/responsive.css</code> (folded into ≤720)</td><td>both</td><td>none</td></tr>
+      <tr><td>7</td><td>Delete legacy alias tokens and the <code>--radius-sm/md/lg</code> aliases</td><td><code>base.css</code></td><td>none</td></tr>
+    </tbody></table></div>
+    <p>Each port PR must: move the rules and switch them to tokens; delete the moved rules from the legacy file; remove the legacy import from <code>globals.css</code> when the file is empty; include light and dark screenshots at 1280, 720 and 400px; and pass the grep checks in this part. Step 6 can land any time.</p>
+    <h4>Tailwind decision <span class="tag proposal">proposal D-NEW</span></h4>
+    <p>Tailwind v4 is loaded through <code>@tailwindcss/postcss</code> with no config, and no component uses a utility class, so it only contributes Preflight. <code>components.json</code> is a shadcn config, with only <code>ui/button.tsx</code> and <code>ui/select.tsx</code>, both mapped to legacy classes through <code>cva</code>. Default: drop Tailwind. Replace Preflight with a short reset at the top of <code>base.css</code> (<code>*{box-sizing:border-box}</code>, margin resets, <code>button{font:inherit;color:inherit}</code>, <code>img{display:block;max-width:100%}</code>), then remove <code>tailwindcss</code>, <code>@tailwindcss/postcss</code> and the PostCSS plugin. Remove <code>components.json</code>, <code>ui/button</code> and <code>ui/select</code> once their callers use v2 primitives. This is the last step of the track, after step 4.</p>
+    <h4>Spec vs CSS gaps and how v3 resolves them</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Gap</th><th>v3 resolution</th></tr></thead><tbody>
+      <tr><td>Type presets (<code>data-type</code>) not implemented</td><td>Out of v3. Editorial only.</td></tr>
+      <tr><td><code>--font-hand</code> undefined, Caveat loaded</td><td>Drop Caveat (D-NEW).</td></tr>
+      <tr><td>Agents roster pinboard absent</td><td>Out of v3 foundations. The Agents sheet in another part replaces it.</td></tr>
+      <tr><td><code>.hint { display: none }</code> at ≤900 missing</td><td>No <code>.hint</code> class exists. Nothing to add.</td></tr>
+      <tr><td>Focus radius 6px vs 8px</td><td>Keep 8px (<code>--r-xs</code>).</td></tr>
+      <tr><td>Reduced-motion extras missing in session.css</td><td>Covered by the new global rule, which disables rather than shortens.</td></tr>
+      <tr><td>Dark <code>--shadow-sm</code>, <code>--signature</code>, <code>--brand-*</code> not redefined</td><td>Redefine <code>--shadow-sm</code> (D-NEW). Brand ramp and signature stay light-only by design.</td></tr>
+      <tr><td>Surfaces with no spec values</td><td>Specified in the component parts of this document, built on these tokens.</td></tr>
+      <tr><td>Tailwind and shadcn unused</td><td>Drop (D-NEW).</td></tr>
+    </tbody></table></div>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>After step 7, <code>globals.css</code> imports only <code>styles/v2/*</code>.</li>
+      <li>Every legacy class listed in schema §8.11 is either moved or deleted with its component.</li>
+      <li>Each port PR shows no visual change beyond the listed snaps.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============ 9. A11Y + CONTRAST ============ -->
+<h3 id="fd-a11y">9. Focus, accessibility styles and contrast</h3>
+<div class="comp" id="fd-focus">
+  <header><h4>Focus and accessibility styles</h4><span class="tag exists">exists</span><span class="tag derive">derive (fixes)</span><span class="tag phase">P0</span>
+    <span class="path">styles/v2/tokens.css · base.css · chat.css</span></header>
+  <div class="body">
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Element</th><th>Today</th><th>v3</th></tr></thead><tbody>
+      <tr><td>Global <code>:focus-visible</code></td><td>2px solid <code>--accent-fg</code>, offset 2px, radius 8px</td><td>unchanged</td></tr>
+      <tr><td><code>.tab</code>, <code>.ag-seg-tab</code></td><td><code>--accent-2</code>, offset -2px / 1px</td><td>unchanged</td></tr>
+      <tr><td><code>.ag-row</code>, <code>.in-stack</code>, <code>.hcard-row</code></td><td>tone <code>--t</code>; <code>--ink</code>; offset -2px</td><td>unchanged</td></tr>
+      <tr><td>Inputs</td><td>border <code>--accent-2</code>, halo <code>0 0 0 3px var(--accent-soft)</code></td><td>unchanged</td></tr>
+      <tr><td>Composer</td><td>ring only while the textarea is focused (<code>.composer.is-focus</code>, JS)</td><td>unchanged; buttons inside keep their own ring</td></tr>
+      <tr><td><code>.msg.agent:focus</code></td><td><code>outline: none</code> with no replacement</td><td>remove the rule; use the global ring on <code>:focus-visible</code></td></tr>
+      <tr><td>Touch</td><td><code>hover: none</code> reveals row menus</td><td>unchanged, extended to message actions</td></tr>
+      <tr><td>SR utilities</td><td><code>.sr-only</code> (v2 and legacy) and <code>.visually-hidden</code> (legacy)</td><td>keep only v2 <code>.sr-only</code>; delete <code>.visually-hidden</code> in step 5</td></tr>
+      <tr><td>Muted text</td><td><code>--ink-3</code> on 11 to 12px text</td><td><code>--ink-2</code> under 13px; <code>--ink-3</code> #67757C at 13px and up</td></tr>
+      <tr><td>Solid buttons</td><td>white on <code>--accent</code></td><td><code>--on-accent</code> on <code>--accent-fg</code></td></tr>
+      <tr><td><code>.btn-ghost</code></td><td><code>--ink-3</code></td><td><code>--ink-2</code></td></tr>
+    </tbody></table></div>
+    <p>Existing ARIA hooks stay: <code>.chip</code> and <code>.goal-chip</code> use <code>aria-pressed</code>; <code>.input[aria-invalid="true"]</code> gets the error border; <code>.convo-menu:has([aria-expanded="true"])</code> keeps the menu visible while open.</p>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Tabbing to an agent message shows a visible ring.</li><li><code>.visually-hidden</code> has no remaining users.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="fd-contrast">
+  <header><h4>Contrast table</h4><span class="tag derive">derive</span><span class="tag phase">P0</span>
+    <span class="path">calculated with the WCAG 2.x relative-luminance formula</span></header>
+  <div class="body">
+    <div class="note warn">Calculated, not measured. Ratios come from the token hex values with the WCAG formula. They do not account for anti-aliasing, opacity, blur or color-mix surfaces. Full validation needs manual testing with assistive technologies and an expert accessibility review.</div>
+    <div class="tw"><table class="tbl"><thead><tr><th>Pair (text on background)</th><th>Theme</th><th>Ratio</th><th>Target</th><th>Result</th></tr></thead><tbody>
+      <tr><td><code>--ink</code> #1F2A30 on <code>--bg</code> #FFFFFF</td><td>light</td><td>14.66:1</td><td>4.5</td><td>pass</td></tr>
+      <tr><td><code>--ink-2</code> #5F6D73 on #FFFFFF</td><td>light</td><td>5.35:1</td><td>4.5</td><td>pass</td></tr>
+      <tr><td><code>--ink-2</code> on <code>--surface-3</code> #F6F9FA</td><td>light</td><td>5.06:1</td><td>4.5</td><td>pass</td></tr>
+      <tr><td><code>--ink-2</code> on <code>--accent-soft</code> #EAF5F8</td><td>light</td><td>4.82:1</td><td>4.5</td><td>pass</td></tr>
+      <tr><td>before: <code>--ink-3</code> #849198 on #FFFFFF</td><td>light</td><td>3.24:1</td><td>4.5</td><td>fail</td></tr>
+      <tr><td>before: <code>--ink-3</code> #849198 on #F6F9FA</td><td>light</td><td>3.06:1</td><td>4.5</td><td>fail</td></tr>
+      <tr><td>after: <code>--ink-3</code> #67757C on #FFFFFF</td><td>light</td><td>4.76:1</td><td>4.5</td><td>pass</td></tr>
+      <tr><td>after: <code>--ink-3</code> #67757C on #F6F9FA</td><td>light</td><td>4.50:1</td><td>4.5</td><td>pass (at the limit)</td></tr>
+      <tr><td>after: <code>--ink-3</code> #67757C on #EAF5F8</td><td>light</td><td>4.29:1</td><td>4.5</td><td>fail: use <code>--ink-2</code> on ice</td></tr>
+      <tr><td>after: <code>--ink-3</code> #67757C on <code>--success-bg</code> #E7F4ED</td><td>light</td><td>4.21:1</td><td>4.5</td><td>fail: use the status text token</td></tr>
+      <tr><td><code>--accent-fg</code> #2A72A3 on #FFFFFF</td><td>light</td><td>5.21:1</td><td>4.5</td><td>pass</td></tr>
+      <tr><td><code>--accent-fg</code> on #EAF5F8</td><td>light</td><td>4.69:1</td><td>4.5</td><td>pass</td></tr>
+      <tr><td>before: #FFFFFF on <code>--accent</code> #3691CD (13px/500 button)</td><td>light</td><td>3.45:1</td><td>4.5</td><td>fail</td></tr>
+      <tr><td>after: <code>--on-accent</code> #FFFFFF on <code>--accent-fg</code> #2A72A3</td><td>light</td><td>5.21:1</td><td>4.5</td><td>pass</td></tr>
+      <tr><td>#FFFFFF on <code>--accent-fg-hover</code> #226A9B</td><td>light</td><td>5.83:1</td><td>4.5</td><td>pass</td></tr>
+      <tr><td>#FFFFFF on <code>--accent-fg-pressed</code> #1E5F8C</td><td>light</td><td>6.84:1</td><td>4.5</td><td>pass</td></tr>
+      <tr><td><code>--success-text</code> on <code>--success-bg</code></td><td>light</td><td>6.17:1</td><td>4.5</td><td>pass</td></tr>
+      <tr><td><code>--warning-text</code> on <code>--warning-bg</code></td><td>light</td><td>5.52:1</td><td>4.5</td><td>pass</td></tr>
+      <tr><td><code>--error-text</code> on <code>--error-bg</code></td><td>light</td><td>5.76:1</td><td>4.5</td><td>pass</td></tr>
+      <tr><td><code>--tone-0/1/2/main</code> on #FFFFFF</td><td>light</td><td>5.01 / 5.34 / 5.21 / 5.33</td><td>4.5</td><td>pass</td></tr>
+      <tr><td><code>--tone-0/1/2/main</code> on their <code>-soft</code></td><td>light</td><td>4.56 / 4.74 / 4.53 / 4.68</td><td>4.5</td><td>pass</td></tr>
+      <tr><td><code>--accent-ink</code> #1F2A30 on each tint dot</td><td>both</td><td>ice 4.25, mint 9.04, butter 9.39, peach 8.45, lilac 8.19</td><td>4.5</td><td>ice dot fails for text: caption on ice uses the bg #EAF5F8 (13.21)</td></tr>
+      <tr><td><code>--ink</code> #EEF4F6 on #171717</td><td>dark</td><td>16.14:1</td><td>4.5</td><td>pass</td></tr>
+      <tr><td><code>--ink-2</code> #B7C3C8 on #171717</td><td>dark</td><td>9.95:1</td><td>4.5</td><td>pass</td></tr>
+      <tr><td>before: <code>--ink-3</code> #8B999F on #171717 / #242424</td><td>dark</td><td>6.11 / 5.29</td><td>4.5</td><td>pass</td></tr>
+      <tr><td>after: <code>--ink-3</code> #98A6AC on #171717 / #242424 / #14283A</td><td>dark</td><td>7.16 / 6.20 / 6.01</td><td>4.5</td><td>pass</td></tr>
+      <tr><td><code>--accent-fg</code> #BCDEE8 on #171717</td><td>dark</td><td>12.59:1</td><td>4.5</td><td>pass</td></tr>
+      <tr><td>before: #FFFFFF on #3691CD (dark button)</td><td>dark</td><td>3.45:1</td><td>4.5</td><td>fail</td></tr>
+      <tr><td>after: <code>--on-accent</code> #111213 on <code>--accent-fg</code> #BCDEE8</td><td>dark</td><td>13.17:1</td><td>4.5</td><td>pass</td></tr>
+      <tr><td>#111213 on hover #D8EBF0 / pressed #A6D0DE</td><td>dark</td><td>15.24 / 11.34</td><td>4.5</td><td>pass</td></tr>
+      <tr><td>Status text on status bg (success / warning / error / info)</td><td>dark</td><td>9.65 / 8.90 / 8.91 / 10.58</td><td>4.5</td><td>pass</td></tr>
+      <tr><td><code>--tone-0/1/2/main</code> on #171717</td><td>dark</td><td>5.20 / 5.26 / 4.62 / 5.54</td><td>4.5</td><td>pass</td></tr>
+      <tr><td><code>--tone-0/1/2/main</code> on their <code>-soft</code></td><td>dark</td><td>4.86 / 4.93 / 4.64 / 4.68</td><td>4.5</td><td>pass</td></tr>
+      <tr><td><code>--border-control</code> on <code>--bg</code> (input border, non-text)</td><td>light / dark</td><td>1.34 / 1.73</td><td>3.0 (1.4.11)</td><td>fail: see D-NEW input border</td></tr>
+      <tr><td><code>--ink-disabled</code> on <code>--bg</code></td><td>light / dark</td><td>1.89 / 2.59</td><td>exempt</td><td>disabled controls</td></tr>
+    </tbody></table></div>
+  </div>
+</div>
+
+<!-- ============ 10. COPY-PASTE ============ -->
+<h3 id="fd-source">10. Copy-paste token source</h3>
+<p>The full v3 <code>styles/v2/tokens.css</code> token blocks. The two dark blocks are identical. Values marked proposal in this part are included with their default, and a comment names the decision.</p>
+<pre><code>/* styles/v2/tokens.css (v3). Single source of truth. No literal values in components. */
+:root {
+  /* brand ramp (light only) */
+  --brand-50: #F8FCFD; --brand-100: #F4FAFC; --brand-200: #EAF5F8; --brand-300: #D8EBF0;
+  --brand-400: #BCDEE8; --brand-500: #3691CD; --brand-600: #2A7DB4; --brand-700: #226A9B;
+
+  /* surfaces and lines */
+  --bg: #FFFFFF; --surface: #FFFFFF; --surface-2: #FFFFFF; --surface-3: #F6F9FA;
+  --line: #E3ECEF; --line-strong: #D8E0E4; --border-control: #D8E0E4;
+
+  /* ink */
+  --ink: #1F2A30; --ink-2: #5F6D73;
+  --ink-3: #67757C;              /* v3 AA fix, was #849198 */
+  --ink-disabled: #B4BEC3;
+
+  /* accent */
+  --accent: #3691CD; --accent-2: #2A7DB4; --accent-hover: #2A7DB4; --accent-pressed: #226A9B;
+  --accent-soft: #EAF5F8; --accent-soft-2: #BCDEE8; --signature: #BCDEE8;
+  --accent-fg: #2A72A3;          /* blue text, focus ring, AND text-button fill (v3) */
+  --accent-text: #2A72A3;
+  --accent-fg-hover: #226A9B;    /* proposal D-NEW */
+  --accent-fg-pressed: #1E5F8C;  /* proposal D-NEW */
+  --accent-ink: #1F2A30; --on-accent: #FFFFFF;
+  --warn: #7D5D1D;
+
+  /* status */
+  --success-bg: #E7F4ED; --success-text: #35624E;
+  --warning-bg: #FFF3D9; --warning-text: #7D5D1D;
+  --error-bg: #FBE7E7;   --error-text: #8D4545;
+  --info-bg: #EAF5F8;    --info-text: #2A72A3;
+  --neutral-bg: #F6F9FA; --neutral-text: #5F6D73;
+  --glow-1: rgb(188 222 232 / 60%); --glow-2: rgb(234 245 248 / 90%);
+  --scrim: color-mix(in srgb, var(--ink) 18%, transparent);
+
+  /* helper tones */
+  --tone-0: #2872b8; --tone-0-soft: #eef5fc; --tone-1: #0f7a55; --tone-1-soft: #e6f5ee;
+  --tone-2: #b84a1b; --tone-2-soft: #fcece4; --tone-main: #6b6b6b; --tone-main-soft: #f0f0f0;
+
+  /* chart series (proposal D-NEW) */
+  --series-1: var(--tone-0); --series-2: var(--tone-1); --series-3: var(--tone-2);
+  --series-other: var(--tone-main); --chart-grid: var(--line); --chart-axis: var(--ink-2);
+
+  /* agent tints and fixed colors (never redefined in dark) */
+  --tint-ice-bg: #EAF5F8;    --tint-ice-dot: #3691CD;
+  --tint-mint-bg: #E7F4ED;   --tint-mint-dot: #A9D5BE;
+  --tint-butter-bg: #FFF3D9; --tint-butter-dot: #EBCB8B;
+  --tint-peach-bg: #FBE9DD;  --tint-peach-dot: #F0B999;
+  --tint-lilac-bg: #EFEDF8;  --tint-lilac-dot: #C4BDE3;
+  --badge-bg: #FFFFFF; --badge-ink: #1F2A30; --badge-ink-empty: #A3AFB5;
+  --badge-foot-bg: #E3ECEF; --badge-foot-ink: #5F6D73;
+  --celebrate-scrim: rgb(12 15 17 / 78%); --celebrate-ink: #F4F7F8;
+
+  /* shadow and blur */
+  --shadow-sm: 0 1px 2px rgb(31 42 48 / 5%);
+  --shadow-md: 0 1px 2px rgb(31 42 48 / 4%), 0 8px 24px -8px rgb(31 42 48 / 10%);
+  --shadow-lg: 0 2px 4px rgb(31 42 48 / 4%), 0 10px 35px rgb(31 42 48 / 8%);
+  --blur-glass: blur(14px) saturate(1.4); --blur-scrim: blur(2px); --blur-celebrate: blur(6px);
+
+  /* radii (names proposal D-NEW) */
+  --radius: 16px;
+  --r-xs: 8px; --r-btn: 9px; --r-ctl: 10px; --r-card: 12px; --r-pop: 14px;
+  --r-panel: 16px; --r-composer: 18px; --r-dock: 20px; --r-pill: 999px;
+
+  /* spacing */
+  --sp-0_5: 2px; --sp-1: 4px; --sp-1_5: 6px; --sp-2: 8px; --sp-3: 12px;
+  --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-7: 28px; --sp-10: 40px;
+
+  /* layout */
+  --thread-max: 740px; --hero-max: 760px; --topbar-h: 56px; --dock-h: 56px;
+  --panel-w: 360px; --panel-w-min: 360px; --panel-w-max: 560px; --sidebar-w: 268px;
+  --shell-gap: 10px; --msg-gap: 22px;
+
+  /* z-index */
+  --z-base: 1; --z-sticky: 2; --z-composer: 3; --z-menu: 5;
+  --z-popover: 20; --z-drawer: 30; --z-scrim: 50; --z-menu-fixed: 60;
+
+  /* motion */
+  --dur-1: 120ms; --dur-2: 160ms; --dur-3: 200ms; --dur-4: 320ms; --dur-5: 400ms;
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
+  --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+  --ease-std: ease;
+
+  /* type */
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-accent: "Newsreader", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --display-weight: 600; --display-track: -.035em;
+  --accent-style: italic; --accent-weight: 400; --accent-scale: 1.04;
+  /* type shorthands (proposal D-NEW); tracking and transform stay in the rule */
+  --type-body: 400 14px/1.5 var(--font-sans);
+  --type-answer: 400 14px/1.65 var(--font-sans);
+  --type-title: 600 14px/1.5 var(--font-sans);
+  --type-input: 400 15px/1.5 var(--font-sans);
+  --type-panel: 400 13.5px/1.5 var(--font-sans);
+  --type-ui: 500 13px var(--font-sans);
+  --type-label: 500 12.5px/1.45 var(--font-sans);
+  --type-code: 400 12.5px/1.6 var(--font-mono);
+  --type-sm: 400 12px var(--font-sans);
+  --type-chip-sm: 500 11.5px var(--font-sans);
+  --type-eyebrow: 500 11px var(--font-mono);
+  --type-count: 600 10.5px var(--font-mono);
+  --type-mark: 700 10px/1 var(--font-sans);
+  --type-kpi: 600 20px/1.25 var(--font-sans);
+  --type-dialog-title: var(--display-weight) 20px/1.2 var(--font-display);
+  --type-hero: var(--display-weight) clamp(28px, 4vw, 44px)/1.08 var(--font-display);
+
+  color-scheme: light;
+}
+
+/* Dark: not in the brand system; derived from graphite with #3691CD / #BCDEE8 accents. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #171717; --surface: #171717; --surface-2: #171717; --surface-3: #242424;
+    --line: #2A2A2A; --line-strong: #363636; --border-control: #404040;
+    --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #98A6AC; --ink-disabled: #4E5C62;
+    --accent: #3691CD; --accent-2: #5AA8DC; --accent-hover: #2A7DB4; --accent-pressed: #226A9B;
+    --accent-soft: #14283A; --accent-soft-2: #1F4461;
+    --accent-fg: #BCDEE8; --accent-text: #BCDEE8;
+    --accent-fg-hover: #D8EBF0; --accent-fg-pressed: #A6D0DE;
+    --accent-ink: #1F2A30; --on-accent: #111213;
+    --warn: #E6C27A;
+    --success-bg: #16291F; --success-text: #A8D8BE; --warning-bg: #2E2512; --warning-text: #E6C27A;
+    --error-bg: #2F1A1A; --error-text: #EDB0B0; --info-bg: #14283A; --info-text: #BCDEE8;
+    --neutral-bg: #242424; --neutral-text: #8B999F;
+    --glow-1: rgb(54 145 205 / 16%); --glow-2: rgb(188 222 232 / 6%);
+    --tone-0: #3691cd; --tone-0-soft: #0f1f2c; --tone-1: #199e70; --tone-1-soft: #0e211a;
+    --tone-2: #d95926; --tone-2-soft: #24120a; --tone-main: #8f8f8f; --tone-main-soft: #262626;
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
+    --shadow-md: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -8px rgb(0 0 0 / 50%);
+    --shadow-lg: 0 2px 4px rgb(0 0 0 / 30%), 0 24px 48px -16px rgb(0 0 0 / 70%);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #171717; --surface: #171717; --surface-2: #171717; --surface-3: #242424;
+  --line: #2A2A2A; --line-strong: #363636; --border-control: #404040;
+  --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #98A6AC; --ink-disabled: #4E5C62;
+  --accent: #3691CD; --accent-2: #5AA8DC; --accent-hover: #2A7DB4; --accent-pressed: #226A9B;
+  --accent-soft: #14283A; --accent-soft-2: #1F4461;
+  --accent-fg: #BCDEE8; --accent-text: #BCDEE8;
+  --accent-fg-hover: #D8EBF0; --accent-fg-pressed: #A6D0DE;
+  --accent-ink: #1F2A30; --on-accent: #111213;
+  --warn: #E6C27A;
+  --success-bg: #16291F; --success-text: #A8D8BE; --warning-bg: #2E2512; --warning-text: #E6C27A;
+  --error-bg: #2F1A1A; --error-text: #EDB0B0; --info-bg: #14283A; --info-text: #BCDEE8;
+  --neutral-bg: #242424; --neutral-text: #8B999F;
+  --glow-1: rgb(54 145 205 / 16%); --glow-2: rgb(188 222 232 / 6%);
+  --tone-0: #3691cd; --tone-0-soft: #0f1f2c; --tone-1: #199e70; --tone-1-soft: #0e211a;
+  --tone-2: #d95926; --tone-2-soft: #24120a; --tone-main: #8f8f8f; --tone-main-soft: #262626;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
+  --shadow-md: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -8px rgb(0 0 0 / 50%);
+  --shadow-lg: 0 2px 4px rgb(0 0 0 / 30%), 0 24px 48px -16px rgb(0 0 0 / 70%);
+  color-scheme: dark;
+}
+
+.tone-0 { --t: var(--tone-0); --ts: var(--tone-0-soft); }
+.tone-1 { --t: var(--tone-1); --ts: var(--tone-1-soft); }
+.tone-2 { --t: var(--tone-2); --ts: var(--tone-2-soft); }
+.tone-main { --t: var(--tone-main); --ts: var(--tone-main-soft); }
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-1: 0s; --dur-2: 0s; --dur-3: 0s; --dur-4: 0s; --dur-5: 0s; }
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+/* base.css: r2 aliases (delete with the legacy aliases) */
+:root {
+  --ok: var(--success-text); --ok-bg: var(--success-bg);
+  --bad: var(--error-text);  --bad-bg: var(--error-bg);
+  --warn-bg: var(--warning-bg);
+}</code></pre>
+
+<h3 id="fd-coverage">Coverage</h3>
+<div class="tw"><table class="tbl cov"><thead><tr><th>Schema heading</th><th>Covered in</th></tr></thead><tbody>
+<tr><td data-schema="8.1 Stylesheet pipeline">8.1 Stylesheet pipeline</td><td><a href="#fd-css">Stylesheet pipeline and file layout</a></td></tr>
+<tr><td data-schema="8.2 Theming mechanism">8.2 Theming mechanism</td><td><a href="#fd-theme">Theme mechanism</a></td></tr>
+<tr><td data-schema="8.3 Color tokens (styles/v2/tokens.css)">8.3 Color tokens (styles/v2/tokens.css)</td><td><a href="#fd-semantic">Semantic color tokens</a>, <a href="#fd-tones">Helper tone tokens</a>, <a href="#fd-tints">Agent tints and fixed colors</a>, <a href="#fd-series">Chart series tokens</a></td></tr>
+<tr><td data-schema="8.4 Typography">8.4 Typography</td><td><a href="#fd-type-presets">Type presets</a></td></tr>
+<tr><td data-schema="8.5 Spacing">8.5 Spacing</td><td><a href="#fd-spacing">Spacing scale</a>, <a href="#fd-layout">Layout constants</a></td></tr>
+<tr><td data-schema="8.6 Radii">8.6 Radii</td><td><a href="#fd-radii">Radii</a></td></tr>
+<tr><td data-schema="8.7 Shadows / elevation">8.7 Shadows / elevation</td><td><a href="#fd-shadows">Shadows and blur</a></td></tr>
+<tr><td data-schema="8.8 Z-index layers">8.8 Z-index layers</td><td><a href="#fd-zindex">Z-index tokens</a></td></tr>
+<tr><td data-schema="8.9 Motion">8.9 Motion</td><td><a href="#fd-motion-tokens">Duration and easing tokens</a>, <a href="#fd-animations">Animation inventory</a></td></tr>
+<tr><td data-schema="8.10 Breakpoints">8.10 Breakpoints</td><td><a href="#fd-breakpoints">Breakpoints</a></td></tr>
+<tr><td data-schema="8.11 Class inventory by file">8.11 Class inventory by file</td><td><a href="#fd-css">Stylesheet pipeline and file layout</a> (target file ownership and retirement order). Per-class specs live in each component part.</td></tr>
+<tr><td data-schema="8.12 Legacy (app/*.css) vs v2 (styles/v2)">8.12 Legacy (app/*.css) vs v2 (styles/v2)</td><td><a href="#fd-css">Stylesheet pipeline and file layout</a> (legacy retirement, one surface per PR)</td></tr>
+<tr><td data-schema="8.13 Icon system">8.13 Icon system</td><td><a href="#fd-icons">Icon</a></td></tr>
+<tr><td data-schema="8.14 Accessibility-relevant styles">8.14 Accessibility-relevant styles</td><td><a href="#fd-focus">Focus and accessibility styles</a>, <a href="#fd-contrast">Contrast table</a></td></tr>
+<tr><td data-schema="8.15 Spec vs CSS gaps">8.15 Spec vs CSS gaps</td><td><a href="#fd-css">Stylesheet pipeline and file layout</a> (gap resolution table)</td></tr>
+</tbody></table></div>
+
+<h3 id="fd-decisions">New decisions</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Id</th><th>Question</th><th>Default chosen</th></tr></thead><tbody>
+<tr><td>D-NEW: dark on-accent</td><td>What text color goes on the dark <code>--accent-fg</code> (#BCDEE8) button fill?</td><td><code>--on-accent: #111213</code> in dark (13.17:1 calculated). White on #3691CD is 3.45:1.</td></tr>
+<tr><td>D-NEW: primary hover and pressed</td><td>Button hover and pressed fills now that the base fill is <code>--accent-fg</code>?</td><td>Light #226A9B / #1E5F8C, dark #D8EBF0 / #A6D0DE.</td></tr>
+<tr><td>D-NEW: dark block parity check</td><td>How do we keep the two dark blocks identical?</td><td>A unit test that parses <code>tokens.css</code> and diffs them.</td></tr>
+<tr><td>D-NEW: chart series tokens</td><td>Add <code>--series-1..3</code>, <code>--series-other</code>, <code>--chart-grid</code>, <code>--chart-axis</code>?</td><td>Yes, aliased to helper tones, <code>--line</code> and <code>--ink-2</code>.</td></tr>
+<tr><td>D-NEW: pass tokens into visualization frame</td><td>Do sandboxed model visualizations get theme tokens?</td><td>Inject resolved values into <code>srcdoc</code>; re-render on theme change.</td></tr>
+<tr><td>D-NEW: drop Caveat</td><td>Keep loading Caveat with no <code>--font-hand</code>?</td><td>Drop it from the font link.</td></tr>
+<tr><td>D-NEW: shorthand type tokens</td><td>Add <code>--type-*</code> font shorthands?</td><td>Yes, as listed in the preset table.</td></tr>
+<tr><td>D-NEW: snap rule</td><td>How do off-scale spacing values (10, 14, 18, 22) map?</td><td>Round up to the next step, except <code>--shell-gap</code> 10 and <code>--msg-gap</code> 22.</td></tr>
+<tr><td>D-NEW: radius names</td><td>Name the radius literals?</td><td><code>--r-xs</code> to <code>--r-pill</code>; 11px snaps to 10px.</td></tr>
+<tr><td>D-NEW: focus radius</td><td>Focus ring radius 6px (spec page) or 8px (app)?</td><td>8px.</td></tr>
+<tr><td>D-NEW: dark shadow-sm</td><td>Redefine <code>--shadow-sm</code> in dark?</td><td>Yes, <code>0 1px 2px rgb(0 0 0 / 40%)</code>.</td></tr>
+<tr><td>D-NEW: toast layer</td><td>Which layer do toasts use?</td><td><code>--z-scrim</code>, after the scrim in DOM order.</td></tr>
+<tr><td>D-NEW: duration snap</td><td>Snap .14s, .15s, .18s, .22s, .3s, .35s to tokens?</td><td>Yes, during each surface's port.</td></tr>
+<tr><td>D-NEW: shimmer, toast and collapse motion</td><td>Values for the three new animations?</td><td>Shimmer 1.4s linear; toast in 160ms, out 120ms, 4000ms dwell; collapse 200ms <code>--ease-out</code>.</td></tr>
+<tr><td>D-NEW: ≤1100 and ≤400 breakpoints</td><td>Add these two breakpoints?</td><td>Yes, with the changes listed in the breakpoint table.</td></tr>
+<tr><td>D-NEW: merge 700 into 720</td><td>Keep the separate ≤700 queries?</td><td>Merge into ≤720 as those surfaces port.</td></tr>
+<tr><td>D-NEW: v2 file split</td><td>Where do legacy-only surfaces land?</td><td>New <code>sheet.css</code>, <code>request.css</code>, <code>content.css</code>, <code>feedback.css</code>.</td></tr>
+<tr><td>D-NEW: Tailwind</td><td>Adopt or drop Tailwind and shadcn?</td><td>Drop, after replacing Preflight with a short reset in <code>base.css</code>.</td></tr>
+<tr><td>D-NEW: input border contrast</td><td><code>--border-control</code> is 1.34:1 (light) and 1.73:1 (dark) against the page, below 3:1 for non-text UI. Darken it?</td><td>No value change in v3. Inputs keep a visible label and the focus halo. Revisit in the high-fidelity pass (D-01).</td></tr>
+</tbody></table></div>
+</section>

@@ -1,0 +1,396 @@
+<section class="sec" id="requests">
+<style>
+/* requests: docked PendingRequest cards and the composer */
+.rq-top{display:flex;align-items:center;gap:10px;height:50px;padding:0 12px 0 14px;border-bottom:1px solid var(--line);min-width:0;flex-wrap:wrap}
+.rq-top .crumb{flex:1}
+.rq-wait{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 6px 0 11px;border-radius:999px;background:var(--warn-bg);color:var(--warn-text);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);font-size:13px;font-weight:600;white-space:nowrap}
+.rq-wait em{font:700 11px/18px var(--font-mono);font-style:normal;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--warn);color:var(--bg);text-align:center}
+.rq-stream{padding:18px 16px 8px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.rq-audit{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--ink-3)}
+.rq-audit .ic{color:var(--ok)}
+.rq-audit b{color:var(--ink-2);font-weight:600}
+.rq-hold{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 10px;border:1px dashed color-mix(in srgb,var(--warn) 55%,transparent);border-radius:10px;background:color-mix(in srgb,var(--warn-bg) 55%,transparent);font-size:12.5px;color:var(--warn-text)}
+.rq-hold .rq-jump{margin-left:auto;display:inline-flex;align-items:center;gap:4px;font-weight:600}
+.rq-dockzone{padding:6px 14px 14px;display:flex;flex-direction:column;gap:10px;min-width:0;background:linear-gradient(transparent,color-mix(in srgb,var(--surface-2) 70%,transparent) 30%)}
+.rq-stackbar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-3);padding:0 4px;flex-wrap:wrap}
+.rq-stackbar b{color:var(--ink);font-weight:600}
+.rq-pager{margin-left:auto;display:inline-flex;gap:2px}
+.rq-pager span{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;border:1px solid var(--line);background:var(--surface);color:var(--ink-2)}
+.rq-pager span:first-child .ic{transform:scaleX(-1)}
+.rq-stack{position:relative;padding-top:10px}
+.rq-stack::before,.rq-stack::after{content:"";position:absolute;left:14px;right:14px;top:0;height:20px;border-radius:14px 14px 0 0;border:1px solid var(--line);border-bottom:0;background:var(--surface-2)}
+.rq-stack::after{left:7px;right:7px;top:5px;background:var(--surface)}
+.rq-req{position:relative;z-index:1;display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:16px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-card);min-width:0;animation:rq-rise .5s cubic-bezier(.2,.9,.3,1.15) both}
+.rq-req.is-tool{border-color:color-mix(in srgb,var(--warn) 45%,var(--line));box-shadow:var(--shadow-card),0 0 0 4px color-mix(in srgb,var(--warn-bg) 70%,transparent)}
+@keyframes rq-rise{from{opacity:0;transform:translateY(10px)}}
+.rq-head{display:flex;align-items:flex-start;gap:12px;min-width:0}
+.rq-tile{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex:none;background:var(--accent-soft);color:var(--accent-fg)}
+.rq-tile.warn{background:var(--warn-bg);color:var(--warn-text)}
+.rq-tile.ok{background:var(--ok-bg);color:var(--ok)}
+.rq-tile.ink{background:var(--ink);color:var(--bg)}
+.rq-ttl{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.rq-kind{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.rq-kind.warn{color:var(--warn-text)} .rq-kind.acc{color:var(--accent-fg)}
+.rq-ttl strong{font-size:15.5px;font-weight:700;line-height:1.3;color:var(--ink);letter-spacing:-.01em}
+.rq-ttl small{font-size:12.5px;color:var(--ink-2)}
+.rq-clock{display:flex;flex-direction:column;align-items:center;gap:2px;flex:none}
+.rq-clock small{font-size:10px;color:var(--ink-3);white-space:nowrap}
+.rq-ring{background:conic-gradient(var(--warn) calc(var(--p)*1%),var(--surface-3) 0)}
+.rq-ring.acc{background:conic-gradient(var(--accent) calc(var(--p)*1%),var(--surface-3) 0)}
+.rq-always{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:999px;background:var(--surface-3);color:var(--ink-2);font-size:11.5px;font-weight:600;white-space:nowrap;flex:none}
+.rq-cmd{border-radius:11px;background:var(--surface-3);border:1px solid var(--line);font:12.5px/1.6 var(--font-mono);overflow-x:auto;min-width:0}
+.rq-cmd .cwd{display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--line);color:var(--ink-3);font-size:11.5px;white-space:nowrap}
+.rq-cmd .line{padding:8px 10px;color:var(--ink);white-space:pre}
+.rq-cmd .line i{font-style:normal;color:var(--accent-fg)}
+.rq-risks{display:flex;flex-wrap:wrap;gap:6px}
+.rq-risk{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:500;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);white-space:nowrap}
+.rq-risk.ok{background:var(--ok-bg);border-color:transparent;color:var(--ok)}
+.rq-acts{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-top:2px}
+.rq-acts .btn{height:32px}
+.rq-acts .btn.primary{box-shadow:0 1px 0 color-mix(in srgb,var(--bg) 20%,transparent) inset,var(--shadow-sm)}
+.rq-kbd{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border-radius:5px;font:600 10px/1 var(--font-mono);color:var(--ink-3);background:var(--surface-2);border:1px solid var(--line-strong);border-bottom-width:2px}
+.btn.primary .rq-kbd{background:color-mix(in srgb,var(--bg) 16%,transparent);border-color:color-mix(in srgb,var(--bg) 30%,transparent);color:var(--bg)}
+.rq-hint{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-3)}
+.rq-composer{border:1px solid var(--line);border-radius:18px;background:var(--surface);box-shadow:var(--shadow-md);padding:10px 10px 8px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.rq-composer.is-held{background:var(--surface-2);box-shadow:none}
+.rq-ph{min-height:36px;padding-top:2px;color:var(--ink-3);display:flex;align-items:flex-start;gap:8px}
+.rq-ph.typed{color:var(--ink);font-size:15px}
+.rq-cbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.rq-chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);font-size:13px;font-weight:500;color:var(--ink-2);white-space:nowrap}
+.rq-chip.on{background:var(--accent-soft);color:var(--accent-fg);border-color:color-mix(in srgb,var(--accent) 35%,transparent)}
+.rq-chip .ic.sm{opacity:.8}
+.rq-round{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--ink);color:var(--bg)}
+.rq-round.off{background:var(--surface-3);color:var(--ink-3)}
+.rq-round.stop{background:var(--surface);color:var(--bad);border:1.5px solid color-mix(in srgb,var(--bad) 45%,transparent)}
+.rq-steer{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px 0 12px;border-radius:999px;background:var(--ink);color:var(--bg);font-size:13px;font-weight:600;white-space:nowrap}
+.rq-steer.off{background:var(--surface-3);color:var(--ink-3)}
+.rq-stopping{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink-3);font-size:13px;font-weight:600;white-space:nowrap}
+.rq-foot{display:flex;justify-content:center;padding:4px 0 12px}
+.rq-foot .dock{margin:0;align-items:center}
+.rq-dockpill{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px 0 6px;border-radius:10px;background:var(--surface-3);font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap}
+.rq-dockpill .av{width:22px;height:22px;border-radius:7px;font-size:10px}
+/* cards grid for board 2 */
+.rq-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px;padding:16px;min-width:0}
+.rq-cards > .rq-req:first-child{grid-column:1/-1}
+.rq-opts{display:flex;flex-direction:column;gap:6px}
+.rq-opt{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:10px;align-items:start;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.rq-opt .radio{margin-top:3px}
+.rq-opt.is-rec{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
+.rq-opt.is-rec .radio{border:4.5px solid var(--accent);background:var(--surface)}
+.rq-opt b{font-weight:600;color:var(--ink);font-size:13.5px}
+.rq-opt small{display:block;font-size:12px;color:var(--ink-3);margin-top:1px}
+.rq-rec{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:10.5px;font-weight:700;letter-spacing:.02em;vertical-align:1px;margin-left:4px}
+.rq-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.rq-field{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:600;color:var(--ink-2);min-width:0}
+.rq-field > span{display:flex;align-items:center;gap:6px}
+.rq-field > span i{font:500 10.5px var(--font-mono);font-style:normal;color:var(--ink-3);margin-left:auto}
+.rq-field .req{color:var(--bad)}
+.rq-in{height:36px;display:flex;align-items:center;gap:8px;padding:0 10px;border-radius:10px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);font-size:13px;font-weight:400;min-width:0}
+.rq-in.muted{color:var(--ink-3)}
+.rq-in.focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+.rq-in .spacer{flex:1}
+.rq-mask{font:15px/1 var(--font-mono);letter-spacing:.12em;color:var(--ink);overflow:hidden;white-space:nowrap}
+.rq-note{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:10px;background:var(--surface-2);font-size:12px;color:var(--ink-2)}
+.rq-note .ic{color:var(--ok);margin-top:1px}
+.rq-plan{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.rq-plan li{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 12px;border-top:1px solid var(--line);font-size:13px;color:var(--ink)}
+.rq-plan li:first-child{border-top:0}
+.rq-plan li > i{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;background:var(--surface-3);font:600 11px var(--font-mono);font-style:normal;color:var(--ink-2)}
+.rq-plan li.is-new{background:color-mix(in srgb,var(--accent-soft) 60%,transparent)}
+.rq-plan li.is-new > i{background:var(--accent);color:var(--on-accent)}
+.rq-plan small{font-size:11px;color:var(--accent-fg);font-weight:600;white-space:nowrap}
+/* board 3 */
+.rq-slash{border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:var(--shadow-card);padding:6px;display:flex;flex-direction:column;gap:1px;min-width:0;max-width:440px;animation:rq-rise .35s ease-out both}
+.rq-slash-h{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);padding:6px 8px 4px}
+.rq-cmdrow{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 8px;border-radius:9px;font-size:13px;color:var(--ink-2)}
+.rq-cmdrow > span:first-child{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:var(--surface-3);color:var(--ink-2)}
+.rq-cmdrow b{font:600 13px var(--font-mono);color:var(--ink)}
+.rq-cmdrow small{display:block;font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rq-cmdrow.is-active{background:var(--accent-soft)}
+.rq-cmdrow.is-active > span:first-child{background:var(--accent);color:var(--on-accent)}
+.rq-cmdrow.is-active b{color:var(--accent-fg)}
+.rq-slash-f{display:flex;gap:12px;flex-wrap:wrap;padding:8px 8px 4px;margin-top:4px;border-top:1px solid var(--line);font-size:11px;color:var(--ink-3)}
+.rq-slash-f span{display:inline-flex;gap:5px;align-items:center}
+.rq-specs{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px 18px;margin-top:22px;min-width:0}
+.rq-spec{display:flex;flex-direction:column;gap:8px;min-width:0}
+.rq-spec-l{font:700 19px/1 var(--font-hand);color:var(--ink-3);display:flex;align-items:center;gap:8px}
+.rq-menu{border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:var(--shadow-card);padding:6px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.rq-menu-h{display:flex;align-items:center;gap:8px;padding:6px 8px 6px;font-size:12.5px;font-weight:700;color:var(--ink)}
+.rq-menu-h code{margin-left:auto;font-size:10px}
+.rq-mi{display:grid;grid-template-columns:30px minmax(0,1fr) 16px;gap:10px;align-items:start;padding:8px;border-radius:10px;font-size:13px}
+.rq-mi > span:first-child{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--surface-3);color:var(--ink-2)}
+.rq-mi b{font-weight:600;color:var(--ink)}
+.rq-mi small{display:block;font-size:12px;color:var(--ink-3);line-height:1.4}
+.rq-mi.on{background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line)}
+.rq-mi.on > span:first-child{background:var(--accent-soft);color:var(--accent-fg)}
+.rq-mi .ic.chk{color:var(--accent);margin-top:6px}
+.rq-mi.warn > span:first-child{background:var(--warn-bg);color:var(--warn-text)}
+.rq-menu-f{display:flex;gap:6px;align-items:flex-start;padding:8px 8px 4px;border-top:1px solid var(--line);margin-top:2px;font-size:11.5px;color:var(--ink-3)}
+.rq-set{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 8px;border-radius:9px;font-size:13px;color:var(--ink)}
+.rq-set > span:first-child{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:var(--surface-3);color:var(--ink-2)}
+.rq-set em{font-style:normal;color:var(--ink-3);display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.rq-set .seg span{height:22px;padding:0 8px;font-size:11.5px}
+.rq-agent-h{display:flex;align-items:center;gap:10px;padding:8px 8px 10px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.rq-agent-h b{display:block;font-size:13.5px;color:var(--ink)}
+.rq-agent-h small{font-size:11.5px;color:var(--ink-3)}
+.rq-spin{width:12px;height:12px;border-radius:50%;border:1.75px solid var(--line-strong);border-top-color:var(--ink-2);animation:spin .8s linear infinite;flex:none}
+@media (max-width:520px){.rq-stream,.rq-cards{padding:14px 12px}.rq-dockzone{padding:6px 10px 12px}.rq-top{height:auto;padding:8px 12px}}
+</style>
+
+<div class="sec-head"><span class="eyebrow">2 · Content, blocking</span><h2>Live requests and the composer</h2><p>A pending request stops the turn until someone answers, so it can't live in the scroll where it's easy to miss. It docks above the composer, the stream keeps a quiet placeholder that later becomes the audit row, and the topbar and dock both say the turn is waiting on you. The composer gains slash commands, an approval mode and Steer. Model settings move to the agent popover.</p></div>
+
+<!-- Board 1: tool approval docked -->
+<div class="board">
+<div>
+<div class="app">
+  <div class="app-chrome"><i></i><i></i><i></i><span>truex · Qlik Analyst</span></div>
+  <div class="app-body" style="grid-template-columns:minmax(0,1fr)">
+    <div class="app-stage">
+      <div class="rq-top">
+        <div class="crumb"><span class="av">QA</span><span class="t">Onboarding plan for new analysts</span></div>
+        <span class="rq-wait"><span class="pulse warn"></span>Waiting on you<em>4</em></span><span class="pin">1</span>
+      </div>
+      <div class="rq-stream">
+        <div class="msg user"><div class="bubble-wrap"><div class="bubble">Turn it into a checklist file</div><span class="muted sm">T4 · 10:24</span></div></div>
+        <div class="msg"><span class="av">QA</span><div class="grow" style="gap:10px">
+          <ul class="log">
+            <li><span class="node k-file"><svg class="ic sm"><use href="#i-file"/></svg></span><span class="what"><b>Read package.json</b><span>~/true-ui</span></span><span class="t">10:24</span></li>
+            <li><span class="node k-live"><svg class="ic sm"><use href="#i-term"/></svg></span><span class="what"><span class="rq-hold"><svg class="ic sm"><use href="#i-clock"/></svg>Waiting for approval to run <code>npm test</code><span class="rq-jump">Answer below<svg class="ic sm"><use href="#i-chevd"/></svg></span></span></span><span class="t"><span class="pin">3</span></span></li>
+          </ul>
+          <div class="rq-audit"><svg class="ic sm"><use href="#i-check"/></svg><b>Allowed for this chat</b> read files in ~/true-ui · by you · 10:23</div>
+        </div></div>
+      </div>
+      <div class="rq-dockzone">
+        <div class="rq-stackbar"><svg class="ic sm"><use href="#i-layers"/></svg><b>1 of 4 open</b> oldest first <span class="pin">4</span><span class="rq-pager"><span><svg class="ic sm"><use href="#i-chev"/></svg></span><span><svg class="ic sm"><use href="#i-chev"/></svg></span></span></div>
+        <div class="rq-stack">
+          <div class="rq-req is-tool">
+            <div class="rq-head">
+              <span class="rq-tile warn"><svg class="ic lg"><use href="#i-term"/></svg></span>
+              <div class="rq-ttl">
+                <span class="rq-kind warn">Tool approval <span class="pin">5</span></span>
+                <strong>Run the test suite in true-ui</strong>
+                <small>Qlik Analyst wants to check the onboarding scripts before writing the file.</small>
+              </div>
+              <div class="rq-clock"><span class="ring rq-ring" style="--p:70"><span>0:42</span></span><small>then declines</small></div>
+              <span class="pin">6</span>
+            </div>
+            <div class="rq-cmd">
+              <div class="cwd"><svg class="ic sm"><use href="#i-file"/></svg>~/true-ui · shell</div>
+              <div class="line"><i>$</i> npm test</div>
+            </div>
+            <div class="rq-risks">
+              <span class="rq-risk"><svg class="ic sm"><use href="#i-file"/></svg>Reads project files</span>
+              <span class="rq-risk"><svg class="ic sm"><use href="#i-activity"/></svg>Runs tests</span>
+              <span class="rq-risk ok"><svg class="ic sm"><use href="#i-globe"/></svg>No network</span>
+              <span class="rq-risk ok"><svg class="ic sm"><use href="#i-shield"/></svg>No writes</span>
+            </div>
+            <div class="rq-acts">
+              <span class="btn primary"><svg class="ic sm"><use href="#i-check"/></svg>Allow once <span class="rq-kbd">1</span></span>
+              <span class="btn">Allow for this chat <span class="rq-kbd">2</span></span>
+              <span class="btn">Always allow <span class="rq-kbd">3</span></span>
+              <span class="spacer"></span>
+              <span class="btn ghost"><svg class="ic sm"><use href="#i-x"/></svg>Decline <span class="rq-kbd">Esc</span></span>
+              <span class="pin">7</span>
+            </div>
+          </div>
+        </div>
+        <div class="rq-composer is-held">
+          <div class="rq-ph"><svg class="ic"><use href="#i-lock"/></svg>Answer the request above to keep going</div>
+          <div class="rq-cbar"><span class="rq-chip"><svg class="ic sm"><use href="#i-target"/></svg>Goal</span><span class="rq-chip"><svg class="ic sm"><use href="#i-shield"/></svg>Ask</span><span class="spacer"></span><span class="rq-round off"><svg class="ic"><use href="#i-send"/></svg></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="rq-foot">
+    <div class="dock">
+      <span class="rq-dockpill"><span class="av">QA</span>Qlik Analyst</span>
+      <hr>
+      <b><svg class="ic"><use href="#i-history"/></svg></b>
+      <b class="on"><svg class="ic"><use href="#i-activity"/></svg><span class="badge">4</span></b>
+      <b><svg class="ic"><use href="#i-layers"/></svg></b>
+      <b><svg class="ic"><use href="#i-sidebar"/></svg></b>
+    </div>
+    <span class="pin" style="align-self:center;margin-left:6px">2</span>
+  </div>
+</div>
+<p class="board-cap">Tool approval docked between the stream and the composer. It can't scroll away, and four open requests stack behind it.</p>
+</div>
+<ol class="notes">
+  <li><span class="pin">1</span><div><b>Status pill: Waiting on you</b> <span class="tag changed">Changed</span><span>While any request is open the pill turns warn, pulses and shows the open count. It goes back to Working the moment the last one is answered.</span><span class="src">Data: <code>pendingRequests.length</code></span></div></li>
+  <li><span class="pin">2</span><div><b>Dock Activity badge</b> <span class="tag new">New</span><span>Same count on the floating dock's Activity button, so a request stays visible when the chat is scrolled or the panel is closed. Clicking it jumps to the docked card.</span><span class="src">Data: <code>pendingRequests.length</code></span></div></li>
+  <li><span class="pin">3</span><div><b>Stream placeholder, then audit row</b> <span class="tag new">New</span><span>A dashed row marks where the request was raised, with a link down to the card. Once answered it collapses into a one-line audit row with a check, like the 10:23 row above.</span><span class="src">Data: <code>request.id</code>, <code>request.resolution</code>, <code>resolvedBy</code>, <code>resolvedAt</code></span></div></li>
+  <li><span class="pin">4</span><div><b>Stacked requests</b> <span class="tag new">New</span><span>Several open requests stack oldest first, with the next two showing as card edges behind. The pager steps through them. Answering one brings the next forward.</span><span class="src">Data: <code>pendingRequests[]</code> sorted by <code>createdAt</code></span></div></li>
+  <li><span class="pin">5</span><div><b>Request card</b> <span class="tag new">New</span><span>An icon tile and label name the method: Tool approval, Question or Plan approval. Tool approvals show the exact command and working directory in a mono block, plus risk chips so the risk reads at a glance.</span><span class="src">Data: <code>PendingRequest.method</code>, <code>detail</code>, <code>tool.command</code>, <code>tool.cwd</code>, <code>tool.effects[]</code></span></div></li>
+  <li><span class="pin">6</span><div><b>Countdown ring</b> <span class="tag new">New</span><span>Drains from <code>expiresAt</code>. At zero the request auto-declines and the audit row says "Expired, declined". No ring when there's no expiry.</span><span class="src">Data: <code>expiresAt</code>, <code>createdAt</code></span></div></li>
+  <li><span class="pin">7</span><div><b>Decisions with shortcuts</b> <span class="tag new">New</span><span>Allow once is primary and also takes Enter. Allow for this chat and Always allow widen the grant. Decline (Esc) sends a refusal and the turn carries on. Buttons come from the schema, not hard-coded.</span><span class="src">Data: <code>responseSchema</code>, <code>decisions[]</code></span></div></li>
+</ol>
+</div>
+
+<!-- Board 2: question, secret, plan approval -->
+<div class="board">
+<div>
+<div class="app">
+  <div class="app-chrome"><i></i><i></i><i></i><span>Docked card · other methods</span></div>
+  <div class="rq-cards">
+    <div class="rq-req">
+      <div class="rq-head">
+        <span class="rq-tile"><svg class="ic lg"><use href="#i-users"/></svg></span>
+        <div class="rq-ttl">
+          <span class="rq-kind acc">Question <span class="pin">1</span></span>
+          <strong>Which analysts should the plan cover first?</strong>
+          <small>Picks who the checklist is written for.</small>
+        </div>
+        <div class="rq-clock"><span class="ring rq-ring acc" style="--p:83"><span>4:10</span></span><small>then skips</small></div>
+      </div>
+      <div class="rq-opts">
+        <div class="rq-opt is-rec"><span class="radio"></span><div><b>New hires starting in October</b><span class="rq-rec"><svg class="ic sm"><use href="#i-spark"/></svg>Recommended</span> <span class="pin">2</span><small>Six people, all on the Sales app.</small></div><span class="rq-kbd">1</span></div>
+        <div class="rq-opt"><span class="radio"></span><div><b>Everyone without a Qlik licence</b><small>Larger group, mixed apps.</small></div><span class="rq-kbd">2</span></div>
+        <div class="rq-opt"><span class="radio"></span><div><b>Team leads only</b><small>Pilot the plan before a wider rollout.</small></div><span class="rq-kbd">3</span></div>
+      </div>
+      <div class="rq-fields">
+        <label class="rq-field"><span>Start date <b class="req">*</b><i>date</i></span><span class="rq-in">6 Oct 2026<span class="spacer"></span><svg class="ic sm"><use href="#i-clock"/></svg></span></label>
+        <label class="rq-field"><span>Anything else <i>text, optional</i><span class="pin">3</span></span><span class="rq-in muted focus">Add a note for the agent</span></label>
+      </div>
+      <div class="rq-acts"><span class="btn primary"><svg class="ic sm"><use href="#i-send"/></svg>Send answer <span class="rq-kbd">Enter</span></span><span class="btn ghost">Skip <span class="rq-kbd">Esc</span></span></div>
+    </div>
+
+    <div class="rq-req">
+      <div class="rq-head">
+        <span class="rq-tile ink"><svg class="ic lg"><use href="#i-key"/></svg></span>
+        <div class="rq-ttl">
+          <span class="rq-kind">Question · Secret <span class="pin">4</span></span>
+          <strong>Paste the Qlik API key</strong>
+        </div>
+        <span class="rq-always"><svg class="ic sm"><use href="#i-lock"/></svg>Always asks</span>
+      </div>
+      <label class="rq-field"><span>API key <b class="req">*</b></span><span class="rq-in focus"><span class="rq-mask">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</span><span class="spacer"></span><svg class="ic sm muted"><use href="#i-eye"/></svg></span></label>
+      <div class="rq-note"><svg class="ic sm"><use href="#i-shield"/></svg><span>Goes to the tool only. The stream just says <b>Key provided</b>.</span></div>
+      <div class="rq-acts"><span class="btn primary"><svg class="ic sm"><use href="#i-lock"/></svg>Submit key</span><span class="btn ghost">Decline</span></div>
+    </div>
+
+    <div class="rq-req">
+      <div class="rq-head">
+        <span class="rq-tile ok"><svg class="ic lg"><use href="#i-list"/></svg></span>
+        <div class="rq-ttl">
+          <span class="rq-kind">Plan approval <span class="pin">5</span></span>
+          <strong>Plan v2 · 4 steps</strong>
+        </div>
+        <span class="rq-always"><svg class="ic sm"><use href="#i-lock"/></svg>Always asks</span>
+      </div>
+      <ol class="rq-plan">
+        <li><i>1</i><span>Map week one access and tools</span><span></span></li>
+        <li class="is-new"><i>2</i><span>Add Qlik certification checkpoint in week two</span><small>New in v2</small></li>
+        <li class="is-new"><i>3</i><span>Build the day-by-day checklist</span><small>New in v2</small></li>
+        <li class="is-new"><i>4</i><span>Check it fits one page</span><small>New in v2</small></li>
+      </ol>
+      <div class="rq-acts"><span class="btn primary"><svg class="ic sm"><use href="#i-check"/></svg>Approve plan</span><span class="btn">Request changes</span><span class="btn ghost">Reject</span></div>
+    </div>
+  </div>
+</div>
+<p class="board-cap">Same card, other methods. Each body renders from the request's schema, and two of them ignore the approval mode.</p>
+</div>
+<ol class="notes">
+  <li><span class="pin">1</span><div><b>Clarifying question</b> <span class="tag new">New</span><span>Same docked card with a Question label and an accent tile. Options are radio rows you can pick with 1 2 3. The agent waits until someone answers, skips or it expires.</span><span class="src">Data: <code>method: "question"</code>, <code>options[]</code>, <code>expiresAt</code></span></div></li>
+  <li><span class="pin">2</span><div><b>Recommended option</b> <span class="tag new">New</span><span>The agent's pick is preselected, ringed in accent and badged Recommended, so Enter accepts it. Only one option can carry the badge.</span><span class="src">Data: <code>options[].recommended</code></span></div></li>
+  <li><span class="pin">3</span><div><b>Schema fields</b> <span class="tag new">New</span><span>Extra inputs come from the response schema: text, number, date, select, boolean. The type shows faintly on the right. Required fields get an asterisk and hold Send until filled.</span><span class="src">Data: <code>responseSchema.properties</code>, <code>required[]</code></span></div></li>
+  <li><span class="pin">4</span><div><b>Secret question</b> <span class="tag new">New</span><span>Masked input with a reveal toggle. The value never reaches the stream or the transcript; the audit row only says "Key provided". Always asks, even on Auto.</span><span class="src">Data: <code>method: "question"</code>, <code>field.secret: true</code></span></div></li>
+  <li><span class="pin">5</span><div><b>Plan approval</b> <span class="tag new">New</span><span>Numbered steps with what changed since the last version highlighted. Approve, Request changes (opens the composer with the plan quoted) or Reject. Always asks, whatever the approval mode.</span><span class="src">Data: <code>method: "plan_approval"</code>, <code>plan.version</code>, <code>plan.steps[]</code></span></div></li>
+</ol>
+</div>
+
+<!-- Board 3: composer while running -->
+<div class="board">
+<div>
+<div class="app">
+  <div class="app-chrome"><i></i><i></i><i></i><span>truex · Qlik Analyst</span></div>
+  <div class="app-body" style="grid-template-columns:minmax(0,1fr)">
+    <div class="app-stage">
+      <div class="rq-stream">
+        <div class="msg"><span class="av">QA</span><div class="grow">
+          <div class="answer">Working on step 3 of Plan v2, building the day-by-day checklist<span class="caret"></span></div>
+        </div></div>
+      </div>
+      <div class="rq-dockzone">
+        <div class="row" style="align-items:flex-start;gap:6px">
+          <div class="rq-slash" role="listbox" aria-label="Slash commands" style="flex:1">
+            <div class="rq-slash-h">Commands</div>
+            <div class="rq-cmdrow is-active"><span><svg class="ic sm"><use href="#i-target"/></svg></span><div><b>/goal</b><small>Set a goal with a time or token budget</small></div><span class="rq-kbd">Enter</span></div>
+            <div class="rq-cmdrow"><span><svg class="ic sm"><use href="#i-list"/></svg></span><div><b>/plan</b><small>Ask for a plan before acting</small></div><span class="rq-kbd">P</span></div>
+            <div class="rq-cmdrow"><span><svg class="ic sm"><use href="#i-shield"/></svg></span><div><b>/mode</b><small>Change the approval mode</small></div><span class="rq-kbd">M</span></div>
+            <div class="rq-cmdrow"><span><svg class="ic sm"><use href="#i-plus"/></svg></span><div><b>/new</b><small>Start a new conversation</small></div><span class="rq-kbd">N</span></div>
+            <div class="rq-cmdrow"><span><svg class="ic sm"><use href="#i-slash"/></svg></span><div><b>/help</b><small>Commands and shortcuts</small></div><span class="rq-kbd">?</span></div>
+            <div class="rq-slash-f"><span><span class="rq-kbd">&uarr;</span><span class="rq-kbd">&darr;</span>move</span><span><span class="rq-kbd">Enter</span>pick</span><span><span class="rq-kbd">Esc</span>close</span></div>
+          </div>
+          <span class="pin">1</span>
+        </div>
+        <div class="rq-composer">
+          <div class="rq-ph typed">/<span class="caret"></span></div>
+          <div class="rq-cbar">
+            <span class="rq-chip on"><svg class="ic sm"><use href="#i-target"/></svg>Goal</span>
+            <span class="rq-chip"><svg class="ic sm"><use href="#i-clock"/></svg>20 min<svg class="ic sm"><use href="#i-chevd"/></svg></span>
+            <span class="pin">2</span>
+            <span class="rq-chip"><svg class="ic sm"><use href="#i-shield"/></svg>Ask<svg class="ic sm"><use href="#i-chevd"/></svg></span>
+            <span class="pin">3</span>
+            <span class="spacer"></span>
+            <span class="pin">4</span>
+            <span class="rq-steer"><svg class="ic sm"><use href="#i-steer"/></svg>Steer</span>
+            <span class="rq-round stop" aria-label="Stop"><svg class="ic sm"><use href="#i-stop"/></svg></span>
+            <span class="pin">5</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="rq-foot">
+    <div class="dock">
+      <span class="rq-dockpill"><span class="av">QA</span><span class="pulse"></span>Working<svg class="ic sm"><use href="#i-chevd"/></svg></span>
+      <hr>
+      <b><svg class="ic"><use href="#i-history"/></svg></b>
+      <b><svg class="ic"><use href="#i-activity"/></svg></b>
+      <b><svg class="ic"><use href="#i-layers"/></svg></b>
+      <b><svg class="ic"><use href="#i-sidebar"/></svg></b>
+    </div>
+  </div>
+</div>
+
+<div class="rq-specs">
+  <div class="rq-spec">
+    <span class="rq-spec-l">Approval mode menu <span class="pin">3</span></span>
+    <div class="rq-menu" role="menu" aria-label="Approval mode">
+      <div class="rq-menu-h"><svg class="ic sm"><use href="#i-shield"/></svg>Approval mode<code>flag</code></div>
+      <div class="rq-mi on"><span><svg class="ic sm"><use href="#i-shield"/></svg></span><div><b>Ask</b><small>Asks before running tools or changing files.</small></div><svg class="ic sm chk"><use href="#i-check"/></svg></div>
+      <div class="rq-mi"><span><svg class="ic sm"><use href="#i-eye"/></svg></span><div><b>Read-only</b><small>Reads and searches. Never writes or runs commands.</small></div><span></span></div>
+      <div class="rq-mi warn"><span><svg class="ic sm"><use href="#i-spark"/></svg></span><div><b>Auto</b><small>Runs tools without asking.</small></div><span></span></div>
+      <div class="rq-menu-f"><svg class="ic sm"><use href="#i-lock"/></svg>Secrets and plan approvals always ask.</div>
+    </div>
+  </div>
+  <div class="rq-spec">
+    <span class="rq-spec-l">After Stop <span class="pin">6</span></span>
+    <div class="rq-composer">
+      <div class="rq-ph">Steer is paused while the turn stops</div>
+      <div class="rq-cbar"><span class="rq-chip"><svg class="ic sm"><use href="#i-target"/></svg>Goal</span><span class="spacer"></span><span class="rq-steer off"><svg class="ic sm"><use href="#i-steer"/></svg>Steer</span><span class="rq-stopping" aria-disabled="true"><span class="rq-spin"></span>Stopping&hellip;</span></div>
+    </div>
+    <span class="rq-spec-l" style="margin-top:14px">Agent popover, from the dock pill <span class="pin">7</span></span>
+    <div class="rq-menu" aria-label="Qlik Analyst settings">
+      <div class="rq-agent-h"><span class="av">QA</span><div><b>Qlik Analyst</b><small>Settings for this conversation</small></div></div>
+      <div class="rq-set"><span><svg class="ic sm"><use href="#i-bot"/></svg></span>Model<em>Sonnet 5.5<svg class="ic sm"><use href="#i-chev"/></svg></em></div>
+      <div class="rq-set"><span><svg class="ic sm"><use href="#i-sigma"/></svg></span>Effort<span class="seg"><span>Low</span><span class="on">Medium</span><span>High</span></span></div>
+      <div class="rq-set"><span><svg class="ic sm"><use href="#i-brain"/></svg></span>Reasoning summary<em>Auto<svg class="ic sm"><use href="#i-chev"/></svg></em></div>
+      <div class="rq-set"><span><svg class="ic sm"><use href="#i-layers"/></svg></span>Service tier<em>Default<svg class="ic sm"><use href="#i-chev"/></svg></em></div>
+      <div class="rq-set"><span><svg class="ic sm"><use href="#i-user"/></svg></span>Personality<em>Friendly<svg class="ic sm"><use href="#i-chev"/></svg></em></div>
+    </div>
+  </div>
+</div>
+<p class="board-cap">Composer mid-turn with the slash menu open. Mode, stop and settings states sit below.</p>
+</div>
+<ol class="notes">
+  <li><span class="pin">1</span><div><b>Slash commands</b> <span class="tag new">New</span><span>Typing / at the start opens a popover above the composer. Each command has an icon, a one-line description and a shortcut. The list filters as you type; arrows move, Enter picks, Esc closes.</span><span class="src">Data: <code>commands[]</code> (name, description, icon, shortcut)</span></div></li>
+  <li><span class="pin">2</span><div><b>Goal chip and budget</b> <span class="tag exists">Exists</span><span>Unchanged from the spec, now with icons. The budget chip only shows in goal mode and opens its own small select.</span><span class="src">Data: <code>goal</code>, <code>goal.budget</code></span></div></li>
+  <li><span class="pin">3</span><div><b>Approval mode</b> <span class="tag new">New</span><span>Ask, Read-only or Auto per conversation, picked from a menu where each mode says what it allows. Auto gets a warn tile. Hidden entirely when the flag is off.</span><span class="src">Data: <code>approvalMode</code>, flag <code>composer.approvalMode</code></span></div></li>
+  <li><span class="pin">4</span><div><b>Steer while running</b> <span class="tag changed">Changed</span><span>While a turn runs, send becomes Steer and stays enabled. The text joins the current turn instead of queueing a new one. Today busy swaps send for stop.</span><span class="src">Data: <code>turn.state === "running"</code></span></div></li>
+  <li><span class="pin">5</span><div><b>Separate Stop</b> <span class="tag changed">Changed</span><span>Its own round button with a red outline, so it's never mistaken for Steer. Also on Esc when the composer is empty.</span><span class="src">Data: <code>turn.state</code></span></div></li>
+  <li><span class="pin">6</span><div><b>Stopping</b> <span class="tag changed">Changed</span><span>After Stop the button shows a spinner and Stopping&hellip;, disabled until the turn settles. Steer greys out too, so nothing lands in a turn that's ending.</span><span class="src">Data: <code>turn.state === "interrupting"</code></span></div></li>
+  <li><span class="pin">7</span><div><b>Agent settings popover</b> <span class="tag changed">Changed</span><span>Model, effort, reasoning summary, service tier and personality open from the status pill in the topbar or dock. The composer stays about the message.</span><span class="src">Data: <code>model</code>, <code>effort</code>, <code>reasoningSummary</code>, <code>serviceTier</code>, <code>personality</code></span></div></li>
+</ol>
+</div>
+</section>

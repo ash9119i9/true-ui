@@ -1,0 +1,330 @@
+<section class="sec" id="requests">
+<style>
+/* requests: docked PendingRequest cards, audit rows, the Needs-you tray and batch review */
+.rq-top{display:flex;align-items:center;gap:10px;min-height:50px;padding:8px 12px 8px 14px;border-bottom:1px solid var(--line);min-width:0;flex-wrap:wrap}
+.rq-top .crumb{flex:1}
+.rq-wait{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 6px 0 11px;border-radius:999px;background:var(--warn-bg);color:var(--warn-text);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);font-size:13px;font-weight:600;white-space:nowrap}
+.rq-wait.is-open{box-shadow:0 0 0 3px color-mix(in srgb,var(--warn) 22%,transparent)}
+.rq-wait em{font:700 11px/18px var(--font-mono);font-style:normal;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--warn-text);color:var(--bg);text-align:center}
+.rq-stream{padding:16px 16px 8px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.rq-hold{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 10px;border:1px dashed color-mix(in srgb,var(--warn) 55%,transparent);border-radius:10px;background:color-mix(in srgb,var(--warn-bg) 55%,transparent);font-size:12.5px;color:var(--warn-text);min-width:0}
+.rq-hold .rq-jump{margin-left:auto;display:inline-flex;align-items:center;gap:4px;font-weight:600}
+.rq-audit{display:flex;flex-direction:column;gap:4px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);font-size:12.5px;color:var(--ink-2);min-width:0}
+.rq-arow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.rq-arow > span{min-width:0}
+.rq-dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--ok)}
+.rq-dot.muted{background:var(--ink-3)} .rq-dot.bad{background:var(--bad)}
+.rq-badge{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:600;background:var(--ok-bg);color:var(--ok);white-space:nowrap}
+.rq-badge.muted{background:var(--surface-3);color:var(--ink-2)}
+.rq-hidden{display:inline-flex;align-items:center;gap:5px;color:var(--ink-2);font-style:italic}
+.rq-atime{font:11px var(--font-mono);color:var(--ink-2)}
+.rq-dockzone{padding:6px 14px 14px;display:flex;flex-direction:column;gap:10px;min-width:0;background:linear-gradient(transparent,color-mix(in srgb,var(--surface-2) 70%,transparent) 30%)}
+.rq-req{position:relative;display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:16px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-card);min-width:0}
+.rq-req.is-tool{border-color:color-mix(in srgb,var(--warn) 45%,var(--line));box-shadow:var(--shadow-card),0 0 0 4px color-mix(in srgb,var(--warn-bg) 70%,transparent)}
+.rq-head{display:flex;align-items:flex-start;gap:12px;min-width:0}
+.rq-tile{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:none;background:var(--accent-soft);color:var(--accent-fg)}
+.rq-tile.warn{background:var(--warn-bg);color:var(--warn-text)} .rq-tile.ok{background:var(--ok-bg);color:var(--ok)}
+.rq-ttl{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.rq-kind{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.rq-ttl strong{font-size:15px;font-weight:700;line-height:1.3;color:var(--ink)}
+.rq-ttl small{font-size:12.5px;color:var(--ink-2)}
+.rq-clock{display:flex;flex-direction:column;align-items:center;gap:2px;flex:none}
+.rq-clock small{font-size:10.5px;color:var(--ink-2);white-space:nowrap}
+.rq-ring{background:conic-gradient(var(--warn) calc(var(--p)*1%),var(--surface-3) 0)}
+.rq-ring.acc{background:conic-gradient(var(--accent) calc(var(--p)*1%),var(--surface-3) 0)}
+.rq-cmd{border-radius:11px;background:var(--surface-3);border:1px solid var(--line);font:12.5px/1.6 var(--font-mono);overflow-x:auto;min-width:0}
+.rq-cmd .cwd{display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--line);color:var(--ink-2);font-size:11.5px;white-space:nowrap}
+.rq-cmd .line{padding:8px 10px;color:var(--ink);white-space:pre}
+.rq-cmd .line i{font-style:normal;color:var(--accent-fg)}
+.rq-acts{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.rq-acts .btn{height:32px}
+.rq-kbd{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border-radius:5px;font:600 10px/1 var(--font-mono);color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line-strong);border-bottom-width:2px}
+.rq-acts .btn.primary .rq-kbd,.rq-batchbar .btn.primary .rq-kbd{background:color-mix(in srgb,var(--bg) 16%,transparent);border-color:color-mix(in srgb,var(--bg) 35%,transparent);color:var(--bg)}
+.rq-hint{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-2)}
+.rq-composer{border:1px solid var(--line);border-radius:18px;background:var(--surface);box-shadow:var(--shadow-md);padding:10px 10px 8px 14px;display:flex;align-items:center;gap:8px;min-width:0;color:var(--ink-2);font-size:13.5px}
+.rq-composer > span{flex:1;min-width:0}
+.rq-after{margin-top:14px;display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:16px;border:1px dashed var(--line-strong);background:var(--surface)}
+.rq-lbl{font:700 19px/1 var(--font-hand);color:var(--accent)}
+.rq-sub{font-size:12px;color:var(--ink-2)}
+/* board 2 */
+.rq-pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;min-width:0}
+.rq-opts{display:flex;flex-direction:column;gap:6px}
+.rq-opt{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:start;padding:8px 10px;border:1px solid var(--line);border-radius:10px;font-size:13px;background:var(--surface)}
+.rq-opt b{color:var(--ink);font-weight:600} .rq-opt small{grid-column:2;color:var(--ink-2);font-size:12px}
+.rq-opt.is-first{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.rq-free{display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border:1px solid var(--line-strong);border-radius:9px;color:var(--ink-2);font-size:13px;min-width:0}
+.rq-rule{padding:8px 10px;border-radius:10px;background:var(--surface-3);font-size:12px;color:var(--ink-2);display:flex;gap:8px;align-items:flex-start}
+.rq-plan{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.rq-plan li{display:flex;gap:10px;align-items:center;padding:8px 10px;font-size:13px;border-top:1px solid var(--line);min-width:0}
+.rq-plan li:first-child{border-top:0}
+.rq-plan li > span:nth-child(2){flex:1;min-width:0}
+.rq-plan em{font:500 11px var(--font-mono);font-style:normal;color:var(--ink-2)}
+.rq-area{min-height:64px;padding:8px 10px;border:1.5px solid var(--accent);border-radius:10px;font-size:13px;color:var(--ink);background:var(--surface)}
+.rq-acts .rq-on{background:var(--accent-soft);color:var(--accent-fg);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+/* board 3: tray */
+.rq-tray{margin:10px 12px 12px auto;width:min(430px,calc(100% - 24px));border:1px solid var(--line);border-radius:16px;background:var(--surface);box-shadow:var(--shadow-lift);overflow:hidden}
+.rq-tray-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.rq-tray-head b{font-size:14px}
+.rq-item{display:grid;grid-template-columns:28px minmax(0,1fr);gap:4px 10px;padding:10px 12px;border-top:1px solid var(--line);min-width:0}
+.rq-item:first-of-type{border-top:0}
+.rq-item.is-focus{background:color-mix(in srgb,var(--accent-soft) 60%,transparent);box-shadow:inset 3px 0 0 var(--accent)}
+.rq-item .rq-tile{width:28px;height:28px;border-radius:8px}
+.rq-item .rq-tile.bad{background:var(--bad-bg);color:var(--bad)}
+.rq-item-body{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rq-item-body b{font-size:13.5px;color:var(--ink);font-weight:600}
+.rq-item-body small{font-size:12px;color:var(--ink-2)}
+.rq-item .rq-acts{grid-column:2}
+.rq-item .btn{height:28px;font-size:12.5px}
+.rq-tray-foot{display:flex;gap:10px;flex-wrap:wrap;padding:9px 12px;border-top:1px solid var(--line);background:var(--surface-2);font-size:11.5px;color:var(--ink-2)}
+.rq-dim{opacity:.45;pointer-events:none}
+/* board 4: batch */
+.rq-batchbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px 8px 12px;border-radius:12px;background:var(--warn-bg);color:var(--warn-text);font-size:13px;border:1px solid color-mix(in srgb,var(--warn) 35%,transparent)}
+.rq-batchbar b{font-weight:700}
+.rq-sheet{border:1px solid var(--line);border-radius:18px 18px 12px 12px;background:var(--surface);box-shadow:var(--shadow-lift);overflow:hidden;min-width:0}
+.rq-grab{width:36px;height:4px;border-radius:99px;background:var(--line-strong);margin:8px auto 0}
+.rq-sheet-head{display:flex;align-items:center;gap:10px;padding:8px 14px 10px;flex-wrap:wrap}
+.rq-prog{display:flex;gap:4px;flex:1;min-width:120px}
+.rq-prog i{flex:1;height:4px;border-radius:99px;background:var(--surface-3)}
+.rq-prog i.done{background:var(--ok)} .rq-prog i.cur{background:var(--accent)}
+.rq-queue{list-style:none;margin:0;padding:0 14px 12px;display:flex;flex-direction:column;gap:6px}
+.rq-queue li{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2);min-width:0;flex-wrap:wrap}
+.rq-queue li code{max-width:100%}
+.rq-sheet .rq-req{margin:0 14px 12px;box-shadow:none}
+.rq-sheet-foot{display:flex;gap:12px;flex-wrap:wrap;padding:9px 14px;border-top:1px solid var(--line);background:var(--surface-2);font-size:11.5px;color:var(--ink-2)}
+</style>
+<div class="sec-head">
+  <span class="eyebrow">Needs you</span>
+  <h2>Requests that wait on a person</h2>
+  <p>Tool approvals, questions and plan reviews dock above the composer so they never scroll away, and the stream keeps a placeholder where the turn paused. Once answered, each one folds into a quiet audit row. A topbar tray gathers everything blocking the conversation, including goal stops, missing helpers and a signed-out MCP server, with one fix per row.</p>
+</div>
+
+<div class="board">
+<div>
+<div class="app">
+  <div class="app-chrome"><i></i><i></i><i></i><span>truex · Qlik Analyst</span></div>
+  <div class="app-stage" style="margin:10px">
+    <div class="rq-top">
+      <div class="crumb"><span class="av">QA</span><span class="t">Onboarding plan for new analysts</span></div>
+      <span class="rq-wait"><span class="pulse warn"></span>Needs you<em>1</em></span>
+    </div>
+    <div class="rq-stream">
+      <div class="msg user"><div class="bubble-wrap"><div class="bubble">Check the handbook scripts still run, then draft week one</div><span class="rq-sub">T4 · 10:24</span></div></div>
+      <div class="msg"><span class="av">QA</span><div class="grow" style="gap:8px">
+        <ul class="log">
+          <li><span class="node k-tool"><svg class="ic sm"><use href="#i-plug"/></svg></span><span class="what"><b>Google Drive · list_files</b><span>Analyst Handbook / Onboarding</span></span><span class="t">10:24</span></li>
+          <li><span class="node k-live"><svg class="ic sm"><use href="#i-term"/></svg></span><span class="what"><span class="rq-hold"><svg class="ic sm"><use href="#i-clock"/></svg>Paused for your approval to run <code>npm run check:handbook</code><span class="rq-jump">Answer below<svg class="ic sm"><use href="#i-chevd"/></svg></span></span></span><span class="t"><span class="pin">1</span></span></li>
+        </ul>
+      </div></div>
+    </div>
+    <div class="rq-dockzone">
+      <div class="rq-req is-tool">
+        <div class="rq-head">
+          <span class="rq-tile warn"><svg class="ic lg"><use href="#i-term"/></svg></span>
+          <div class="rq-ttl">
+            <span class="rq-kind">Permission needed <span class="pin">2</span></span>
+            <strong>Run a shell command in ~/qlik-handbook</strong>
+            <small>Qlik Analyst wants to confirm the handbook exercises still pass.</small>
+          </div>
+          <div class="rq-clock"><span class="ring rq-ring" style="--p:70"><span>0:42</span></span><small>then declined</small></div>
+          <span class="pin">3</span>
+        </div>
+        <div class="rq-cmd">
+          <div class="cwd"><svg class="ic sm"><use href="#i-file"/></svg>~/qlik-handbook · shell <span class="pin" style="margin-left:auto">4</span></div>
+          <div class="line"><i>$</i> npm run check:handbook -- --section onboarding</div>
+        </div>
+        <div class="rq-acts">
+          <span class="btn primary"><svg class="ic sm"><use href="#i-check"/></svg>Allow once <span class="rq-kbd">1</span></span>
+          <span class="btn soft">Allow for this chat <span class="rq-kbd">2</span></span>
+          <span class="btn soft">Always allow <span class="rq-kbd">3</span></span>
+          <span class="spacer"></span>
+          <span class="btn ghost">Cancel <span class="rq-kbd">Esc</span></span>
+          <span class="pin">5</span>
+        </div>
+        <div class="rq-hint"><span class="rq-kbd">Enter</span> picks the first option <span class="rq-kbd">1</span>–<span class="rq-kbd">3</span> pick by position <span class="pin">6</span></div>
+      </div>
+      <div class="rq-composer"><svg class="ic"><use href="#i-steer"/></svg><span>Reply or steer while this waits</span><span class="send"><svg class="ic sm"><use href="#i-send"/></svg></span><span class="pin">7</span></div>
+    </div>
+  </div>
+</div>
+<div class="rq-after">
+  <span class="rq-lbl">After it's answered</span>
+  <div class="rq-audit" role="group" aria-label="Your decision">
+    <div class="rq-arow"><span class="rq-dot"></span><span>Run <code>npm run check:handbook</code></span><span class="rq-badge">Allowed once</span><span class="pin">8</span></div>
+    <div class="rq-arow"><span class="rq-dot muted"></span><span>Drive service account key</span><span class="rq-hidden"><svg class="ic sm"><use href="#i-lock"/></svg>Answer hidden</span><span class="pin">9</span></div>
+    <span class="rq-atime">You answered at 10:25</span>
+  </div>
+</div>
+<p class="board-cap">Docked above the composer, anchored to the paused step, and folded into an audit row once answered.</p>
+</div>
+<ol class="notes">
+  <li><span class="pin">1</span><div><b>Stream placeholder</b> <span class="tag backend">backend</span><span>A dashed row at the step where the turn paused, with a jump to the dock. Placing it inside the right turn needs <code>turnId</code> on <code>PendingRequest</code>. Until then it can only sit at the end of the stream.</span></div></li>
+  <li><span class="pin">2</span><div><b>Title and kind</b> <span class="tag data">data</span><span>"Permission needed" for any <code>kind:"toolApproval"</code> question. The subtitle comes from <code>header</code>.</span></div></li>
+  <li><span class="pin">3</span><div><b>Expiry ring</b> <span class="tag data">data</span><span>Counts down to <code>expiresAt</code> on the shared 1s clock. For approvals it says "then declined", because an expired approval is declined.</span></div></li>
+  <li><span class="pin">4</span><div><b>Command preview</b> <span class="tag data">data</span><span>Monospace <code>action</code>, scrolling in its own box so long commands never widen the page.</span></div></li>
+  <li><span class="pin">5</span><div><b>Option buttons</b> <span class="tag data">data</span><span>One button per <code>options[]</code> entry, in order. The first is solid, Cancel is ghost and the rest are soft. <code>description</code> goes in the tooltip. There is no recommended flag.</span></div></li>
+  <li><span class="pin">6</span><div><b>Key hints</b> <span class="tag derive">derive</span><span>Enter picks the first option. 1, 2 and 3 pick by position and Esc picks Cancel. They only fire while the card has focus, never from the composer.</span></div></li>
+  <li><span class="pin">7</span><div><b>Composer stays live</b> <span class="tag derive">derive</span><span>You can still type a reply or steer. Only the answer keys belong to the card.</span></div></li>
+  <li><span class="pin">8</span><div><b>Audit row</b> <span class="tag data">data</span><span>The <code>approval.resolved</code> event inserts an <code>ApprovalRecord</code>. The badge text comes from <code>decisionLabel</code>, with a dot tone and <code>at</code> in the footer.</span></div></li>
+  <li><span class="pin">9</span><div><b>Answer hidden</b> <span class="tag data">data</span><span>Question items with <code>secret:true</code> never render the value, even in the audit row.</span></div></li>
+</ol>
+</div>
+
+<div class="board">
+<div>
+<div class="rq-pair">
+  <div class="rq-req">
+    <div class="rq-head">
+      <span class="rq-tile"><svg class="ic lg"><use href="#i-users"/></svg></span>
+      <div class="rq-ttl"><span class="rq-kind">Question <span class="pin">1</span></span><strong>Who is the plan for?</strong><small>Atlas found two audiences in the handbook.</small></div>
+      <div class="rq-clock"><span class="ring rq-ring acc" style="--p:62"><span>3:40</span></span></div>
+    </div>
+    <div class="rq-opts" role="group"><span class="pin">2</span>
+      <div class="rq-opt is-first"><span class="rq-kbd">1</span><b>Analysts new to Qlik</b><small>Start with the data load editor and set analysis.</small></div>
+      <div class="rq-opt"><span class="rq-kbd">2</span><b>Experienced BI analysts</b><small>Skip basics and focus on house conventions.</small></div>
+      <div class="rq-opt"><span class="rq-kbd">3</span><b>Both, as two tracks</b><small>A shared week one, then split.</small></div>
+    </div>
+    <div class="rq-free"><svg class="ic sm"><use href="#i-plus"/></svg>Something else. Type your own answer<span class="pin" style="margin-left:auto">3</span></div>
+    <div class="rq-rule"><svg class="ic sm"><use href="#i-clock"/></svg><span>No reply in 3:40 and Qlik Analyst continues with "Analysts new to Qlik", the first option. Secret questions and approvals are declined instead.</span><span class="pin">4</span></div>
+  </div>
+  <div class="rq-req">
+    <div class="rq-head">
+      <span class="rq-tile ok"><svg class="ic lg"><use href="#i-list"/></svg></span>
+      <div class="rq-ttl"><span class="rq-kind">Plan <span class="pin">5</span></span><strong>Plan ready for review</strong><small>5 steps · drafted from 6 handbook docs</small></div>
+      <div class="rq-clock"><span class="ring rq-ring acc" style="--p:80"><span>4:12</span></span></div>
+    </div>
+    <ol class="rq-plan">
+      <li><span class="mark"></span><span>Summarize the handbook sections on data modeling</span><em>Pending</em></li>
+      <li><span class="mark"></span><span>Draft a week-one schedule with Juno</span><em>Pending</em></li>
+      <li><span class="mark"></span><span>Add three practice apps from the sample library</span><em>Pending</em></li>
+      <li><span class="mark"></span><span>Write a checklist file to Google Drive</span><em>Pending</em></li>
+      <li><span class="mark"></span><span>Review with the goal budget in mind</span><em>Pending</em></li>
+    </ol>
+    <div class="rq-acts"><span class="btn primary"><svg class="ic sm"><use href="#i-check"/></svg>Approve plan</span><span class="btn rq-on">Revise</span><span class="pin">6</span></div>
+    <label class="field"><span class="strong">What should change?</span>
+      <span class="rq-area">Merge steps 3 and 4 and keep the practice apps in the checklist<span class="caret"></span></span></label>
+    <div class="rq-acts"><span class="btn primary">Send feedback <span class="rq-kbd">⌘↵</span></span><span class="btn ghost">Cancel <span class="rq-kbd">Esc</span></span><span class="pin">7</span></div>
+  </div>
+</div>
+<p class="board-cap">A question with options and free text, beside a plan approval with Revise open.</p>
+</div>
+<ol class="notes">
+  <li><span class="pin">1</span><div><b>Question header</b> <span class="tag data">data</span><span><code>header</code> sets the title and <code>question</code> the prompt. Multi-question requests step through one at a time, marked "1 of 3".</span></div></li>
+  <li><span class="pin">2</span><div><b>Options</b> <span class="tag data">data</span><span>From <code>options[]</code> ({label, description}). With a single question, a click answers right away. The first option only gets a thin outline to show it is the expiry default, not a recommendation.</span></div></li>
+  <li><span class="pin">3</span><div><b>Free text</b> <span class="tag data">data</span><span>Shown when <code>isOther</code> is set or no options exist. It becomes a password field only when <code>isSecret</code> is true.</span></div></li>
+  <li><span class="pin">4</span><div><b>Expiry rule, written out</b> <span class="tag derive">derive</span><span>The copy names the exact option that will be used. A non-secret question continues with its first option, while approvals and secret questions are declined.</span></div></li>
+  <li><span class="pin">5</span><div><b>Plan steps inline</b> <span class="tag data">data</span><span>This card is used when the only question id is <code>plan_approval</code>. Steps come from the current <code>PlanStep[]</code>. There is no version or diff in the contract.</span></div></li>
+  <li><span class="pin">6</span><div><b>Approve or Revise</b> <span class="tag data">data</span><span>Only these two. Approve sends <code>["Approve"]</code>. On expiry it continues with Approve, the first option.</span></div></li>
+  <li><span class="pin">7</span><div><b>Revise field</b> <span class="tag data">data</span><span>A textarea that sends <code>["Revise","user_note: …"]</code>. ⌘/Ctrl+Enter sends, Esc cancels, and Send stays disabled while the field is blank.</span></div></li>
+</ol>
+</div>
+
+<div class="board">
+<div>
+<div class="app">
+  <div class="app-chrome"><i></i><i></i><i></i><span>truex · Qlik Analyst</span></div>
+  <div class="app-stage" style="margin:10px">
+    <div class="rq-top">
+      <div class="crumb"><span class="av">QA</span><span class="t">Onboarding plan for new analysts</span></div>
+      <span class="rq-wait is-open"><span class="pulse warn"></span>Needs you<em>5</em></span><span class="pin">1</span>
+    </div>
+    <div class="rq-tray" role="dialog" aria-label="Needs you">
+      <div class="rq-tray-head"><b>Needs you</b><span class="pill warn">5 items</span><span class="spacer"></span><span class="rq-sub">oldest first</span><span class="pin">2</span></div>
+      <div class="rq-item is-focus"><span class="rq-tile warn"><svg class="ic sm"><use href="#i-term"/></svg></span>
+        <div class="rq-item-body"><b>Run npm run check:handbook</b><small>Permission needed · expires in 0:42</small></div>
+        <div class="rq-acts"><span class="btn primary">Review</span><span class="pin">3</span></div></div>
+      <div class="rq-item"><span class="rq-tile"><svg class="ic sm"><use href="#i-users"/></svg></span>
+        <div class="rq-item-body"><b>Who is the plan for?</b><small>Question · expires in 3:40</small></div>
+        <div class="rq-acts"><span class="btn soft">Answer</span></div></div>
+      <div class="rq-item"><span class="rq-tile warn"><svg class="ic sm"><use href="#i-target"/></svg></span>
+        <div class="rq-item-body"><b>Budget reached · 50k of 50k tokens</b><small>Goal paused. Extend it to let the assistant keep going.</small></div>
+        <div class="rq-acts"><span class="btn soft">Extend by 25k</span><span class="btn soft">Extend by 50k</span><span class="pin">4</span></div></div>
+      <div class="rq-item"><span class="rq-tile warn"><svg class="ic sm"><use href="#i-bot"/></svg></span>
+        <div class="rq-item-body"><b>Atlas is unavailable</b><small>This helper is no longer available. Research on the modeling docs stopped.</small></div>
+        <div class="rq-acts"><span class="btn soft">Ask Qlik Analyst to rerun</span><span class="pin">5</span></div></div>
+      <div class="rq-item"><span class="rq-tile bad"><svg class="ic sm"><use href="#i-plug"/></svg></span>
+        <div class="rq-item-body"><b>Google Drive · sign in required</b><small>The server rejected the saved token. New chats use the fixed connection.</small></div>
+        <div class="rq-acts"><span class="btn soft"><svg class="ic sm"><use href="#i-key"/></svg>Sign in</span><span class="pin">6</span></div></div>
+      <div class="rq-tray-foot"><span><span class="rq-kbd">g</span> then <span class="rq-kbd">n</span> jumps to the oldest</span><span><span class="rq-kbd">↑</span><span class="rq-kbd">↓</span> move</span><span><span class="rq-kbd">Esc</span> close</span><span class="pin">7</span></div>
+    </div>
+    <div class="rq-stream rq-dim" aria-hidden="true"><div class="msg"><span class="av">QA</span><div class="grow"><span class="answer">Week one covers the load script, the associative model and two practice apps…</span></div></div></div>
+  </div>
+</div>
+<p class="board-cap">Opening the topbar count shows everything blocking this chat, each with its fix.</p>
+</div>
+<ol class="notes">
+  <li><span class="pin">1</span><div><b>Needs-you count</b> <span class="tag derive">derive</span> <span class="tag status">status</span><span>A sum of the pending requests, a goal in a stop state, helpers in <code>notFound</code> or <code>errored</code>, and MCP servers that need sign-in. It is hidden at zero.</span></div></li>
+  <li><span class="pin">2</span><div><b>Tray</b> <span class="tag derive">derive</span> <span class="tag new">new</span><span>A popover from the count. Requests sort by <code>expiresAt</code> as a stand-in for age, and the other items follow in the order they were seen.</span></div></li>
+  <li><span class="pin">3</span><div><b>Pending request rows</b> <span class="tag data">data</span><span>One row per <code>PendingRequest</code>. Review focuses the docked card rather than duplicating it, so answers only happen in one place.</span></div></li>
+  <li><span class="pin">4</span><div><b>Goal stop</b> <span class="tag data">data</span><span>When <code>GoalStatus</code> is <code>budgetLimited</code> the row shows "Budget reached". Extend by 25k or 50k raises <code>tokenBudget</code> and sets the goal back to active.</span></div></li>
+  <li><span class="pin">5</span><div><b>Helper notFound</b> <span class="tag data">data</span><span><code>SubAgentStatus</code> <code>notFound</code> shows as "Unavailable" in the warn tone. The fix prefills a steer to the parent agent, because there is no respawn endpoint.</span></div></li>
+  <li><span class="pin">6</span><div><b>MCP sign-in</b> <span class="tag backend">backend</span><span>Showing that Google Drive needs sign-in requires a live MCP status and an OAuth flow, and neither exists yet. The copy says changes apply to new chats.</span></div></li>
+  <li><span class="pin">7</span><div><b>g then n</b> <span class="tag derive">derive</span> <span class="tag new">new</span><span>A two-key sequence that jumps to the oldest item. Unlike the mod+ hotkeys it is plain letters, so it never fires while you're typing in an input.</span></div></li>
+</ol>
+</div>
+
+<div class="board">
+<div>
+<div class="app">
+  <div class="app-chrome"><i></i><i></i><i></i><span>truex · Qlik Analyst</span></div>
+  <div class="app-stage" style="margin:10px">
+    <div class="rq-dockzone" style="padding-top:14px">
+      <div class="rq-batchbar"><svg class="ic sm"><use href="#i-layers"/></svg><b>3 pending</b><span>Drive reads and a file write are waiting</span><span class="spacer"></span><span class="btn primary">Review all</span><span class="pin">1</span></div>
+      <div class="rq-sheet" role="dialog" aria-label="Review requests">
+        <div class="rq-grab"></div>
+        <div class="rq-sheet-head"><b>Review 2 of 3</b><div class="rq-prog"><i class="done"></i><i class="cur"></i><i></i></div><span class="pin">2</span></div>
+        <ul class="rq-queue">
+          <li><span class="rq-dot"></span><code>google_drive.list_files</code><span class="rq-badge">Allowed for this chat</span></li>
+          <li><span class="rq-dot muted"></span><b class="strong">Write onboarding-checklist.md</b><span class="rq-sub">current</span></li>
+          <li><span class="rq-dot muted"></span><code>google_drive.create_file</code><span class="rq-sub">next</span><span class="pin">3</span></li>
+        </ul>
+        <div class="rq-req is-tool">
+          <div class="rq-head">
+            <span class="rq-tile warn"><svg class="ic lg"><use href="#i-file"/></svg></span>
+            <div class="rq-ttl"><span class="rq-kind">Permission needed</span><strong>Write a file in ~/qlik-handbook</strong></div>
+            <div class="rq-clock"><span class="ring rq-ring" style="--p:48"><span>0:29</span></span><small>then declined</small></div>
+          </div>
+          <div class="rq-cmd"><div class="line">write docs/onboarding-checklist.md (42 lines)</div></div>
+          <div class="rq-acts"><span class="btn primary">Allow once <span class="rq-kbd">1</span></span><span class="btn soft">Allow for this chat <span class="rq-kbd">2</span></span><span class="btn ghost">Cancel <span class="rq-kbd">Esc</span></span><span class="pin">4</span></div>
+        </div>
+        <div class="rq-sheet-foot"><span><span class="rq-kbd">1</span>–<span class="rq-kbd">3</span> answer and advance</span><span><span class="rq-kbd">←</span><span class="rq-kbd">→</span> previous or skip</span><span><span class="rq-kbd">Esc</span> close the sheet</span><span class="pin">5</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="board-cap">Three stacked approvals are reviewed in one sheet, one at a time, without leaving the keyboard.</p>
+</div>
+<ol class="notes">
+  <li><span class="pin">1</span><div><b>Batch bar</b> <span class="tag derive">derive</span> <span class="tag new">new</span><span>It replaces the single docked card when two or more requests are open, showing the count plus Review all. The subtitle summarizes the waiting <code>action</code>s. Naming which helper asked would need a requester field on <code>PendingRequest</code>, so it is left out.</span></div></li>
+  <li><span class="pin">2</span><div><b>Review sheet</b> <span class="tag derive">derive</span> <span class="tag new">new</span><span>A bottom sheet that steps through the pending list with a progress bar. Each step renders the same RequestCard body, so the rules stay the same.</span></div></li>
+  <li><span class="pin">3</span><div><b>Ordering</b> <span class="tag derive">derive</span><span>The queue sorts by <code>expiresAt</code>, soonest first, until <code>PendingRequest</code> gains <code>createdAt</code> (backend) for true arrival order. Answered items show their audit badge.</span></div></li>
+  <li><span class="pin">4</span><div><b>Per-item options</b> <span class="tag data">data</span><span>Buttons still come from each request's own <code>options[]</code>. Nothing lets you allow all three at once, because each is a separate decision.</span></div></li>
+  <li><span class="pin">5</span><div><b>Stepper keys</b> <span class="tag derive">derive</span><span>A number key answers and advances. Arrows move back or skip, and Esc closes the sheet but leaves the requests pending. Plans and secrets still ask in every approval mode.</span></div></li>
+</ol>
+</div>
+
+<div class="tbl-wrap">
+<table>
+  <thead><tr><th>Element</th><th>Source field or event</th><th>Data tag</th></tr></thead>
+  <tbody>
+    <tr><td>Docked approval card</td><td><code>PendingRequest.detail.questions[]</code> with <code>kind:"toolApproval"</code>, <code>action</code></td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Option buttons</td><td><code>InputQuestion.options[]</code> {label, description}</td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Enter / 1-3 / Esc keys</td><td>Option position; Cancel label</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Expiry countdown and rule copy</td><td><code>expiresAt</code>, <code>isSecret</code>, <code>kind</code></td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Stream placeholder at anchor</td><td><code>PendingRequest.turnId</code> (new)</td><td><span class="tag backend">backend</span></td></tr>
+    <tr><td>Audit row, Answer hidden</td><td><code>approval.resolved</code> → <code>ApprovalRecord</code> items, <code>secret</code>, <code>at</code></td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Question card, free text</td><td><code>header</code>, <code>question</code>, <code>isOther</code>, <code>isSecret</code></td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Plan card, Approve / Revise</td><td><code>plan_approval</code> id, <code>PlanStep[]</code>, <code>user_note</code> payload</td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Needs-you count and tray</td><td>Pending list + goal status + helper status + MCP status</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Goal stop, Extend 25k/50k</td><td><code>GoalStatus</code> <code>budgetLimited</code>, <code>tokenBudget</code></td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Helper unavailable</td><td><code>SubAgentStatus</code> <code>notFound</code></td><td><span class="tag data">data</span></td></tr>
+    <tr><td>Google Drive sign in required</td><td>Live MCP status + OAuth endpoint (new)</td><td><span class="tag backend">backend</span></td></tr>
+    <tr><td>g then n, batch sheet</td><td>Client keyboard handler over pending list</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Batch order by arrival</td><td><code>PendingRequest.createdAt</code> (new); <code>expiresAt</code> until then</td><td><span class="tag backend">backend</span></td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="qs">
+  <div class="q"><b>Should Esc on the dock pick Cancel?</b><span>Esc already stops the turn last in the Esc order. Binding it to Cancel while the card has focus is safe, but only if focus is visibly on the card. Recommend requiring card focus, and never letting Esc decline from the composer.</span></div>
+</div>
+</section>

@@ -1,0 +1,211 @@
+<section class="sec" id="edges">
+<style>
+#edges .widths{display:grid;grid-template-columns:1.25fr 1fr .72fr;gap:14px;align-items:end;padding:18px;background:var(--surface-3)}
+#edges .wlab{display:flex;justify-content:space-between;font:500 11px var(--font-mono);color:var(--ink-3);letter-spacing:.04em;margin-bottom:6px}
+#edges .mini{position:relative;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);box-shadow:var(--shadow-card);padding:6px;display:flex;gap:5px;height:190px}
+#edges .mini .sb{width:18%;border-radius:7px;background:var(--surface);border:1px solid var(--line);padding:6px 5px;display:flex;flex-direction:column;gap:4px}
+#edges .mini .ch{position:relative;flex:1;border-radius:7px;background:var(--bg);border:1px solid var(--line);padding:8px 7px;display:flex;flex-direction:column;gap:5px;min-width:0}
+#edges .mini .pn{width:30%;border-radius:7px;background:var(--surface);border:1px solid var(--line);padding:6px 5px;display:flex;flex-direction:column;gap:4px}
+#edges .mini .pn.drawer{position:absolute;right:6px;top:6px;bottom:6px;width:42%;box-shadow:var(--shadow-lift);z-index:2}
+#edges .ln{height:5px;border-radius:3px;background:var(--line-strong)}
+#edges .ln.s{width:55%} #edges .ln.m{width:78%} #edges .ln.a{background:var(--beam)}
+#edges .ln.u{align-self:flex-end;width:60%;height:12px;border-radius:7px 7px 2px 7px;background:var(--ink)}
+#edges .mc{position:absolute;z-index:3;width:48%;background:var(--coach);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow-lift);padding:6px 7px;display:flex;flex-direction:column;gap:4px;font:600 9.5px/1.25 var(--font-sans);color:var(--ink)}
+#edges .mc .ln{height:3px}
+#edges .mc .fb{display:flex;justify-content:flex-end;gap:3px}
+#edges .mc .fb i{width:22px;height:8px;border-radius:3px;background:var(--accent)}
+#edges .mhole{position:absolute;z-index:2;border-radius:6px;box-shadow:0 0 0 1.5px var(--spot-ring),0 0 0 400px var(--scrim);pointer-events:none}
+#edges .mini{overflow:hidden}
+#edges .phone{position:relative;width:100%;max-width:190px;height:360px;margin:0 auto;border-radius:26px;border:6px solid var(--ink);background:var(--bg);overflow:hidden;display:flex;flex-direction:column}
+#edges .phone .ptop{height:18px;display:flex;justify-content:center;align-items:center}
+#edges .phone .ptop i{width:44px;height:6px;border-radius:4px;background:var(--ink)}
+#edges .phone .pch{flex:1;padding:8px 9px;display:flex;flex-direction:column;gap:6px;position:relative}
+#edges .sheet{position:absolute;left:0;right:0;bottom:0;z-index:3;background:var(--coach);border-top:1px solid var(--line);border-radius:14px 14px 0 0;box-shadow:var(--shadow-lift);padding:6px 10px calc(10px + 12px);display:flex;flex-direction:column;gap:5px;font:600 10.5px/1.3 var(--font-sans);color:var(--ink)}
+#edges .sheet .grab{align-self:center;width:28px;height:4px;border-radius:3px;background:var(--line-strong)}
+#edges .sheet .safe{position:absolute;left:0;right:0;bottom:0;height:12px;border-top:1px dashed var(--line-strong);font:500 7.5px/12px var(--font-mono);color:var(--ink-3);text-align:center}
+#edges .pair{display:grid;grid-template-columns:1fr 1fr;gap:0}
+#edges .pair > div{position:relative;padding:18px;background:var(--page);color:var(--ink);min-height:320px}
+#edges .light-sample{--page:#F6F9FA;--bg:#FFFFFF;--surface:#FFFFFF;--surface-2:#F8FCFD;--surface-3:#F6F9FA;--line:#E3ECEF;--line-strong:#D8E0E4;--ink:#1F2A30;--ink-2:#5F6D73;--ink-3:#849198;--accent-2:#2A7DB4;--accent-fg:#2A72A3;--accent-soft:#EAF5F8;--scrim:rgb(22 34 41 / 48%);--spot-ring:#3691CD;--spot-glow:rgb(54 145 205 / 22%);--coach:#FFFFFF;--beam:#BCDEE8;--shadow-lift:0 2px 4px rgb(31 42 48 / 6%), 0 26px 44px -16px rgb(31 42 48 / 34%);--shadow-md:0 4px 14px rgb(31 42 48 / 8%);color-scheme:light}
+#edges .dark-sample{color-scheme:dark}
+#edges .dark-sample{--page:#111213;--bg:#171717;--surface:#171717;--surface-2:#1C1C1C;--surface-3:#242424;--line:#2A2A2A;--line-strong:#363636;--ink:#EEF4F6;--ink-2:#B7C3C8;--ink-3:#8B999F;--accent-2:#5AA8DC;--accent-fg:#BCDEE8;--accent-soft:#14283A;--scrim:rgb(0 0 0 / 64%);--spot-ring:#5AA8DC;--spot-glow:rgb(90 168 220 / 26%);--coach:#1C1C1C;--beam:#1F4461;--shadow-lift:0 2px 4px rgb(0 0 0 / 35%), 0 26px 44px -16px rgb(0 0 0 / 80%);--shadow-md:0 4px 14px rgb(0 0 0 / 45%)}
+#edges .pair .mode{padding-left:26px;font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px}
+#edges .flipbox{position:relative;height:230px;border-top:1px solid var(--line)}
+#edges .vp-edge{position:absolute;left:0;right:0;bottom:0;border-top:2px dashed var(--bad);font:500 10px var(--font-mono);color:var(--bad);padding:3px 8px;text-align:right}
+#edges .fb-c{left:50%;top:50%;transform:translate(-50%,-50%)}
+#edges .pair > div{overflow:hidden;isolation:isolate}
+#edges .pair .coach{position:absolute!important;margin:0!important;width:210px!important;padding:10px 12px}
+#edges .pair .coach[data-side="below"]::before,#edges .pair .coach[data-side="above"]::before{display:block}
+#edges .pair .coach h4{font-size:14px} #edges .pair .coach p{font-size:12px}
+#edges .at-b{left:10px!important;top:62px!important} #edges .at-a{right:10px!important;top:34px!important;left:auto!important}
+@media (max-width:640px){#edges .fb-c{transform:none}#edges .widths{grid-template-columns:minmax(0,1fr)}#edges .pair{grid-template-columns:minmax(0,1fr)}#edges .mini{height:170px}}
+</style>
+  <div class="sec-head"><span class="eyebrow">Edge cases</span><h2>When the screen doesn't cooperate</h2><p>Small windows, targets that never render, cards that would fall off the bottom, dark mode and reduced motion. The tour bends for each one without changing its steps.</p></div>
+
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Three scaled mocks of step 8 at 1440, 900 and 400 pixels wide: docked panel with coach left of it, panel as a drawer over the chat with coach left of the drawer, and a phone with the coach as a bottom sheet">
+        <div class="widths">
+          <div>
+            <div class="wlab"><span>1440</span><span>panel docked</span></div>
+            <div class="mini">
+              <div class="sb"><span class="ln a"></span><span class="ln m"></span><span class="ln s"></span><span class="ln m"></span><span class="ln s"></span></div>
+              <div class="ch"><span class="ln u"></span><span class="ln m"></span><span class="ln"></span><span class="ln s"></span><span class="ln m"></span></div>
+              <div class="pn" style="position:relative"><span class="ln s"></span><span class="ln a"></span><span class="ln m"></span><span class="ln m"></span><span class="ln s"></span><span class="mhole" style="inset:-3px"></span></div>
+              <div class="mc" style="right:34%;top:30px;width:34%">Your helpers, this chat<span class="ln m"></span><span class="ln s"></span><span class="fb"><i></i></span></div>
+            </div>
+          </div>
+          <div>
+            <div class="wlab"><span>900</span><span>panel as drawer</span></div>
+            <div class="mini">
+              <div class="ch"><span class="ln u"></span><span class="ln m"></span><span class="ln"></span><span class="ln s"></span><span class="ln m"></span></div>
+              <div class="pn drawer"><span class="ln s"></span><span class="ln a"></span><span class="ln m"></span><span class="ln m"></span><span class="ln s"></span><span class="mhole" style="inset:-3px"></span></div>
+              <div class="mc" style="left:8px;top:40px;width:44%">Your helpers, this chat<span class="ln m"></span><span class="ln s"></span><span class="fb"><i></i></span></div>
+            </div>
+          </div>
+          <div>
+            <div class="wlab"><span>400</span><span>bottom sheet</span></div>
+            <div class="phone">
+              <div class="ptop"><i></i></div>
+              <div class="pch">
+                <span class="ln u"></span><span class="ln m"></span><span class="ln"></span>
+                <div style="position:relative;border:1px solid var(--line);border-radius:7px;padding:5px;display:flex;flex-direction:column;gap:4px;background:var(--surface)"><span class="ln a s"></span><span class="ln m"></span><span class="ln s"></span><span class="mhole" style="inset:-3px"></span></div>
+                <span class="ln s"></span>
+              </div>
+              <div class="sheet">
+                <span class="grab"></span>
+                <span style="font:500 8px var(--font-mono);color:var(--ink-3);letter-spacing:.05em">STEP 8 OF 11</span>
+                <span>Helpers in this chat</span>
+                <span class="ln m" style="height:3px"></span><span class="ln s" style="height:3px"></span>
+                <span class="fb" style="display:flex;justify-content:flex-end;gap:4px"><i style="width:26px;height:10px;border-radius:3px;border:1px solid var(--line-strong)"></i><i style="width:26px;height:10px;border-radius:3px;background:var(--accent)"></i></span>
+                <span class="safe">safe area</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <span class="pin pin-at" style="left:10px;top:10px">1</span>
+      </div>
+      <p class="board-cap">Same step 8, three widths. The coach never covers the thing it is talking about.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Wide, 1440 and up</b> <span class="tag look">Look</span><span>Sidebar, chat and session panel all docked. The spotlight wraps panel-agents and the coach sits to its left with the caret pointing right.</span><span class="src">data-tour="panel-agents"</span></div></li>
+      <li><span class="pin">2</span><div><b>Medium, 900</b><span>The session panel floats as a drawer over the chat. prepare() opens it, the coach takes the free space left of the drawer. Placement is measured after the drawer finishes opening.</span> <span class="tag changed">Changed</span></div></li>
+      <li><span class="pin">3</span><div><b>720 and below</b><span>Only one drawer is open at a time, so prepare() closes the sidebar before opening the panel. The coach becomes a bottom sheet: full width, grab handle, padding of env(safe-area-inset-bottom) plus 12px.</span> <span class="tag new">New</span></div></li>
+      <li><span class="pin">4</span><div><b>Sheet behavior</b><span>The sheet keeps the same content and buttons. It is not draggable in v1; the handle is a visual cue only. The page scrolls the target into the space above the sheet.</span></div></li>
+    </ol>
+  </div>
+
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Step 7 of 11 where the helper card never rendered: the app is dimmed and a centered fallback coach says we couldn't find this on screen, with Back and Next">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app</span></div>
+          <div class="app-body" style="grid-template-columns:minmax(0,1fr)">
+            <div class="app-stage">
+              <div class="wf-top">
+                <div class="crumb"><svg class="ic"><use href="#i-sidebar"/></svg><span class="t">2-week analyst onboarding</span></div>
+                <span class="status-pill"><span class="pulse"></span>Researcher · Working</span>
+                <span></span>
+              </div>
+              <div style="padding:18px 18px 8px;display:flex;flex-direction:column;gap:14px;font-size:13.5px;min-height:300px">
+                <div class="msg user"><div class="bubble">Draft a 2-week onboarding plan for new analysts from the handbook</div></div>
+                <div class="msg"><div style="color:var(--ink-2)">Reading the analyst handbook, 42 pages. Helpers are queued but have not started yet.</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tour-layer dim"></div>
+        <div class="coach fb-c" data-side="center">
+          <div class="c-eye"><span>Step 7 of 11 · See it work</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Helpers <em>show up here</em></h4>
+          <p>We couldn't find this on screen. When the agent spawns helpers, each one gets a card in the chat with its own status.</p>
+          <div class="c-foot">
+            <span class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i></span>
+            <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+          </div>
+        </div>
+        <span class="scribble" style="right:18px;top:62px;transform:rotate(3deg)">after 3s, no target
+          <svg width="56" height="36" viewBox="0 0 56 36"><path d="M48 2c-4 12-14 22-36 28"/><path d="M19 24l-8 6 9 3"/></svg>
+        </span>
+        <span class="pin pin-at" style="left:10px;top:40px">1</span>
+      </div>
+      <p class="board-cap">No spinner that never ends. Three seconds, then the step explains itself and moves on.</p>
+
+      <div class="demo" role="img" aria-label="Two small frames: a coach below a target near the top of the viewport, and the same coach flipped above the send button near the viewport bottom, caret following the target" style="margin-top:28px">
+        <div class="pair">
+          <div>
+            <div class="mode">Room below · data-side below</div>
+            <div class="flipbox">
+              <span class="status-pill t-anchor" style="position:absolute;left:18px;top:14px"><span class="pulse"></span>Qlik Analyst · Working<span class="spot round inset" aria-hidden="true"></span></span>
+              <div class="coach at-b" data-side="below" style="--caret:44px">
+                <h4>Agent status</h4>
+                <p>Click to edit the agent.</p>
+              </div>
+              <span class="vp-edge">viewport bottom</span>
+            </div>
+          </div>
+          <div>
+            <div class="mode">Near the bottom · flips above</div>
+            <div class="flipbox">
+              <div class="coach at-a" data-side="above" style="--caret:176px">
+                <h4>Send it</h4>
+                <p>Enter sends, Shift+Enter adds a line.</p>
+              </div>
+              <span class="send t-anchor" style="position:absolute;right:26px;bottom:32px"><svg class="ic"><use href="#i-send"/></svg><span class="spot round inset" aria-hidden="true"></span></span>
+              <span class="vp-edge">viewport bottom</span>
+            </div>
+          </div>
+        </div>
+        <span class="pin pin-at" style="left:10px;top:10px">3</span>
+      </div>
+      <p class="board-cap">The card flips, the caret slides along its edge to stay on the target.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Missing target fallback</b> <span class="tag new">New</span><span>If the data-tour target is not in the DOM 3s after prepare() and waitFor, the coach renders centered over the dim layer with "We couldn't find this on screen" before the step copy. This is the only timeout in the tour.</span><span class="src">data-tour="helper-card"</span></div></li>
+      <li><span class="pin">2</span><div><b>Next still works</b><span>No dead end. Next, <span class="kbd">→</span> and <span class="kbd">Enter</span> advance as usual, Back returns. Try steps show "Skip this" in place of a disabled Next.</span></div></li>
+      <li><span class="pin">3</span><div><b>Placement flips</b><span>Preferred side first. If the card would cross the viewport edge with 12px margin, it flips (below to above, right to left). Then it clamps along the edge and --caret is recomputed from the target center.</span> <span class="tag changed">Changed</span></div></li>
+      <li><span class="pin">4</span><div><b>Re-measure</b><span>Placement reruns on resize, scroll and when the target's size changes (ResizeObserver). No polling beyond the 3s target wait.</span></div></li>
+    </ol>
+  </div>
+
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="The step 3 coach and status pill spotlight shown twice, on the light theme and on the dark theme, side by side">
+        <div class="pair">
+          <div class="light-sample">
+            <div class="mode">Light</div>
+            <div class="flipbox" style="border-top:0">
+              <span class="status-pill t-anchor" style="position:absolute;left:18px;top:14px"><span class="pulse"></span>Qlik Analyst · Working<span class="spot round inset" aria-hidden="true"></span></span>
+              <div class="coach at-b" data-side="below" style="--caret:44px">
+                <div class="c-eye"><span>Step 3 of 11</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+                <h4>Who is <em>working</em></h4>
+                <p>The pill shows the current agent and its state.</p>
+                <div class="c-foot"><span class="c-dots"><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i></span><span class="tb primary">Next</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="dark-sample">
+            <div class="mode">Dark</div>
+            <div class="flipbox" style="border-top:0">
+              <span class="status-pill t-anchor" style="position:absolute;left:18px;top:14px"><span class="pulse"></span>Qlik Analyst · Working<span class="spot round inset" aria-hidden="true"></span></span>
+              <div class="coach at-b" data-side="below" style="--caret:44px">
+                <div class="c-eye"><span>Step 3 of 11</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+                <h4>Who is <em>working</em></h4>
+                <p>The pill shows the current agent and its state.</p>
+                <div class="c-foot"><span class="c-dots"><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i></span><span class="tb primary">Next</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <span class="pin pin-at" style="left:10px;top:10px">1</span>
+      </div>
+      <p class="board-cap">One set of tokens. Dark swaps the scrim, ring, coach surface and beam, nothing else.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Themes</b><span>Coach, spot and chip read only tokens: --coach, --scrim, --spot-ring, --spot-glow, --beam. Dark raises the scrim to 64% black and lifts the ring to the lighter blue so the hole still reads.</span><span class="src">_tour.css</span></div></li>
+      <li><span class="pin">2</span><div><b>Reduced motion</b> <span class="tag changed">Changed</span><span>With prefers-reduced-motion: no breathing pulse on the spot ring or beacon, no confetti on the agent step, and the spotlight and coach move instantly between targets with no slide or fade.</span></div></li>
+      <li><span class="pin">3</span><div><b>Stacking</b><span>The tour layer sits at z-index 60, above .scrim at 50, so it clears drawers, popovers and the dock. The resume chip ("Resume tour · 5 of 11") sits above the dock.</span></div></li>
+      <li><span class="pin">4</span><div><b>Keyboard</b><span><span class="kbd">→</span> or <span class="kbd">Enter</span> next, <span class="kbd">←</span> back, <span class="kbd">Esc</span> minimizes to the resume chip. On the finish card, <span class="kbd">Esc</span> closes the tour. App hotkeys like <span class="kbd">⌘K</span> are paused while the tour is open.</span></div></li>
+      <li><span class="pin">5</span><div><b>Focus and announcements</b> <span class="tag new">New</span><span>Focus is trapped in the coach and returns to the element that had it when the tour closes. An aria-live="polite" region announces "Step 3 of 11" plus the title on every move.</span></div></li>
+    </ol>
+  </div>
+</section>

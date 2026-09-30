@@ -1,0 +1,167 @@
+<section class="sec" id="spec">
+<style>
+#spec .card{box-shadow:var(--shadow-card);padding:20px;gap:14px}
+#spec .card h3{font:700 24px/1 var(--font-hand);color:var(--accent);letter-spacing:0;margin:0}
+#spec .s-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+#spec pre{margin:0;overflow-x:auto;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;font:12.5px/1.6 var(--font-mono);color:var(--ink-2);tab-size:2}
+#spec pre code{background:none;border:0;padding:0;font-size:inherit;color:inherit;overflow-wrap:normal}
+#spec pre .k{color:var(--accent-fg)}
+#spec pre .c{color:var(--ink-3)}
+#spec table{min-width:760px}
+#spec td code{white-space:nowrap}
+#spec .yes{color:var(--ok);font-weight:600}
+#spec .no{color:var(--bad);font-weight:600}
+#spec .part{color:var(--warn-text);font-weight:600}
+#spec .grp td{background:var(--surface-3);font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+#spec .ph{display:flex;flex-direction:column;gap:6px;min-width:0}
+#spec .ph .row{gap:6px}
+#spec .ph .hid{color:var(--ink-2);font-size:13px}
+#spec .qs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+#spec .q .def{margin-top:4px}
+#spec .q .def b{font:600 14px var(--font-sans)}
+@media (max-width:900px){#spec .qs{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:reduce){#spec *{transition:none;animation:none}}
+</style>
+<div class="sec-head">
+  <span class="eyebrow">Handoff</span>
+  <h2>What engineering needs</h2>
+  <p>Every hook the tour reads, whether app.tsx has it today, the step config and saved state, the order it ships in next to the v3 plan, and three calls still to make.</p>
+</div>
+
+<!-- Board 1: hook table -->
+<div class="board">
+  <div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>data-tour</th><th>Element</th><th>Component · className today</th><th>In app.tsx</th><th>Step</th><th>Data</th></tr></thead>
+        <tbody>
+          <tr class="grp"><td colspan="6">Main tour · 12 stops</td></tr>
+          <tr><td><code>hero-starters</code></td><td>Agent starter chips under the empty hero</td><td>App · <code>.hero</code> (L2088), starters new</td><td class="part">No, hero only</td><td>1</td><td><span class="tag data">data</span></td></tr>
+          <tr><td><code>sidebar</code></td><td>Left sidebar</td><td>Sidebar · <code>aside.panel.sidebar</code> (L377)</td><td class="yes">Yes</td><td>2</td><td><span class="tag data">data</span></td></tr>
+          <tr><td><code>palette</code></td><td>⌘K palette</td><td>CommandPalette · <code>.palette</code> (L679)</td><td class="part">Yes, chats only</td><td>2</td><td><span class="tag derive">derive</span></td></tr>
+          <tr><td><code>composer-bar</code></td><td>Composer action bar</td><td>Composer · <code>.composer-bar</code> (L1802)</td><td class="yes">Yes</td><td>3</td><td><span class="tag data">data</span></td></tr>
+          <tr><td><code>attach</code></td><td>Paperclip and file chips</td><td>Composer · new <span class="tag new">New</span></td><td class="no">No</td><td>3</td><td><span class="tag data">data</span></td></tr>
+          <tr><td><code>agent-chip</code></td><td>Agent chip, locks after start</td><td>Composer · new; picker is AgentMenu <code>.menu</code> (L606)</td><td class="no">No</td><td>3</td><td><span class="tag data">data</span></td></tr>
+          <tr><td><code>model-chip</code></td><td>Model and effort chip</td><td>Composer · new; model lives in AgentDialog today</td><td class="no">No</td><td>3</td><td><span class="tag data">data</span></td></tr>
+          <tr><td><code>goal-chip</code></td><td>Goal chip</td><td>Composer · <code>.chip.goal-chip</code> (L1803)</td><td class="yes">Yes</td><td>3</td><td><span class="tag data">data</span></td></tr>
+          <tr><td><code>approval-mode</code></td><td>Approval mode picker</td><td>Composer · new <span class="tag new">New</span></td><td class="no">No</td><td>4</td><td><span class="tag data">data</span></td></tr>
+          <tr><td><code>mention-picker</code></td><td>@ picker: files, agents, tools</td><td>MentionPicker · new <span class="tag new">New</span></td><td class="no">No</td><td>5</td><td><span class="tag derive">derive</span></td></tr>
+          <tr><td><code>send</code></td><td>Send button</td><td>Composer · <code>.send</code> (L1819)</td><td class="yes">Yes</td><td>6</td><td><span class="tag data">data</span></td></tr>
+          <tr><td><code>handoff</code></td><td>"Handed off" stream node</td><td>HandoffNode · new; closest today HelperCard <code>.hcard</code></td><td class="no">No</td><td>7</td><td><span class="tag data">data</span></td></tr>
+          <tr><td><code>request-card</code></td><td>Request docked above composer</td><td>RequestDock · new <span class="tag new">New</span></td><td class="no">No</td><td>8</td><td><span class="tag data">data</span></td></tr>
+          <tr><td><code>needs-you</code></td><td>Needs-you count and tray</td><td>NeedsYouTray · new <span class="tag new">New</span></td><td class="no">No</td><td>9</td><td><span class="tag derive">derive</span></td></tr>
+          <tr><td><code>queue</code></td><td>Queued chips and Steer</td><td>Composer · new <span class="tag new">New</span></td><td class="no">No</td><td>10</td><td><span class="tag derive">derive</span></td></tr>
+          <tr><td><code>goal-strip</code></td><td>Goal strip over the composer</td><td>GoalStrip · new; GoalView <code>.goal-head</code> is panel-only</td><td class="no">No</td><td>11</td><td><span class="tag data">data</span></td></tr>
+          <tr><td><code>tour-replay</code></td><td>Take the tour, Account menu</td><td>UserMenu · new <code>.menu-item</code></td><td class="no">No</td><td>12</td><td><span class="tag derive">derive</span></td></tr>
+          <tr class="grp"><td colspan="6">Team tour · 4 stops</td></tr>
+          <tr><td><code>nav-agents</code></td><td>Agents link in sidebar</td><td>Sidebar · <code>.side-nav .side-link</code> (L399)</td><td class="yes">Yes</td><td>T1</td><td><span class="tag data">data</span></td></tr>
+          <tr><td><code>team-filters</code></td><td>All / Yours / Built-in</td><td>AgentsView · <code>.bp-pills</code> radiogroup</td><td class="yes">Yes</td><td>T2</td><td><span class="tag data">data</span></td></tr>
+          <tr><td><code>team-card</code></td><td>Polaroid card, red pin in chat</td><td>AgentsView · <code>.polaroid</code> (L1300)</td><td class="part">Yes, no red pin</td><td>T3</td><td><span class="tag derive">derive</span></td></tr>
+          <tr><td><code>new-agent</code></td><td>New agent card</td><td>AgentsView · <code>.polaroid.pol-new</code> (L1326)</td><td class="yes">Yes</td><td>T4</td><td><span class="tag data">data</span></td></tr>
+          <tr class="grp"><td colspan="6">Create tour · 5 stops</td></tr>
+          <tr><td><code>agent-name</code></td><td>Name and handle fields</td><td>AgentDialog · <code>.nad-form .field</code></td><td class="yes">Yes</td><td>C1</td><td><span class="tag data">data</span></td></tr>
+          <tr><td><code>agent-look</code></td><td>Look grid and tint row</td><td>AgentDialog · <code>.look-grid</code> (L1134)</td><td class="yes">Yes</td><td>C2</td><td><span class="tag data">data</span></td></tr>
+          <tr><td><code>agent-model</code></td><td>Model select</td><td>AgentDialog · <code>.field .select.full</code> (L1152)</td><td class="yes">Yes</td><td>C3</td><td><span class="tag data">data</span></td></tr>
+          <tr><td><code>agent-create</code></td><td>Create agent button</td><td>AgentDialog · <code>.btn-solid.lg</code> (L1179)</td><td class="yes">Yes</td><td>C4</td><td><span class="tag data">data</span></td></tr>
+          <tr><td><code>agent-celebrate</code></td><td>Badge reveal</td><td>AgentDialog · <code>.scrim.celebrate</code> (L1078)</td><td class="yes">Yes</td><td>C5</td><td><span class="tag derive">derive</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="board-cap">26 hooks. 14 land on elements that exist today, 12 wait on v3 components.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>No hooks yet</b> <span class="tag derive">derive</span><span>app.tsx has no <code>data-tour</code> attribute today. Adding the 14 on existing elements is a no-op change and can merge first. Line numbers are from the current v2 branch and will drift.</span></div></li>
+    <li><span class="pin">2</span><div><b>New v3 components</b> <span class="tag derive">derive</span><span class="tag new">New</span><span>RequestDock, HandoffNode, NeedsYouTray, GoalStrip, MentionPicker and the action bar chips carry their <code>data-tour</code> from their first commit. Tagged New in the table.</span></div></li>
+    <li><span class="pin">3</span><div><b>Needs-you across chats</b> <span class="tag backend">backend</span><span>Within one chat the count derives from requests, goal stops and failed helpers. Counting other sessions needs a per-session pending count on the session list, and tools needing sign-in need MCP live status.</span></div></li>
+    <li><span class="pin">4</span><div><b>Tools in the @ picker</b> <span class="tag backend">backend</span><span>Files and agents derive on the client. The tool list per session needs a session tools endpoint, so step 5 points at the files and agents groups only until it ships.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 2: TourStep type and storage -->
+<div class="board">
+  <div class="s-col">
+    <div class="card">
+      <h3>Step config</h3>
+<pre><code><span class="k">type</span> TourId = "main" | "team" | "create";
+
+<span class="k">type</span> TourStep = {
+  id: string;
+  tour: TourId;
+  chapter?: 1 | 2 | 3;               <span class="c">// main tour only</span>
+  kind: "look" | "try" | "wait";
+  target?: string;                   <span class="c">// data-tour value, none = centered card</span>
+  placement?: "below" | "above" | "left" | "right" | "center";
+  title: string;
+  body: string;
+  prepare?: (app: TourApi) =&gt; void;  <span class="c">// open a popover, close a drawer, blur the composer</span>
+  waitFor?: () =&gt; boolean;           <span class="c">// polled; frozen while StreamStatus is Reconnecting</span>
+  advanceOn?: "send" | "answer-request" | "pick-mention" | "click";
+  requires?: "owner" | "flag:autopilot" | "backend:session-tools";
+  finish?: boolean;                  <span class="c">// Esc closes instead of minimizing</span>
+};
+
+<span class="k">const</span> MISSING_TARGET_MS = 3000;       <span class="c">// then a centered card, same copy</span></code></pre>
+    </div>
+    <div class="card">
+      <h3>Saved progress</h3>
+<pre><code><span class="c">// localStorage "truex-tour"</span>
+{ v: 3, done: false, step: 7, parts: { team: false, create: false } }
+
+<span class="k">function</span> readTour(): TourState | <span class="k">null</span> {
+  <span class="k">try</span> {
+    <span class="k">const</span> s = JSON.parse(localStorage.getItem("truex-tour") || "null");
+    <span class="k">return</span> s?.v === 3 ? s : <span class="k">null</span>;   <span class="c">// v1 values are ignored, not migrated</span>
+  } <span class="k">catch</span> { <span class="k">return</span> <span class="k">null</span>; }        <span class="c">// private window: act as first visit</span>
+}</code></pre>
+    </div>
+    <p class="board-cap">One list of steps, three tours. Anything a step needs is a named flag, not an if.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>requires gates a stop</b> <span class="tag derive">derive</span><span>A step whose <code>requires</code> is not met is skipped and the dots recount, so "Step 3 of 12" stays true. <code>owner</code> fails for read-only viewers and blocks the whole main tour.</span></div></li>
+    <li><span class="pin">2</span><div><b>advanceOn values</b> <span class="tag data">data</span><span><code>send</code> fires on <code>turn.started</code>, <code>answer-request</code> on the request leaving <code>PendingRequest</code>, <code>pick-mention</code> on a chip landing in the composer.</span></div></li>
+    <li><span class="pin">3</span><div><b>Esc sits first</b> <span class="tag derive">derive</span><span>The tour registers a capture-phase keydown before the v3 Esc chain (menu, goal mode, popover, stop turn). It minimizes and stops propagation, so Esc never stops a turn during the tour.</span></div></li>
+    <li><span class="pin">4</span><div><b>Version bump to 3</b> <span class="tag derive">derive</span><span>A stored <code>v: 1</code> from the old tour reads as null, so returning users see the v3 tour once. <code>parts</code> tracks the two agent tours separately from <code>done</code>.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 3: build phases -->
+<div class="board">
+  <div class="s-col">
+    <div class="card">
+      <h3>Build phases</h3>
+      <ol class="steps-list">
+        <li><div class="ph"><b>Anchors, with P0.</b><span>Add the 14 <code>data-tour</code> attributes that land on elements in app.tsx today. No visible change, safe to merge on its own.</span></div></li>
+        <li><div class="ph"><b>Engine and layer, during P1.</b><span><code>useTour</code> (steps, <code>truex-tour</code> v3, <code>prepare</code>, <code>waitFor</code>, <code>requires</code>) and <code>TourLayer</code> at z 60, the capture-phase Esc, the hotkey pause, the phone sheet and the shared status announcer.</span></div></li>
+        <li><div class="ph"><b>Main tour ships with the P1 surfaces.</b><span>Stops 1-6 and 8-12 go live once the empty state, sidebar and ⌘K, composer action bar, @ picker, request dock, queue, needs-you tray and goal strip are in. Take the tour goes in the Account menu.</span><span class="row"><span class="pill">11 of 12 stops</span><span class="hid">Stop 7 stays hidden</span></span></div></li>
+        <li><div class="ph"><b>P2 turns on the rest.</b><span>The "Handed off" node lights up stop 7. The Team Pins page and create flow get their 4 and 5 stop tours. The read-only card and the Reconnecting pause arrive with the P2 viewer and streaming health work.</span><span class="row"><span class="pill ok">12 of 12 stops</span><span class="hid">Team 4 · Create 5</span></span></div></li>
+        <li><div class="ph"><b>Backend stops, when they ship.</b><span>Each one flips a <code>requires</code> flag. No copy changes, no new stops.</span><span class="row"><span class="tag backend">backend</span><span class="hid">Tools in @, cross-chat needs-you, MCP sign-in</span></span></div></li>
+      </ol>
+    </div>
+    <p class="board-cap">The tour never points at something that isn't there yet.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Anchors first</b> <span class="tag data">data</span><span>Sidebar, palette, composer bar, goal chip, send, agents nav, team filters, team and new-agent cards, and the five AgentDialog targets exist now. They let the tour engine be tested before any v3 surface lands.</span></div></li>
+    <li><span class="pin">2</span><div><b>Hidden, not broken</b> <span class="tag derive">derive</span><span>A stop whose component is missing is removed by <code>requires</code>, not left to the 3s fallback. The fallback is only for a target that should be there and didn't render.</span></div></li>
+    <li><span class="pin">3</span><div><b>Autopilot line</b> <span class="tag data">data</span><span>Stop 4 names Autopilot only when <code>autopilot=true</code>; otherwise the copy covers Ask and Auto-allow read-only tools. If the picker is hidden (<code>enabled=false</code>), stop 4 is skipped.</span></div></li>
+    <li><span class="pin">4</span><div><b>Agent edit and delete</b> <span class="tag backend">backend</span><span>Need <code>PATCH</code> and <code>DELETE /api/agents/:id</code>. The create tour mentions them as later and never gets a stop for them, even after they ship, until the copy is reviewed.</span></div></li>
+    <li><span class="pin">5</span><div><b>MCP sign-in</b> <span class="tag backend">backend</span><span>Tools needing sign-in only count in needs-you once MCP live status and OAuth exist. Until then stop 9 lists requests, goal stops and failed helpers.</span></div></li>
+  </ol>
+</div>
+
+<!-- Board 4: open decisions -->
+<div class="board">
+  <div>
+    <div class="qs">
+      <div class="q"><b>Auto-start or menu only?</b><span>Starting on first visit reaches everyone, but it lands on top of the empty hero right when someone came to ask one thing.</span><span class="def"><b>Recommend:</b> auto-start once, on the first empty chat the user owns, with a clear Not now. Not now writes <code>done: true</code> and Take the tour stays in Account. Never auto-start for a read-only viewer or mid-turn.</span></div>
+      <div class="q"><b>Real demo send or recorded?</b><span>A real send shows the hand-off, the request and the goal strip for real, but it costs tokens and can fail or run slow. A recorded run never fails, but it is not the app.</span><span class="def"><b>Recommend:</b> real send in Ask mode with a 50k goal, so stop 8 always gets a request. If the turn fails or runs past 60s, fall back to the recorded run for stops 7-9 and label it "Example run".</span></div>
+      <div class="q"><b>Which backend stops to hide at launch?</b><span>Three stops lean on work that isn't in the contract: tools in the @ picker, needs-you across chats, and tools needing sign-in.</span><span class="def"><b>Recommend:</b> keep stops 5 and 9 but scope their copy to what exists (files and agents; this chat's requests, goal stops and failed helpers). Hide stop 7 until the Handed off node ships in P2. Launch with 11 of 12.</span></div>
+    </div>
+    <p class="board-cap">Three calls for product before the copy is final.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Auto-start guard</b> <span class="tag derive">derive</span><span>Start only when no <code>truex-tour</code> v3 value exists, the chat is owned by the user and no turn is running.</span></div></li>
+    <li><span class="pin">2</span><div><b>Demo cost</b> <span class="tag data">data</span><span>The 50k goal caps the demo turn, and the goal strip in stop 11 reads from that same run.</span></div></li>
+    <li><span class="pin">3</span><div><b>Hidden stop count</b> <span class="tag derive">derive</span><span>Hidden stops drop out of the dots and the eyebrow count, so launch reads "Step 7 of 11" rather than skipping a number.</span></div></li>
+  </ol>
+</div>
+</section>

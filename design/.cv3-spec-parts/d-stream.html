@@ -1,0 +1,1354 @@
+<section class="part" id="stream">
+<style>
+/* stream fragment: specimens only, tokens only */
+.sm-spec{display:flex;flex-direction:column;gap:10px;max-width:360px;font-size:14px;color:var(--ink)}
+.sm-spec-user{align-self:flex-end;display:flex;flex-direction:column;align-items:flex-end;gap:6px;max-width:80%}
+.sm-spec-bubble{padding:10px 14px;border-radius:16px 16px 4px 16px;background:var(--ink);color:var(--bg);line-height:1.5}
+.sm-spec-note{font-size:12px;color:var(--ink-2)}
+.sm-spec-bar{display:flex;gap:2px}
+.sm-spec-btn{display:inline-flex;align-items:center;height:26px;padding:0 8px;border-radius:7px;font:500 12px var(--font-sans);color:var(--ink-2);background:var(--surface-3)}
+.sm-spec-btn.is-be{box-shadow:inset 0 0 0 1px var(--bad)}
+.sm-spec-agent{display:flex;gap:12px}
+.sm-spec-av{flex:none;width:26px;height:26px;border-radius:8px;background:var(--accent-soft);display:grid;place-items:center;color:var(--accent-fg);font-size:12px}
+.sm-spec-col{display:flex;flex-direction:column;gap:6px;min-width:0}
+.sm-spec-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-size:13px;color:var(--ink-2)}
+.sm-spec-row.is-dash{border-style:dashed}
+.sm-spec-code{border:1px solid var(--line);border-radius:10px;background:var(--surface-3);overflow:hidden}
+.sm-spec-code header{display:flex;align-items:center;gap:6px;padding:4px 8px;border-bottom:1px solid var(--line);font:500 11px var(--font-mono);color:var(--ink-2)}
+.sm-spec-code pre{margin:0;border:0;border-radius:0;padding:8px 10px;font-size:12px}
+.sm-spec-fail{padding:10px 12px;border-radius:12px;background:var(--bad-bg);color:var(--bad);font-size:13px}
+.sm-spec-fail.is-warn{background:var(--warn-bg);color:var(--warn-text)}
+.sm-spec-fail b{color:inherit}
+.sm-spec-grow{flex:1}
+.sm-spec-pill{align-self:center;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;background:var(--ink);color:var(--bg);font:500 13px var(--font-sans);box-shadow:var(--shadow-md)}
+</style>
+<h2>Message stream</h2>
+<p>The message stream is everything inside the conversation scroller: user bubbles, grouped agent responses, the work each turn did, the answer and its rich parts. v3 keeps the entry reducers in <code>lib/chat.ts</code> and the grouping in <code>ChatMessages</code>. It adds message actions, a code block with controls, a folded work group that finally mounts <code>RuntimeItem</code>, an inline turn failure card, citations, file cards and tools for long chats.</p>
+<p>Source of truth for today's values: <code>chat-ui-schema.md</code> §3. Target design: the stream boards in the v3 wireframe. Existing visual values come from <code>truex-design-spec.html</code> "4. Messages". Live requests (<code>RequestCard</code>, <code>PlanApprovalCard</code>, <code>QuestionCard</code>) and approval records (<code>ApprovalRecordView</code>) are specified in the Requests part. This part only fixes where they sit in a turn.</p>
+<div class="note">Rules for this part: text under 13px uses <code>--ink-2</code>. Filled buttons with light text use <code>--accent-fg</code>. Spacing, z-index and motion tokens (<code>--sp-*</code>, <code>--z-*</code>, <code>--dur-*</code>, <code>--ease-*</code>) come from the Foundations part. A turn means one user message plus every response group that shares its <code>turnId</code>. "Settled" means the turn is not active: <code>!(running &amp;&amp; isLastGroup)</code>.</div>
+
+<h3 id="sm-tree">Turn anatomy</h3>
+<pre><code>div.scroll[role=log][aria-label="Conversation"][aria-live=off]   follow owner      exists
+├─ ThreadSearchBar           (search open)                      new, derive  P3
+├─ TurnOutline               (desktop ≥1180px, ≥4 turns)        new, derive  P3
+└─ div.thread
+   └─ ChatMessages
+      ├─ article.msg.user#request-{id}      UserMessage + UserActions     exists + new
+      │   └─ CommandResult                  (message.command)             exists
+      ├─ article.msg.agent#turn-{turnId}    AgentMessage                  exists
+      │   ├─ msg-meta                       name + "thinking…" while active
+      │   ├─ ThinkingBlock                  "Thought · N words"           exists, restyled
+      │   ├─ WorkGroup                      folds RuntimeItem rows,       new, derive
+      │   │   ├─ RuntimeItem × n            HelperGroup, ApprovalRecordView
+      │   │   ├─ HelperGroup                                              outside slice
+      │   │   └─ ApprovalRecordView                                       Requests part
+      │   ├─ RequestCard (inline)           once BE-02 turnId exists      Requests part
+      │   ├─ div.answer.markdown            Markdown + CodeBlock + CitationChip
+      │   │   ├─ VisualizationCard          [truex-visualization:ID]      exists, restyled
+      │   │   └─ span.caret                 streaming
+      │   ├─ SourcesList                    message.citations  BE-13      P3
+      │   ├─ FileCard × n                   ConversationFile.turnId BE-14 P3
+      │   ├─ TurnFailureCard                failure for this turn         new, derive
+      │   ├─ AnswerActions                  Copy · Regenerate · Branch · Restore
+      │   ├─ TurnReceipt | LiveUsage                                      Observability part
+      │   └─ SuggestedQuestions             last settled answer only      Composer part
+      └─ StreamingPlaceholder               running, no response group yet
+JumpToLatest pill                           sticky above the composer     new, derive</code></pre>
+
+<h3 id="sm-model">Data model</h3>
+<p>The persisted <code>Message</code> and the display <code>Entry</code> union stay the source for every row. New fields are optional, so today's history keeps rendering. Each new field names the backend item that supplies it. Fields tagged <code>derive</code> are computed on the client from data that exists today.</p>
+
+<div class="comp" id="sm-entry">
+  <header><h4>Entry union and Message</h4><span class="tag exists">exists</span><span class="tag backend">BE-03 BE-12 BE-13 BE-14 BE-15</span><span class="tag phase">P1</span>
+    <span class="path">shared/contracts.ts Message · lib/chat.ts Entry</span></header>
+  <div class="body">
+    <p>The only structural change is two new entry kinds: <code>failure</code> (derive, P1) and <code>file</code> (BE-14, P3). Everything else is additive fields.</p>
+    <h4>Data</h4>
+<pre><code>// shared/contracts.ts
+export interface Message {
+  command?: CommandRecord;
+  _id: string;
+  sessionId: string;
+  role: "user" | "assistant";
+  text: string;
+  at: string;
+  turnId?: string;
+  itemId?: string;
+  clientId?: string;
+  delivery?: "pending" | "accepted" | "failed" | "unknown";
+  steer?: boolean;
+  order?: number;
+  messageIndex?: number;
+  runtimeItemId?: string;
+  // v3 additions
+  citations?: Citation[];          // BE-13
+  checkpointId?: string;           // BE-12, assistant only: snapshot taken before this turn
+  mentions?: { kind: "agent" | "tool" | "file"; id: string; label: string }[]; // BE-15, user only
+  editedFrom?: string;             // BE-03, user only: _id of the message this edit replaced
+}
+
+export interface Citation {        // BE-13
+  index: number;                   // 1-based, matches [^n] in text
+  title: string;                   // "IT handbook › Access requests"
+  source: string;                  // connector or site label, e.g. "Google Drive"
+  locator?: string;                // page, heading or line range
+  url?: string;                    // http(s) only; anything else renders as plain text
+}
+
+// lib/chat.ts
+export type Entry =
+  | {
+      kind: "message";
+      command?: Message["command"];
+      id: string;
+      role: string;
+      text: string;
+      turnId?: string;
+      itemId?: string;
+      aliases?: string[];
+      messageIndex?: number;
+      final?: boolean;
+      done?: boolean;
+      delivery?: string;
+      steer?: boolean;
+      at?: string;                 // derive: copied from Message.at (history) or event time
+      citations?: Citation[];      // BE-13
+      checkpointId?: string;       // BE-12
+      mentions?: Message["mentions"]; // BE-15
+    }
+  | { kind: "thinking"; id: string; turnId?: string; itemId?: string;
+      text: string; summary?: string; raw?: string; done?: boolean }
+  | { kind: "item"; id: string; turnId?: string; item: RuntimeItemData }  // typed, was any
+  | { kind: "agents"; id: string; turnId?: string; threadIds: string[] }
+  | { kind: "approval"; id: string; turnId?: string; record: ApprovalRecord }
+  // new
+  | { kind: "failure"; id: string;              // derive: "failure:{turnId|'none'}"
+      turnId?: string; failure: TurnFailure; ref: ErrorRef; provider?: string }
+  | { kind: "file"; id: string;                 // BE-14: "file:{file.id}"
+      turnId: string; file: ConversationFile };
+
+export interface RuntimeItemData {              // shapes RuntimeItem reads today
+  id: string;
+  type: "commandExecution" | "fileChange" | "mcpToolCall" | string;
+  status?: string;                               // "inProgress" | "completed" | "failed" | other
+  command?: string; aggregatedOutput?: string; exitCode?: number | null;
+  changes?: { path: string; diff?: string; kind: unknown }[];
+  server?: string; tool?: string;
+  arguments?: unknown; result?: unknown;         // mcpToolCall payload, shown as JSON
+  startedAt?: string; completedAt?: string;      // BE-04
+}
+
+export interface ConversationFile {              // shared/assistant-capabilities.ts
+  id: string; name: string; size: number; createdAt: string; mediaType: string;
+  sourceId?: string; kind?: "visualization"; title?: string; description?: string;
+  mode?: "inline" | "wide";
+  turnId?: string;                               // BE-14
+  version?: number;                              // BE-14
+}</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Entry id conventions stay: user <code>clientId || itemId || _id</code>; assistant <code>answer:{turnId}:{itemId|messageIndex|listLength}</code>; thinking <code>thinking:{turnId}:{itemId|"default"}</code>; item <code>item:{turnId}:{item.id}</code>; helpers <code>agents:{turnId|"none"}</code>; approval <code>approval:{requestId}</code>. New: <code>failure:{turnId|"none"}</code>, <code>file:{id}</code>.</li>
+      <li>Flags keep their meaning: <code>final</code> = text complete, <code>done</code> = turn completed, <code>delivery</code> and <code>steer</code> are user only.</li>
+      <li>An unknown <code>citations</code> index or a non-http <code>url</code> never throws. The chip renders as plain text.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>History without any v3 field renders identically to today, apart from the new controls.</li>
+      <li><code>Entry</code> has no <code>any</code>: <code>item</code> is <code>RuntimeItemData</code>.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-pipeline">
+  <header><h4>Raw data to display pipeline</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">lib/chat.ts (reducers) · components/v2/chat-messages.tsx (grouping) · lib/stream-parts.ts (new, per-message parts)</span></header>
+  <div class="body">
+    <p>Three stages. Reducers build <code>Entry[]</code> from history and events. Grouping turns entries into turns. The parts stage turns one assistant message's text into renderable parts. Stages 1 and 2 are pure and unit tested.</p>
+    <h4>Data</h4>
+<pre><code>// Stage 1: reducers (exist). All pure over Entry[].
+historyEntries(messages: Message[]): Entry[]
+upsertMessage(list, value): Entry[]            // identity merge, replay protection
+mergeHistoryEntries(messages, live): Entry[]
+addApprovals(list, records): Entry[]
+addHelpers(list, turnId, threadIds): Entry[]
+applyChatEvent(list, event: DomainEvent): Entry[]
+visibleEntries(entries): Entry[]               // hides shadow streaming copies
+// v3 additions (derive)
+addFailure(list, turnId: string | undefined, failure: TurnFailure, ref: ErrorRef): Entry[]
+clearFailure(list, turnId: string): Entry[]    // on retry or compact success
+addFiles(list, files: ConversationFile[]): Entry[]   // BE-14, only files with turnId
+
+// Stage 2: grouping (derive, replaces inline code in ChatMessages)
+export interface Turn {
+  key: string;                    // user entry id, or "turn:{turnId}" when no user entry
+  turnId?: string;
+  user?: Extract&lt;Entry, { kind: "message" }&gt;;
+  groups: ResponseGroup[];        // usually 1
+  active: boolean;                // running &amp;&amp; last turn
+  index: number;                  // 1-based, for outline and "Turn N"
+}
+export interface ResponseGroup {
+  id: string; turnId?: string;
+  thinking: Extract&lt;Entry, { kind: "thinking" }&gt;[];
+  work: WorkEntry[];              // item + agents + approval, arrival order
+  messages: Extract&lt;Entry, { kind: "message" }&gt;[];
+  files: Extract&lt;Entry, { kind: "file" }&gt;[];
+  failure?: Extract&lt;Entry, { kind: "failure" }&gt;;
+}
+type WorkEntry = Extract&lt;Entry, { kind: "item" | "agents" | "approval" }&gt;;
+export function buildTurns(entries: Entry[], running: boolean): Turn[];
+
+// Stage 3: per-message parts (derive)
+export type StreamPart =
+  | { type: "markdown"; text: string }
+  | { type: "visualization"; id: string };
+export function messageParts(text: string, streaming: boolean): {
+  parts: StreamPart[];            // splitVisualizations(body, streaming)
+  suggestions: string[];          // splitSuggestions(text, streaming)
+  withheld: boolean;              // a partial [truex-visualization:… line was held back
+};</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Stage 1 order is unchanged, including every <code>applyChatEvent</code> row in schema §3.1. <code>kind:"item"</code> entries are no longer dropped in grouping. They go to <code>work</code>.</li>
+      <li>Grouping: each user message starts a turn. Every other entry joins the previous non-user group with the same <code>turnId</code>, else starts a new response group. Thinking in a group merges into one ThinkingBlock (texts joined with <code>\n\n</code>).</li>
+      <li>Order inside a response group: meta, ThinkingBlock, WorkGroup, inline requests, answer messages, SourcesList, file cards, TurnFailureCard, AnswerActions, receipt, follow-ups.</li>
+      <li>Anchors: <code>turn-{turnId}</code> goes on the first response group of a turn. The usage receipt and AnswerActions go on its last group only.</li>
+      <li><code>addFailure</code> places the entry by <code>turnId</code>. Source: the <code>turn.completed</code> or <code>error</code> event run through <code>turnFailure()</code>, with <code>ErrorRef.turnId</code> from the event. With no turnId it attaches to the latest turn. See <a href="#sm-failure">TurnFailureCard</a>.</li>
+      <li>Stage 3 order is fixed: <code>splitSuggestions</code> first, then <code>splitVisualizations</code>, then markdown. Both splitters are fence-aware (``` or ~~~, length-aware). CodeBlock and CitationChip run inside markdown, so a marker in a fence stays code.</li>
+      <li>Memoize <code>buildTurns</code> on <code>entries</code> and <code>running</code>, and <code>messageParts</code> per entry on <code>text</code> and <code>streaming</code>.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li><code>buildTurns</code> puts a <code>commandExecution</code> item in <code>work</code> of its turn, not in a new group.</li>
+      <li>A <code>[truex-visualization:&lt;uuid&gt;]</code> line inside a code fence renders as code.</li>
+      <li>A late delta after <code>message.final</code> does not change text (replay protection kept).</li>
+      <li>A failure event with no turnId attaches to the last turn; with a turnId it attaches to that turn even if newer turns exist.</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="sm-list">ChatMessages and following</h3>
+
+<div class="comp" id="sm-messages">
+  <header><h4>ChatMessages</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/chat-messages.tsx → components/v2/chat-messages.tsx · parent app/page.tsx div.scroll &gt; div.thread</span></header>
+  <div class="body">
+    <p>Renders the whole conversation as turns: user bubbles and grouped agent responses. v3 swaps the inline grouping for <code>buildTurns</code>, renders work items, and adds actions and the failure card.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td><code>.thread</code></td><td>max-width 740px, centered, matches the composer width</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Root <code>div.chat-messages</code></td><td>column; gap between turns 28px (<code>--sp-7</code>)</td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Gap inside a turn (user to agent)</td><td>16px (<code>--sp-4</code>)</td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Gap between blocks in <code>.grow</code></td><td>10px, from <code>.steps</code> margin-bottom 10px today</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Enter animation</td><td><code>.msg.agent</code> <code>rise .3s ease-out</code>; none with reduced motion</td><td><span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>interface ChatMessagesProps {
+  entries: Entry[];
+  agentName: string;
+  agentHue?: string;                 // avatar bg; default --accent-soft-2
+  running: boolean;
+  onCommand?: (text: string) =&gt; void;
+  onOpen?: (id: string) =&gt; void;
+  onRefresh?: () =&gt; void;
+  sessionId?: string;
+  onPrompt?: (text: string) =&gt; void;
+  goal?: Goal | null;
+  goalReview?: GoalReview | null;
+  subAgents?: SubAgentState;         // default emptySubAgents
+  onOpenAgent?: (threadId: string) =&gt; void;
+  onSuggest?: (question: string) =&gt; void;
+  suggestionsEnabled?: boolean;      // default true
+  traces?: TurnTrace[];              // default []
+  liveUsage?: Record&lt;string, TurnUsage&gt;; // default {}
+  // v3 additions
+  pending?: PendingRequest[];        // inline request cards (Requests part)
+  provider?: string;                 // for providerTip on failure cards
+  readOnly?: boolean;                // BE-09: hides edit, regenerate, branch, restore
+  onRetryMessage?: (entry: Entry) =&gt; void;       // derive: resend a failed user message by clientId
+  onEdit?: (messageId: string, text: string) =&gt; void; // BE-03
+  onRegenerate?: (turnId: string) =&gt; void;        // BE-03
+  onBranch?: (turnId: string) =&gt; void;            // BE-03
+  onRestore?: (checkpointId: string) =&gt; void;     // BE-12
+  onRetryTurn?: (turnId?: string) =&gt; void;        // resume, see failure card
+  onCompact?: () =&gt; void;                         // thread/compact/start
+  searchQuery?: string;              // highlight hits (ThreadSearch)
+  openGroups?: Set&lt;string&gt;;          // WorkGroups the reader opened
+  onToggleGroup?: (id: string, open: boolean) =&gt; void;
+}</code></pre>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Condition</th><th>Output</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Empty conversation</td><td>page <code>empty</code></td><td>Hero with composer, not ChatMessages</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Waiting for first output</td><td><code>running</code> and last turn has no response group</td><td><a href="#sm-placeholder">StreamingPlaceholder</a></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Thinking streaming</td><td>active, no answer text, some thinking not done</td><td>"thinking…" meta + ThinkingBlock with spinner</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Working</td><td>active, no answer text, thinking done</td><td>"thinking…" meta + open WorkGroup (or "Working" row if no items)</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Answer streaming</td><td>active, message <code>!final &amp;&amp; !done</code></td><td>markdown + caret; AnswerActions hidden</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Answer complete</td><td><code>final</code> or <code>done</code></td><td>markdown, AnswerActions, receipt, follow-ups if last</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Partial answer</td><td><code>done &amp;&amp; !final</code> and a failure or stop</td><td><a href="#sm-partial">Partial answer</a></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Turn failed</td><td>group has a <code>failure</code> entry</td><td><a href="#sm-failure">TurnFailureCard</a></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Visualization without session</td><td><code>sessionId</code> missing</td><td>"Open this conversation to view the visualization."</td><td><span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>"Active" = <code>running &amp;&amp; turn is last</code>. "Answering" = any message in the group has non-empty text.</li>
+      <li>Ordering is arrival order from the reducers. The component never sorts by time. Inline request cards render at the end of the work area of the turn that owns them (BE-02 <code>turnId</code>). Until then they render after the latest turn, as today.</li>
+      <li>Keys: turn <code>key</code>, group <code>id</code>, entry <code>id</code>. Never array index.</li>
+      <li>Rendering cost: settled turns are wrapped in <code>React.memo</code> keyed on their entries. Only the active turn re-renders on each delta.</li>
+      <li>Page wiring kept: <code>onPrompt</code> and <code>onCommand</code> fill the composer and focus it, they do not send. <code>onSuggest</code> sends. <code>suggestionsEnabled = !busy &amp;&amp; !goalMode &amp;&amp; !failure &amp;&amp; !pending.length</code>.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul>
+      <li>The scroller keeps <code>role=log</code>, <code>aria-label="Conversation"</code>, <code>aria-live=off</code>. Streaming text is not announced token by token.</li>
+      <li>A polite live region (<code>#sm-live</code>, <code>.sr-only</code>) announces once per turn: "{agentName} replied." when the answer goes final, "{agentName} stopped." on stop, and "{failure label}." on failure.</li>
+      <li>Each <code>article</code> keeps its aria-label: "Your message", "{agentName} response".</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>A 200-turn chat re-renders only the last turn per delta (React profiler).</li>
+      <li>The live region speaks once when an answer finishes, not per delta.</li>
+      <li>Runtime items render inside their turn's WorkGroup.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-follow">
+  <header><h4>Auto-follow and turn anchors</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">app/page.tsx .scroll follow logic → lib/use-stream-follow.ts (new hook, same rules)</span></header>
+  <div class="body">
+    <p>Keeps the newest output in view while the reader is at the bottom, and stops as soon as they scroll away.</p>
+    <h4>Data</h4>
+<pre><code>export function useStreamFollow(ref: RefObject&lt;HTMLElement&gt;, deps: {
+  entries: Entry[]; pending: PendingRequest[];
+}): {
+  following: boolean;
+  missed: number;                   // entries added while not following (JumpToLatest)
+  jump(): void;                     // scroll to bottom, following = true, missed = 0
+  scrollToTurn(turnId: string): void;
+};
+export const FOLLOW_THRESHOLD = 80; // px, exists</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>On scroll: <code>following = scrollHeight - scrollTop - clientHeight &lt; 80</code>. Unchanged.</li>
+      <li>When <code>entries</code> or <code>pending</code> change and following is true, jump to the bottom with <code>behavior: "instant"</code>. Unchanged.</li>
+      <li>When not following, count new entries (by id, not by delta) into <code>missed</code>.</li>
+      <li>Sending a message always sets following to true and jumps.</li>
+      <li>Opening a WorkGroup, code block or visual above the viewport must not jump the reader. Use CSS <code>overflow-anchor: auto</code> on <code>.scroll</code> (browser default) and never call scroll from these toggles.</li>
+      <li><code>scrollToTurn</code>: find <code>#turn-{turnId}</code>, set <code>tabIndex=-1</code>, scroll with <code>block: "start"</code> (smooth, instant with reduced motion), then focus with <code>preventScroll</code>. Used by the outline, search and the goal timeline.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Scrolling up 81px during streaming stops follow; the view does not move as text arrives.</li>
+      <li>Scrolling back within 80px of the bottom resumes follow.</li>
+      <li>Opening a folded group above the viewport keeps the visible text in place.</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="sm-user-h">User message</h3>
+
+<div class="comp" id="sm-user">
+  <header><h4>UserMessage and delivery states</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/chat-messages.tsx UserMessage (extract from ChatMessages)</span></header>
+  <div class="body">
+    <p>The person's message as a dark bubble on the right, with a meta line that carries delivery state.</p>
+    <div class="specimen" aria-hidden="true"><div class="sm-spec"><div class="sm-spec-user"><div class="sm-spec-bar"><span class="sm-spec-btn">Copy</span><span class="sm-spec-btn is-be">Edit and resend</span></div><div class="sm-spec-bubble">Add a week-two access checklist.</div><span class="sm-spec-note">Sent 10:14</span></div></div></div>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td><code>article.msg.user#request-{id}</code></td><td>flex, <code>justify-content: flex-end</code></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>.bubble-wrap</code></td><td>column, align end, gap 6px, max-width 80%</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>.goal-tag</code></td><td><code>commandLabel(method)</code> + target icon, when method starts with <code>thread/goal/</code></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>.bubble</code></td><td>padding 10px 14px, radius <code>16px 16px 4px 16px</code>, 14px/1.5, <code>white-space: pre-wrap</code>, <code>overflow-wrap: anywhere</code></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Mention chip in bubble</td><td>inline, padding 0 4px, radius 4px, 500 weight</td><td><span class="tag backend">BE-15</span></td></tr>
+    <tr><td><code>.msg-note</code></td><td>12px, flex, gap 4px, icon 12</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Long message clamp</td><td>over 12 lines: clamp to 12 with "Show more"</td><td><span class="tag proposal">proposal</span> D-NEW-S1</td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>bubble bg</dt><dd><code>--ink</code></dd><dt>bubble text</dt><dd><code>--bg</code></dd><dt>pending</dt><dd>bubble opacity .6</dd><dt>note</dt><dd><code>--ink-2</code>; failed and unknown: <code>--bad</code></dd><dt>mention chip</dt><dd>bg <code>color-mix(in srgb, var(--bg) 18%, transparent)</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Pending</td><td><code>delivery === "pending"</code></td><td>bubble .6 opacity, 10px spinner in note</td><td>"Sending…"</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Accepted</td><td><code>delivery === "accepted"</code> or history</td><td>check icon 12 + time</td><td>"Sent {h:mm}"</td><td><span class="tag derive">derive</span> (uses <code>at</code>)</td></tr>
+    <tr><td>Failed</td><td><code>delivery === "failed"</code></td><td>alert icon, bad tone, Retry link</td><td>"Not sent" · "Retry"</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Unknown</td><td>any other value</td><td>alert icon, bad tone, Retry link</td><td>"Delivery unconfirmed" · "Retry"</td><td><span class="tag exists">exists</span> copy, Retry derive</td></tr>
+    <tr><td>Follow-up</td><td><code>steer</code></td><td>prefix in note, joined with " · "</td><td>"Follow-up"</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Command</td><td><code>command</code></td><td>CommandResult below the bubble</td><td></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Edited</td><td><code>editedFrom</code></td><td>note suffix</td><td>"Edited"</td><td><span class="tag backend">BE-03</span></td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Bubble text stays plain text. No markdown in user bubbles (schema §3.18 notes it; v3 keeps it plain so code a person pastes is shown as typed).</li>
+      <li>Retry resends the same text with the same <code>clientId</code>, so the server dedupes. It is shown only when the page is not busy.</li>
+      <li>Time format: <code>h:mm</code> in the viewer's locale, today only; older days prefix the date as in the activity timeline ("Yesterday", "Sep 3").</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Note text is part of the article, so a screen reader reads "Your message, … Sending…". Retry is a <code>button.link</code> with <code>aria-label="Retry sending this message"</code>.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Pending bubble is dimmed with "Sending…"; it becomes "Sent 10:14" when accepted.</li>
+      <li>Retry on a failed message does not create a duplicate on the server.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-user-actions">
+  <header><h4>UserActions</h4><span class="tag derive">derive</span><span class="tag backend">BE-03</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/message-actions.tsx (new) · used by UserMessage and AgentMessage</span></header>
+  <div class="body">
+    <p>A small toolbar that appears above the bubble on hover or focus. Copy works today. Edit and resend needs BE-03.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>toolbar</dt><dd><code>div[role=toolbar]</code>, flex, gap 2px, sits above the bubble aligned right; reserved height 26px so hover does not shift layout</dd><dt>button</dt><dd>26px tall ghost, padding 0 8px, radius 7px, icon 14 + label 12px/500; on phones icon only, 32×32 hit area</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>text</dt><dd><code>--ink-2</code></dd><dt>hover bg</dt><dd><code>--surface-3</code></dd><dt>fade</dt><dd>opacity 0 → 1, <code>--dur-1</code> <code>--ease-std</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Action</th><th>Shown when</th><th>Effect</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Copy</td><td>always</td><td><code>navigator.clipboard.writeText(entry.text)</code>; label "Copied" for 2s; "Select to copy" if blocked</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Edit and resend</td><td><code>onEdit</code>, not read-only, not running, not a command</td><td>Bubble becomes a textarea with Cancel and "Send edit". Send calls BE-03 edit endpoint: truncates after this message and reruns the turn</td><td><span class="tag backend">BE-03</span></td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Visible on <code>:hover</code> of the article and on <code>:focus-within</code>. Always visible on touch (<code>@media (hover: none)</code>).</li>
+      <li>Edit confirm: when later turns exist, "Send edit" warns inline "This replaces the {n} turns after this message." before sending.</li>
+      <li>Hidden without BE-03: the Edit button is not rendered (not disabled) until the endpoint ships.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li><code>role=toolbar</code>, <code>aria-label="Message actions"</code>. Tab reaches the first button; arrow keys move within. Copy result is announced via a <code>role=status</code> span: "Copied to clipboard".</li><li>In edit mode Esc cancels, Mod+Enter sends.</li></ul>
+    <h4>Copy</h4>
+    <p>"Copy", "Copied", "Select to copy", "Edit and resend", "Cancel", "Send edit", "This replaces the {n} turns after this message."</p>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Tabbing into a user message shows the toolbar without hover.</li>
+      <li>Hovering a message does not shift any layout.</li>
+      <li>Edit is absent when the backend flag is off or the viewer is read-only.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-command">
+  <header><h4>CommandResult and commandLabel</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/command-result.tsx · rendered right after a user message with command</span></header>
+  <div class="body">
+    <p>The result card for slash commands: goal, fork, compact, settings, archive and help. Logic and copy are kept. v3 aligns it to the stream column and uses the shared chip tones.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>markup</dt><dd><code>section.command-result.command-{state}[aria-label="{label} result"] &gt; header &gt; span.eyebrow + span.ag-chip[role=status]</code>, then <code>p</code> summary, <code>p[role=alert]</code> error, <code>dl</code> details, <code>div.command-actions</code> of <code>button.btn-soft</code></dd><dt>frame</dt><dd>aligned to the agent column (left edge at 38px = avatar 26 + gap 12); radius 12px, border 1px, padding 12px 14px <span class="tag proposal">proposal</span> D-01</dd><dt>details</dt><dd><code>dl</code> as 2-column grid, dt 12px <code>--ink-2</code></dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>frame</dt><dd>bg <code>--surface</code>, border <code>--line</code></dd><dt>eyebrow</dt><dd>11px mono uppercase, <code>--ink-2</code></dd><dt>error</dt><dd><code>--bad</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>state</th><th>Chip text</th><th>Chip class</th></tr></thead><tbody>
+    <tr><td>running</td><td>Awaiting confirmation (+ spinner)</td><td><code>is-running</code></td></tr>
+    <tr><td>succeeded</td><td>Confirmed</td><td><code>is-done</code></td></tr>
+    <tr><td>failed</td><td>Failed</td><td><code>is-warn</code></td></tr>
+    <tr><td>unknown</td><td>Unconfirmed</td><td><code>is-stopped</code></td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>export function commandLabel(method: string): string
+// "help" → "Chat commands"; "thread/goal/*" → "Goal";
+// "thread/fork" → "Conversation branch"; "thread/compact/start" → "Context";
+// "thread/settings/update" → "Settings"; "thread/archive" → "Archive";
+// "thread/unarchive" → "Restore"; else "Command"
+interface CommandResultProps {
+  command: CommandRecord;
+  currentGoal?: Goal | null;
+  goalReview?: GoalReview | null;
+  onCommand?: (text: string) =&gt; void;
+  onOpen?: (id: string) =&gt; void;
+  onRefresh?: () =&gt; void;
+}</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Succeeded summaries: help text; "Goal cleared."; goal objective or "No goal is set."; "Your new conversation branch is ready."; "Context compaction requested. Completion will appear in the conversation activity."; "Conversation archived."; "Conversation restored."; else "Conversation settings updated." Running adds "Waiting for the command result."</li>
+      <li>Details for goals: Status (live via <code>goalStateLabel</code> when <code>sameGoal</code>, else "Status at this update"), Time spent, Tokens used, Token budget. For settings: Model, Reasoning effort.</li>
+      <li>Actions: live goal → "Check goal status" (<code>/goal show</code>) and "Clear goal…" (<code>/goal clear</code>); <code>result.sessionId</code> → "Open conversation branch"; running or unknown → "Check saved result" (<code>onRefresh</code>).</li>
+      <li>A live command state <code>succeeded|failed</code> replaces a saved <code>running|unknown</code> on history merge (kept).</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Each of the 4 states shows its chip text and class.</li>
+      <li><code>/fork</code> success shows "Open conversation branch" and opens the new session.</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="sm-agent-h">Agent message and answer</h3>
+
+<div class="comp" id="sm-agent">
+  <header><h4>AgentMessage</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/chat-messages.tsx AgentMessage (extract) · article.msg.agent</span></header>
+  <div class="body">
+    <p>One response group: avatar, name, and the stacked blocks of the turn. It owns the anchor id and the answer action bar.</p>
+    <div class="specimen" aria-hidden="true"><div class="sm-spec"><div class="sm-spec-agent"><span class="sm-spec-av">✦</span><div class="sm-spec-col"><b>Agent name</b><div class="sm-spec-row">Thought · 84 words</div><div class="sm-spec-row">Read 3 docs, ran 1 command, edited 1 file</div><div>Week two now opens with an access checklist.</div><div class="sm-spec-bar"><span class="sm-spec-btn">Copy</span><span class="sm-spec-btn is-be">Regenerate</span><span class="sm-spec-btn is-be">Branch</span></div></div></div></div></div>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td><code>article.msg.agent</code></td><td>flex, gap 12px; <code>id="turn-{turnId}"</code> on the first group of a turn; <code>tabIndex=-1</code> when anchored</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>.agent-avatar</code></td><td>26×26, radius 8px, <code>spark</code> 13 / stroke 2; robot look uses <code>&lt;Robot size={24}&gt;</code> on the tint bg</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>.grow</code></td><td>column, <code>min-width: 0</code> so code and tables scroll inside</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>.msg-meta</code></td><td>flex, gap 8px, baseline, margin-bottom 6px; name 500 <code>--ink</code>; "thinking…" <code>.muted.sm</code> while active; time 12px after the name once settled</td><td><span class="tag exists">exists</span>, time <span class="tag derive">derive</span></td></tr>
+    <tr><td><code>.answer</code></td><td>14px, line-height 1.65</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>.caret</code></td><td>7×15, margin-left 2px, <code>vertical-align:-2px</code>, radius 2px, <code>blink 1s steps(2) infinite</code></td><td><span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>avatar bg</dt><dd><code>agentHue</code> or <code>--accent-soft-2</code>; icon <code>--accent-ink</code></dd><dt>name</dt><dd><code>--ink</code></dd><dt>meta</dt><dd><code>--ink-2</code></dd><dt>answer</dt><dd><code>--ink</code></dd><dt>caret</dt><dd><code>--accent</code></dd></dl>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Block order is fixed by <a href="#sm-pipeline">the pipeline</a>. A block with no data renders nothing, not an empty frame.</li>
+      <li>Multiple assistant messages in one group render as consecutive <code>.answer</code> blocks with 10px gap. AnswerActions copy all of them joined with <code>\n\n</code>.</li>
+      <li>The caret goes after the last text node of the streaming message, never inside a code block or visual (append it to the last markdown part only).</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li><code>aria-label="{agentName} response"</code>. <code>aria-busy="true"</code> while active. Avatar is <code>aria-hidden</code>.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Only the first group of a turn carries <code>id="turn-{turnId}"</code>.</li>
+      <li>A wide table inside the answer scrolls horizontally inside the answer at 400px.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-markdown">
+  <header><h4>Markdown rendering</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/markdown.tsx (new wrapper over react-markdown + remark-gfm)</span></header>
+  <div class="body">
+    <p>Assistant markdown with GFM: tables, task lists, strikethrough and autolinks. v3 adds element overrides for code, links, tables and citation markers.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Element</th><th>Rule</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>p, ul, ol</td><td>margin 0 0 10px; last child margin 0; list padding-left 20px</td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>h1-h3</td><td>rendered at 16 / 15 / 14px, 600; margin 16px 0 6px. No page-level h1 inside a message</td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>inline code</td><td>12.5px mono, <code>--surface-3</code> bg, 1px <code>--line</code>, radius 5px, padding 1px 5px</td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>fenced code</td><td><a href="#sm-code">CodeBlock</a></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>table</td><td>wrapped in <code>div.md-table[tabindex=0][role=region][aria-label="Table"]</code> with <code>overflow-x:auto</code>; 13px, cell padding 6px 10px, border <code>--line</code></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>a</td><td><code>--accent-fg</code>, underline; external links get <code>target=_blank rel="noopener noreferrer"</code></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>task list</td><td>disabled checkboxes, read-only</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>blockquote</td><td>border-left 3px <code>--line-strong</code>, padding-left 12px, <code>--ink-2</code></td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td><code>[^n]</code> / <code>[n]</code> marker</td><td><a href="#sm-citations">CitationChip</a> when <code>citations</code> has index n; else literal text</td><td><span class="tag backend">BE-13</span></td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>No raw HTML: keep react-markdown defaults (no <code>rehype-raw</code>). Link <code>href</code> allowed schemes: http, https, mailto. Anything else renders as text.</li>
+      <li>Images: only <code>https:</code> sources, <code>loading="lazy"</code>, max-width 100%. <span class="tag proposal">proposal</span> D-NEW-S2</li>
+      <li>Streaming: markdown re-parses on each delta for the active message only. An unclosed fence renders as a code block in progress (no controls until the closing fence arrives).</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li><code>&lt;script&gt;</code> in model text renders as text.</li>
+      <li>A <code>javascript:</code> link renders as plain text.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-answer-actions">
+  <header><h4>AnswerActions</h4><span class="tag derive">derive</span><span class="tag backend">BE-03 BE-12</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/message-actions.tsx · last response group of a settled turn</span></header>
+  <div class="body">
+    <p>Action row under a settled answer: Copy, Regenerate, Branch from here and Restore checkpoint. The receipt line sits to the right of it on desktop and below it on phones.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>row</dt><dd>flex, gap 2px, margin-top 8px; same buttons as <a href="#sm-user-actions">UserActions</a> (26px ghost, icon 14, label 12px/500)</dd><dt>receipt</dt><dd>right aligned, 12px mono <code>--ink-2</code>, from TurnReceipt (Observability part)</dd><dt>visibility</dt><dd>the last settled turn always shows it; older turns show it on hover or focus</dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Action</th><th>Shown when</th><th>Effect</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Copy</td><td>answer has text</td><td>Copies raw markdown of the group's messages with the suggestions block and visualization marker lines removed</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Regenerate</td><td>last turn, not running, not read-only, <code>onRegenerate</code></td><td>BE-03 rerun turn; the old answer is replaced when the new one starts</td><td><span class="tag backend">BE-03</span></td></tr>
+    <tr><td>Branch from here</td><td>not read-only, <code>onBranch</code>, turn has <code>turnId</code></td><td><code>thread/fork</code> at <code>turnId</code> (BE-03); opens the new session via <code>onOpen</code></td><td><span class="tag backend">BE-03</span></td></tr>
+    <tr><td>Restore checkpoint</td><td><code>checkpointId</code> set, not read-only, not running</td><td>Confirm dialog, then BE-12 restore; files return to the state before this turn</td><td><span class="tag backend">BE-12</span> P3</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Buttons whose backend is missing are not rendered. Feature flags: <code>regenerate</code>, <code>branchAtTurn</code>, <code>checkpoints</code> (D-03 for P3).</li>
+      <li>Hidden while the turn is active or while a request is pending on it.</li>
+      <li>Restore dialog copy: title "Restore files to before this turn?", body "Files changed after this point go back to how they were. The conversation stays as it is.", buttons "Cancel", "Restore". <span class="tag proposal">proposal</span> D-NEW-S3</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li><code>role=toolbar</code> <code>aria-label="Response actions"</code>; arrow keys inside. Status after Copy: "Copied to clipboard". After Branch: focus moves to the new session's composer.</li></ul>
+    <h4>Copy</h4>
+    <p>"Copy", "Copied", "Regenerate", "Branch from here", "Restore checkpoint".</p>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>Copy output has no <code>[truex-suggestions]</code> block and no <code>[truex-visualization:…]</code> lines.</li>
+      <li>Regenerate appears only on the last turn.</li>
+      <li>A read-only viewer sees Copy only.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-code">
+  <header><h4>CodeBlock</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/code-block.tsx (new) · react-markdown <code>code</code>/<code>pre</code> override</span></header>
+  <div class="body">
+    <p>Fenced code with a header: language label, Copy and Wrap, and a collapse for long blocks.</p>
+    <div class="specimen" aria-hidden="true"><div class="sm-spec"><div class="sm-spec-code"><header>markdown<span class="sm-spec-grow"></span>Wrap · Copy</header><pre><code>## Week 2: access
+- [ ] Qlik Cloud analyst role</code></pre></div></div></div>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Frame <code>figure.code-block</code></td><td>margin 10px 0, radius 10px, border 1px, overflow hidden</td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Header</td><td>height 30px, padding 0 6px 0 12px, border-bottom 1px; label 11px mono 500; buttons 24px ghost, 12px</td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Body <code>pre</code></td><td>12.5px/1.6 mono, padding 10px 12px, <code>overflow-x:auto</code>, <code>tab-size: 2</code></td><td><span class="tag proposal">proposal</span> D-01</td></tr>
+    <tr><td>Collapse</td><td>over 30 lines: show first 20, fade 24px, button "Show {n} more lines"</td><td><span class="tag proposal">proposal</span> D-08</td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>frame bg</dt><dd><code>--surface-3</code></dd><dt>border</dt><dd><code>--line</code></dd><dt>label</dt><dd><code>--ink-2</code></dd><dt>fade</dt><dd><code>linear-gradient(transparent, var(--surface-3))</code></dd><dt>syntax</dt><dd>token classes map to <code>--t0</code> (keyword), <code>--t1</code> (string), <code>--t2</code> (number), <code>--ink-2</code> (comment), <code>--ink</code> (default); no theme CSS from the library</dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Streaming</td><td>fence not closed yet</td><td>plain text, no header buttons, no highlighting</td><td></td></tr>
+    <tr><td>Ready</td><td>fence closed</td><td>highlighted, header buttons</td><td></td></tr>
+    <tr><td>Collapsed</td><td>&gt;30 lines, default</td><td>first 20 lines + fade</td><td>"Show {n} more lines"</td></tr>
+    <tr><td>Expanded</td><td>click</td><td>all lines</td><td>"Show fewer lines"</td></tr>
+    <tr><td>Wrapped</td><td>Wrap toggle</td><td><code>white-space: pre-wrap</code></td><td>"Wrap" (pressed)</td></tr>
+    <tr><td>Copied</td><td>Copy</td><td>label swaps for 2s</td><td>"Copied" / "Select to copy"</td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>interface CodeBlockProps {
+  code: string;            // fence contents, trailing newline trimmed
+  lang?: string;           // first word of the fence info string, lowercased
+  closed: boolean;         // closing fence seen
+}
+export const CODE_COLLAPSE_LINES = 30;  // D-08
+export const CODE_PREVIEW_LINES = 20;   // D-NEW-S4</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Language label: <code>lang</code> as written, or "text" when missing.</li>
+      <li>Highlighting library <span class="tag proposal">proposal</span> D-NEW-S5: <code>shiki</code> with the JS regex engine and a lazy-loaded grammar per language, run after the fence closes. Fallback when the grammar is unknown or loading fails: plain text. Blocks over 2000 lines skip highlighting.</li>
+      <li>Fence awareness: <code>splitSuggestions</code> and <code>splitVisualizations</code> run on the raw text first and already skip fenced lines (``` and ~~~, length-aware). CodeBlock only receives what markdown parsed as a fence, so a marker inside a fence is shown as code and never becomes a visual. Both splitters and the markdown parser must agree on fence rules: add a shared test fixture.</li>
+      <li>Copy copies <code>code</code> exactly, not the highlighted HTML and not only the visible lines.</li>
+      <li>Wrap and collapse state are per block and reset on reload.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li><code>pre</code> is <code>tabindex=0</code> with <code>aria-label="{lang} code"</code> so it scrolls with the keyboard. Wrap is <code>aria-pressed</code>. Expand button has <code>aria-expanded</code>.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>A 31-line block shows 20 lines and "Show 11 more lines"; a 30-line block is not collapsed.</li>
+      <li>Copy on a collapsed block copies all 31 lines.</li>
+      <li>Syntax colors change with theme with no library theme CSS loaded.</li>
+      <li>A <code>[truex-visualization:&lt;uuid&gt;]</code> line inside ~~~ stays code.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-thinking">
+  <header><h4>ThinkingBlock</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/thinking-block.tsx · restyled as a thought row</span></header>
+  <div class="body">
+    <p>Reasoning as one collapsible row. There is no duration in the data, so the row shows a word count.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>markup</dt><dd><code>ul.steps.thinking[data-open] &gt; li[.is-done] &gt; button.step-toggle[aria-expanded][aria-controls]</code> + <code>li.thinking-body#{useId}[hidden]</code></dd><dt>row</dt><dd>flex, gap 8px, padding 6px 10px, radius 12px, 13px; spinner 10px or step-mark 16px with check 11</dd><dt>count</dt><dd><code>span.mono.sm</code> 12px</dd><dt>body</dt><dd>serif italic (<code>--font-accent</code>) 14px/1.6, padding 8px 12px, max-height 320px then scrolls, <code>white-space: pre-wrap</code> <span class="tag proposal">proposal</span> D-01</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>row</dt><dd>bg <code>--surface</code>, border <code>--line</code>, text <code>--ink-2</code></dd><dt>body</dt><dd><code>--ink-2</code></dd><dt>count</dt><dd><code>--ink-2</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Hidden</td><td>empty text and not streaming</td><td>returns null</td><td></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Streaming</td><td><code>streaming</code></td><td>spinner, no count</td><td>"Thinking"; body placeholder "Thinking…"</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Done</td><td>all thinking done</td><td>check mark, count</td><td>"Thought · {n} word(s)"</td><td><span class="tag derive">derive</span> (today "Thinking")</td></tr>
+    <tr><td>Duration</td><td>BE-11 thinking duration</td><td>replaces the count</td><td>"Thought for {n}s"</td><td><span class="tag backend">BE-11</span> P3</td></tr>
+    <tr><td>Collapsed / expanded</td><td>click; default collapsed</td><td>chevron rotates 90deg</td><td></td><td><span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>interface ThinkingBlockProps {
+  text: string;            // group thinking texts joined with "\n\n"; text = raw || summary
+  streaming?: boolean;
+  durationMs?: number;     // BE-11
+}
+// word count: text.trim().split(/\s+/).filter(Boolean).length; "1 word" / "{n} words"</code></pre>
+    <h4>Behavior</h4>
+    <ul><li>Body is plain text, no markdown. Open state is local; opening does not scroll the stream.</li><li>Never show a duration without BE-11.</li></ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Toggle is a button: Enter and Space. <code>aria-expanded</code>, <code>aria-controls</code> point at the body id.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A finished 84-word thought shows "Thought · 84 words"; one word shows "1 word".</li><li>No duration text appears without BE-11.</li></ul>
+  </div>
+</div>
+
+<h3 id="sm-work-h">Work group and tool rows</h3>
+
+<div class="comp" id="sm-workgroup">
+  <header><h4>WorkGroup</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/work-group.tsx (new) · holds RuntimeItem, HelperGroup, ApprovalRecordView</span></header>
+  <div class="body">
+    <p>Everything a turn did before the answer, folded to one summary line. It stays open while the turn runs and folds once the turn settles.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td>Frame <code>section.work-group</code></td><td>margin 0 0 10px, border 1px, radius 12px (today's <code>.steps</code> values)</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Summary <code>button.work-toggle</code></td><td>min-height 36px, padding 0 12px, gap 8px, 13px. Left: summary text. Right: helper avatars (18px <code>.h-av.xs</code>, overlap -4px, max 3 then "+n"), total time 12px mono, chevron 14</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Rows</td><td><code>ul</code>, each row border-top 1px, padding 8px 12px</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Older settled turn</td><td>frame border dashed, bg transparent</td><td><span class="tag derive">derive</span></td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>frame</dt><dd>bg <code>--surface</code>, border <code>--line</code></dd><dt>summary text</dt><dd><code>--ink-2</code>; failed count <code>--bad</code></dd><dt>time</dt><dd><code>--ink-2</code></dd><dt>older</dt><dd>border <code>--line-strong</code> dashed</dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Hidden</td><td><code>work</code> empty</td><td>not rendered; while active the "Working" row shows instead</td><td>"Working"</td></tr>
+    <tr><td>Running</td><td>turn active</td><td>open, spinner left of the summary, last row live</td><td>"Working · {summary}"</td></tr>
+    <tr><td>Settled, latest turn</td><td>not active, last turn</td><td>folded, solid frame</td><td>"{summary}"</td></tr>
+    <tr><td>Settled, older turn</td><td>any earlier turn</td><td>folded, dashed frame</td><td>"{summary}"</td></tr>
+    <tr><td>Opened by reader</td><td>click</td><td>stays open until page reload (<code>openGroups</code> in page state)</td><td></td></tr>
+    <tr><td>Has failure</td><td>a row with <code>status === "failed"</code> or <code>exitCode ≠ 0</code></td><td>alert icon, bad count</td><td>", {n} failed"</td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>interface WorkGroupProps {
+  id: string;                 // "work:{groupId}"
+  entries: WorkEntry[];       // arrival order
+  active: boolean;
+  older: boolean;             // not the latest turn
+  open?: boolean; onToggle?: (open: boolean) =&gt; void;
+  subAgents: SubAgentState; sessionId?: string;
+  onOpenAgent?: (threadId: string) =&gt; void;
+}
+// summary: counts by type in this fixed order, joined with ", ", then " · {h} helper(s)"
+//   mcpToolCall      → "called {n} tool(s)"
+//   commandExecution → "ran {n} command(s)"
+//   fileChange       → "edited {n} file(s)"   (n = distinct paths across changes)
+//   approval         → "{n} approval(s)"
+//   other            → "{n} step(s)"
+// first letter capitalized. Example: "Called 3 tools, ran 1 command, edited 1 file · 2 helpers"</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Open by default while active. It folds 600ms after the turn settles, so the fold does not jump mid-read. <span class="tag proposal">proposal</span> D-NEW-S6. With reduced motion it folds at once.</li>
+      <li>A reader's toggle beats the default for the rest of the page session.</li>
+      <li>The wireframe says "Read 3 docs". Tool verbs need a tool category that the data does not carry, so v3 says "called {n} tools". A verb map by tool name is D-NEW-S8.</li>
+      <li>Total time = last <code>completedAt</code> − first <code>startedAt</code> (BE-04). Hidden without BE-04. The receipt still shows turn time.</li>
+      <li>Search hits inside a folded group open it (see <a href="#sm-search">ThreadSearch</a>).</li>
+      <li>Rows update live only with BE-04 item events. Without BE-04 the group fills from <code>item.started</code> and <code>item.completed</code>, as the reducer does today.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Toggle is a button with <code>aria-expanded</code> and <code>aria-controls</code>. The summary text is its accessible name. Nothing inside is announced live except a failed row, which announces "Command failed" or "Tool call failed".</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>A settled turn with 3 MCP calls, 1 command, 1 file edit and 2 helpers reads "Called 3 tools, ran 1 command, edited 1 file · 2 helpers".</li>
+      <li>An older group the reader opened stays open after new turns arrive.</li>
+      <li>A turn with no work entries shows no WorkGroup frame.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-runtime">
+  <header><h4>RuntimeItem</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/runtime-item.tsx → components/v2/runtime-item.tsx · mounted by WorkGroup (unmounted today)</span></header>
+  <div class="body">
+    <p>One typed row per Codex runtime item. The component exists but nothing imports it today. v3 mounts it inside WorkGroup and gives each type its own row.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Type</th><th>Row (collapsed)</th><th>Body (open)</th><th>Icon</th></tr></thead><tbody>
+    <tr><td><code>commandExecution</code></td><td>"Ran a command" + <code>command</code> in 12px mono with ellipsis, exit pill "exit {exitCode}", time</td><td><code>pre</code> of <code>aggregatedOutput</code>, max-height 240px then scrolls. "Waiting for output…" while empty and running. <code>small</code> "Exit code {N}"</td><td><code>term</code></td></tr>
+    <tr><td><code>fileChange</code></td><td>"Edited {path}" (first path, then "+{n} files"), "+{a} −{d}" counted from diff lines</td><td>per change <code>b{path}</code> + <code>pre{diff}</code> with + and − lines tinted; no diff → JSON of <code>kind</code></td><td><code>file</code></td></tr>
+    <tr><td><code>mcpToolCall</code></td><td>"{server} · {tool}", time</td><td><code>pre</code> pretty JSON of the item</td><td><code>plug</code></td></tr>
+    <tr><td>other</td><td>raw <code>type</code></td><td><code>pre</code> pretty JSON of the item</td><td><code>layers</code></td></tr>
+    <tr><td><code>agentMessage</code>, <code>userMessage</code>, <code>reasoning</code></td><td colspan="3">returns null (kept)</td></tr>
+    </tbody></table></div>
+    <dl class="kv"><dt>row</dt><dd>native <code>details &gt; summary</code>, flex, gap 8px, 13px, min-height 32px, icon 14</dd><dt>exit pill</dt><dd>height 18px, padding 0 6px, radius 999px, 11px mono</dd><dt>output</dt><dd>12px/1.5 mono, padding 8px 10px, radius 8px</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>icon, meta</dt><dd><code>--ink-2</code></dd><dt>exit 0</dt><dd>bg <code>--ok-bg</code>, text <code>--ok-text</code></dd><dt>exit ≠ 0, failed</dt><dd>bg <code>--bad-bg</code>, text <code>--bad</code></dd><dt>diff + line</dt><dd>bg <code>--ok-bg</code></dd><dt>diff − line</dt><dd>bg <code>--bad-bg</code></dd><dt>output</dt><dd>bg <code>--surface-3</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th><code>status</code></th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td><code>inProgress</code></td><td>10px spinner replaces the icon</td><td>"Running"</td></tr>
+    <tr><td><code>completed</code></td><td>icon; exit pill for commands</td><td>"exit {exitCode}"</td></tr>
+    <tr><td><code>failed</code></td><td>alert icon, bad tone, opens by default</td><td>"Failed"</td></tr>
+    <tr><td>missing or other</td><td>icon, raw status 12px</td><td><code>{status}</code></td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>interface RuntimeItemProps { item: RuntimeItemData }   // was { item: any }
+// exitCode null or undefined → no pill</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Collapsed by default. A failed item or non-zero exit opens by default.</li>
+      <li>Output over 400 lines shows the last 400 with "Show all {n} lines". <span class="tag proposal">proposal</span> D-NEW-S7</li>
+      <li>Row time: <code>completedAt − startedAt</code> (BE-04). While running, <code>&lt;LiveDuration trend={1}&gt;</code> from <code>startedAt</code>. Hidden without BE-04.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Summary is focusable; Enter and Space toggle. The exit pill is real text, not color only. Output <code>pre</code> is <code>tabindex=0</code>.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li><code>exitCode: 1</code> shows a bad "exit 1" pill and the row opens.</li>
+      <li>An unknown type shows its raw type and a JSON body.</li>
+      <li>A reasoning item renders nothing.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-helpers">
+  <header><h4>HelperGroup and request placement</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">HelperGroup: Agents part · ApprovalRecordView and RequestCard: Requests part</span></header>
+  <div class="body">
+    <p><code>kind:"agents"</code> entries render <code>HelperGroup</code> and <code>kind:"approval"</code> entries render <code>ApprovalRecordView</code>. Both are rows inside the WorkGroup, in arrival order. Helpers also feed the summary avatars. Live <code>RequestCard</code>s render after the WorkGroup of their turn once BE-02 <code>turnId</code> exists. Until then they render after the latest turn. This part does not restyle them.</p>
+  </div>
+</div>
+
+<div class="comp" id="sm-plansteps">
+  <header><h4>PlanSteps and StepMark</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/plan-steps.tsx · parents PlanApprovalCard, PlanPanel · StepMark also used for goal checkpoints and the thought row</span></header>
+  <div class="body">
+    <p>A read-only step list and its mark. Kept as is. v3 reuses StepMark in ThinkingBlock.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>StepMark</dt><dd><code>span.step-mark[.is-done]</code> 16×16 circle: check 11 / stroke 2.5 (done), <code>span.spinner</code> 10px (current), <code>span.cp-dot</code> (pending)</dd><dt>PlanSteps</dt><dd><code>ol.pl-list &gt; li.pl-item[.is-done][.is-current][aria-current=step]</code> → StepMark + <code>div.pl-label</code> + <code>div.pl-status</code></dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>mark</dt><dd>bg <code>--surface-3</code>, color <code>--accent-fg</code>; done bg <code>--accent-soft</code></dd><dt>spinner</dt><dd>border <code>--line-strong</code>, top <code>--accent</code></dd></dl>
+    <h4>Data</h4>
+<pre><code>export function StepMark(props: { state: "done" | "current" | "pending" })
+export function PlanSteps(props: { plan: PlanStep[] })
+export type PlanStatus = "pending" | "inProgress" | "completed";
+export interface PlanStep { step: string; status: string } // normalized by stepStatus()
+// planProgress(plan) → { done, total, current, label: "{done} of {total} done" }</code></pre>
+    <h4>Copy</h4>
+    <p>Status labels: completed "Done", current "In progress", pending "Pending". <code>statusText</code> in <code>lib/plan.ts</code> says "Completed" for the same state. Both stay as they are; PlanSteps uses "Done".</p>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Status reads as mark plus text, never color alone.</li><li>The current step has <code>aria-current="step"</code>.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-duration">
+  <header><h4>LiveDuration</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/live-duration.tsx · used by ExpiryTimer, goal and agent components, and v3 running tool rows</span></header>
+  <div class="body">
+    <p>Rolling elapsed or countdown time. Kept as is.</p>
+    <h4>Data</h4>
+<pre><code>props: { ms: number; className?: string; trend?: 1 | -1 } // 1 elapsed, -1 countdown</code></pre>
+    <h4>Behavior</h4>
+    <ul><li>Markup: <code>time.live-duration[dateTime="PT{h}H{m}M{s}S"]</code> with <code>span.visually-hidden</code> plain text (<code>formatDuration</code>) and an aria-hidden <code>span.live-duration-digits</code> of <code>@number-flow/react</code> digits (<code>m:ss</code> or <code>h:mm:ss</code>, tens digit capped at 5).</li><li>Keep the Skiper UI attribution comment in the file.</li><li>With reduced motion the digits swap without rolling.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Screen readers get plain text, not each digit.</li></ul>
+  </div>
+</div>
+<h3 id="sm-rich-h">Citations and rich parts</h3>
+
+<div class="comp" id="sm-citations">
+  <header><h4>CitationChip and SourcesList</h4><span class="tag backend">BE-13</span><span class="tag phase">P3</span>
+    <span class="path">components/v2/citations.tsx (new) · markdown override + block under the answer</span></header>
+  <div class="body">
+    <p>Numbered chips in the answer text that link to a sources list under the answer. Needs <code>citations[]</code> on the message (BE-13). Ships behind a flag (D-03).</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>chip</dt><dd><code>a.cite</code> inline-flex, min-width 16px, height 16px, padding 0 4px, radius 5px, 10.5px mono 600, <code>vertical-align: 2px</code>, margin 0 1px; hit area padded to 24px with a transparent outline box</dd><dt>list</dt><dd><code>section.sources[aria-labelledby]</code>, margin-top 10px, eyebrow "Sources" 11px mono uppercase, then <code>ol</code> of rows: number 12px mono + title 13px/500 + " · " + source 12px; locator after the title in <code>--ink-2</code></dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>chip</dt><dd>bg <code>--accent-soft</code>, text <code>--accent-fg</code>; hover bg <code>color-mix(in srgb, var(--accent) 18%, transparent)</code></dd><dt>list meta</dt><dd><code>--ink-2</code></dd><dt>row target flash</dt><dd>bg <code>--accent-soft</code> for <code>--dur-4</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th></tr></thead><tbody>
+    <tr><td>No citations</td><td>field missing or empty</td><td>markers render as literal text; no list</td></tr>
+    <tr><td>Chip</td><td>marker <code>[^n]</code> with a matching <code>index</code></td><td>numbered chip</td></tr>
+    <tr><td>Streaming</td><td>message not final</td><td>chips render; the list appears when the message is final</td></tr>
+    <tr><td>Linked source</td><td><code>url</code> is http(s)</td><td>title is an external link</td></tr>
+    <tr><td>Unlinked source</td><td>no <code>url</code></td><td>title as plain text</td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>// Message.citations?: Citation[]   // BE-13, see Data model
+// marker syntax in text: [^n], n = Citation.index
+// Chip href="#src-{entryId}-{n}"; list row id="src-{entryId}-{n}"</code></pre>
+    <h4>Behavior</h4>
+    <ul><li>Click a chip: scroll the row into view in the stream (do not change follow state), flash it, move focus to it. Hover or focus a chip: tooltip with the title and source after 300ms.</li><li>The list order is by <code>index</code>. Duplicate indexes keep the first.</li><li>Copy of the answer turns chips back into <code>[n]</code> and appends the list as plain text.</li></ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Chip <code>aria-label="Source {n}: {title}"</code>. List heading is "Sources" with an id for <code>aria-labelledby</code>.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A marker with no matching citation stays literal text.</li><li>Clicking chip 1 focuses source row 1 and the stream does not stop following if it was at the bottom and the row is visible.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-visual">
+  <header><h4>VisualizationCard</h4><span class="tag exists">exists</span><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/visualization.tsx · helpers lib/visualization.ts · inline in answers and in AssistantTools</span></header>
+  <div class="body">
+    <p>A sandboxed, interactive widget authored by the model. v3 keeps the loader, sandbox and postMessage protocol. It moves the four buttons into one overflow menu and shows the description as a visible text alternative.</p>
+    <h4>Anatomy and sizes</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Part</th><th>Value</th><th>Tag</th></tr></thead><tbody>
+    <tr><td><code>figure.visualization.visualization-{mode}</code></td><td>margin 12px 0; radius 12px, border 1px; <code>inline</code> fits the answer column, <code>wide</code> breaks out to the thread width (740px)</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td><code>figcaption</code></td><td>row: <code>strong{title}</code> 14px/600 + status 12px + overflow button 28×28 (right)</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td><code>iframe</code></td><td>width 100%, height default 360px, then <code>clamp(height + 4, 160, 900)</code> px from <code>resize</code></td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Loading skeleton</td><td>reserves 360px so the stream does not jump; shimmer off with reduced motion</td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Text alternative</td><td><code>p.viz-alt</code> under the frame, 13px, from <code>description</code></td><td><span class="tag derive">derive</span></td></tr>
+    <tr><td>Follow-up proposal</td><td><code>div.visualization-question &gt; strong{title} + p{prompt}</code> + "Add to my message" (<code>btn-solid</code>) + "Dismiss" (<code>btn-soft</code>)</td><td><span class="tag exists">exists</span></td></tr>
+    <tr><td>Expanded</td><td><code>dialog.visualization-dialog</code> via <code>showModal</code>, with <code>h2</code> title</td><td><span class="tag exists">exists</span></td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>frame</dt><dd>bg <code>--surface</code>, border <code>--line</code></dd><dt>skeleton</dt><dd><code>--surface-3</code></dd><dt>timeout, runtime error</dt><dd>bg <code>--warn-bg</code>, text <code>--warn-text</code></dd><dt>fetch error</dt><dd>bg <code>--bad-bg</code>, text <code>--bad</code></dd><dt>inside the iframe</dt><dd><code>visualizationDocument()</code> maps theme via <code>light-dark()</code> to <code>--background</code>, <code>--foreground</code>, <code>--muted-foreground</code>, <code>--border</code>, <code>--primary</code>, <code>--destructive</code>, <code>--viz-series-1..6</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Loading</td><td>fetch in flight</td><td>360px skeleton, <code>p[role=status]</code></td><td>"Loading visual…"</td></tr>
+    <tr><td>Fetch error</td><td>GET fails</td><td><code>div.visualization-error[role=alert]</code>, bad tone, in the frame slot</td><td>"This visual could not be loaded. {error}"</td></tr>
+    <tr><td>Preparing</td><td>srcdoc set, no <code>ready</code> yet</td><td>skeleton stays</td><td>"Preparing visual…"</td></tr>
+    <tr><td>Loaded</td><td><code>ready</code> message</td><td>frame at reported height</td><td></td></tr>
+    <tr><td>Timeout</td><td>no <code>ready</code> within 12s</td><td>warn strip above the frame + Reload</td><td>"The visual may not have rendered correctly. Try reloading or ask Truex to revise it."</td></tr>
+    <tr><td>Runtime error</td><td><code>error</code> message</td><td>same warn strip</td><td>same copy</td></tr>
+    <tr><td>Expanded</td><td>menu "Expand"</td><td>modal dialog</td><td>"Close expanded view"</td></tr>
+    <tr><td>No session</td><td><code>sessionId</code> missing</td><td>plain paragraph</td><td>"Open this conversation to view the visualization."</td></tr>
+    </tbody></table></div>
+    <h4>Data</h4>
+<pre><code>props: { sessionId: string; id: string; onPrompt?: (text: string) =&gt; void }
+// GET /api/sessions/{sessionId}/visualizations/{id} → Visualization
+export interface Visualization { id: string; title: string; description: string;
+  html: string; mode: "inline" | "wide" }
+export interface VisualizationState { modelContent: unknown; privateContent: unknown }
+// saved state: localStorage["truex-visualization:{sessionId}:{id}"], only modelContent /
+// privateContent keys, ≤ 16 KiB
+// postMessage from iframe: channel "truex-visualization", origin "null"
+//   ready → clear 12s timer, loaded = true
+//   error → runtime error strip
+//   resize {height} → height = clamp(height + 4, 160, 900)
+//   state {state} → ref + localStorage
+//   followup {prompt ≤ 2000, title ≤ 250} → follow-up proposal</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Sandbox unchanged: <code>iframe[sandbox="allow-scripts"][referrerPolicy=no-referrer]</code>, strict CSP (no network, no frames, inline only, <code>img-src data:</code>), all device permissions denied. Never add <code>allow-same-origin</code>.</li>
+      <li>Accept messages only when <code>event.source === iframe.contentWindow</code>, origin <code>"null"</code> and the channel matches.</li>
+      <li>Overflow menu (<a href="#nv-popover">Popover</a> primitive) items in order: "Expand", "Reload visual" (rebuilds srcdoc), "Download HTML" (<code>truex-visualization.html</code> via <code>visualizationExport</code>), "Ask about this visual" (only with <code>onPrompt</code>; fills the composer with "Explain the current view and selected values." plus title, ID and selected values).</li>
+      <li>The 12s timer restarts on Reload.</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li><code>iframe title="{title}"</code>. <code>aria-describedby</code> points at <code>p.viz-alt</code>. Overflow button <code>aria-label="Visual options"</code>, <code>aria-haspopup="menu"</code>. Dialog: Esc closes and focus returns to the overflow button.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li>A <code>resize</code> of 50 gives a 160px frame; 2000 gives 900px.</li>
+      <li>No <code>ready</code> after 12s shows the warn strip; Reload clears it and restarts the timer.</li>
+      <li>The stream does not shift when a visual loads at 360px.</li>
+      <li>A message from another window with the same channel is ignored.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-file">
+  <header><h4>FileCard and canvas link</h4><span class="tag backend">BE-14</span><span class="tag phase">P3</span>
+    <span class="path">components/v2/file-card.tsx (new) · kind:"file" entries · uses DocumentIcon</span></header>
+  <div class="body">
+    <p>A conversation file shown in the turn that made it. <code>ConversationFile</code> has no <code>turnId</code> today, so the stream cannot place it. Needs BE-14.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>card</dt><dd>flex, gap 10px, padding 10px 12px, radius 12px, border 1px, max-width 360px, margin 8px 0</dd><dt>icon</dt><dd>DocumentIcon 32px tile, radius 8px, icon 16</dd><dt>text</dt><dd><code>strong{name}</code> 13px/500 ellipsis; <code>small</code> 12px "{kind label} · {KB} KB[ · Revised version]"</dd><dt>actions</dt><dd>"Open in canvas" (BE-14), "Download" link; 28px ghost buttons</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>card</dt><dd>bg <code>--surface</code>, border <code>--line</code></dd><dt>icon tile</dt><dd>bg <code>--accent-soft</code>, icon <code>--accent-fg</code></dd><dt>meta</dt><dd><code>--ink-2</code></dd></dl>
+    <h4>Data</h4>
+<pre><code>// ConversationFile (see Data model); new: turnId, version (BE-14)
+// Download: GET {base}/api/sessions/{id}/documents/{fileId}     exists
+// Canvas:   GET {base}/api/sessions/{id}/documents/{fileId}/versions   BE-14
+// KB = Math.max(1, Math.round(size / 1024))
+// "Revised version" when sourceId is set</code></pre>
+    <h4>Behavior</h4>
+    <ul><li>Files with <code>kind: "visualization"</code> are not file cards. They render as VisualizationCard.</li><li>"Open in canvas" opens the side canvas (a new surface, BE-14). Until BE-14 ships the card is not in the stream at all; files stay in the AssistantTools list.</li><li>A new version of the same <code>sourceId</code> in a later turn gets its own card; the older card shows "Older version".</li></ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Card is a <code>div</code> with two real controls; icon is decorative. Download link <code>aria-label="Download {name}"</code>.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A revised file shows "Revised version" in its meta line.</li><li>No file card renders without <code>turnId</code>.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-doc">
+  <header><h4>DocumentIcon and document kinds</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/document-icon.tsx · lib/document-kind.ts</span></header>
+  <div class="body">
+    <p>Maps a file name to a kind, a label and an icon. Kept as is.</p>
+    <h4>Data</h4>
+<pre><code>export function DocumentIcon(props: { name: string; size: number }) // decorative
+export function documentKind(name: string): { kind: DocumentKind; label: string }
+export type DocumentKind = "code" | "text" | "sheet" | "slides" | "document";
+export const uploadAccept =
+  ".pdf,.docx,.xlsx,.pptx,.txt,.md,.csv,.tsv,.abap,.cds,.json,.xml,.yaml,.sql,.js,.ts";
+// icon map: sheet → table, slides → chart, code / text / document → doc</code></pre>
+    <div class="tw"><table class="tbl"><thead><tr><th>Extension</th><th>Kind</th><th>Label</th></tr></thead><tbody>
+    <tr><td>pdf</td><td>document</td><td>PDF</td></tr>
+    <tr><td>docx</td><td>document</td><td>Word</td></tr>
+    <tr><td>xlsx</td><td>sheet</td><td>Excel</td></tr>
+    <tr><td>pptx</td><td>slides</td><td>PowerPoint</td></tr>
+    <tr><td>csv / tsv</td><td>sheet</td><td>CSV / TSV</td></tr>
+    <tr><td>txt / md</td><td>text</td><td>Text / Markdown</td></tr>
+    <tr><td>abap, cds, js, ts, json, xml, yaml/yml, sql, html, properties, java, py, sh</td><td>code</td><td>ABAP, CDS, JavaScript, TypeScript, JSON, XML, YAML, SQL, HTML, Properties, Java, Python, Shell</td></tr>
+    <tr><td>other</td><td>document</td><td>uppercased extension, or "File"</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul><li><code>uploadAccept</code> is narrower than the recognized list (no html, java, py, sh, yml, properties uploads). Keep it; files the model writes can still be any recognized kind.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li><code>report.XLSX</code> is kind sheet, label Excel (case-insensitive).</li><li><code>notes.foo</code> shows label "FOO".</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-tools">
+  <header><h4>AssistantTools (documents and saved visuals)</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/assistant-tools.tsx · parent app/page.tsx side panel (~L1556)</span></header>
+  <div class="body">
+    <p>The side-panel list of conversation documents and saved visuals, with upload. v3 keeps its data and copy. QuickTools inside it is removed (see Composer part). Capability shortcuts move to the empty-chat hero (Shell part). Its placement as a panel tab belongs to the Shell part; this block fixes its contents.</p>
+    <h4>Data</h4>
+<pre><code>props: { sessionId?: string; refreshKey: number; running: boolean;
+  onPrompt: (text: string) =&gt; void; onFork: (id: string) =&gt; void }
+// GET /api/sessions/{id}/documents →
+//   { files: ConversationFile[]; available: boolean; visualizationAvailable: boolean }
+// refetch on sessionId / refreshKey</code></pre>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>No session</td><td>"Send your first message to start a conversation, then upload documents here."</td></tr>
+    <tr><td>Not available</td><td>"Start a new conversation to enable document tools."</td></tr>
+    <tr><td>Uploading</td><td>label "Uploading…", input disabled (also while running)</td></tr>
+    <tr><td>Too large</td><td>"Choose a document of up to 1 MB."</td></tr>
+    <tr><td>Error</td><td><code>p.error-banner[role=alert]</code></td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Upload: accept <code>uploadAccept</code>, 1 MB per file, base64 POST, then <code>onPrompt('Read the uploaded document "{name}" and summarize its key points.')</code>. Help text "PDF, Word, Excel, PowerPoint, text, or code · 1 MB per file. …" kept.</li>
+      <li>Document row: DocumentIcon + name + "{kind label} · {KB} KB[ · Revised version]" + "Discuss" (<code>onPrompt('Read the document "{name}" (file ID {id}) and help me with: ')</code>) + download link. "Refresh documents" outline button.</li>
+      <li>Visuals: availability note, hint text, rows with "Open visual" / "Hide visual" toggling an inline VisualizationCard.</li>
+      <li>The composer attach button (Composer part) uses the same upload call.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A 1.2 MB file shows "Choose a document of up to 1 MB." and is not sent.</li><li>"Discuss" fills, not sends, the composer.</li></ul>
+  </div>
+</div>
+<h3 id="sm-fail-h">Failures and partial answers</h3>
+
+<div class="comp" id="sm-failure">
+  <header><h4>TurnFailureCard</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/turn-failure.tsx (new) · kind:"failure" entries · uses lib/goal-errors.ts and ErrorRef</span></header>
+  <div class="body">
+    <p>The failure sits inside the turn that broke, not in a banner at the bottom. Today failed turns only reach the page error banner, the goal bar and the activity timeline.</p>
+    <div class="specimen" aria-hidden="true"><div class="sm-spec"><div class="sm-spec-fail is-warn"><b>Conversation too long</b><br>Compacting summarizes earlier turns so the work can continue.</div><div class="sm-spec-fail"><b>Out of credits</b><br>The model provider account has no usage or credits left.</div></div></div>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>card</dt><dd><code>div.turn-failure[role=alert]</code>, radius 12px, padding 12px 14px, margin 10px 0, border 1px, column gap 6px</dd><dt>head</dt><dd>alert icon 16 + <code>strong{label}</code> 14px/600</dd><dt>hint</dt><dd>13px/1.5</dd><dt>tip</dt><dd><code>providerTip</code> 13px, prefixed by the provider name in 500 weight</dd><dt>actions</dt><dd>row, gap 8px: primary action (<code>btn-soft</code>, 30px) + ErrorRef right aligned</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>warn tone</dt><dd>bg <code>--warn-bg</code>, border <code>color-mix(in srgb, var(--warn) 35%, transparent)</code>, text <code>--warn-text</code>. Used by <code>rateLimited</code>, <code>contextWindow</code></dd><dt>bad tone</dt><dd>bg <code>--bad-bg</code>, border <code>color-mix(in srgb, var(--bad) 35%, transparent)</code>, text <code>--bad</code>. Used by <code>quota</code>, <code>credentials</code>, <code>providerDown</code>, <code>other</code></dd><dt>ref</dt><dd><code>--ink-2</code></dd></dl>
+    <h4>States: the ErrorReason table</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>reason</th><th>Label</th><th>Hint</th><th>Action</th><th>Retry</th><th>Tip</th><th>Tone</th></tr></thead><tbody>
+    <tr><td><code>rateLimited</code></td><td>Rate limited</td><td>The model provider is limiting requests right now. Wait a moment, then resume.</td><td>"Retry" (resume)</td><td>yes; after BE-21 reset time, disabled with a countdown until then</td><td>no</td><td>warn</td></tr>
+    <tr><td><code>quota</code></td><td>Out of credits</td><td>The model provider account has no usage or credits left.</td><td>none</td><td>no</td><td>yes</td><td>bad</td></tr>
+    <tr><td><code>credentials</code></td><td>Access denied</td><td>The model provider rejected the configured credentials.</td><td>none; "Reconnect {provider}" with BE-NEW-S1</td><td>no</td><td>yes</td><td>bad</td></tr>
+    <tr><td><code>providerDown</code></td><td>Provider unavailable</td><td>The model provider is unavailable or the connection dropped. Resume to try again.</td><td>"Retry" (resume)</td><td>yes</td><td>no</td><td>bad</td></tr>
+    <tr><td><code>contextWindow</code></td><td>Conversation too long</td><td>The conversation no longer fits the model's context window. Compacting summarizes earlier turns so the work can continue.</td><td>"Compact" (<code>thread/compact/start</code>)</td><td>no</td><td>no</td><td>warn</td></tr>
+    <tr><td><code>other</code></td><td>Stopped by an error</td><td>shows <code>failure.message</code></td><td>"Retry" (resume)</td><td>yes</td><td>no</td><td>bad</td></tr>
+    </tbody></table></div>
+    <h4>providerTip</h4>
+    <p>Only for <code>quota</code> and <code>credentials</code>, matched on the agent's provider name. Strings are facts from <code>lib/goal-errors.ts</code>:</p>
+    <div class="tw"><table class="tbl"><thead><tr><th>Match</th><th>quota</th><th>credentials</th></tr></thead><tbody>
+    <tr><td><code>/openrouter/i</code></td><td>Check credits on OpenRouter. Free models have low daily request limits.</td><td>Check the OpenRouter API key in the model profile.</td></tr>
+    <tr><td><code>/bedrock|amazon|aws/i</code></td><td>Check the Bedrock service quotas for this model in the AWS console.</td><td>Check the IAM permissions and model access for this Bedrock model.</td></tr>
+    <tr><td><code>/openai/i</code></td><td>Check usage and billing in the OpenAI platform dashboard.</td><td>Check the OpenAI API key and its project access.</td></tr>
+    <tr><td><code>/anthropic|claude/i</code></td><td>Check usage and billing in the Anthropic Console.</td><td>Check the Anthropic API key in the model profile.</td></tr>
+    <tr><td><code>/gemini|google|vertex/i</code></td><td>Check quotas in Google AI Studio or the Google Cloud console.</td><td>Check the Google API key and its access to this model.</td></tr>
+    <tr><td>fallback</td><td>Ask your administrator to check the provider account's usage and billing.</td><td>Ask your administrator to check the API key and model permissions in the model profile.</td></tr>
+    </tbody></table></div>
+    <div class="note warn">The wireframe's tip strings ("OpenRouter: add credits in account settings…", "Google Vertex: the service account key was revoked…") and the codes <code>quota_exceeded</code>, <code>req_c21e08b4</code> are sample content. Build with the strings above and the codes from <code>ErrorRef</code>.</div>
+    <h4>Data</h4>
+<pre><code>export type ErrorReason =
+  | "rateLimited" | "quota" | "credentials" | "providerDown" | "contextWindow" | "other";
+export interface TurnFailure { reason: ErrorReason; message: string; httpStatus?: number }
+export interface ErrorRef { code?: string; requestId?: string; turnId?: string }
+turnFailure(error): TurnFailure                     // unknown reason → "other"
+providerTip(provider: string, reason: ErrorReason): string | undefined
+interface TurnFailureCardProps {
+  failure: TurnFailure; ref: ErrorRef; provider?: string;
+  canRetry: boolean;                 // !readOnly &amp;&amp; !running
+  onRetry?: () =&gt; void; onCompact?: () =&gt; void;
+  resetAt?: string;                  // BE-21, rateLimited only
+}
+export const RETRY_ALLOWED: Record&lt;ErrorReason, boolean&gt; = {
+  rateLimited: true, quota: false, credentials: false,
+  providerDown: true, contextWindow: false, other: true,
+};</code></pre>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Placement: the <code>failure</code> entry for the turn's <code>turnId</code> (from the event or <code>ErrorRef.turnId</code>). With no turnId it attaches to the latest turn. A guaranteed turnId on every failure event is BE-NEW-S2.</li>
+      <li>Retry: with BE-05 it resumes the turn. Until then it resends the turn's user message text as a new message. Retry and Compact clear the card when the next turn starts (<code>clearFailure</code>).</li>
+      <li>A goal failure (<code>goalFailure(status, failure)</code>, only while goal status is <code>blocked</code> or <code>usageLimited</code>) keeps showing in the GoalBar too. The action there is "Resume goal", not Retry.</li>
+      <li>The page error banner stays for page-level errors that have no turn (load, send, command). A turn failure no longer also shows the banner.</li>
+      <li>Stop by the person is not a failure: no card, see <a href="#sm-partial">Partial answer</a>.</li>
+      <li>Follow-ups are hidden while a failure is the latest turn state (<code>!failure</code> is already in <code>suggestionsEnabled</code>).</li>
+    </ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li><code>role=alert</code> only for a failure that arrives live. Cards from history render with no role so reloads do not announce. The action button gets focus only if focus was in the stream.</li></ul>
+    <h4>Copy</h4>
+    <p>"Retry", "Compact", "Reconnect {provider}" (BE-NEW-S1), rate-limit countdown "Retry in {m:ss}" (BE-21).</p>
+    <h4>Acceptance</h4>
+    <ul class="chk">
+      <li><code>quota</code> shows label, hint and the matching providerTip, and no Retry.</li>
+      <li><code>contextWindow</code> shows Compact only.</li>
+      <li><code>other</code> shows <code>failure.message</code> as the hint.</li>
+      <li>A failure for turn 5 renders in turn 5 when turn 6 exists.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-errorref">
+  <header><h4>ErrorRef</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/error-ref.tsx · used by RequestCard, the page error banner and TurnFailureCard</span></header>
+  <div class="body">
+    <p>A muted support reference with Copy.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>markup</dt><dd><code>span.error-ref &gt; span.error-ref-text.mono "Ref: {text}" + button.link.error-ref-copy + span.sr-only[role=status]</code></dd><dt>size</dt><dd>12px mono text, 12px link</dd><dt>tokens</dt><dd>text <code>--ink-2</code>, link <code>--accent-fg</code></dd></dl>
+    <h4>Data</h4>
+<pre><code>props: { value: ErrorRef | null | undefined }
+// renders nothing if no code, requestId or turnId
+// text = [code, requestId ?? turnId].filter(Boolean).join(" · ")   → "code · requestId"</code></pre>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Link</th><th>Screen reader</th></tr></thead><tbody>
+    <tr><td>Idle</td><td>"Copy"</td><td></td></tr>
+    <tr><td>Copied (2s)</td><td>"Copied"</td><td>"Reference copied"</td></tr>
+    <tr><td>Clipboard blocked (2s)</td><td>"Select to copy"</td><td></td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul><li>Page error banner: <code>div.error-banner[role=alert] &gt; span.error-banner-body{error + ErrorRef} + button[aria-label="Dismiss error"] "×"</code>. Kept for errors without a turn.</li><li>The text is <code>user-select: all</code> so "Select to copy" works in one click.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li><code>{ code, turnId }</code> with no requestId shows "Ref: {code} · {turnId}".</li><li>Empty ref renders nothing.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-partial">
+  <header><h4>Partial answer</h4><span class="tag derive">derive</span><span class="tag backend">BE-05</span><span class="tag phase">P2</span>
+    <span class="path">components/v2/chat-messages.tsx · answer footer state</span></header>
+  <div class="body">
+    <p>The turn is done but its message never went final. Keep the text, mark it and offer Retry.</p>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>Case</th><th>Condition</th><th>Visual</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Failed mid-answer</td><td><code>done &amp;&amp; !final</code> and a failure entry</td><td>text kept; last paragraph fades 24px; warn pill under the text; failure card follows</td><td>"Answer may be incomplete"</td></tr>
+    <tr><td>Stopped</td><td><code>done &amp;&amp; !final</code>, turn ended by Stop</td><td>text kept; muted pill</td><td>"Stopped"</td></tr>
+    <tr><td>Done, no failure, not final</td><td>provider ended without <code>message.final</code></td><td>text kept, warn pill + Retry</td><td>"Answer may be incomplete" · "Retry"</td></tr>
+    <tr><td>Completed with errors</td><td>BE-05 <code>TurnTrace.status</code></td><td>pill uses the trace status</td><td>"Completed with {n} error(s)"</td></tr>
+    </tbody></table></div>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>warn pill</dt><dd>bg <code>--warn-bg</code>, text <code>--warn-text</code>, height 22px, radius 999px, 12px/500</dd><dt>stopped pill</dt><dd>bg <code>--surface-3</code>, text <code>--ink-2</code></dd></dl>
+    <h4>Behavior</h4>
+    <ul><li>Retry follows the failure card's rule (resume with BE-05, resend before). When a failure card is present, only the card shows Retry, not the pill.</li><li>How the page knows a turn was stopped: <code>turn.completed</code> status (the timeline already labels "Request stopped"). Carry that into the thinking and message <code>done</code> update.</li><li>The caret disappears as soon as <code>done</code> is set.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A turn that failed after 40 words keeps the 40 words and shows the pill and the card.</li><li>Pressing Stop shows "Stopped", no failure card.</li></ul>
+  </div>
+</div>
+
+<h3 id="sm-live-h">Streaming</h3>
+
+<div class="comp" id="sm-placeholder">
+  <header><h4>StreamingPlaceholder</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/chat-messages.tsx · div.msg.agent placeholder</span></header>
+  <div class="body">
+    <p>Shows the agent is working before any response group exists.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>markup</dt><dd><code>div.msg.agent</code> with avatar, meta "{agentName}" + "thinking…", and <code>ul.steps[role=status] &gt; li &gt; span.spinner + "Working"</code></dd><dt>size</dt><dd>same as AgentMessage; <code>.steps</code> padding 10px 12px, radius 12px, 13px</dd></dl>
+    <h4>Behavior</h4>
+    <ul><li>Shown when <code>running</code> and the last turn has no response group (or there are no turns).</li><li>The real article replaces it in place with no height jump: both share avatar and meta row.</li><li>Waiting for a request with no turnId (before BE-02): the "Working" copy becomes "Waiting for you" and the row links to the request card. <span class="tag proposal">proposal</span> D-07</li></ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li><code>role=status</code> on the steps list: "Working" is announced once.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Sending a message shows the placeholder within one frame.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-shadow">
+  <header><h4>Shadow message and withheld partial visual line</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">lib/chat.ts visibleEntries · lib/visualization.ts splitVisualizations</span></header>
+  <div class="body">
+    <p>Two existing guards that stop flicker. v3 keeps both and names them so they are tested.</p>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Shadow message: <code>visibleEntries</code> hides a streaming assistant message when a final message in the same turn starts with the same text (some providers replay). Two completed messages stay distinct even if identical.</li>
+      <li>Withheld line: while streaming, a partial trailing <code>[truex-visualization:…</code> line is held back until the line completes. Then it becomes a visualization part (reserving 360px) or, if it does not match <code>^ {0,3}\[truex-visualization:&lt;uuid&gt;\]\s*$</code>, plain markdown.</li>
+      <li>Suggestions block: <code>[truex-suggestions] … [/truex-suggestions]</code> is removed from the body while streaming too, so it never flashes as text.</li>
+      <li>The caret stays at the end of the visible text while a line is withheld.</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A replayed provider message does not show twice.</li><li>A half-streamed <code>[truex-visualization:ab12</code> is never visible as text.</li><li>A non-matching completed line (for example with trailing text) renders as text.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-followups">
+  <header><h4>Follow-ups placement</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">SuggestedQuestions is specified in the Composer part (<a href="#cp-suggest">SuggestedQuestions</a>) · placement here</span></header>
+  <div class="body">
+    <p>Follow-ups render under the last settled answer, after the action row and receipt, and nowhere else.</p>
+    <h4>Behavior</h4>
+    <ul>
+      <li>Condition (kept): <code>onSuggest &amp;&amp; suggestionsEnabled &amp;&amp; !running &amp;&amp; isLastTurn &amp;&amp; lastAnswer.final</code>, with <code>suggestionsEnabled = !busy &amp;&amp; !goalMode &amp;&amp; !failure &amp;&amp; !pending.length</code>.</li>
+      <li>Source: <code>splitSuggestions</code>, max 3 items, each ≤160 chars, fence-aware.</li>
+      <li>Older turns never show their follow-ups.</li>
+      <li>Selecting one sends it (<code>askSuggestion</code>). The wireframe note says "fills the composer"; today it sends. Keep sending. <span class="tag proposal">proposal</span> D-NEW-S9</li>
+    </ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>No follow-ups while a request is pending or the turn failed.</li></ul>
+  </div>
+</div>
+<h3 id="sm-long-h">Long-chat navigation</h3>
+<p>All four tools are client-side over the loaded entries. None of them needs backend work except content search beyond loaded history (BE-16).</p>
+
+<div class="comp" id="sm-jump">
+  <header><h4>JumpToLatest pill</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">components/v2/jump-to-latest.tsx (new) · reads useStreamFollow</span></header>
+  <div class="body">
+    <p>Appears when the reader is more than 80px from the bottom. It counts what arrived since and resumes following on click.</p>
+    <div class="specimen" aria-hidden="true"><div class="sm-spec"><span class="sm-spec-pill">↓ Jump to latest · 6 new</span></div></div>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>pill</dt><dd>height 30px, padding 0 12px, radius 999px, gap 6px, 13px/500, chevd icon 14; centered, 12px above the composer; <code>position: sticky</code> inside <code>.scroll</code>, <code>z-index: var(--z-sticky)</code></dd><dt>motion</dt><dd>fade and rise 6px, <code>--dur-2</code> <code>--ease-out</code></dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>bg</dt><dd><code>--ink</code></dd><dt>text</dt><dd><code>--bg</code></dd><dt>shadow</dt><dd><code>--shadow-md</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Trigger</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Hidden</td><td><code>following</code></td><td></td></tr>
+    <tr><td>Shown, nothing new</td><td>not following, <code>missed === 0</code></td><td>"Jump to latest"</td></tr>
+    <tr><td>Shown, new entries</td><td><code>missed &gt; 0</code></td><td>"Jump to latest · {n} new"</td></tr>
+    <tr><td>Waiting on you</td><td>a pending request exists below the viewport</td><td>"Jump to latest · waiting for you"</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul><li>Click: <code>jump()</code> (smooth, instant with reduced motion), set following, reset count, focus stays where it was unless it was on the pill, then focus the composer.</li><li><code>missed</code> counts new entry ids, capped as "99+".</li></ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>A <code>button</code>, reachable by Tab after the stream. Shortcut: <code>End</code> while focus is in the scroller does the same. The count is in the accessible name, not announced live.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Scrolling up 81px shows the pill; at 79px it is hidden.</li><li>Three new entries while scrolled up read "3 new".</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-outline">
+  <header><h4>TurnOutline</h4><span class="tag derive">derive</span><span class="tag phase">P3</span>
+    <span class="path">components/v2/turn-outline.tsx (new) · right edge of the stream on wide screens, "Turns" menu in the thread header otherwise</span></header>
+  <div class="body">
+    <p>One link per turn, the current turn highlighted and search hits marked.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>rail</dt><dd><code>nav[aria-label="Turns"]</code>, sticky top 16px, width 140px, shown at ≥1180px viewport and ≥4 turns <span class="tag proposal">proposal</span> D-NEW-S10</dd><dt>link</dt><dd>height 24px, padding 0 8px, radius 6px, 12px; label "Turn {n}"; tooltip is the first 80 chars of the user text</dd><dt>current</dt><dd>2px left bar, 500 weight</dd><dt>hit mark</dt><dd>6px dot after the label</dd><dt>narrow</dt><dd>same list in a Popover from a "Turns" button in the thread header</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>link</dt><dd><code>--ink-2</code>; hover bg <code>--surface-3</code></dd><dt>current</dt><dd>text <code>--ink</code>, bar <code>--accent</code></dd><dt>hit dot</dt><dd><code>--warn</code></dd><dt>waiting</dt><dd>suffix " · waiting" in <code>--warn-text</code></dd></dl>
+    <h4>Behavior</h4>
+    <ul><li>Current turn: the last turn whose top is above 40% of the scroller height (IntersectionObserver, no scroll listeners).</li><li>Click: <code>scrollToTurn(turnId)</code>. Turns without a turnId use the user message id <code>request-{id}</code>.</li><li>The waiting marker goes on the latest turn, because <code>PendingRequest</code> has no turnId. With BE-02 it goes on the owning turn.</li></ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>A <code>nav</code> with an <code>ol</code> of links; the current one has <code>aria-current="true"</code>.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>Clicking "Turn 3" focuses <code>#turn-{id}</code> and the rail marks it current.</li><li>At 1179px the rail is hidden and the header menu shows.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-search">
+  <header><h4>ThreadSearch</h4><span class="tag derive">derive</span><span class="tag backend">BE-16</span><span class="tag phase">P3</span>
+    <span class="path">components/v2/thread-search.tsx (new) · opened from the thread header</span></header>
+  <div class="body">
+    <p>Finds text in the loaded conversation with a live count. Search beyond loaded history needs BE-16 content search.</p>
+    <h4>Anatomy and sizes</h4>
+    <dl class="kv"><dt>bar</dt><dd>sticky top of <code>.scroll</code>, height 40px, padding 0 8px, border-bottom 1px, <code>z-index: var(--z-sticky)</code>; input 30px, 13px; count 12px mono; prev / next / close 28px icon buttons</dd><dt>hit</dt><dd><code>mark</code>, radius 3px; current hit outlined 2px</dd></dl>
+    <h4>Tokens</h4>
+    <dl class="kv"><dt>bar</dt><dd>bg <code>--surface</code>, border <code>--line</code></dd><dt>mark</dt><dd>bg <code>--warn-bg</code>, text <code>--ink</code></dd><dt>current</dt><dd>outline <code>--warn</code></dd><dt>count</dt><dd><code>--ink-2</code></dd></dl>
+    <h4>States</h4>
+    <div class="tw"><table class="tbl"><thead><tr><th>State</th><th>Copy</th></tr></thead><tbody>
+    <tr><td>Empty query</td><td>placeholder "Find in conversation"</td></tr>
+    <tr><td>Hits</td><td>"{i} of {n}"</td></tr>
+    <tr><td>No hits</td><td>"No matches"</td></tr>
+    <tr><td>Beyond loaded history</td><td>"Search all messages" link (BE-16)</td></tr>
+    </tbody></table></div>
+    <h4>Behavior</h4>
+    <ul><li>Scope: user text, answer text (after <code>messageParts</code>), thinking text, command strings and tool output. Case-insensitive, diacritics-insensitive. Debounce 150ms.</li><li>Going to a hit opens its folded WorkGroup, ThinkingBlock, RuntimeItem or collapsed CodeBlock, then scrolls to it and stops follow.</li><li>Highlighting wraps text nodes only; it never touches iframes or code tokens' structure (wrap inside tokens).</li><li>Close clears marks and restores fold state the reader had set.</li></ul>
+    <h4>Keyboard and a11y</h4>
+    <ul><li>Open: Mod+F while focus is in the stream or composer <span class="tag proposal">proposal</span> D-NEW-S11. Enter next, Shift+Enter previous, Esc closes and returns focus. Input <code>role=searchbox</code>, <code>aria-label="Find in conversation"</code>; count is a polite live region.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A hit inside a folded group opens it.</li><li>Esc closes search before any other Esc action in the stream.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-older">
+  <header><h4>Older work groups collapse</h4><span class="tag derive">derive</span><span class="tag phase">P1</span>
+    <span class="path">WorkGroup <code>older</code> prop · page state <code>openGroups</code></span></header>
+  <div class="body">
+    <p>Every settled turn except the latest shows its work group as one dashed line, so long chats read as questions and answers.</p>
+    <h4>Behavior</h4>
+    <ul><li><code>older = turn.index &lt; turns.length</code>. ThinkingBlock in older turns stays collapsed. Code blocks keep their own collapse.</li><li>Opening one stores its id in <code>openGroups</code> for the page session.</li><li>Rendering: older folded groups render the summary only; rows mount on open.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>In a 9-turn chat, turns 1 to 8 show dashed one-line groups and turn 9 a solid one.</li></ul>
+  </div>
+</div>
+
+<h3 id="sm-panel-h">Panel components in this slice</h3>
+
+<div class="comp" id="sm-activity">
+  <header><h4>SessionActivity</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">components/session-activity.tsx · parent app/page.tsx .panel.activity (~L1479) · panel layout: Shell part · tab contents: Agents and Observability parts</span></header>
+  <div class="body">
+    <p>The side panel with tabs Activity, Agents, Goal, Plan and Insights. v3 keeps its props, tabs and timeline copy. This block records the contract; the frame is in the Shell part.</p>
+    <h4>Data</h4>
+<pre><code>export const SESSION_TABS = ["activity","agents","goal","plan","insights"] as const;
+export type SessionTab = (typeof SESSION_TABS)[number];
+props: {
+  events: DomainEvent[]; plan: PlanStep[]; awaitingApproval?: boolean;
+  timings: TurnTiming[]; traces?: TurnTrace[]; traceSummary?: TraceSummary | null;
+  rateLimits?: RateLimitView | null; liveUsage?: TurnUsage | null; sessionId?: string;
+  goal: Goal | null; goalReview: GoalReview | null;
+  tab?: SessionTab | string; onTab?: (tab: SessionTab) =&gt; void;
+  subAgents?: SubAgentState; delegation?: DelegationPrefs;
+  onDelegation?: (prefs: DelegationPrefs) =&gt; void; agentName?: string;
+  open?: boolean;            // false → header buttons and tabs leave tab order
+  wide?: boolean; onToggleWide?: () =&gt; void; onClose?: () =&gt; void;
+  onDetailChange?: (open: boolean) =&gt; void;
+  follow?: boolean; onFollow?: (on: boolean) =&gt; void;
+}</code></pre>
+    <h4>Anatomy</h4>
+    <ul>
+      <li>Header <code>div.p-head</code>: pulse icon, <code>h2.p-title</code> "Session activity", Follow toggle <code>button.p-follow[aria-pressed]</code>, expand or shrink, close.</li>
+      <li>Tabs <code>div.tabs[role=tablist]</code>; arrows, Home, End. Badges: Agents <code>span.tab-count[.is-live]</code>, Goal <code>span.tab-dot</code>, Plan "{done}/{total}".</li>
+      <li>Activity tab: live head ("Working" / "Idle", meta "Goal in progress" / agent name / "Waiting for a request"); running card with current step or latest label or "Working on your request", sub-line "Waiting for your approval" / "Step X of N · label" / "Started {time}", progress bar with a plan; idle "Last run: {label}", "Completed in {duration}" or "Finished {time}".</li>
+      <li>Timeline <code>ol.timeline &gt; li.tl-row</code>, "Recent" with "View all" / "Show less" over 8 rows, empty "Business activity will appear here."</li>
+      <li>Event labels: "Request finished" / "Request stopped" / "Request failed[: {label}. {hint}]"; error "Retrying…" or failure label; "Started a helper", "Helper finished", "Helper status changed"; else <code>data.label</code> or "Activity".</li>
+      <li>Plan tab: empty "No plan yet" / "When the assistant breaks a request into steps, they appear here."; else "Plan" head, "Awaiting approval" chip or progress label, bar, PlanSteps.</li>
+      <li>Agents tab: AgentsPanel + delegation fieldset ("Only when I ask" / "Whenever it helps", "Max helpers at once" 1-5).</li>
+    </ul>
+    <h4>Behavior</h4>
+    <ul><li>v3 link to the stream: clicking a timeline row with a turnId calls <code>scrollToTurn</code>. <span class="tag derive">derive</span></li><li>A failed turn stays in the timeline and now also shows inline as a TurnFailureCard.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>With <code>open=false</code> no header button or tab is focusable.</li><li>Clicking a "Request failed" row scrolls the stream to that turn.</li></ul>
+  </div>
+</div>
+
+<div class="comp" id="sm-follow-activity">
+  <header><h4>useFollowActivity</h4><span class="tag exists">exists</span><span class="tag phase">P1</span>
+    <span class="path">lib/use-follow-activity.ts (logic in lib/auto-tab.ts) · consumer app/page.tsx (~L170)</span></header>
+  <div class="body">
+    <p>Switches the side panel to the Goal, Plan or Agents tab as work starts. Separate from chat auto-follow, which is <a href="#sm-follow">useStreamFollow</a>.</p>
+    <h4>Data</h4>
+<pre><code>export function useFollowActivity(options: {
+  panelOpen: boolean; vw: number; fitsOpen: boolean; tab: string;
+  showTab: (tab: FollowTab, open: boolean) =&gt; void;
+}): {
+  onEvent(event: DomainEvent): void; reset(): void; manual(): void; dismiss(): void;
+  enabled: boolean; setEnabled(next: boolean): void;  // persisted via writeFollow
+  announce: string; // "Session activity is showing the {Goal|Plan|Agents} tab."
+}
+export type FollowTab = "goal" | "plan" | "agents";
+FOLLOW_BATCH_MS = 300;   // requests coalesce; rank goal &lt; plan &lt; agents, most specific wins
+MANUAL_HOLD_MS = 8000;   // a manual tab pick holds this long</code></pre>
+    <h4>Behavior</h4>
+    <ul><li>No switch while the pointer is over or focus is inside <code>.panel.activity</code>. <code>followAction</code> returns <code>"switch"</code>, <code>"open"</code> or <code>null</code>. <code>dismiss()</code> keeps the panel closed until the next <code>turn.started</code>.</li></ul>
+    <h4>Acceptance</h4>
+    <ul class="chk"><li>A plan and a helper event within 300ms open the Agents tab once.</li><li>After a manual pick, no auto switch for 8000ms.</li></ul>
+  </div>
+</div>
+
+<h3 id="sm-gaps">Outside this slice and gaps closed</h3>
+<p>Components referenced but specified elsewhere: <code>HelperGroup</code> (Agents part), <code>SuggestedQuestions</code> (Composer part, placement in <a href="#sm-followups">Follow-ups placement</a>), <code>TurnReceipt</code> and <code>LiveUsage</code> (Observability part), <code>QuickTools</code> (removed, Composer part), <code>GoalTimeline</code>, <code>GoalBar</code>, <code>GoalReason</code> (Composer and Shell parts), <code>AgentsPanel</code>, <code>InsightsPanel</code> (Agents and Observability parts), <code>Hero</code> (Shell part), v2 <code>Icon</code> (Foundations).</p>
+<div class="tw"><table class="tbl"><thead><tr><th>Gap in schema §3.18</th><th>v3 answer</th></tr></thead><tbody>
+<tr><td>No copy, retry, edit or regenerate on messages</td><td><a href="#sm-user-actions">UserActions</a>, <a href="#sm-answer-actions">AnswerActions</a> (BE-03, BE-12)</td></tr>
+<tr><td>No syntax highlighting or copy on code blocks</td><td><a href="#sm-code">CodeBlock</a></td></tr>
+<tr><td>Runtime tool items never shown; RuntimeItem unused</td><td><a href="#sm-workgroup">WorkGroup</a> mounts <a href="#sm-runtime">RuntimeItem</a></td></tr>
+<tr><td>Pending request cards always below the stream</td><td>Inline after their turn's work once BE-02 exists (<a href="#sm-helpers">placement</a>)</td></tr>
+<tr><td>Failed turns have no inline item</td><td><a href="#sm-failure">TurnFailureCard</a></td></tr>
+<tr><td>User bubbles are plain text</td><td>Kept as plain text on purpose (<a href="#sm-user">UserMessage</a>)</td></tr>
+</tbody></table></div>
+
+<h3 id="sm-coverage">Coverage</h3>
+<div class="tw"><table class="tbl cov"><thead><tr><th>Schema heading</th><th>Covered in</th></tr></thead><tbody>
+<tr><td data-schema="3.0 Data model">3.0 Data model</td><td><a href="#sm-entry">Entry union and Message</a></td></tr>
+<tr><td data-schema="3.0.1 Persisted message — shared/contracts.ts">3.0.1 Persisted message — shared/contracts.ts</td><td><a href="#sm-entry">Entry union and Message</a></td></tr>
+<tr><td data-schema="3.0.2 Display entry union — lib/chat.ts">3.0.2 Display entry union — lib/chat.ts</td><td><a href="#sm-entry">Entry union and Message</a></td></tr>
+<tr><td data-schema="3.0.5 Plan — lib/plan.ts">3.0.5 Plan — lib/plan.ts</td><td><a href="#sm-plansteps">PlanSteps and StepMark</a></td></tr>
+<tr><td data-schema="3.0.6 Visualization — shared/visualizations.ts">3.0.6 Visualization — shared/visualizations.ts</td><td><a href="#sm-visual">VisualizationCard</a></td></tr>
+<tr><td data-schema="3.0.7 Documents — shared/assistant-capabilities.ts, lib/document-kind.ts">3.0.7 Documents — shared/assistant-capabilities.ts, lib/document-kind.ts</td><td><a href="#sm-file">FileCard</a>, <a href="#sm-doc">DocumentIcon</a></td></tr>
+<tr><td data-schema="3.0.8 Errors — lib/api.ts, shared/errors.ts, lib/goal-errors.ts">3.0.8 Errors — lib/api.ts, shared/errors.ts, lib/goal-errors.ts</td><td><a href="#sm-failure">TurnFailureCard</a>, <a href="#sm-errorref">ErrorRef</a></td></tr>
+<tr><td data-schema="3.1 Raw data → display entries (lib/chat.ts)">3.1 Raw data → display entries (lib/chat.ts)</td><td><a href="#sm-pipeline">Raw data to display pipeline</a>, <a href="#sm-shadow">Shadow message</a></td></tr>
+<tr><td data-schema="3.2 ChatMessages">3.2 ChatMessages</td><td><a href="#sm-messages">ChatMessages</a>, <a href="#sm-follow">Auto-follow</a></td></tr>
+<tr><td data-schema="3.3 ThinkingBlock">3.3 ThinkingBlock</td><td><a href="#sm-thinking">ThinkingBlock</a></td></tr>
+<tr><td data-schema="3.4 CommandResult (+ commandLabel)">3.4 CommandResult (+ commandLabel)</td><td><a href="#sm-command">CommandResult and commandLabel</a></td></tr>
+<tr><td data-schema="3.6 RuntimeItem">3.6 RuntimeItem</td><td><a href="#sm-runtime">RuntimeItem</a></td></tr>
+<tr><td data-schema="3.8 PlanSteps / StepMark">3.8 PlanSteps / StepMark</td><td><a href="#sm-plansteps">PlanSteps and StepMark</a></td></tr>
+<tr><td data-schema="3.9 Visualization">3.9 Visualization</td><td><a href="#sm-visual">VisualizationCard</a></td></tr>
+<tr><td data-schema="3.10 AssistantTools (documents &amp; saved visuals)">3.10 AssistantTools (documents &amp; saved visuals)</td><td><a href="#sm-tools">AssistantTools</a></td></tr>
+<tr><td data-schema="3.11 DocumentIcon &amp; document kinds">3.11 DocumentIcon &amp; document kinds</td><td><a href="#sm-doc">DocumentIcon and document kinds</a></td></tr>
+<tr><td data-schema="3.12 ErrorRef">3.12 ErrorRef</td><td><a href="#sm-errorref">ErrorRef</a></td></tr>
+<tr><td data-schema="3.13 Turn error presentation (lib/goal-errors.ts)">3.13 Turn error presentation (lib/goal-errors.ts)</td><td><a href="#sm-failure">TurnFailureCard</a></td></tr>
+<tr><td data-schema="3.14 LiveDuration">3.14 LiveDuration</td><td><a href="#sm-duration">LiveDuration</a></td></tr>
+<tr><td data-schema="3.15 SessionActivity">3.15 SessionActivity</td><td><a href="#sm-activity">SessionActivity</a></td></tr>
+<tr><td data-schema="3.16 useFollowActivity (follow behaviour)">3.16 useFollowActivity (follow behaviour)</td><td><a href="#sm-follow-activity">useFollowActivity</a>, <a href="#sm-follow">Auto-follow</a>, <a href="#sm-jump">JumpToLatest</a></td></tr>
+<tr><td data-schema="3.17 Components referenced but outside this slice">3.17 Components referenced but outside this slice</td><td><a href="#sm-gaps">Outside this slice</a></td></tr>
+<tr><td data-schema="3.18 Gaps a redesign should know about">3.18 Gaps a redesign should know about</td><td><a href="#sm-gaps">Gaps closed</a></td></tr>
+</tbody></table></div>
+
+<h3 id="sm-new-be">New backend items</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Id</th><th>Need</th><th>Used by</th></tr></thead><tbody>
+<tr><td>BE-NEW-S1: provider re-auth</td><td>An endpoint to reconnect or replace model provider credentials from the chat</td><td>"Reconnect {provider}" on <code>credentials</code> failures</td></tr>
+<tr><td>BE-NEW-S2: failure turnId</td><td>Every <code>turn.completed</code> failure and <code>error</code> event carries <code>turnId</code> and <code>ErrorRef</code></td><td>Placing TurnFailureCard in the turn that broke</td></tr>
+</tbody></table></div>
+
+<h3 id="sm-new-d">New decisions</h3>
+<div class="tw"><table class="tbl"><thead><tr><th>Id</th><th>Question</th><th>Default chosen</th></tr></thead><tbody>
+<tr><td>D-NEW-S1</td><td>Clamp long user messages?</td><td>Clamp at 12 lines with "Show more"</td></tr>
+<tr><td>D-NEW-S2</td><td>Allow images in assistant markdown?</td><td>https only, lazy, max-width 100%</td></tr>
+<tr><td>D-NEW-S3</td><td>Restore checkpoint confirm copy</td><td>"Restore files to before this turn?" with Cancel and Restore</td></tr>
+<tr><td>D-NEW-S4</td><td>Lines shown when a code block is collapsed</td><td>20 (threshold stays 30 per D-08)</td></tr>
+<tr><td>D-NEW-S5</td><td>Syntax highlighting library</td><td>shiki, JS regex engine, lazy grammars, token colors mapped to shell tokens</td></tr>
+<tr><td>D-NEW-S6</td><td>Delay before a settled work group folds</td><td>600ms, none with reduced motion</td></tr>
+<tr><td>D-NEW-S7</td><td>Max command output lines shown</td><td>Last 400, then "Show all {n} lines"</td></tr>
+<tr><td>D-NEW-S8</td><td>Tool verbs in the work summary ("Read 3 docs")</td><td>Generic "called {n} tools" until tools carry a category</td></tr>
+<tr><td>D-NEW-S9</td><td>Does a follow-up send or fill the composer?</td><td>Send, as today</td></tr>
+<tr><td>D-NEW-S10</td><td>When the turn outline rail shows</td><td>Viewport ≥1180px and ≥4 turns</td></tr>
+<tr><td>D-NEW-S11</td><td>Shortcut for in-thread search</td><td>Mod+F while focus is in the stream or composer</td></tr>
+</tbody></table></div>
+</section>

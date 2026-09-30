@@ -1,0 +1,299 @@
+<section class="sec" id="system">
+<style>
+#system .sy-spec{position:relative;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-lift);padding:18px;display:flex;flex-direction:column;gap:18px;min-width:0}
+.sy-block{display:flex;flex-direction:column;gap:10px;min-width:0}
+.sy-block + .sy-block{padding-top:16px;border-top:1px dashed var(--line-strong)}
+.sy-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font:600 12px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.sy-h .sy-src{text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink-2)}
+.sy-rows{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.sy-row{display:grid;grid-template-columns:92px minmax(0,1fr) 40px;align-items:center;gap:10px;font:12px var(--font-mono);color:var(--ink-2)}
+.sy-row code{background:none;border:0;padding:0;color:var(--ink)}
+.sy-bar{height:10px;border-radius:3px;background:var(--accent);width:calc(var(--v) * 4px);max-width:100%}
+.sy-row .sy-n{text-align:right;font-variant-numeric:tabular-nums}
+.sy-consts{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.sy-const{border:1px solid var(--line);border-radius:10px;background:var(--surface-2);padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.sy-const b{font:700 17px var(--font-sans);color:var(--ink);font-variant-numeric:tabular-nums}
+.sy-const span{font:12px var(--font-mono);color:var(--ink-2);overflow-wrap:anywhere}
+.sy-stack{display:flex;flex-direction:column;gap:4px;padding-left:4px}
+.sy-layer{--d:0;display:flex;justify-content:space-between;gap:10px;align-items:center;margin-left:calc(var(--d) * 14px);padding:6px 10px;border-radius:8px;border:1px solid color-mix(in srgb,var(--accent) calc(18% + var(--d) * 6%),var(--line));background:color-mix(in srgb,var(--accent-soft) calc(30% + var(--d) * 10%),var(--surface));box-shadow:var(--shadow-sm);font-size:13px;color:var(--ink);min-width:0}
+.sy-layer span{min-width:0;overflow-wrap:anywhere}
+.sy-layer code{flex:none}
+@media (max-width:520px){.sy-layer{margin-left:calc(var(--d) * 5px)}}
+.sy-motion{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:start}
+@media (max-width:560px){.sy-motion{grid-template-columns:minmax(0,1fr)}}
+.sy-motion .sy-bar{background:var(--t2);width:calc(var(--v) * 300px)}
+.sy-row.sy-dur{grid-template-columns:70px minmax(0,1fr) 40px}
+.sy-curves{display:flex;gap:12px}
+.sy-curve{display:flex;flex-direction:column;align-items:center;gap:4px;font:12px var(--font-mono);color:var(--ink-2)}
+.sy-curve svg{width:64px;height:64px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--accent);overflow:visible}
+.sy-code{margin:0;overflow-x:auto;background:var(--surface-3);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:12px/1.6 var(--font-mono);color:var(--ink)}
+.sy-map{display:flex;flex-direction:column;gap:6px}
+.sy-map > div{display:grid;grid-template-columns:18px minmax(0,1fr) 16px minmax(0,1fr);gap:8px;align-items:center;font:12px var(--font-mono);color:var(--ink-2)}
+.sy-map code{background:none;border:0;padding:0;color:var(--ink);overflow-wrap:anywhere}
+.sy-sw{width:18px;height:18px;border-radius:5px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ink) 12%,transparent)}
+.sy-series{display:flex;flex-wrap:wrap;gap:8px}
+.sy-series > span{display:inline-flex;align-items:center;gap:6px;font:12px var(--font-mono);color:var(--ink-2)}
+.sy-series i{width:22px;height:10px;border-radius:3px}
+.sy-ba{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:480px){.sy-ba{grid-template-columns:minmax(0,1fr)}}
+.sy-card{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px;background:var(--surface);min-width:0}
+.sy-card .sy-lbl{font:700 17px/1 var(--font-hand);color:var(--ink-2)}
+.sy-card .sy-lbl.sy-now{color:var(--accent)}
+.sy-card .sy-ratio{font:12px var(--font-mono);color:var(--ink-2)}
+.sy-ink-old{color:color-mix(in srgb,var(--ink-3) 72%,var(--bg));font-size:12px}
+.sy-ink-new{color:var(--ink-3);font-size:12px}
+.sy-btn{align-self:flex-start;height:30px;padding:0 12px;border:0;border-radius:9px;font:500 13px var(--font-sans);color:var(--on-accent);background:var(--accent-fg);cursor:pointer}
+.sy-btn.sy-old{background:var(--accent)}
+.sy-btn:focus-visible{outline:2px solid var(--accent-fg);outline-offset:2px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sy-btn:not(.sy-old){color:var(--page)}}
+:root[data-theme="dark"] .sy-btn:not(.sy-old){color:var(--page)}
+.sy-icons{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.sy-icons > span{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);font:12px var(--font-mono);color:var(--ink-2);min-width:0;text-align:center}
+.sy-icons .ic{width:22px;height:22px;color:var(--ink)}
+.sy-icons em{font-style:normal;font-size:11px;color:var(--ink-2)}
+.sy-files{display:flex;flex-wrap:wrap;gap:6px}
+.sy-files code{font-size:11px}
+.sy-track{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;position:relative}
+@media (max-width:900px){.sy-track{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.sy-track{grid-template-columns:minmax(0,1fr)}}
+.sy-ph{border:1px solid var(--line);border-top:4px solid var(--c);border-radius:10px;background:var(--surface);padding:10px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.sy-ph header{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.sy-ph header b{font:700 22px/1 var(--font-hand);color:var(--c)}
+.sy-ph header span{font-size:13px;font-weight:600;color:var(--ink)}
+.sy-ph ul{margin:0;padding-left:16px;font-size:13px;color:var(--ink-2);display:flex;flex-direction:column;gap:3px}
+.sy-ph .sy-blk{margin-top:auto;padding-top:6px;border-top:1px dashed var(--line-strong);font-size:12px;color:var(--ink-2)}
+.sy-ph .sy-blk b{color:var(--bad)}
+.sy-p0{--c:var(--t0)} .sy-p1{--c:var(--t1)} .sy-p2{--c:var(--t2)} .sy-p3{--c:var(--tm)}
+.sy-lane{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.sy-step{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);font-size:13px;color:var(--ink)}
+.sy-step.sy-gate{background:var(--warn-bg);color:var(--warn-text);border-color:color-mix(in srgb,var(--warn) 40%,transparent)}
+.sy-lane .ic{color:var(--ink-3)}
+.sy-bugs{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.sy-bugs li{display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;font-size:13px;color:var(--ink-2)}
+.sy-bugs .ic{color:var(--bad);width:16px;height:16px;margin-top:2px}
+.sy-rank{font:700 20px/1 var(--font-hand);color:var(--accent)}
+</style>
+
+  <div class="sec-head">
+    <span class="eyebrow">System and next steps</span>
+    <h2>Tokens, color, icons and the build order</h2>
+    <p>Everything on the earlier boards draws from one token set. Today spacing, z-index and motion are literal values scattered across two stylesheet systems, and two icon sets disagree on stroke width. These cards fix the foundations first, then lay out the phases, the CSS cleanup, the bugs to fix along the way and the backend asks in the order they unblock work.</p>
+  </div>
+
+  <!-- Board 1: tokens -->
+  <div class="board">
+    <div>
+      <div class="sy-spec">
+        <div class="sy-block">
+          <div class="sy-h"><span class="pin">1</span>Spacing scale <span class="sy-src">from the literal set in §8.5</span></div>
+          <ul class="sy-rows">
+            <li class="sy-row"><code>--sp-0_5</code><i class="sy-bar" style="--v:2"></i><span class="sy-n">2</span></li>
+            <li class="sy-row"><code>--sp-1</code><i class="sy-bar" style="--v:4"></i><span class="sy-n">4</span></li>
+            <li class="sy-row"><code>--sp-1_5</code><i class="sy-bar" style="--v:6"></i><span class="sy-n">6</span></li>
+            <li class="sy-row"><code>--sp-2</code><i class="sy-bar" style="--v:8"></i><span class="sy-n">8</span></li>
+            <li class="sy-row"><code>--sp-3</code><i class="sy-bar" style="--v:12"></i><span class="sy-n">12</span></li>
+            <li class="sy-row"><code>--sp-4</code><i class="sy-bar" style="--v:16"></i><span class="sy-n">16</span></li>
+            <li class="sy-row"><code>--sp-5</code><i class="sy-bar" style="--v:20"></i><span class="sy-n">20</span></li>
+            <li class="sy-row"><code>--sp-6</code><i class="sy-bar" style="--v:24"></i><span class="sy-n">24</span></li>
+            <li class="sy-row"><code>--sp-7</code><i class="sy-bar" style="--v:28"></i><span class="sy-n">28</span></li>
+            <li class="sy-row"><code>--sp-10</code><i class="sy-bar" style="--v:40"></i><span class="sy-n">40</span></li>
+          </ul>
+        </div>
+        <div class="sy-block">
+          <div class="sy-h"><span class="pin">2</span>Layout constants</div>
+          <div class="sy-consts">
+            <div class="sy-const"><b>740</b><span>--thread-max</span></div>
+            <div class="sy-const"><b>56</b><span>--topbar-h</span></div>
+            <div class="sy-const"><b>360</b><span>--panel-w</span></div>
+            <div class="sy-const"><b>268</b><span>--sidebar-w</span></div>
+          </div>
+        </div>
+        <div class="sy-block">
+          <div class="sy-h"><span class="pin">3</span>Z-index layers <span class="sy-src">top of the stack first</span></div>
+          <div class="sy-stack">
+            <div class="sy-layer" style="--d:7"><span>Legacy fixed menu</span><code>--z-menu-fixed 60</code></div>
+            <div class="sy-layer" style="--d:6"><span>Scrim: ⌘K, agent dialog</span><code>--z-scrim 50</code></div>
+            <div class="sy-layer" style="--d:5"><span>Panel drawer ≤900px</span><code>--z-drawer 30</code></div>
+            <div class="sy-layer" style="--d:4"><span>Popover, goal menu</span><code>--z-popover 20</code></div>
+            <div class="sy-layer" style="--d:3"><span>Slash and @ menu</span><code>--z-menu 5</code></div>
+            <div class="sy-layer" style="--d:2"><span>Composer area</span><code>--z-composer 3</code></div>
+            <div class="sy-layer" style="--d:1"><span>Topbar</span><code>--z-sticky 2</code></div>
+            <div class="sy-layer" style="--d:0"><span>Thread scroll</span><code>--z-base 1</code></div>
+          </div>
+        </div>
+        <div class="sy-block">
+          <div class="sy-h"><span class="pin">4</span>Motion</div>
+          <div class="sy-motion">
+            <ul class="sy-rows">
+              <li class="sy-row sy-dur"><code>--dur-1</code><i class="sy-bar" style="--v:.3"></i><span class="sy-n">.12s</span></li>
+              <li class="sy-row sy-dur"><code>--dur-2</code><i class="sy-bar" style="--v:.4"></i><span class="sy-n">.16s</span></li>
+              <li class="sy-row sy-dur"><code>--dur-3</code><i class="sy-bar" style="--v:.5"></i><span class="sy-n">.2s</span></li>
+              <li class="sy-row sy-dur"><code>--dur-4</code><i class="sy-bar" style="--v:.8"></i><span class="sy-n">.32s</span></li>
+              <li class="sy-row sy-dur"><code>--dur-5</code><i class="sy-bar" style="--v:1"></i><span class="sy-n">.4s</span></li>
+            </ul>
+            <div class="sy-curves">
+              <span class="sy-curve"><svg viewBox="-4 -4 48 48" aria-hidden="true"><path d="M0 40C8 8 8 0 40 0" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>--ease-out</span>
+              <span class="sy-curve"><svg viewBox="-4 -26 48 70" aria-hidden="true"><path d="M0 40C13.6 -22.4 25.6 0 40 0" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>--ease-spring</span>
+            </div>
+          </div>
+          <pre class="sy-code">@media (prefers-reduced-motion: reduce) {
+  :root { --dur-1: 0s; --dur-2: 0s; --dur-3: 0s; --dur-4: 0s; --dur-5: 0s; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .spinner, .pulse, .shimmer { /* static fallback: solid dot, "Working" label */ }
+}</pre>
+        </div>
+      </div>
+      <p class="board-cap">Every value already exists as a literal. The tokens just name them.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Spacing scale</b> <span class="tag derive">derive</span><span class="tag new">new</span><span>Ten steps from 2 to 40px, taken from the values the CSS repeats today (§8.5). Odd leftovers like 10, 14, 18 and 22 snap to the nearest step during the v2 port, one surface at a time.</span></div></li>
+      <li><span class="pin">2</span><div><b>Layout constants</b> <span class="tag derive">derive</span><span>Thread and composer share <code>--thread-max</code>, so they can never drift apart. Panel and sidebar widths feed the 900 and 720px drawer rules.</span></div></li>
+      <li><span class="pin">3</span><div><b>Z-index tokens</b> <span class="tag derive">derive</span><span class="tag new">new</span><span>Eight named layers replace raw numbers (§8.8 lists them, with no tokens). The docked request card sits in the composer layer, so popovers always open above it. <code>--z-menu-fixed</code> is deleted once the legacy menu ports.</span></div></li>
+      <li><span class="pin">4</span><div><b>Motion and reduced motion</b> <span class="tag derive">derive</span><span>Five durations and two easings cover every transition in §8.9. Under reduced motion, animations and transitions are turned off, not shortened to 0ms, and shimmer or pulse get a static state with a text label.</span></div></li>
+    </ol>
+  </div>
+
+  <!-- Board 2: color and icons -->
+  <div class="board">
+    <div>
+      <div class="sy-spec">
+        <div class="sy-block">
+          <div class="sy-h"><span class="pin">1</span>One color vocabulary <span class="sy-src">r2 name → app token</span></div>
+          <div class="sy-map">
+            <div><i class="sy-sw" style="background:var(--ok)"></i><code>--ok</code><span>→</span><code>--success-text</code></div>
+            <div><i class="sy-sw" style="background:var(--ok-bg)"></i><code>--ok-bg</code><span>→</span><code>--success-bg</code></div>
+            <div><i class="sy-sw" style="background:var(--bad)"></i><code>--bad</code><span>→</span><code>--error-text</code></div>
+            <div><i class="sy-sw" style="background:var(--bad-bg)"></i><code>--bad-bg</code><span>→</span><code>--error-bg</code></div>
+            <div><i class="sy-sw" style="background:var(--warn-text)"></i><code>--warn</code><span>→</span><code>--warning-text</code></div>
+            <div><i class="sy-sw" style="background:var(--warn-bg)"></i><code>--warn-bg</code><span>→</span><code>--warning-bg</code></div>
+          </div>
+        </div>
+        <div class="sy-block">
+          <div class="sy-h"><span class="pin">2</span>Chart series</div>
+          <div class="sy-series">
+            <span><i style="background:var(--t0)"></i>--series-1</span>
+            <span><i style="background:var(--t1)"></i>--series-2</span>
+            <span><i style="background:var(--t2)"></i>--series-3</span>
+            <span><i style="background:var(--tm)"></i>--series-other</span>
+            <span><i style="background:var(--line)"></i>--chart-grid</span>
+            <span><i style="background:var(--ink-2)"></i>--chart-axis</span>
+          </div>
+        </div>
+        <div class="sy-block">
+          <div class="sy-h"><span class="pin">3</span>Contrast fixes</div>
+          <div class="sy-ba">
+            <div class="sy-card"><span class="sy-lbl">before</span><span class="sy-ink-old">12px meta · 3 docs read</span><span class="sy-ratio">--ink-3 #849198 · about 3.3:1</span></div>
+            <div class="sy-card"><span class="sy-lbl sy-now">after</span><span class="sy-ink-new">12px meta · 3 docs read</span><span class="sy-ratio">--ink-3 #67757C · about 4.7:1</span></div>
+            <div class="sy-card"><span class="sy-lbl">before</span><button type="button" class="sy-btn sy-old">Approve plan</button><span class="sy-ratio">white on --accent · about 3.4:1</span></div>
+            <div class="sy-card"><span class="sy-lbl sy-now">after</span><button type="button" class="sy-btn">Approve plan</button><span class="sy-ratio">white on --accent-fg · about 5.2:1</span></div>
+          </div>
+        </div>
+        <div class="sy-block">
+          <div class="sy-h"><span class="pin">4</span>Nine new v2 icons <span class="sy-src">24px grid, stroke 1.75</span></div>
+          <div class="sy-icons">
+            <span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6Z"/></svg>shield<em>tool approval</em></span>
+            <span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6Z"/><path d="M12 8v4M12 15.5h.01"/></svg>shieldAlert<em>privacy flag</em></span>
+            <span><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg>shieldCheck<em>sprite</em></span>
+            <span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 7-5 5 5 5M16 7l5 5-5 5"/></svg>code<em>code block</em></span>
+            <span><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg>clock<em>sprite</em></span>
+            <span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="9" cy="7" rx="6" ry="3"/><path d="M3 7v5c0 1.7 2.7 3 6 3s6-1.3 6-3V7M9 15v2c0 1.7 2.7 3 6 3s6-1.3 6-3v-5c0-1.7-2.7-3-6-3"/></svg>coins<em>budget</em></span>
+            <span><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg>alert<em>sprite</em></span>
+            <span><svg class="ic" aria-hidden="true"><use href="#i-retry"/></svg>retry<em>sprite</em></span>
+            <span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/></svg>copy<em>message bar</em></span>
+          </div>
+        </div>
+        <div class="sy-block">
+          <div class="sy-h"><span class="pin">5</span>Replace lucide in 11 files</div>
+          <div class="sy-files">
+            <code>project-sidebar</code><code>connected-tools</code><code>sheet</code><code>assistant-tools</code><code>runtime-item</code><code>goal-bar</code><code>ui/select</code><code>observability/receipt</code><code>trace-card</code><code>privacy-card</code><code>privacy-note</code>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">Four of the nine already exist in the shell sprite. Five are drawn here on the same grid.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Aliases, not new colors</b> <span class="tag derive">derive</span><span>The r2 wireframes used <code>--ok</code>, <code>--bad</code> and <code>--warn</code>. They become aliases for the app's <code>--success-*</code>, <code>--error-*</code> and <code>--warning-*</code> tokens (§8.3), so there is one vocabulary and dark mode comes for free.</span></div></li>
+      <li><span class="pin">2</span><div><b>Chart series tokens</b> <span class="tag derive">derive</span><span class="tag new">new</span><span>Series map to the helper tone tokens, which were already validated for both modes. Grid and axis tokens stop charts from hard-coding greys. Visualizations are model HTML in a sandbox, so they only get these tokens if the frame passes them in.</span></div></li>
+      <li><span class="pin">3</span><div><b>Contrast fixes</b> <span class="tag derive">derive</span><span><code>--ink-3</code> darkens from #849198 to #67757C, and text under 13px moves to <code>--ink-2</code>. Filled buttons use <code>--accent-fg</code> #2A72A3 instead of #3691CD. Ratios are estimates, so a manual check with assistive tech is still needed.</span></div></li>
+      <li><span class="pin">4</span><div><b>Nine icons in v2</b> <span class="tag derive">derive</span><span class="tag new">new</span><span>Added to the <code>PATHS</code> map in <code>components/v2/icon.tsx</code> at stroke 1.75 (§8.13). shieldCheck, clock, alert and retry match the shell sprite. shield, shieldAlert, code, coins and copy are new paths.</span></div></li>
+      <li><span class="pin">5</span><div><b>Drop lucide</b> <span class="tag derive">derive</span><span>Lucide's 2px stroke looks heavier next to v2 icons. Swap its imports in these 11 files, then remove <code>lucide-react</code> from package.json once nothing imports it.</span></div></li>
+    </ol>
+  </div>
+
+  <!-- Board 3: build order -->
+  <div class="board">
+    <div>
+      <div class="sy-spec">
+        <div class="sy-block">
+          <div class="sy-h"><span class="pin">1</span>Phases</div>
+          <div class="sy-track">
+            <div class="sy-ph sy-p0"><header><b>P0</b><span>True to the contract</span></header>
+              <ul><li>Remove invented fields</li><li>Mode and Esc copy</li><li>Requests from <code>options[]</code></li><li>Failure card by reason</li><li>Sandboxed visualization</li></ul>
+              <div class="sy-blk"><b>Blocked on:</b> nothing</div></div>
+            <div class="sy-ph sy-p1"><header><b>P1</b><span>Daily-use core</span></header>
+              <ul><li>Composer bar and @-mentions</li><li>Editable queue by Steer</li><li>Needs-you tray</li><li>Goal strip, long-chat nav</li><li>Message action bar</li></ul>
+              <div class="sy-blk"><b>Blocked on:</b> PendingRequest turnId, regenerate/edit/branch, live span events</div></div>
+            <div class="sy-ph sy-p2"><header><b>P2</b><span>Multi-agent trust</span></header>
+              <ul><li>Handed-off node</li><li>Agents sheet</li><li>Tools shelf (MCP)</li><li>Receipt, privacy, health</li><li>Read-only viewer</li></ul>
+              <div class="sy-blk"><b>Blocked on:</b> TurnTrace.status, mcp.status, agents PATCH/DELETE, viewer rule</div></div>
+            <div class="sy-ph sy-p3"><header><b>P3</b><span>Long-session safety</span></header>
+              <ul><li>Checkpoint and restore</li><li>Citations</li><li>Side canvas</li><li>Batch review, tiled helpers</li></ul>
+              <div class="sy-blk"><b>Blocked on:</b> checkpoints, citations, versioned files</div></div>
+          </div>
+        </div>
+        <div class="sy-block">
+          <div class="sy-h"><span class="pin">2</span>CSS consolidation track <span class="sy-src">runs alongside P0 to P2</span></div>
+          <div class="sy-lane">
+            <span class="sy-step">Port sheets to v2</span><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg>
+            <span class="sy-step">Request cards</span><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg>
+            <span class="sy-step">Visualizations, documents</span><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg>
+            <span class="sy-step">Slash menu, select, error card</span><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg>
+            <span class="sy-step">Delete duplicate classes</span><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg>
+            <span class="sy-step sy-gate">Adopt or drop Tailwind</span>
+          </div>
+        </div>
+        <div class="sy-block">
+          <div class="sy-h"><span class="pin">3</span>Bugs to fix alongside</div>
+          <ul class="sy-bugs">
+            <li><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span>HelperChip "View" targets <code>.helper-group</code>, but the rendered class is <code>.hcard</code>.</span></li>
+            <li><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span>The sidebar Agents link never becomes active.</span></li>
+            <li><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span><code>/help</code> leaves out <code>/agents</code>.</span></li>
+            <li><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span>Share does nothing. UserMenu has no name or sign-out.</span></li>
+            <li><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span><code>RuntimeItem</code>, <code>ProjectSidebar</code>, <code>ConnectedTools</code> and <code>Capabilities</code> are never mounted.</span></li>
+          </ul>
+        </div>
+      </div>
+      <p class="board-cap">P0 needs no backend work, so it can start today.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Phase track</b> <span class="tag data">data</span><span>P0 and most of P1 build on fields that exist today. Each card names the backend ask it waits on, so a blocked item can ship as a disabled control and light up later without a redesign. P3 is drawn now so the layout leaves room for it.</span></div></li>
+      <li><span class="pin">2</span><div><b>CSS consolidation</b> <span class="tag derive">derive</span><span>Legacy-only surfaces (§8.12) move to <code>styles/v2</code> one PR at a time, each with a light and dark check. The duplicate classes v2 now neutralizes, like <code>.composer</code> and <code>.menu</code>, are deleted only after the last port. Tailwind is installed but unused, so the last step is a decision, not a migration.</span></div></li>
+      <li><span class="pin">3</span><div><b>Bugs</b> <span class="tag data">data</span><span>All five are client fixes on data that exists. For the unmounted components, decide per component whether to mount it or delete it. Share needs a copy-link action at minimum, and a viewer rule before it is useful.</span></div></li>
+    </ol>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Backend ask</th><th>Field, event or endpoint</th><th>Unblocks</th><th>Data tag</th></tr></thead>
+      <tbody>
+        <tr><td><span class="sy-rank">1</span></td><td>Credentials on fetch and EventSource (now)</td><td>cookie or token on every request and stream</td><td>Production auth on its own, before any redesign</td><td><span class="tag backend">backend</span></td></tr>
+        <tr><td><span class="sy-rank">2</span></td><td>Request anchors</td><td><code>PendingRequest.turnId</code>, <code>createdAt</code></td><td>Inline requests, oldest-first order, Needs-you tray (P1)</td><td><span class="tag backend">backend</span></td></tr>
+        <tr><td><span class="sy-rank">3</span></td><td>Message actions</td><td>regenerate, edit-and-resend, branch endpoints</td><td>Message action bar (P1)</td><td><span class="tag backend">backend</span></td></tr>
+        <tr><td><span class="sy-rank">4</span></td><td>Live trace</td><td>span and item events during a turn, <code>diff.updated</code></td><td>Live waterfall, tool rows, Changes view (P1)</td><td><span class="tag backend">backend</span></td></tr>
+        <tr><td><span class="sy-rank">5</span></td><td>Turn outcome</td><td><code>TurnTrace.status</code> enum, per-step errors, resume</td><td>"Completed with 1 error", Retry step, partial answers (P2)</td><td><span class="tag backend">backend</span></td></tr>
+        <tr><td><span class="sy-rank">6</span></td><td>MCP status and sign-in</td><td><code>mcp.status</code> payload, OAuth endpoint</td><td>Tools shelf LED, Google Drive sign-in in the tray (P2)</td><td><span class="tag backend">backend</span></td></tr>
+        <tr><td><span class="sy-rank">7</span></td><td>Agent edit and delete</td><td><code>PATCH</code> and <code>DELETE /api/agents/:id</code></td><td>Editing the Qlik Analyst agent (P2)</td><td><span class="tag backend">backend</span></td></tr>
+        <tr><td><span class="sy-rank">8</span></td><td>Helper usage and lineage</td><td>per-helper usage, parent <code>threadId</code></td><td>Atlas and Juno token cost, exact delegation tree (P2)</td><td><span class="tag backend">backend</span></td></tr>
+        <tr><td><span class="sy-rank">9</span></td><td>Viewer and delegation</td><td>trace visibility rule, delegation mode per session</td><td>Read-only viewer, delegation label on helpers (P2)</td><td><span class="tag backend">backend</span></td></tr>
+        <tr><td><span class="sy-rank">10</span></td><td>Cost and thinking time</td><td>cost in currency, thinking duration</td><td>Cost on receipts, "Thought for Ns" (P3)</td><td><span class="tag backend">backend</span></td></tr>
+        <tr><td><span class="sy-rank">11</span></td><td>Safety nets</td><td>checkpoints, citations, versioned files</td><td>Restore, sources, side canvas (P3)</td><td><span class="tag backend">backend</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="qs">
+    <div class="q"><b>How high is the high-fidelity pass?</b><span>These boards are wireframes on real tokens. Recommend a pixel pass only for P1 surfaces, and folding their final values into <code>truex-design-spec.html</code>.</span></div>
+    <div class="q"><b>Does P3 ship behind a flag?</b><span>Checkpoints and the canvas change how Autopilot feels. Recommend a flag, like <code>autopilot=true</code>, until restore has been tested on real file changes.</span></div>
+    <div class="q"><b>What is in dev mode?</b><span>Today it covers model context. Recommend it also holds the waterfall, timings and masked privacy samples, with the plain receipt staying public.</span></div>
+  </div>
+</section>

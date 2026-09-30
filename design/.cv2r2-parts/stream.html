@@ -1,0 +1,478 @@
+<section class="sec" id="stream">
+<style>
+/* stream section (round 2): shipped-product components inside the pinboard */
+.st-app .app-stage{margin:10px}
+.st-top{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:13px;color:var(--ink-3);min-width:0}
+.st-top .t{font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.st-top .pill{margin-left:auto}
+.st-stage{padding:20px 16px 22px;display:flex;flex-direction:column;gap:22px;min-width:0}
+
+/* user side */
+.st-u{display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:0}
+.st-u .bubble{max-width:min(84%,440px);box-shadow:var(--shadow-sm);overflow-wrap:anywhere}
+.st-meta{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums;flex-wrap:wrap;justify-content:flex-end}
+.st-meta .ic{color:var(--ok)}
+.st-meta.fail{color:var(--bad)} .st-meta.fail .ic{color:var(--bad)}
+.st-meta.unk{color:var(--warn-text)} .st-meta.unk .ic{color:var(--warn)}
+.st-meta.pend .ic{color:var(--ink-3)}
+.st-mini{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 12px var(--font-sans);box-shadow:var(--shadow-sm)}
+.st-u .bubble.st-fail{background:var(--surface-3);color:var(--ink-2);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--bad) 45%,transparent)}
+.st-u .bubble.st-pend{opacity:.72}
+.st-steer{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent-fg);font-size:12px;font-weight:600}
+.st-steer em{font-style:normal;font-weight:500;opacity:.8}
+.st-cmd{display:inline-flex;align-items:center;gap:2px;height:22px;padding:0 8px 0 4px;margin-right:6px;border-radius:7px;background:color-mix(in srgb,var(--bg) 18%,transparent);font:500 12px var(--font-mono);vertical-align:1px}
+.st-rc{display:grid;grid-template-columns:32px minmax(0,1fr);gap:10px;width:min(84%,440px);padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:var(--shadow-sm)}
+.st-rc .tile{background:var(--ok-bg);color:var(--ok)}
+.st-rc.bad{background:var(--bad-bg);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.st-rc.bad .tile{background:var(--surface);color:var(--bad)}
+.st-rc .b{display:flex;flex-direction:column;gap:3px;min-width:0;font-size:13px;color:var(--ink-2)}
+.st-rc .h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.st-rc .h b{color:var(--ink);font-weight:600}
+.st-rc .h .pill{margin-left:auto}
+.st-rc .f{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-3);margin-top:3px;flex-wrap:wrap}
+.st-ds{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;padding:10px;border:1px dashed var(--line-strong);border-radius:12px;background:var(--surface-2)}
+.st-ds > span{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:8px;background:var(--surface);border:1px solid var(--line);font-size:12px;color:var(--ink-2);min-width:0}
+.st-ds > span b{color:var(--ink);font-weight:600}
+.st-ds .ok{color:var(--ok)} .st-ds .bad{color:var(--bad)} .st-ds .warn{color:var(--warn)}
+.st-ds-h{grid-column:1/-1;font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);display:flex;align-items:center;gap:6px}
+
+/* agent side */
+.st-a{display:grid;grid-template-columns:30px minmax(0,1fr);gap:12px;min-width:0}
+.st-av{width:30px;height:30px;border-radius:10px;background:var(--accent-soft);color:var(--accent-fg);display:grid;place-items:center;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 22%,transparent)}
+.st-a > div{min-width:0;display:flex;flex-direction:column;gap:12px}
+.st-ah{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;min-height:30px;color:var(--ink-3)}
+.st-ah b{color:var(--ink);font-weight:600}
+.st-turn{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:7px;border:1px solid var(--line);background:var(--surface-2);font:500 11px var(--font-mono);color:var(--ink-2)}
+.st-turn.on{border-color:color-mix(in srgb,var(--accent) 45%,transparent);background:var(--accent-soft);color:var(--accent-fg)}
+.st-turn.live::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.6s infinite}
+.st-live{margin-left:auto;display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:500;color:var(--accent-fg);font-variant-numeric:tabular-nums}
+
+/* work group */
+.st-work{border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:var(--shadow-sm);overflow:hidden;min-width:0}
+.st-work > summary{list-style:none;display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;font-size:13px;color:var(--ink-2);min-width:0}
+.st-work > summary::-webkit-details-marker{display:none}
+.st-work[open] > summary{border-bottom:1px solid var(--line);background:var(--surface-2)}
+.st-work[open] > summary .st-chev{transform:rotate(180deg)}
+.st-chev{color:var(--ink-3);transition:transform .2s}
+.st-sq{width:24px;height:24px;border-radius:8px;display:grid;place-items:center;flex:none;background:var(--ok-bg);color:var(--ok)}
+.st-sq.run{background:var(--accent-soft);color:var(--accent-fg)}
+.st-sum{display:flex;flex-direction:column;min-width:0;flex:1}
+.st-sum b{color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-sum small{font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-types{display:flex;gap:3px;color:var(--ink-3)}
+.st-types .ic{width:13px;height:13px}
+@media (max-width:520px){.st-types{display:none}}
+.st-work .log{padding:8px 12px 10px}
+.st-work .log .what{gap:3px}
+.st-k-appr{color:var(--warn-text);background:var(--warn-bg);border-color:transparent}
+.st-sub{font-size:12px;color:var(--ink-3)}
+.st-think{min-width:0}
+.st-think > summary{list-style:none;display:inline-flex;align-items:center;gap:4px;cursor:pointer}
+.st-think > summary::-webkit-details-marker{display:none}
+.st-think > summary b{color:var(--ink);font-weight:600}
+.st-think[open] > summary .ic{transform:rotate(180deg)}
+.st-think p{margin-top:4px;padding-left:10px;border-left:2px solid color-mix(in srgb,var(--t0) 40%,transparent);font:italic 13px/1.5 var(--font-accent);color:var(--ink-2)}
+.st-code{margin-top:6px;border-radius:10px;background:var(--surface-3);border:1px solid var(--line);font:12px/1.55 var(--font-mono);color:var(--ink-2);overflow:hidden;min-width:0}
+.st-code .cmd{padding:7px 10px;color:var(--ink);border-bottom:1px solid var(--line);overflow-x:auto;white-space:pre}
+.st-code .cmd::before{content:"$ ";color:var(--ink-3)}
+.st-code pre{margin:0;padding:7px 10px;white-space:pre;overflow-x:auto;font:inherit}
+.st-code .ft{display:flex;gap:8px;align-items:center;padding:5px 10px;border-top:1px solid var(--line);font-size:11px;color:var(--ink-3)}
+.st-code .ft .ok{display:inline-flex;align-items:center;gap:4px;color:var(--ok);font-weight:500}
+.st-work .diff{margin-top:6px}
+.st-add{color:var(--ok);font:500 12px var(--font-mono)} .st-del{color:var(--bad);font:500 12px var(--font-mono)}
+.st-q{font-family:var(--font-mono);font-size:12px;color:var(--ink-2);overflow-wrap:anywhere}
+.st-audit{margin-top:6px;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.st-audit > div{display:grid;grid-template-columns:14px auto minmax(0,1fr);gap:8px;align-items:center;padding:6px 10px;font-size:12px;border-top:1px solid var(--line)}
+.st-audit > div:first-child{border-top:0}
+.st-audit .ic{width:13px;height:13px}
+.st-audit .d{font-weight:600;color:var(--ink);white-space:nowrap}
+.st-audit .x{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-audit .ok .ic{color:var(--ok)} .st-audit .no .ic{color:var(--bad)} .st-audit .no .d{color:var(--bad)}
+.st-audit .exp .ic{color:var(--warn)} .st-audit .exp .d{color:var(--warn-text)}
+.st-audit .auto .ic{color:var(--accent)} .st-audit .st-s .ic{color:var(--ink-2)}
+.st-mask{letter-spacing:.12em;color:var(--ink-2)}
+.st-shim{background:linear-gradient(90deg,var(--ink-3) 0 35%,var(--ink) 50%,var(--ink-3) 65% 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:st-sh 2.2s linear infinite;font-weight:500}
+@keyframes st-sh{from{background-position:100% 0}to{background-position:-150% 0}}
+.log .node .spinner{width:11px;height:11px}
+
+/* helpers */
+.st-hc{border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:var(--shadow-sm);overflow:hidden;min-width:0}
+.st-hh{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface-2);border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
+.st-hh b{color:var(--ink);font-weight:600}
+.st-hh .muted{margin-left:auto;font-size:12px}
+.st-stack{display:flex;padding-left:5px}
+.st-stack .h-av{width:22px;height:22px;border-radius:7px;font-size:10px;margin-left:-5px;box-shadow:0 0 0 2px var(--surface-2)}
+.st-hr{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:6px 10px;align-items:center;padding:10px 12px;border-top:1px solid var(--line)}
+.st-hh + .st-hr{border-top:0}
+.st-hr .h-av{width:30px;height:30px;border-radius:10px;font-size:12px}
+.st-hr .n{display:flex;flex-direction:column;gap:3px;min-width:0}
+.st-hr .n > span:first-child{font-size:13px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-hr .n b{color:var(--ink);font-weight:600}
+.st-hr .task{font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-hr .r{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.st-el{font:12px var(--font-mono);color:var(--ink-3);font-variant-numeric:tabular-nums}
+.st-open{display:inline-flex;align-items:center;gap:2px;height:26px;padding:0 6px 0 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:12px;font-weight:500;color:var(--ink)}
+.st-prog{position:relative;height:4px;border-radius:999px;background:var(--surface-3);overflow:hidden;margin-top:2px}
+.st-prog i{position:absolute;top:0;bottom:0;left:0;width:40%;background:var(--t);border-radius:inherit;animation:st-slide 1.5s ease-in-out infinite}
+@keyframes st-slide{from{transform:translateX(-100%)}to{transform:translateX(260%)}}
+@media (max-width:520px){.st-hr{grid-template-columns:30px minmax(0,1fr)}.st-hr .r{grid-column:2;justify-content:flex-start}}
+.st-hf{display:flex;flex-wrap:wrap;gap:6px 12px;padding:8px 12px;border-top:1px dashed var(--line-strong);font-size:11px;color:var(--ink-3);background:var(--surface-2)}
+.st-hf span{display:inline-flex;align-items:center;gap:5px}
+.st-dot{width:7px;height:7px;border-radius:50%;background:var(--ink-3);flex:none}
+.st-dot.init{background:transparent;box-shadow:inset 0 0 0 1.5px var(--ink-3)}
+.st-dot.run{background:var(--accent);animation:pulse 1.6s infinite}
+.st-dot.ok{background:var(--ok)} .st-dot.bad{background:var(--bad)} .st-dot.warn{background:var(--warn)}
+.st-dot.off{background:var(--line-strong)}
+
+/* response */
+.st-ans{line-height:1.65;color:var(--ink);display:flex;flex-direction:column;gap:12px;min-width:0}
+.st-ans p{max-width:62ch}
+.st-viz{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:14px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow-sm);min-width:0}
+.st-vh{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.st-vh .tile{width:28px;height:28px;border-radius:8px}
+.st-vh > div{display:flex;flex-direction:column;min-width:0;flex:1;line-height:1.35}
+.st-vh b{color:var(--ink);font-weight:600;font-size:14px}
+.st-vh small{font-size:12px;color:var(--ink-3)}
+.st-vh .v{font:700 17px var(--font-sans);letter-spacing:-.02em;color:var(--ink);font-variant-numeric:tabular-nums}
+.st-vh .v small{font-weight:500;letter-spacing:0}
+.st-bars{display:grid;grid-template-columns:auto minmax(0,1fr) 28px;gap:8px 10px;align-items:center;font-size:12px}
+.st-bars .l{color:var(--ink-2);white-space:nowrap}
+.st-bars .n{font:500 12px var(--font-mono);color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+.st-trk{height:16px;border-right:1px solid var(--line);background-image:linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:33.3333% 100%}
+.st-trk i{display:block;height:100%;width:var(--w);background:var(--accent);border-radius:0 5px 5px 0}
+.st-ax{grid-column:2;display:flex;justify-content:space-between;font:11px var(--font-mono);color:var(--ink-3);margin-top:-4px}
+.st-ax span:first-child{transform:translateX(-2px)}
+.st-rcpt{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.st-rcpt .sep{opacity:.5}
+.st-link{display:inline-flex;align-items:center;gap:1px;color:var(--accent-fg);font-weight:600}
+.st-fu{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.st-fu .lbl{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--ink-3);margin-right:2px}
+.st-fu .chip{box-shadow:var(--shadow-sm);white-space:normal;height:auto;min-height:30px;padding:4px 8px 4px 12px}
+.st-fu .chip .ic{color:var(--ink-3)}
+.st-div{display:flex;align-items:center;gap:10px;font:500 11px var(--font-mono);color:var(--ink-3);letter-spacing:.04em}
+.st-div::before,.st-div::after{content:"";flex:1;height:1px;background:var(--line)}
+.st-err{display:grid;grid-template-columns:32px minmax(0,1fr);gap:10px 12px;padding:12px;border-radius:14px;background:var(--bad-bg);border:1px solid color-mix(in srgb,var(--bad) 30%,transparent)}
+.st-err .tile{background:var(--surface);color:var(--bad)}
+.st-err .b{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:13px;color:var(--ink-2)}
+.st-err .b b{color:var(--ink);font-weight:600;font-size:14px}
+.st-err .acts{grid-column:2;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.st-ref{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 9px;border-radius:8px;background:var(--surface);border:1px solid var(--line);font:12px var(--font-mono);color:var(--ink-2)}
+.st-err .btn.primary{height:28px}
+@media (max-width:420px){.st-err{grid-template-columns:minmax(0,1fr)}.st-err .acts{grid-column:1}}
+</style>
+
+<div class="sec-head">
+  <span class="eyebrow">1 · Content, inline</span>
+  <h2>Conversation stream</h2>
+  <p>Everything a turn produces stays where it happened: what the user sent, how the agent worked, and what it answered. Work folds into one typed log per turn so the answer reads first, and every agent message carries its turn number so the session panel can follow along.</p>
+</div>
+
+<!-- Board 1: user side -->
+<div class="board">
+  <div>
+    <div class="app st-app">
+      <div class="app-chrome"><i></i><i></i><i></i><span>truex · chat</span></div>
+      <div class="app-stage">
+        <div class="st-top"><svg class="ic sm"><use href="#i-history"/></svg><span class="t">Onboarding plan for new analysts</span><span class="pill">Sonnet 5.5</span></div>
+        <div class="st-stage">
+
+          <div class="st-u">
+            <div class="bubble">Draft a 2-week onboarding plan for new analysts from the handbook</div>
+            <span class="st-meta"><span class="pin">1</span>10:02 <svg class="ic sm"><use href="#i-check"/></svg></span>
+          </div>
+
+          <div class="st-u">
+            <span class="st-steer"><span class="pin">2</span><svg class="ic sm"><use href="#i-steer"/></svg>Steered <em>turn 1</em></span>
+            <div class="bubble st-pend">Keep it to one page</div>
+            <span class="st-meta pend"><span class="spinner"></span>Sending</span>
+          </div>
+
+          <div class="st-u">
+            <div class="bubble st-fail">Add a Qlik certification checkpoint in week two</div>
+            <span class="st-meta fail"><span class="pin">3</span><svg class="ic sm"><use href="#i-alert"/></svg>Not sent <span class="st-mini"><svg class="ic sm"><use href="#i-retry"/></svg>Retry</span></span>
+          </div>
+
+          <div class="st-ds" aria-label="Delivery states">
+            <span class="st-ds-h"><svg class="ic sm"><use href="#i-send"/></svg>Delivery states</span>
+            <span><span class="spinner"></span><b>Sending</b> pending</span>
+            <span><svg class="ic sm ok"><use href="#i-check"/></svg><b>10:02</b> accepted</span>
+            <span><svg class="ic sm bad"><use href="#i-alert"/></svg><b>Not sent</b> + Retry</span>
+            <span><svg class="ic sm warn"><use href="#i-clock"/></svg><b>Not confirmed</b> + Retry</span>
+          </div>
+
+          <div class="st-u">
+            <div class="bubble"><span class="st-cmd"><svg class="ic sm"><use href="#i-slash"/></svg>goal</span>One-page onboarding plan analysts can follow on day 1</div>
+            <div class="st-rc">
+              <span class="tile"><svg class="ic"><use href="#i-target"/></svg></span>
+              <div class="b">
+                <div class="h"><span class="pin">4</span><b>Goal set</b><span class="pill ok"><svg class="ic sm"><use href="#i-check"/></svg>Done</span></div>
+                <span>One-page onboarding plan analysts can follow on day 1</span>
+                <span class="f"><svg class="ic sm"><use href="#i-eye"/></svg>Pinned to the topbar until you clear it</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="st-u">
+            <div class="bubble"><span class="st-cmd"><svg class="ic sm"><use href="#i-slash"/></svg>export</span>pdf</div>
+            <div class="st-rc bad">
+              <span class="tile"><svg class="ic"><use href="#i-alert"/></svg></span>
+              <div class="b">
+                <div class="h"><span class="pin">5</span><b>Export failed</b><span class="pill bad">Failed</span></div>
+                <span>Export needs a finished answer in this chat.</span>
+                <span class="f"><span class="mono">/export pdf</span> · edit the command and send again</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">User side. Delivery, steer and command results hang off the bubble they belong to, so nothing floats loose in the stream.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Message and timestamp</b> <span class="tag exists">Exists</span><span>Dark bubble, right aligned. Once accepted the meta line is just the time and a small check, so sent messages stay quiet.</span><span class="src">Data: <code>message.text</code> <code>message.createdAt</code> <code>delivery.state = accepted</code></span></div></li>
+    <li><span class="pin">2</span><div><b>Steer tag</b> <span class="tag new">New</span><span>A message sent while a turn runs redirects it. The accent pill with the steer icon names the turn it changed, so the course change is readable in history.</span><span class="src">Data: <code>message.steer</code> <code>turn.index</code></span></div></li>
+    <li><span class="pin">3</span><div><b>Delivery state</b> <span class="tag new">New</span><span>Pending dims the bubble and shows a spinner. Failed outlines the bubble in the bad tone with Retry, which resends the same text. Unknown reads "Not confirmed" in warn with Retry. The strip shows all four.</span><span class="src">Data: <code>delivery.state</code> pending / accepted / failed / unknown</span></div></li>
+    <li><span class="pin">4</span><div><b>Slash command</b> <span class="tag new">New</span><span>The command renders as a mono chip with the slash icon inside the bubble. A result card hangs under it with an icon tile, state pill and what changed. While running, the pill is a spinner.</span><span class="src">Data: <code>command.name</code> <code>command.state</code> <code>command.result</code></span></div></li>
+    <li><span class="pin">5</span><div><b>Command error</b> <span class="tag new">New</span><span>Same card in the bad tone with the error and the command echoed in mono. No Retry: the user edits and resends.</span><span class="src">Data: <code>command.state = failed</code> <code>command.error</code></span></div></li>
+  </ol>
+</div>
+
+<!-- Board 2: agent working -->
+<div class="board">
+  <div>
+    <div class="app st-app">
+      <div class="app-chrome"><i></i><i></i><i></i><span>truex · chat</span></div>
+      <div class="app-stage">
+        <div class="st-top"><svg class="ic sm"><use href="#i-history"/></svg><span class="t">Onboarding plan for new analysts</span><span class="pill accent"><span class="pulse"></span>Working</span></div>
+        <div class="st-stage">
+          <div class="st-a">
+            <span class="st-av"><svg class="ic"><use href="#i-bot"/></svg></span>
+            <div>
+              <div class="st-ah"><b>Qlik Analyst</b><span class="st-turn on">Turn 1</span><span class="pin">1</span><span>10:02</span><span class="st-live"><span class="pulse"></span>0:48</span></div>
+
+              <details class="st-work" open>
+                <summary>
+                  <span class="st-sq run"><span class="spinner"></span></span>
+                  <span class="st-sum"><b>Working · 6 done, 1 running</b><small>Started 10:02 · 3 helpers</small></span>
+                  <span class="pin">2</span>
+                  <svg class="ic st-chev"><use href="#i-chevd"/></svg>
+                </summary>
+                <ol class="log">
+                  <li>
+                    <span class="node k-think"><svg class="ic sm"><use href="#i-brain"/></svg></span>
+                    <div class="what">
+                      <details class="st-think" open><summary><b>Thought for 4s</b><svg class="ic sm"><use href="#i-chevd"/></svg></summary>
+                        <p>The handbook has week one, access and shadowing chapters. Build the plan around those and ask a helper to check access timing.</p>
+                      </details>
+                    </div>
+                    <span class="t"><span class="pin">3</span></span>
+                  </li>
+                  <li>
+                    <span class="node k-tool"><svg class="ic sm"><use href="#i-term"/></svg></span>
+                    <div class="what"><b>Ran a command</b>
+                      <div class="st-code">
+                        <div class="cmd">grep -ril "onboarding" docs/handbook</div>
+<pre>docs/handbook/week-one.md
+docs/handbook/access-requests.md
+docs/handbook/shadowing.md</pre>
+                        <div class="ft"><span class="ok"><svg class="ic sm"><use href="#i-check"/></svg>exit 0</span><span>3 lines</span></div>
+                      </div>
+                    </div>
+                    <span class="t"><span class="pin">4</span> 1.2s</span>
+                  </li>
+                  <li>
+                    <span class="node k-file"><svg class="ic sm"><use href="#i-file"/></svg></span>
+                    <div class="what"><b>Edited plans/onboarding.md</b><span><span class="st-add">+6</span> <span class="st-del">−2</span></span>
+                      <div class="diff">
+<div class="hd">plans/onboarding.md</div>
+<div class="del">- Week 2: TBD</div>
+<div class="add">+ Week 2: Shadow a live dashboard review</div>
+<div class="add">+ Day 9: Publish a first sheet to the sandbox</div>
+                      </div>
+                    </div>
+                    <span class="t"><span class="pin">5</span> 0.3s</span>
+                  </li>
+                  <li>
+                    <span class="node k-tool"><svg class="ic sm"><use href="#i-plug"/></svg></span>
+                    <div class="what"><b>qlik · list_spaces</b><span class="st-sub">12 spaces returned</span></div>
+                    <span class="t"><span class="pin">6</span> 0.8s</span>
+                  </li>
+                  <li>
+                    <span class="node k-tool"><svg class="ic sm"><use href="#i-globe"/></svg></span>
+                    <div class="what"><b>Searched the web</b><span class="st-q">"Qlik Sense analyst certification" · 5 results</span></div>
+                    <span class="t">2.1s</span>
+                  </li>
+                  <li>
+                    <span class="node"><svg class="ic sm"><use href="#i-layers"/></svg></span>
+                    <div class="what"><b>Other · <span class="mono">todoList</span></b><span class="st-sub">Updated 6 tasks</span></div>
+                    <span class="t">0.1s</span>
+                  </li>
+                  <li>
+                    <span class="node st-k-appr"><svg class="ic sm"><use href="#i-shield"/></svg></span>
+                    <div class="what"><b>Approvals · 8 decisions</b>
+                      <div class="st-audit">
+                        <div class="ok"><svg class="ic"><use href="#i-check"/></svg><span class="d">Allowed once</span><span class="x">npm test</span></div>
+                        <div class="ok"><svg class="ic"><use href="#i-check"/></svg><span class="d">Allowed for session</span><span class="x">qlik · list_spaces</span></div>
+                        <div class="ok"><svg class="ic"><use href="#i-check"/></svg><span class="d">Allowed for this chat</span><span class="x">read docs/handbook</span></div>
+                        <div class="ok"><svg class="ic"><use href="#i-check"/></svg><span class="d">Always allowed</span><span class="x">git status</span></div>
+                        <div class="auto"><svg class="ic"><use href="#i-spark"/></svg><span class="d">Auto mode</span><span class="x">write plans/onboarding.md</span></div>
+                        <div class="no"><svg class="ic"><use href="#i-x"/></svg><span class="d">Declined</span><span class="x">rm -rf drafts/</span></div>
+                        <div class="exp"><svg class="ic"><use href="#i-clock"/></svg><span class="d">Expired</span><span class="x">gdrive · search</span></div>
+                        <div class="st-s"><svg class="ic"><use href="#i-lock"/></svg><span class="d">Answered</span><span class="x">Qlik API key · <span class="st-mask">••••••••</span></span></div>
+                      </div>
+                    </div>
+                    <span class="t"><span class="pin">7</span></span>
+                  </li>
+                  <li>
+                    <span class="node k-agent"><svg class="ic sm"><use href="#i-users"/></svg></span>
+                    <div class="what"><b>Started 3 helpers</b><span class="st-sub">Docs, Access, Shadowing</span></div>
+                    <span class="t">0:38</span>
+                  </li>
+                  <li>
+                    <span class="node k-live"><span class="spinner"></span></span>
+                    <div class="what"><span class="st-shim">Thinking about week 2 milestones…</span></div>
+                    <span class="t"><span class="pin">8</span></span>
+                  </li>
+                </ol>
+              </details>
+
+              <div class="st-hc">
+                <div class="st-hh">
+                  <svg class="ic"><use href="#i-users"/></svg><b>3 helpers</b>
+                  <span class="st-stack"><span class="h-av tone-0">A</span><span class="h-av tone-1">B</span><span class="h-av tone-2">C</span></span>
+                  <span class="pin">9</span>
+                  <span class="muted">1 running · 1 done · 1 limited</span>
+                </div>
+                <div class="st-hr tone-0">
+                  <span class="h-av">A</span>
+                  <div class="n"><span><b>Atlas</b> · Docs</span><span class="task">Reading week-one.md and access-requests.md</span><span class="st-prog"><i></i></span></div>
+                  <div class="r"><span class="pill accent"><span class="spinner"></span>Running</span><span class="st-el">0:38</span><span class="st-open">Open<svg class="ic sm"><use href="#i-chev"/></svg></span></div>
+                </div>
+                <div class="st-hr tone-1">
+                  <span class="h-av">B</span>
+                  <div class="n"><span><b>Birch</b> · Access</span><span class="task">Could not read the IT access sheet</span></div>
+                  <div class="r"><span class="pill warn"><svg class="ic sm"><use href="#i-lock"/></svg>Limited access</span><span class="st-el">0:12</span><span class="st-open">Open<svg class="ic sm"><use href="#i-chev"/></svg></span></div>
+                </div>
+                <div class="st-hr tone-2">
+                  <span class="h-av">C</span>
+                  <div class="n"><span><b>Cedar</b> · Shadowing</span><span class="task">Drafted a 4-session shadowing schedule</span></div>
+                  <div class="r"><span class="pill ok"><svg class="ic sm"><use href="#i-check"/></svg>Done</span><span class="st-el">0:21</span><span class="st-open">Open<svg class="ic sm"><use href="#i-chev"/></svg></span></div>
+                </div>
+                <div class="st-hf" aria-label="Helper status legend">
+                  <span><i class="st-dot init"></i>Starting</span><span><i class="st-dot run"></i>Running</span><span><i class="st-dot ok"></i>Done</span><span><i class="st-dot bad"></i>Error</span><span><i class="st-dot warn"></i>Stopped</span><span><i class="st-dot off"></i>Shut down</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">Turn 1 mid-flight. Each step gets a typed icon on one rail; the only motion is the live row, the helper bar and the pulse.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Turn label</b> <span class="tag new">New</span><span>Every agent message shows "Turn N" next to the name. Clicking it selects that turn in the session panel (This turn scope). Accent while selected; a pulse dot while the turn is live.</span><span class="src">Data: <code>turn.id</code> <code>turn.index</code> <code>turn.status</code></span></div></li>
+    <li><span class="pin">2</span><div><b>Work group</b> <span class="tag changed">Changed</span><span>One collapsible card per turn. Open while working with a live count; folds to "Worked for 1m 12s · 7 steps" when the answer lands. Replaces the flat .steps list.</span><span class="src">Data: <code>turn.items[]</code> <code>turn.startedAt</code> <code>turn.endedAt</code></span></div></li>
+    <li><span class="pin">3</span><div><b>Thinking</b> <span class="tag changed">Changed</span><span>Live as the shimmer row, then "Thought for 4s". The disclosure opens the summary in serif italic; raw reasoning sits below it when present.</span><span class="src">Data: <code>thinking.summary</code> <code>thinking.raw</code> <code>thinking.done</code></span></div></li>
+    <li><span class="pin">4</span><div><b>Command execution</b> <span class="tag changed">Changed</span><span>Terminal node. Mono block with the command, output and an exit footer. Non-zero exit turns the node and footer to the bad tone. Long output scrolls sideways and clips at 12 lines.</span><span class="src">Data: <code>item.type = commandExecution</code> <code>command</code> <code>output</code> <code>exitCode</code> <code>durationMs</code></span></div></li>
+    <li><span class="pin">5</span><div><b>File change</b> <span class="tag changed">Changed</span><span>File node with the path and green/red line counts. One diff per file; several files stack under one row titled "Edited N files".</span><span class="src">Data: <code>item.type = fileChange</code> <code>files[]</code> <code>diff</code></span></div></li>
+    <li><span class="pin">6</span><div><b>MCP, web search, other</b> <span class="tag changed">Changed</span><span>MCP reads "server · tool" with a plug icon and a one-line result. Web search shows the query in mono. Unknown types fall back to a layers icon and the raw type name.</span><span class="src">Data: <code>item.type = mcpToolCall</code> <code>server</code> <code>tool</code> <code>status</code> · <code>webSearch.query</code> · <code>item.type</code></span></div></li>
+    <li><span class="pin">7</span><div><b>Approval record</b> <span class="tag new">New</span><span>After-the-fact audit, one compact row per decision: Allowed once / for session / for this chat / always, Auto mode, Declined, Expired. Answered questions show the question; secret answers are always masked.</span><span class="src">Data: <code>ApprovalRecord.outcome</code> <code>autoMode</code> <code>toolApprovals[].action</code> <code>.decision</code> <code>questions[].answer</code> <code>.secret</code></span></div></li>
+    <li><span class="pin">8</span><div><b>Live step</b> <span class="tag exists">Exists</span><span>The last row is the only one that moves: ringed node with a spinner and shimmer text. The next event replaces it.</span><span class="src">Data: latest stream event</span></div></li>
+    <li><span class="pin">9</span><div><b>Helper agents</b> <span class="tag changed">Changed</span><span>Header with stacked tone avatars and a status tally. Each row: tone avatar, name · role, current task, status pill, elapsed, Open. Running rows get an indeterminate bar in the helper's tone. Status maps pendingInit, running, completed, errored, interrupted, shutdown to the legend. Open goes to HelperDetail in the session panel Agents tab and replaces SubAgentTranscript.</span><span class="src">Data: <code>SubAgent.nickname</code> <code>role</code> <code>task</code> <code>depth</code> <code>status</code> <code>lastMessage</code> <code>startedAt</code> <code>endedAt</code> <code>transcript</code></span></div></li>
+  </ol>
+</div>
+
+<!-- Board 3: response -->
+<div class="board">
+  <div>
+    <div class="app st-app">
+      <div class="app-chrome"><i></i><i></i><i></i><span>truex · chat</span></div>
+      <div class="app-stage">
+        <div class="st-top"><svg class="ic sm"><use href="#i-history"/></svg><span class="t">Onboarding plan for new analysts</span><span class="pill accent"><span class="pulse"></span>Turn 4 live</span></div>
+        <div class="st-stage">
+
+          <div class="st-a">
+            <span class="st-av"><svg class="ic"><use href="#i-bot"/></svg></span>
+            <div>
+              <div class="st-ah"><b>Qlik Analyst</b><span class="st-turn">Turn 1</span><span>10:03</span></div>
+              <details class="st-work">
+                <summary>
+                  <span class="st-sq"><svg class="ic sm"><use href="#i-check"/></svg></span>
+                  <span class="st-sum"><b>Worked for 1m 12s</b><small>7 steps · 3 helpers · 1 file edited</small></span>
+                  <span class="st-types" aria-hidden="true"><svg class="ic"><use href="#i-brain"/></svg><svg class="ic"><use href="#i-term"/></svg><svg class="ic"><use href="#i-file"/></svg><svg class="ic"><use href="#i-plug"/></svg><svg class="ic"><use href="#i-globe"/></svg><svg class="ic"><use href="#i-users"/></svg></span>
+                  <span class="pin">1</span>
+                  <svg class="ic st-chev"><use href="#i-chevd"/></svg>
+                </summary>
+              </details>
+              <div class="st-ans">
+                <p><span class="pin">2</span> Here is a one-page plan built from the handbook. Week 1 covers access and core datasets. Week 2 moves to shadowing and a first published sheet.</p>
+                <div class="st-viz" role="img" aria-label="Bar chart, onboarding hours by focus area: Access 6, Datasets 14, Shadowing 12, Build 10. Total 42 hours.">
+                  <div class="st-vh">
+                    <span class="tile"><svg class="ic sm"><use href="#i-chart"/></svg></span>
+                    <div><b>Hours by focus area</b><small>Weeks 1 and 2</small></div>
+                    <span class="v">42 <small class="muted">h total</small></span>
+                    <span class="pin">3</span>
+                  </div>
+                  <div class="st-bars" aria-hidden="true">
+                    <span class="l">Access</span><span class="st-trk"><i style="--w:40%"></i></span><span class="n">6</span>
+                    <span class="l">Datasets</span><span class="st-trk"><i style="--w:93.33%"></i></span><span class="n">14</span>
+                    <span class="l">Shadowing</span><span class="st-trk"><i style="--w:80%"></i></span><span class="n">12</span>
+                    <span class="l">Build</span><span class="st-trk"><i style="--w:66.67%"></i></span><span class="n">10</span>
+                    <span class="st-ax"><span>0</span><span>5</span><span>10</span><span>15 h</span></span>
+                  </div>
+                </div>
+                <p>Day 1 starts with the access checklist so Birch's request clears before the dataset sessions.</p>
+              </div>
+              <div class="st-rcpt"><span class="pin">4</span><svg class="ic sm"><use href="#i-clock"/></svg>1m 12s<span class="sep">·</span>58.2k tokens<span class="sep">·</span>Sonnet 5.5<span class="sep">·</span><span class="st-link">Details<svg class="ic sm"><use href="#i-chev"/></svg></span></div>
+              <div class="st-fu"><span class="pin">5</span><span class="lbl"><svg class="ic sm"><use href="#i-spark"/></svg>Try next</span><span class="chip">Add a checklist per day<svg class="ic sm"><use href="#i-send"/></svg></span><span class="chip">Who owns access requests?<svg class="ic sm"><use href="#i-send"/></svg></span><span class="chip">Export as PDF<svg class="ic sm"><use href="#i-send"/></svg></span></div>
+            </div>
+          </div>
+
+          <div class="st-div">TURN 3 · 10:16</div>
+
+          <div class="st-a">
+            <span class="st-av"><svg class="ic"><use href="#i-bot"/></svg></span>
+            <div>
+              <div class="st-ah"><b>Qlik Analyst</b><span class="st-turn">Turn 3</span><span>10:17</span></div>
+              <div class="st-err" role="alert">
+                <span class="tile"><svg class="ic"><use href="#i-alert"/></svg></span>
+                <div class="b"><b>Google Drive search failed: token expired</b><span>Plan v2 is saved. The certification checkpoint still needs the Drive lookup.</span></div>
+                <div class="acts"><span class="pin">6</span><span class="st-ref"><svg class="ic sm"><use href="#i-key"/></svg>err_7f3a21</span><span class="btn primary"><svg class="ic sm"><use href="#i-retry"/></svg>Retry</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="st-div">TURN 4 · 10:24</div>
+
+          <div class="st-a">
+            <span class="st-av"><svg class="ic"><use href="#i-bot"/></svg></span>
+            <div>
+              <div class="st-ah"><b>Qlik Analyst</b><span class="st-turn on live">Turn 4</span><span class="st-live"><span class="pulse"></span>0:41</span></div>
+              <details class="st-work">
+                <summary>
+                  <span class="st-sq run"><span class="spinner"></span></span>
+                  <span class="st-sum"><b class="st-shim">Writing onboarding/checklist.csv</b><small>3 steps · 26.6k tokens so far</small></span>
+                  <svg class="ic st-chev"><use href="#i-chevd"/></svg>
+                </summary>
+              </details>
+              <div class="st-ans"><p><span class="pin">7</span> Turning the one-page plan into a checklist with one row per task, owner and day. Week two gets the Qlik certification checkpoint on day 10<span class="caret"></span></p></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">Finished turns fold their work into one line. Receipt and follow-ups only on a settled answer; the live turn just streams.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Folded work group</b> <span class="tag changed">Changed</span><span>Check tile, "Worked for 1m 12s", a count line and the step-type icons used in this turn. Opens back to the full log from board 2.</span><span class="src">Data: <code>turn.items[].type</code> <code>turn.durationMs</code></span></div></li>
+    <li><span class="pin">2</span><div><b>Response text</b> <span class="tag exists">Exists</span><span>Plain prose under the work group. Streams with the caret, then settles to the final text in place with no layout jump.</span><span class="src">Data: <code>message.role = assistant</code> <code>parts[].text</code> <code>streaming</code></span></div></li>
+    <li><span class="pin">3</span><div><b>Visualization part</b> <span class="tag new">New</span><span>Rich parts render as cards at the position they arrive: icon tile, title, subtitle and a headline total. Horizontal bars on a 0 to 15 h axis with gridlines, so lengths match the values (6, 14, 12, 10) and labels never collide on a phone. The card carries a text label for screen readers.</span><span class="src">Data: <code>part.type = "visualization"</code> <code>part.spec</code></span></div></li>
+    <li><span class="pin">4</span><div><b>Receipt</b> <span class="tag changed">Changed</span><span>Duration, tokens and model on one quiet line. Details opens the trace card for this turn. See Observability.</span><span class="src">Data: <code>usage.durationMs</code> <code>usage.totalTokens</code> <code>model</code></span></div></li>
+    <li><span class="pin">5</span><div><b>Suggested follow-ups</b> <span class="tag new">New placement</span><span>Chips under the receipt, latest settled message only, each with a send arrow. Tapping one sends it as a new user message. Chips wrap on narrow screens.</span><span class="src">Data: <code>suggestedQuestions[]</code></span></div></li>
+    <li><span class="pin">6</span><div><b>Inline error</b> <span class="tag new">New</span><span>Bad-tone card in the turn that failed: the message, one line on what was kept, a mono ref chip that copies the full ref, and Retry, which reruns the turn.</span><span class="src">Data: <code>error.message</code> <code>error.ref</code></span></div></li>
+    <li><span class="pin">7</span><div><b>Streaming</b> <span class="tag exists">Exists</span><span>The live turn shows its current step in the folded group with a shimmer and running tokens, and the answer streams with the caret. No receipt or follow-ups until it settles.</span><span class="src">Data: <code>streaming</code> <code>usage.totalTokens</code> (running)</span></div></li>
+  </ol>
+</div>
+</section>

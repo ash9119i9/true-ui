@@ -14,16 +14,21 @@ interface Conversation { id: number; title: string; time: string; group: "Today"
 interface Agent {
   id: string; name: string; desc: string; hue: string;
   handle?: string; look?: number; tint?: string; model?: string; instructions?: string;
+  mcps?: string[]; skills?: string[];  // ids from MCP_SERVERS / SKILLS the agent may call
   builtin?: boolean;  // ships with the workspace: instructions and model are editable; name, look and removal are not
 }
 
 /* ---------------------------------------------------------------- data */
 
 const AGENTS: Agent[] = [
-  { id: "qlik", handle: "qlik", name: "Qlik Analyst", desc: "Dashboards, metrics, BI queries", hue: "#BCDEE8", look: 3, tint: "ice", builtin: true },
-  { id: "research", handle: "research", name: "Researcher", desc: "Web research with citations", hue: "#A9D5BE", look: 4, tint: "mint", builtin: true },
-  { id: "writer", handle: "writer", name: "Writer", desc: "Docs, release notes, briefs", hue: "#EBCB8B", look: 1, tint: "butter", builtin: true },
-  { id: "ops", handle: "ops", name: "Ops", desc: "Runbooks, tickets, on-call", hue: "#C4BDE3", look: 6, tint: "lilac", builtin: true },
+  { id: "qlik", handle: "qlik", name: "Qlik Analyst", desc: "Dashboards, metrics, BI queries", hue: "#BCDEE8", look: 3, tint: "ice", builtin: true,
+    mcps: ["qlik", "postgres"], skills: ["charts", "sql"] },
+  { id: "research", handle: "research", name: "Researcher", desc: "Web research with citations", hue: "#A9D5BE", look: 4, tint: "mint", builtin: true,
+    mcps: [], skills: ["research", "files"] },
+  { id: "writer", handle: "writer", name: "Writer", desc: "Docs, release notes, briefs", hue: "#EBCB8B", look: 1, tint: "butter", builtin: true,
+    mcps: ["notion"], skills: ["docs", "release"] },
+  { id: "ops", handle: "ops", name: "Ops", desc: "Runbooks, tickets, on-call", hue: "#C4BDE3", look: 6, tint: "lilac", builtin: true,
+    mcps: ["sentry", "jira", "slack"], skills: ["runbook"] },
 ];
 
 const CONVERSATIONS: Conversation[] = [
@@ -70,12 +75,38 @@ const MODELS = [
   { id: "sonnet", label: "Claude Sonnet 5.5", short: "sonnet 5.5" },
   { id: "haiku", label: "Claude Haiku 4.5", short: "haiku 4.5" },
 ];
+// What an agent can reach. MCP servers are workspace connections (each exposes a set of tools);
+// skills are packaged instructions + scripts the agent loads when a task calls for them.
+interface PickItem { id: string; label: string; desc: string; meta?: string; mono?: string; off?: string }
+const MCP_SERVERS: PickItem[] = [
+  { id: "qlik", label: "Qlik Sense", desc: "Apps, sheets, measures", meta: "14 tools", mono: "#3691CD" },
+  { id: "github", label: "GitHub", desc: "Repos, issues, pull requests", meta: "22 tools", mono: "#1F2A30" },
+  { id: "linear", label: "Linear", desc: "Issues, cycles, projects", meta: "11 tools", mono: "#5E6AD2" },
+  { id: "jira", label: "Jira", desc: "Tickets and boards", meta: "12 tools", mono: "#2A72A3" },
+  { id: "notion", label: "Notion", desc: "Pages and databases", meta: "9 tools", mono: "#5F6D73" },
+  { id: "slack", label: "Slack", desc: "Channels and messages", meta: "8 tools", mono: "#8C4A86" },
+  { id: "sentry", label: "Sentry", desc: "Errors and releases", meta: "7 tools", mono: "#6B4FA0" },
+  { id: "postgres", label: "Postgres", desc: "Read-only SQL on analytics", meta: "4 tools", mono: "#33658A" },
+  { id: "figma", label: "Figma", desc: "Files, frames, comments", off: "Not connected", mono: "#C0563F" },
+];
+const SKILLS: PickItem[] = [
+  { id: "research", label: "Web research", desc: "Search, read and cite sources", meta: "built-in" },
+  { id: "charts", label: "Chart builder", desc: "Turn tables into clean charts", meta: "built-in" },
+  { id: "sql", label: "SQL analyst", desc: "Write and explain queries", meta: "built-in" },
+  { id: "files", label: "PDF & files", desc: "Read, extract and summarise documents", meta: "built-in" },
+  { id: "sheets", label: "Spreadsheets", desc: "Create and edit .xlsx and .csv", meta: "built-in" },
+  { id: "docs", label: "Doc writer", desc: "House style for briefs and specs", meta: "workspace" },
+  { id: "release", label: "Release notes", desc: "Changelog from merged work", meta: "workspace" },
+  { id: "runbook", label: "Runbooks", desc: "Step-by-step incident playbooks", meta: "workspace" },
+];
+// Picks are kept in catalogue order so a draft compares equal to what's saved regardless of click order.
+const inOrder = (items: PickItem[], ids: string[] = []) => items.map(i => i.id).filter(k => ids.includes(k));
 const tintOf = (id?: string) => TINTS.find(t => t.id === id) || TINTS[0];
 const modelOf = (id?: string) => MODELS.find(m => m.id === id) || MODELS[0];
 // The editable fields of an agent, with defaults filled in, so a draft can be compared against what's saved.
 const agentFields = (a: Agent) => ({
   name: a.name, desc: a.desc, instructions: a.instructions || "", look: a.look ?? 2,
-  tint: a.tint || "ice", model: modelOf(a.model).id,
+  tint: a.tint || "ice", model: modelOf(a.model).id, mcps: inOrder(MCP_SERVERS, a.mcps), skills: inOrder(SKILLS, a.skills),
 });
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 20);
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -846,8 +877,8 @@ function Clip() {
 
 // Lanyard ID badge. Drag it and the strap stays pinned at the top: the lanyard pivots around its anchor
 // and the strap stretches (with rubber-band resistance) so the grabbed point follows the pointer. Springs back on release.
-function Badge({ name, handle, look, tint, model, tag, shine = 0 }: {
-  name: string; handle: string; look: number; tint: string; model: string; tag?: string; shine?: number;
+function Badge({ name, handle, look, tint, model, tag, shine = 0, mcps = 0, skills = 0 }: {
+  name: string; handle: string; look: number; tint: string; model: string; tag?: string; shine?: number; mcps?: number; skills?: number;
 }) {
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
   const origin = useRef<{ x: number; y: number } | null>(null);
@@ -889,7 +920,7 @@ function Badge({ name, handle, look, tint, model, tag, shine = 0 }: {
               <div className={"badge-name" + (name.trim() ? "" : " is-empty")}>{name.trim() || "Unnamed"}</div>
               <div className="badge-handle">@{handle || "handle"}{tag && ` · ${tag}`}</div>
             </div>
-            <div className="badge-foot"><span>{modelOf(model).short}</span></div>
+            <div className="badge-foot"><span>{modelOf(model).short}</span><span>{mcps} mcp · {skills} {skills === 1 ? "skill" : "skills"}</span></div>
           </div>
         </div>
       </div>
@@ -913,8 +944,91 @@ function Confetti() {
   return <div className="confetti" aria-hidden="true">{bits.map((s, i) => <i key={i} style={s} />)}</div>;
 }
 
+// Multi-select for MCP servers and skills: selected items sit as removable chips; "Add" opens an inline,
+// searchable checklist (inline rather than a popover so the dialog's scrolling form can't clip it).
+function MultiPick({ id, label, items, value, onChange, noun, disabled, empty }: {
+  id: string; label: string; items: PickItem[]; value: string[]; onChange: (v: string[]) => void;
+  noun: string; disabled?: boolean; empty: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) { setQ(""); return; }
+    setTimeout(() => { searchRef.current?.focus({ preventScroll: true }); panelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }, 20);
+  }, [open]);
+
+  const picked = items.filter(i => value.includes(i.id));
+  const usable = items.filter(i => !i.off);
+  const needle = q.trim().toLowerCase();
+  const shown = needle ? items.filter(i => (i.label + " " + i.desc).toLowerCase().includes(needle)) : items;
+  const ordered = (ids: string[]) => inOrder(items, ids);
+  const toggle = (k: string) => onChange(ordered(value.includes(k) ? value.filter(v => v !== k) : [...value, k]));
+  // "Select all" acts on what the search is showing, not the whole catalogue.
+  const scope = shown.filter(i => !i.off);
+  const all = scope.length > 0 && scope.every(i => value.includes(i.id));
+  const toggleAll = () => onChange(ordered(all ? value.filter(v => !scope.some(i => i.id === v))
+    : [...value, ...scope.map(i => i.id)]));
+
+  return (
+    <div className="field">
+      <span className="field-label" id={`${id}-l`}>{label}
+        <span className="field-hint muted-hint">{picked.length ? `${picked.length} of ${usable.length}` : "none"}</span>
+      </span>
+      <div className={"mp" + (open ? " is-open" : "")}>
+        <div className="mp-chips" role="list" aria-labelledby={`${id}-l`}>
+          {picked.length === 0 && <span className="mp-empty">{empty}</span>}
+          {picked.map(i => (
+            <span key={i.id} className="mp-chip" role="listitem">
+              {i.mono && <span className="mp-mono sm" style={{ background: i.mono }} aria-hidden="true">{i.label[0]}</span>}
+              {i.label}
+              {!disabled && (
+                <button type="button" className="mp-x" onClick={() => toggle(i.id)} aria-label={`Remove ${i.label}`}>
+                  <Icon name="x" size={11} stroke={2.2} />
+                </button>
+              )}
+            </span>
+          ))}
+          {!disabled && (
+            <button type="button" className="mp-add" aria-expanded={open} aria-controls={`${id}-panel`} onClick={() => setOpen(o => !o)}>
+              <Icon name={open ? "chevron" : picked.length ? "pencil" : "plus"} size={12} stroke={2} />{open ? "Done" : picked.length ? "Edit" : `Add ${noun}`}
+            </button>
+          )}
+        </div>
+
+        {open && (
+          <div ref={panelRef} className="mp-panel" id={`${id}-panel`} onKeyDown={e => { if (e.key === "Escape") { e.stopPropagation(); setOpen(false); } }}>
+            <div className="mp-search">
+              <Icon name="search" size={14} />
+              <input ref={searchRef} value={q} onChange={e => setQ(e.target.value)} placeholder={`Search ${noun}`} aria-label={`Search ${noun}`} />
+              <button type="button" className="mp-all" onClick={toggleAll} disabled={!scope.length}>
+                {all ? "Clear" : "Select all"}
+              </button>
+            </div>
+            <ul className="mp-list" aria-label={label}>
+              {shown.map(i => (
+                <li key={i.id}>
+                  <label className={"mp-row" + (i.off ? " is-off" : "")}>
+                    <input type="checkbox" checked={value.includes(i.id)} disabled={!!i.off} onChange={() => toggle(i.id)} />
+                    <span className="mp-box" aria-hidden="true"><Icon name="check" size={11} stroke={2.6} /></span>
+                    {i.mono && <span className="mp-mono" style={{ background: i.mono }} aria-hidden="true">{i.label[0]}</span>}
+                    <span className="mp-text"><span className="mp-name">{i.label}</span><span className="mp-desc">{i.desc}</span></span>
+                    <span className={"mp-meta" + (i.off ? " is-off" : "")}>{i.off || i.meta}</span>
+                  </label>
+                </li>
+              ))}
+              {shown.length === 0 && <li className="mp-none">No {noun} match "{q}"</li>}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Create and edit share one dialog. Editing keeps the handle fixed so existing mentions keep working;
-// built-ins only expose instructions and model.
+// built-ins only expose instructions, model, MCP servers and skills.
 function AgentDialog({ open, agents, editing, onClose, onCreate, onSave, onRemove, onSayHi }: {
   open: boolean; agents: Agent[]; editing: Agent | null; onClose: () => void;
   onCreate: (a: Agent) => void; onSave: (a: Agent) => void; onRemove: (a: Agent) => void; onSayHi: (a: Agent) => void;
@@ -954,6 +1068,7 @@ function AgentDialog({ open, agents, editing, onClose, onCreate, onSave, onRemov
     const a: Agent = {
       id: "agent-" + Date.now(), handle, name: f.name.trim(), desc: f.desc.trim() || "New specialist",
       hue: tintOf(f.tint).dot, look: f.look, tint: f.tint, model: f.model, instructions: f.instructions.trim(),
+      mcps: f.mcps, skills: f.skills,
     };
     onCreate(a); setCreated(a);
   };
@@ -965,7 +1080,8 @@ function AgentDialog({ open, agents, editing, onClose, onCreate, onSave, onRemov
       <button className="icon-btn ghost dialog-x" onClick={onClose} aria-label="Close"><Icon name="x" size={15} /></button>
       <Confetti />
       <div className="celebrate-stage">
-        <Badge name={created.name} handle={created.handle!} look={created.look!} tint={created.tint!} model={created.model!} tag="new specialist" />
+        <Badge name={created.name} handle={created.handle!} look={created.look!} tint={created.tint!} model={created.model!} tag="new specialist"
+          mcps={created.mcps?.length} skills={created.skills?.length} />
       </div>
       <div className="nad-done-copy celebrate-copy">
         <h2 id="nad-title">{created.name} is on the team</h2>
@@ -988,7 +1104,7 @@ function AgentDialog({ open, agents, editing, onClose, onCreate, onSave, onRemov
         <form className="nad-form" onSubmit={e => { e.preventDefault(); submit(); }}>
           <div className="nad-head">
             <h2 id="nad-title">{editing ? `Edit ${base.name || editing.name}` : "New agent"}</h2>
-            <p>{locked ? "A built-in specialist. Tune its instructions and model; its name and look stay fixed."
+            <p>{locked ? "A built-in specialist. Tune its instructions, model, servers and skills; its name and look stay fixed."
               : editing ? `Changes apply from its next turn. The handle stays @${handle} so existing mentions keep working.`
               : "A persistent specialist with its own identity and chat. Mention it in groups by its handle."}</p>
           </div>
@@ -1042,6 +1158,11 @@ function AgentDialog({ open, agents, editing, onClose, onCreate, onSave, onRemov
             </span>
           </label>
 
+          <MultiPick id="nad-mcp" label="MCP servers" noun="servers" items={MCP_SERVERS} value={f.mcps}
+            onChange={v => set("mcps", v)} empty="No servers. It can only use its own knowledge and skills." />
+          <MultiPick id="nad-skills" label="Skills" noun="skills" items={SKILLS} value={f.skills}
+            onChange={v => set("skills", v)} empty="No skills yet." />
+
           <div className="nad-actions">
             {editing && !locked && (confirm ? (
               <span className="remove-confirm" role="group" aria-label="Confirm removal">
@@ -1061,8 +1182,38 @@ function AgentDialog({ open, agents, editing, onClose, onCreate, onSave, onRemov
         </form>
 
         <div className="nad-stage">
-          <Badge name={f.name} handle={handle} look={f.look} tint={f.tint} model={f.model} tag={locked ? "built-in" : undefined} shine={shine} />
+          <Badge name={f.name} handle={handle} look={f.look} tint={f.tint} model={f.model} tag={locked ? "built-in" : undefined} shine={shine}
+            mcps={f.mcps.length} skills={f.skills.length} />
           <span className="nad-stage-note" aria-live="polite">{saved && !dirty ? "saved" : editing && dirty ? "unsaved changes · drag it around" : "live preview · drag it around"}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// The agent in the top bar, shown as its lanyard ID: the same drop-in badge as the "created" moment, minus the confetti.
+function AgentBadge({ agent, busy, onClose, onEdit }: {
+  agent: Agent | null; busy: boolean; onClose: () => void; onEdit: (a: Agent) => void;
+}) {
+  if (!agent) return null;
+  const f = agentFields(agent);
+  const handle = agent.handle || agent.id;
+  return (
+    <div className="scrim celebrate agent-badge-view" role="dialog" aria-modal="true" aria-labelledby="ab-title"
+      onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}
+      onKeyDown={e => { if (e.key === "Escape") onClose(); }}>
+      <button className="icon-btn ghost dialog-x" onClick={onClose} aria-label="Close"><Icon name="x" size={15} /></button>
+      <div className="celebrate-stage">
+        <Badge name={f.name} handle={handle} look={f.look} tint={f.tint} model={f.model} tag={agent.builtin ? "built-in" : "specialist"}
+          mcps={f.mcps.length} skills={f.skills.length} />
+      </div>
+      <div className="nad-done-copy celebrate-copy">
+        <span className="ab-status"><span className={"pulse" + (busy ? "" : " idle")} aria-hidden="true" />{busy ? "working" : "ready"}</span>
+        <h2 id="ab-title">{agent.name}</h2>
+        <p>{agent.desc.replace(/\.$/, "")}. Mention <code>@{handle}</code> anywhere to wake it.</p>
+        <div className="nad-actions">
+          <button className="btn-solid lg" onClick={onClose} autoFocus>Done</button>
+          <button className="btn-soft lg" onClick={() => onEdit(agent)}><Icon name="pencil" size={15} /> Edit agent</button>
         </div>
       </div>
     </div>
@@ -1712,6 +1863,7 @@ function App() {
   const [agent, setAgent] = useState<Agent>(AGENTS[0]);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Agent | null>(null);
+  const [badgeOpen, setBadgeOpen] = useState(false);  // top-bar pill shows the current agent's lanyard ID
   const [nav, setNav] = useState("home");
   const [messages, setMessages] = useState<Message[]>([]);
   const [activeConvo, setActiveConvo] = useState<number | null>(null);
@@ -1916,7 +2068,7 @@ function App() {
             {!sidebarShown && <span className="brand-word sm">truex</span>}
             {title && <><span className="muted">/</span><span className="crumb-title">{title}</span></>}
           </div>
-          <button className="status-pill" onClick={() => editAgent(agent)} title={`Edit ${agent.name}`}>
+          <button className="status-pill" onClick={() => { setPop(null); setBadgeOpen(true); }} title={`View ${agent.name}`} aria-haspopup="dialog">
             <span className={"pulse" + (busy ? "" : " idle")} aria-hidden="true" />
             <span>{agent.name}</span>
             <span className="muted">·</span>
@@ -1983,6 +2135,8 @@ function App() {
         onSave={a => { setAgents(list => list.map(x => x.id === a.id ? a : x)); setAgent(c => c.id === a.id ? a : c); }}
         onRemove={a => { setAgents(list => list.filter(x => x.id !== a.id)); setAgent(c => c.id === a.id ? AGENTS[0] : c); closeDialog(); }}
         onSayHi={a => { setCreating(false); newChat(); setAgent(a); const t = `@${a.handle} hi, `; setDraft(t); focusInput(t); }} />
+      <AgentBadge agent={badgeOpen ? agent : null} busy={busy} onClose={() => setBadgeOpen(false)}
+        onEdit={a => { setBadgeOpen(false); editAgent(a); }} />
       <CommandPalette open={palette} onClose={() => setPalette(false)}
         onRun={t => { setPalette(false); const c = CONVERSATIONS.find(x => x.title === t)!; newChat(); setActiveConvo(c.id); send(t, false); }} />
     </div>
@@ -2342,6 +2496,41 @@ textarea.input { height: auto; min-height: 84px; padding: 10px 12px; resize: ver
 .tint-row .field-label { margin-right: 4px; }
 .tint { width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 1px solid var(--line-strong); cursor: pointer; }
 .tint.is-active { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
+/* MCP / skills multi-select */
+.field-hint.muted-hint { color: var(--ink-3); }
+.mp { border: 1px solid var(--border-control); border-radius: 10px; background: var(--surface); transition: border-color .15s, box-shadow .15s; }
+.mp.is-open { border-color: var(--accent-2); box-shadow: 0 0 0 3px var(--accent-soft); }
+.mp-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 40px; padding: 6px 6px 6px 8px; }
+.mp-empty { flex: 1 1 160px; padding: 0 4px; font-size: 13px; color: var(--ink-3); }
+.mp-chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 4px 0 8px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-fg); font-size: 12.5px; font-weight: 500; }
+.mp-x { display: grid; place-items: center; width: 18px; height: 18px; border: 0; border-radius: 5px; background: none; color: inherit; cursor: pointer; opacity: .7; }
+.mp-x:hover { opacity: 1; background: color-mix(in srgb, currentColor 14%, transparent); }
+.mp-add { display: inline-flex; align-items: center; gap: 5px; height: 26px; margin-left: auto; padding: 0 9px; border: 1px dashed var(--line-strong); border-radius: 8px; background: none; color: var(--ink-2); font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; }
+.mp-add:hover { color: var(--ink); border-color: var(--ink-3); border-style: solid; }
+.mp.is-open .mp-add svg { transform: rotate(180deg); }
+.mp-panel { border-top: 1px solid var(--line); animation: fade .12s; }
+.mp-search { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 12px; border-bottom: 1px solid var(--line); color: var(--ink-3); }
+.mp-search input { flex: 1; min-width: 0; height: 30px; border: 0; background: none; color: var(--ink); font: inherit; font-size: 13.5px; outline: none; }
+.mp-all { height: 26px; padding: 0 8px; border: 0; border-radius: 7px; background: none; color: var(--accent-text); font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+.mp-all:hover { background: var(--accent-soft); }
+.mp-all:disabled { color: var(--ink-3); background: none; cursor: default; }
+.mp-list { list-style: none; margin: 0; padding: 4px; max-height: 232px; overflow: auto; }
+.mp-row { position: relative; display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px; cursor: pointer; }
+.mp-row:hover { background: var(--surface-3); }
+.mp-row input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.mp-box { flex: none; display: grid; place-items: center; width: 16px; height: 16px; border: 1.5px solid var(--border-control); border-radius: 5px; color: transparent; transition: background .12s, border-color .12s; }
+.mp-row input:checked ~ .mp-box { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.mp-row input:focus-visible ~ .mp-box { box-shadow: 0 0 0 3px var(--accent-soft); border-color: var(--accent-2); }
+.mp-mono { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; color: #fff; font-size: 12px; font-weight: 700; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 18%); }
+.mp-mono.sm { width: 16px; height: 16px; border-radius: 4px; font-size: 9.5px; }
+.mp-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mp-name { font-size: 13.5px; font-weight: 500; color: var(--ink); }
+.mp-desc { font-size: 12px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mp-meta { flex: none; font: 11px var(--font-mono); color: var(--ink-3); }
+.mp-meta.is-off { color: var(--warning-text); }
+.mp-row.is-off { cursor: not-allowed; }
+.mp-row.is-off .mp-name, .mp-row.is-off .mp-mono { opacity: .5; }
+.mp-none { padding: 14px 8px; font-size: 13px; color: var(--ink-3); text-align: center; }
 .select.full { display: flex; margin-left: 0; }
 .select.full select { width: 100%; height: 40px; padding: 0 32px 0 12px; border-color: var(--border-control); border-radius: 10px; font-size: 14px; }
 .nad-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; padding-top: 4px; }
@@ -2379,7 +2568,7 @@ textarea.input { height: auto; min-height: 84px; padding: 10px 12px; resize: ver
 .badge-body { padding: 14px 18px 12px; }
 .badge-name { font: 700 24px/1.15 var(--font-display); letter-spacing: -.03em; overflow-wrap: anywhere; }
 .badge-name.is-empty { color: #A3AFB5; }
-.badge-handle { margin-top: 4px; font: 500 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--accent-fg); overflow-wrap: anywhere; }
+.badge-handle { margin-top: 4px; font: 500 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: #2A72A3; overflow-wrap: anywhere; }  /* badge is always white, so no theme token */
 .badge-foot { display: flex; justify-content: space-between; gap: 12px; padding: 10px 18px 14px; border-top: 1px dashed #E3ECEF; font: 11px var(--font-mono); white-space: nowrap; color: #5F6D73; }
 
 .nad-stage.done { min-height: 480px; justify-content: flex-end; border-left: 0; border-bottom: 1px solid var(--line); }
@@ -2398,6 +2587,7 @@ textarea.input { height: auto; min-height: 84px; padding: 10px 12px; resize: ver
 .celebrate-copy { position: relative; z-index: 3; padding: 0 16px max(40px, 6vh); color: #F4F7F8; animation: rise .4s .35s ease-out backwards; }
 .celebrate-copy h2 { font-size: 32px; }
 .celebrate-copy p { color: rgb(244 247 248 / 72%); }
+.ab-status { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 4px 12px; border: 1px solid rgb(255 255 255 / 14%); border-radius: 999px; background: rgb(255 255 255 / 6%); font: 500 12px var(--font-mono); letter-spacing: .04em; color: rgb(244 247 248 / 80%); }
 .celebrate-copy code { border-color: rgb(255 255 255 / 16%); background: rgb(255 255 255 / 8%); color: #F4F7F8; }
 @media (max-height: 720px) { .celebrate-stage .strap { height: 20px; } .celebrate-copy h2 { font-size: 26px; } }
 .confetti { position: absolute; left: 50%; top: 60%; width: 0; height: 0; pointer-events: none; z-index: 2; }

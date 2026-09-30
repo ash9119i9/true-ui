@@ -1,0 +1,201 @@
+<title>Conversation v3 Dev Spec</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,6..72,400..500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: sticky contents rail on the left, one reading column of spec tables on the right; stacks on phones.
+   Tokens mirror the product's light/dark system (with the v3 AA fixes) so the spec demonstrates the page it describes. */
+:root {
+  --bg: #FFFFFF; --surface: #FFFFFF; --surface-2: #F8FCFD; --surface-3: #F6F9FA; --line: #E3ECEF; --line-strong: #D8E0E4;
+  --ink: #1F2A30; --ink-2: #5F6D73; --ink-3: #67757C;
+  --accent: #3691CD; --accent-fg: #2A72A3; --accent-soft: #EAF5F8; --on-accent: #FFFFFF;
+  --warn: #C58A1E; --warn-bg: #FFF3D9; --warn-text: #7D5D1D;
+  --bad: #A63A25; --bad-bg: #FCECE7; --ok: #0f7a55; --ok-bg: #E6F5EE; --ok-text: #35624E;
+  --t0: #2872b8; --ts0: #eef5fc; --t1: #0f7a55; --ts1: #e6f5ee; --t2: #b84a1b; --ts2: #fcece4; --tm: #6b6b6b; --tsm: #f0f0f0;
+  --shadow-sm: 0 1px 2px rgb(31 42 48 / 6%); --shadow-md: 0 4px 14px rgb(31 42 48 / 8%);
+  --font-sans: "Figtree", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-accent: "Newsreader", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171717; --surface: #171717; --surface-2: #1C1C1C; --surface-3: #242424; --line: #2A2A2A; --line-strong: #363636;
+  --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #98A6AC;
+  --accent: #5AA8DC; --accent-fg: #BCDEE8; --accent-soft: #14283A; --on-accent: #111213;
+  --warn: #E6C27A; --warn-bg: #2E2512; --warn-text: #E6C27A;
+  --bad: #E88C77; --bad-bg: #2C1712; --ok: #4FC79B; --ok-bg: #0E211A; --ok-text: #A8D8BE;
+  --t0: #3691cd; --ts0: #0f1f2c; --t1: #199e70; --ts1: #0e211a; --t2: #d95926; --ts2: #24120a; --tm: #8f8f8f; --tsm: #262626;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 40%); --shadow-md: 0 4px 14px rgb(0 0 0 / 45%);
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #171717; --surface: #171717; --surface-2: #1C1C1C; --surface-3: #242424; --line: #2A2A2A; --line-strong: #363636;
+  --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #98A6AC;
+  --accent: #5AA8DC; --accent-fg: #BCDEE8; --accent-soft: #14283A; --on-accent: #111213;
+  --warn: #E6C27A; --warn-bg: #2E2512; --warn-text: #E6C27A;
+  --bad: #E88C77; --bad-bg: #2C1712; --ok: #4FC79B; --ok-bg: #0E211A; --ok-text: #A8D8BE;
+  --t0: #3691cd; --ts0: #0f1f2c; --t1: #199e70; --ts1: #0e211a; --t2: #d95926; --ts2: #24120a; --tm: #8f8f8f; --tsm: #262626;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 40%); --shadow-md: 0 4px 14px rgb(0 0 0 / 45%);
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.6 var(--font-sans); -webkit-font-smoothing: antialiased; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+a { color: var(--accent-fg); }
+.page { display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: 48px; max-width: 1280px; margin: 0 auto; padding: 40px 24px 96px; }
+@media (max-width: 900px) { .page { grid-template-columns: minmax(0, 1fr); gap: 24px; padding: 24px 16px 64px; } .rail { position: static !important; max-height: none !important; } }
+
+.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; max-height: calc(100vh - 48px); overflow: auto; font-size: 13px; }
+.rail-brand { font-weight: 800; font-size: 19px; letter-spacing: -.04em; }
+.rail-sub { color: var(--ink-3); font: 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; margin: 2px 0 18px; }
+.rail ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; counter-reset: s; }
+.rail li:not(.grp) { counter-increment: s; }
+.rail a { display: flex; gap: 10px; padding: 5px 8px; border-radius: 7px; color: var(--ink-2); text-decoration: none; }
+.rail a::before { content: counter(s, decimal-leading-zero); font: 11px/21px var(--font-mono); color: var(--ink-3); }
+.rail a:hover { background: var(--surface-3); color: var(--ink); }
+.rail .grp { font: 500 10.5px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); padding: 14px 8px 4px; }
+.theme { display: inline-flex; padding: 2px; margin-top: 18px; border-radius: 9px; background: var(--surface-3); border: 1px solid var(--line); }
+.theme button { height: 26px; padding: 0 10px; border: 0; border-radius: 7px; background: none; color: var(--ink-2); font: 12px var(--font-sans); cursor: pointer; }
+.theme button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); font-weight: 500; }
+
+main { min-width: 0; }
+.hero { padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+.eyebrow { font: 500 11px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+h1 { margin: 8px 0 10px; font-size: clamp(30px, 4.4vw, 44px); line-height: 1.06; letter-spacing: -.035em; font-weight: 600; text-wrap: balance; }
+h1 em, h2 em { font-family: var(--font-accent); font-style: italic; font-weight: 400; color: var(--accent-fg); }
+.lede { max-width: 68ch; color: var(--ink-2); font-size: 15px; margin: 0 0 12px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.meta span { font: 11.5px var(--font-mono); color: var(--ink-2); padding: 3px 9px; border-radius: 999px; background: var(--surface-3); border: 1px solid var(--line); }
+
+section.part { padding: 40px 0 8px; border-bottom: 1px solid var(--line); scroll-margin-top: 16px; }
+section.part > h2 { margin: 0 0 12px; font-size: 26px; letter-spacing: -.02em; line-height: 1.2; font-weight: 600; text-wrap: balance; }
+h3 { margin: 36px 0 8px; font-size: 18px; font-weight: 600; letter-spacing: -.01em; scroll-margin-top: 16px; text-wrap: balance; }
+h4 { margin: 22px 0 6px; font-size: 14px; font-weight: 600; }
+p, li { max-width: 74ch; }
+p { margin: 0 0 12px; color: var(--ink-2); }
+section.part ul, section.part ol { color: var(--ink-2); padding-left: 20px; margin: 0 0 14px; }
+section.part li { margin: 3px 0; }
+b, strong { color: var(--ink); font-weight: 600; }
+code { font: 12.5px var(--font-mono); background: var(--surface-3); border: 1px solid var(--line); padding: 1px 5px; border-radius: 5px; color: var(--ink); overflow-wrap: anywhere; }
+pre { margin: 10px 0 16px; padding: 14px 16px; background: var(--surface-3); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; font: 12px/1.6 var(--font-mono); color: var(--ink); }
+pre code { background: none; border: 0; padding: 0; font: inherit; overflow-wrap: normal; }
+.tw { overflow-x: auto; margin: 10px 0 18px; border: 1px solid var(--line); border-radius: 10px; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.tbl th { text-align: left; font: 500 11px var(--font-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--ink-3); background: var(--surface-3); padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.tbl td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--ink-2); }
+.tbl tr:last-child td { border-bottom: 0; }
+.tbl td:first-child { color: var(--ink); font-weight: 500; }
+.tbl td code { white-space: nowrap; }
+.sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; box-shadow: inset 0 0 0 1px var(--line-strong); }
+.note { margin: 12px 0 18px; padding: 12px 14px; border-radius: 10px; background: var(--accent-soft); color: var(--ink); font-size: 13.5px; }
+.note.warn { background: var(--warn-bg); color: var(--warn-text); }
+.note.bad { background: var(--bad-bg); color: var(--bad); }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.grid2 > * { min-width: 0; }
+@media (max-width: 720px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+ul.chk { list-style: none; padding-left: 0 !important; }
+ul.chk li { position: relative; padding-left: 26px; margin: 6px 0; }
+ul.chk li::before { content: ""; position: absolute; left: 0; top: 3px; width: 15px; height: 15px; border: 1.5px solid var(--line-strong); border-radius: 4px; }
+
+/* spec-specific */
+.tag { display: inline-flex; align-items: center; height: 19px; padding: 0 7px; border-radius: 999px; font: 500 10.5px var(--font-mono); letter-spacing: .03em; vertical-align: 1px; white-space: nowrap; }
+.tag.exists { background: var(--ok-bg); color: var(--ok); }
+.tag.derive { background: var(--ts0); color: var(--t0); }
+.tag.backend { background: var(--bad-bg); color: var(--bad); }
+.tag.proposal { background: var(--warn-bg); color: var(--warn-text); }
+.tag.phase { background: var(--surface-3); color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line); }
+.comp { margin: 18px 0 28px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.comp > header { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 12px 16px; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+.comp > header h4 { margin: 0; font-size: 15px; }
+.comp > header .path { font: 11.5px var(--font-mono); color: var(--ink-3); flex-basis: 100%; overflow-wrap: anywhere; }
+.comp > .body { padding: 14px 16px 4px; }
+.comp > .body > .tw { margin-top: 6px; }
+.specimen { margin: 10px 0 16px; padding: 18px; border-radius: 12px; border: 1px dashed var(--line-strong); background: var(--surface-3); overflow-x: auto; }
+.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; margin: 8px 0 14px; font-size: 13px; }
+.kv dt { color: var(--ink-3); font-family: var(--font-mono); font-size: 12px; }
+.kv dd { margin: 0; color: var(--ink-2); min-width: 0; }
+.foot { padding-top: 28px; font: 12px var(--font-mono); color: var(--ink-3); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
+html { scroll-behavior: smooth; }
+</style>
+
+<div class="page">
+  <nav class="rail" aria-label="Contents">
+    <div class="rail-brand">truex</div>
+    <div class="rail-sub">Conversation v3 · dev spec</div>
+    <ol>
+      <li class="grp">Start</li>
+      <li><a href="#how">How to use</a></li>
+      <li><a href="#foundations">Foundations</a></li>
+      <li class="grp">Surfaces</li>
+      <li><a href="#shell">Shell &amp; navigation</a></li>
+      <li><a href="#composer">Composer</a></li>
+      <li><a href="#stream">Message stream</a></li>
+      <li><a href="#requests">Requests &amp; Needs you</a></li>
+      <li><a href="#agents">Agents, helpers, goals</a></li>
+      <li><a href="#panel">Session panel &amp; insights</a></li>
+      <li class="grp">Wiring</li>
+      <li><a href="#data">State, data &amp; API</a></li>
+      <li class="grp">Ship it</li>
+      <li><a href="#ship">A11y, QA, build plan</a></li>
+      <li><a href="#coverage">Coverage matrix</a></li>
+    </ol>
+    <div class="theme" id="themeSeg" role="group" aria-label="Theme">
+      <button type="button" data-t="" aria-pressed="true">Auto</button>
+      <button type="button" data-t="light" aria-pressed="false">Light</button>
+      <button type="button" data-t="dark" aria-pressed="false">Dark</button>
+    </div>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Handoff · convo-v3-wireframe.html</div>
+      <h1>Conversation v3, <em>build spec</em></h1>
+      <p class="lede">Everything needed to build the conversation page: tokens, every component with its anatomy, sizes, states, data, behavior, keyboard and copy, the state model and API wiring, and acceptance criteria per phase. The wireframe shows the layout. This spec is the source of truth for values and behavior.</p>
+      <div class="meta"><span>Wireframe: design/convo-v3-wireframe.html</span><span>Plan: design/convo-v3-plan.html</span><span>Schema: chat-ui-schema.md</span><span>Oct 1, 2026</span></div>
+    </header>
+
+    <section class="part" id="how">
+      <h2>How to use this spec</h2>
+      <p>Each component block lists where it lives in code, its anatomy and measurements, the tokens it uses, a states table, the data it reads, its behavior and keyboard rules, its copy and its acceptance criteria. Every item carries one tag that says whether it can be built today.</p>
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Tag</th><th>Meaning</th><th>What a developer does</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tag exists">exists</span></td><td>The data and behavior exist in the current contract.</td><td>Build it.</td></tr>
+          <tr><td><span class="tag derive">derive</span></td><td>Needs client-side logic only. No API change.</td><td>Build it, following the derivation rule given.</td></tr>
+          <tr><td><span class="tag backend">backend</span></td><td>Needs a field or endpoint that doesn't exist. Each one has a <code>BE-xx</code> id in the backend table.</td><td>Build the UI behind a flag, or wait for the backend item.</td></tr>
+          <tr><td><span class="tag proposal">proposal</span></td><td>A value or behavior the product team hasn't confirmed. Each one has a <code>D-xx</code> id in the decisions table.</td><td>Build the default shown, and don't treat it as final.</td></tr>
+        </tbody>
+      </table></div>
+      <div class="note warn"><b>About sample content.</b> Names like Qlik Analyst, Atlas, Juno, Priya N., the onboarding plan scenario, model names, request ids and error codes are examples only. Real values come from the data fields named next to them.</div>
+      <p>Build order and ownership are in <a href="#ship">A11y, QA, build plan</a>. Every schema component appears in the <a href="#coverage">coverage matrix</a>, either with a spec location or with the reason it's out of scope.</p>
+    </section>
+
+@@PART:a@@
+@@PART:b@@
+@@PART:c@@
+@@PART:d@@
+@@PART:e@@
+@@PART:f@@
+@@PART:g@@
+@@PART:h@@
+@@PART:i@@
+
+@@COVERAGE@@
+
+    <div class="foot">truex · conversation v3 dev spec · compiled from chat-ui-schema.md, the v3 wireframe and the v3 plan on Oct 1, 2026</div>
+  </main>
+</div>
+
+<script>
+(() => {
+  const root = document.documentElement;
+  const apply = (t) => {
+    if (t) root.dataset.theme = t; else root.removeAttribute("data-theme");
+    document.querySelectorAll("#themeSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.t === t)));
+    try { localStorage.setItem("spec-theme", t); } catch (e) {}
+  };
+  let saved = ""; try { saved = localStorage.getItem("spec-theme") || ""; } catch (e) {}
+  apply(saved);
+  document.getElementById("themeSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) apply(b.dataset.t); });
+})();
+</script>

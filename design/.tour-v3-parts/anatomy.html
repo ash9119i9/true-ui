@@ -1,0 +1,250 @@
+<section class="sec" id="anatomy">
+<style>
+#anatomy .canvas{position:relative;display:flex;flex-direction:column;align-items:center;gap:26px;padding:56px 40px 36px;background:var(--surface-2);border:1px solid var(--line);border-radius:20px}
+#anatomy .cwrap{position:relative;width:min(300px,100%)}
+#anatomy .cwrap .coach,#anatomy .types .coach{width:100%;margin:0}
+#anatomy .pin-at{z-index:8}
+#anatomy .dim-rule{position:absolute;left:0;right:0;top:-30px;display:flex;align-items:center;gap:8px;font:500 11px var(--font-mono);color:var(--ink-2);font-variant-numeric:tabular-nums}
+#anatomy .dim-rule::before,#anatomy .dim-rule::after{content:"";flex:1;height:7px;border:1px solid var(--line-strong);border-top:0;border-bottom:0;background:linear-gradient(var(--line-strong),var(--line-strong)) center/100% 1px no-repeat}
+#anatomy .cwrap > .pin-at.l{left:-11px}
+#anatomy .cwrap > .pin-at.r{right:-11px}
+#anatomy .tb[aria-disabled="true"]{opacity:.45}
+#anatomy .keys{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 14px;font-size:12.5px;color:var(--ink-2);position:relative;z-index:7}
+#anatomy .keys span{display:inline-flex;align-items:center;gap:5px}
+#anatomy .cp-wrap{width:min(520px,100%);min-width:0}
+#anatomy .cp-box{border:1px solid var(--line);border-radius:18px;background:var(--surface);box-shadow:var(--shadow-md);padding:10px 10px 8px 12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+#anatomy .cp-ta{min-height:34px;padding:2px 4px;color:var(--ink-2);font-size:14px}
+#anatomy .cp-bar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-width:0}
+#anatomy .cp-chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);font:500 13px var(--font-sans);color:var(--ink);white-space:nowrap;min-width:0}
+#anatomy .cp-chip.ghost{background:transparent;border-color:transparent;color:var(--ink-2);padding:0 8px}
+#anatomy .cp-send{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:none;background:var(--accent-fg);color:var(--on-accent)}
+#anatomy .spot-demo .app-stage{min-height:380px}
+#anatomy .spot-demo .wf-top .rt{justify-self:end;display:flex;gap:6px;color:var(--ink-2)}
+#anatomy .spot-demo .wf-top .rt span{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;border:1px solid var(--line)}
+#anatomy .qa{flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:var(--ts0);color:var(--t0);font:700 10.5px var(--font-mono)}
+#anatomy .rq-wait{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 6px 0 11px;border-radius:999px;background:var(--warn-bg);color:var(--warn-text);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);font-size:13px;font-weight:600;white-space:nowrap}
+#anatomy .rq-wait em{font:700 11px/18px var(--font-mono);font-style:normal;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--warn-text);color:var(--bg);text-align:center}
+#anatomy .spot-stage{flex:1;padding:18px 20px 12px;display:flex;flex-direction:column;gap:14px;min-width:0}
+#anatomy .spot-stage .bubble{max-width:100%}
+#anatomy .rq-card{margin:0 16px;padding:10px 12px;border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);border-radius:14px;background:var(--surface);display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;font-size:13px;min-width:0}
+#anatomy .rq-card .grow{flex:1 1 180px;min-width:0;color:var(--ink)}
+#anatomy .rq-card .grow small{display:block;color:var(--ink-2);font-size:12px}
+#anatomy .spot-bottom{padding:10px 16px 16px}
+#anatomy .kit{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:14px}
+#anatomy .kit > div{position:relative;display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-sm);font-size:13px;color:var(--ink-2);min-width:0}
+#anatomy .kit .beacon{position:relative;flex:none;margin:0 4px}
+#anatomy .kit .sw{flex:none;width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:linear-gradient(var(--scrim),var(--scrim)),repeating-conic-gradient(var(--surface-3) 0 25%,var(--bg) 0 50%) 0 0/10px 10px}
+#anatomy .kit b{display:block;color:var(--ink);font-weight:600}
+#anatomy .kit code{font:11.5px var(--font-mono);color:var(--ink-2)}
+#anatomy .kit .pin{margin-left:auto}
+#anatomy .canvas.wide{padding:28px;align-items:stretch}
+#anatomy .types{display:grid;grid-template-columns:repeat(auto-fit,minmax(236px,1fr));gap:18px;align-items:start;width:100%}
+#anatomy .types > div{display:flex;flex-direction:column;gap:10px;min-width:0}
+#anatomy .types .coach{font-size:13px}
+#anatomy .types .coach h4{font-size:15.5px}
+#anatomy .types .coach p{font-size:13px}
+#anatomy .types .c-dots i{width:5px;height:5px}
+#anatomy .types .c-dots i.on{width:14px}
+#anatomy .chip-row{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;padding-top:18px;border-top:1px dashed var(--line-strong)}
+#anatomy .chip-row .muted{font-size:13px;color:var(--ink-2);min-width:0}
+#anatomy .esc{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-width:0}
+#anatomy .esc .lbl{font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin-right:4px}
+#anatomy .esc .st{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:9px;border:1px solid var(--line);background:var(--surface);font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+#anatomy .esc .st b{font:600 11px var(--font-mono);color:var(--ink)}
+#anatomy .esc .st.tour{border-color:var(--spot-ring);background:var(--accent-soft);color:var(--accent-fg)}
+#anatomy .esc .st.tour b{color:var(--accent-fg)}
+#anatomy .esc .ar{color:var(--ink-2);font-size:12px}
+@media (max-width:640px){#anatomy .canvas{padding:44px 16px 24px}#anatomy .canvas.wide{padding:16px}#anatomy .esc .ar{display:none}}
+</style>
+<div class="sec-head">
+  <span class="eyebrow">Anatomy</span>
+  <h2>One spotlight, one card, one sentence</h2>
+  <p>Every stop is the same three things: a spotlight on one real control, a coach card beside it, and one sentence that says what it does. Nothing else on screen changes.</p>
+</div>
+
+<div class="board">
+  <div>
+    <div class="demo" role="img" aria-label="Coach card for step 3 of 12, the composer action bar, shown at full size above the spotlighted bar, with seven numbered markers on its parts">
+      <div class="canvas">
+        <div class="cwrap">
+          <span class="dim-rule" aria-hidden="true">300px</span>
+          <div class="coach static" data-side="above" style="--caret:140px">
+            <div class="c-eye"><span>Step 3 of 12 · First look</span><span class="c-x" aria-label="Minimize tour"><svg aria-hidden="true"><use href="#i-x"/></svg></span></div>
+            <h4>Everything for the next turn, <em>in one bar</em></h4>
+            <p>Attach files, check the agent, pick model and effort, set how much it may do alone, or give it a goal.</p>
+            <div class="c-foot">
+              <span class="c-dots" aria-label="Step 3 of 12"><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+              <span class="tb quiet">Back</span>
+              <span class="tb primary">Next</span>
+            </div>
+          </div>
+          <span class="pin pin-at l" style="top:15px">1</span>
+          <span class="pin pin-at r" style="top:15px">2</span>
+          <span class="pin pin-at l" style="top:52px">3</span>
+          <span class="pin pin-at r" style="top:104px">4</span>
+          <span class="pin pin-at l" style="bottom:16px">5</span>
+          <span class="pin pin-at r" style="bottom:16px">6</span>
+          <span class="pin pin-at" style="top:-11px;left:96px">7</span>
+        </div>
+        <div class="cp-wrap">
+          <div class="cp-box">
+            <div class="cp-ta">Ask Qlik Analyst, or type @ to mention a file, agent or tool</div>
+            <div class="cp-bar t-anchor" data-tour="composer-bar">
+              <span class="cp-chip ghost" data-tour="attach"><svg class="ic sm" aria-hidden="true"><use href="#i-file"/></svg></span>
+              <span class="cp-chip" data-tour="agent-chip"><svg class="ic sm" aria-hidden="true"><use href="#i-bot"/></svg>Qlik Analyst</span>
+              <span class="cp-chip" data-tour="model-chip">gpt-5 · high</span>
+              <span class="cp-chip" data-tour="approval-mode"><svg class="ic sm" aria-hidden="true"><use href="#i-shield"/></svg>Ask</span>
+              <span class="cp-chip ghost" data-tour="goal-chip"><svg class="ic sm" aria-hidden="true"><use href="#i-target"/></svg>Goal</span>
+              <span class="spacer"></span>
+              <span class="cp-send" aria-label="Send"><svg class="ic sm" aria-hidden="true"><use href="#i-send"/></svg></span>
+              <span class="spot inset" aria-hidden="true"></span>
+            </div>
+          </div>
+        </div>
+        <div class="keys">
+          <span><span class="kbd">→</span><span class="kbd">Enter</span> next</span>
+          <span><span class="kbd">←</span> back</span>
+          <span><span class="kbd">Esc</span> minimize</span>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">Shown at 1:1. The card is 300px on desktop, shrinks with 12px to spare on each side, and drops below the mock under 640px.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Eyebrow and progress</b> <span class="tag derive">derive</span><span>Mono 11px caps: "Step 3 of 12 · First look". Step and chapter come from the static step list. Tabular numbers so the line does not shift. Agent tours use "Team · 2 of 4" and "Create · 1 of 5".</span></div></li>
+    <li><span class="pin">2</span><div><b>Close</b> <span class="tag derive">derive</span><span>22px hit area. It minimizes to the resume chip, same as Esc, and never ends the tour. Only the finish card closes for good.</span></div></li>
+    <li><span class="pin">3</span><div><b>Title</b> <span class="tag derive">derive</span><span>Figtree 600 at 17px, one idea per stop. One phrase may sit in Newsreader italic. Never more than one.</span></div></li>
+    <li><span class="pin">4</span><div><b>Body</b> <span class="tag data">data</span><span>One or two sentences in ink-2 that name the real chips: agent, model and effort, approval mode, Goal. The agent and model words read from the session, so the copy matches the bar.</span></div></li>
+    <li><span class="pin">5</span><div><b>Dots</b> <span class="tag derive">derive</span><span>Twelve dots: done in beam, current stretched in accent, rest in line-strong. Progress only, not buttons. Agent tours show 4 or 5.</span></div></li>
+    <li><span class="pin">6</span><div><b>Back and Next</b> <span class="tag look">Look</span> <span class="tag derive">derive</span><span>Quiet Back, primary Next, 30px tall. Step 3 is a Look, so Next is always live. Keys: → or Enter next, ← back, Esc minimizes.</span></div></li>
+    <li><span class="pin">7</span><div><b>Shape and caret</b> <span class="tag derive">derive</span><span>Radius 14, shadow-lift, padding 14 / 16 / 12. data-side="above" and --caret point the 12px caret at the bar's center. The ring hugs data-tour="composer-bar", 6px out.</span></div></li>
+  </ol>
+</div>
+
+<div class="board">
+  <div>
+    <div class="demo spot-demo" role="img" aria-label="v3 topbar with the Needs you pill spotlighted and a count of 1: the rest of the app sits under the scrim, a blue ring with a soft glow hugs the pill, and a coach card for step 9 sits below it">
+      <div class="app">
+        <div class="app-chrome"><i></i><i></i><i></i><span>truex · Onboarding plan for new analysts</span></div>
+        <div class="app-body" style="grid-template-columns:minmax(0,1fr)">
+          <div class="app-stage">
+            <div class="wf-top">
+              <div class="crumb"><span class="qa" aria-hidden="true">QA</span><span class="t">Onboarding plan for new analysts</span></div>
+              <span class="rq-wait t-anchor" data-tour="needs-you"><span class="pulse warn"></span>Needs you<em>1</em><span class="spot round inset" aria-hidden="true"></span></span>
+              <div class="rt"><span><svg class="ic sm" aria-hidden="true"><use href="#i-search"/></svg></span></div>
+            </div>
+            <div class="spot-stage">
+              <div class="msg user"><div class="bubble-wrap"><div class="bubble">Draft a 30-day onboarding plan for new analysts from the handbook</div></div></div>
+              <div class="msg"><span class="qa" aria-hidden="true">QA</span><div style="flex:1;min-width:0;padding-top:3px;color:var(--ink-2)">Reading the handbook in Google Drive. Handed off license tiers to Atlas, and I need one answer before I draft week one.</div></div>
+            </div>
+            <div class="rq-card"><svg class="ic sm" aria-hidden="true"><use href="#i-alert"/></svg><span class="grow">Which team do new analysts join first?<small>Qlik Analyst · expires in 4 min</small></span><span class="tb line">Sales analytics</span><span class="tb line">Finance</span></div>
+            <div class="spot-bottom">
+              <div class="cp-box"><div class="cp-ta">Ask Qlik Analyst</div></div>
+            </div>
+          </div>
+        </div>
+        <span class="pin pin-at" style="top:44px;left:calc(50% + 74px)">1</span>
+        <span class="pin pin-at" style="top:80px;left:calc(50% - 92px)">2</span>
+        <span class="pin pin-at" style="top:300px;left:22px">4</span>
+      </div>
+      <div class="coach" data-side="below" style="top:104px;left:calc(50% - 150px);--caret:143px">
+        <div class="c-eye"><span>Step 9 of 12 · See it work</span><span class="c-x" aria-label="Minimize tour"><svg aria-hidden="true"><use href="#i-x"/></svg></span></div>
+        <h4>One place for <em>what needs you</em></h4>
+        <p>The count adds up open requests, goal stops, failed helpers and tools that need sign-in. Press <span class="kbd">g</span> then <span class="kbd">n</span> to jump to the oldest.</p>
+        <div class="c-foot">
+          <span class="c-dots" aria-label="Step 9 of 12"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i></span>
+          <span class="tb quiet">Back</span>
+          <span class="tb primary">Next</span>
+        </div>
+      </div>
+    </div>
+    <div class="kit">
+      <div><span class="beacon" aria-hidden="true"></span><span><b>Beacon</b><code>12px · 4px glow · 1.8s</code></span><span class="pin">5</span></div>
+      <div><span class="sw" aria-hidden="true"></span><span><b>Scrim</b><code>--scrim</code></span><span class="pin">4</span></div>
+    </div>
+    <p class="board-cap">The hole follows the pill at any width. The request card stays under the scrim here because step 8 already covered it.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Ring</b> <span class="tag derive">derive</span><span>2px in --spot-ring, 6px outside the target, 999px radius for pills. It hugs data-tour="needs-you" so the user sees exactly what is named. The coach sits below and never covers it.</span></div></li>
+    <li><span class="pin">2</span><div><b>Glow and pulse</b> <span class="tag derive">derive</span><span>An 8px band in --spot-glow, plus a second ring that grows to 106% and fades over 2.4s. Under prefers-reduced-motion the pulse is off and the static ring stays.</span></div></li>
+    <li><span class="pin">3</span><div><b>The count</b> <span class="tag look">Look</span> <span class="tag data">data</span><span>Open PendingRequests, goal stops (blocked, usageLimited, budgetLimited, contextWindow) and failed helpers from SubAgentStatus all exist today. The pill shows 1 because one request is open.</span></div></li>
+    <li><span class="pin">4</span><div><b>Scrim</b> <span class="tag derive">derive</span><span>Light rgb(22 34 41 / 48%), dark rgb(0 0 0 / 64%). Clicks on the scrim do nothing, so a stray click never ends the tour. On Look stops the target stays clickable but does not advance.</span></div></li>
+    <li><span class="pin">5</span><div><b>Beacon</b> <span class="tag derive">derive</span><span>A 12px dot for targets a ring would swamp, like Send on step 6. If no target is found after 3s the ring and beacon drop and the same copy shows in a centered card.</span></div></li>
+    <li><span class="pin">6</span><div><b>Tools needing sign-in</b> <span class="tag backend">backend</span><span>The fourth source of the count needs MCP live status and an OAuth state per server. Until then the count covers the other three and the coach copy stays the same.</span></div></li>
+  </ol>
+</div>
+
+<div class="board">
+  <div>
+    <div class="demo" role="img" aria-label="Three coach cards side by side tagged Look, Try and Wait, then the minimized resume chip reading Resume tour, 6 of 12, and a row showing the tour's Esc handler placed before the four v3 Esc steps">
+      <div class="canvas wide">
+        <div class="types">
+          <div>
+            <span class="row"><span class="pin">1</span><span class="tag look">Look</span></span>
+            <div class="coach static">
+              <div class="c-eye"><span>Step 4 of 12 · First look</span><span class="c-x" aria-label="Minimize tour"><svg aria-hidden="true"><use href="#i-x"/></svg></span></div>
+              <h4>Decide how much it <em>does alone</em></h4>
+              <p>Ask checks with you before each tool. Auto-allow read-only tools lets reads run. Plans and secrets always ask.</p>
+              <div class="c-foot">
+                <span class="c-dots" aria-label="Step 4 of 12"><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                <span class="tb quiet">Back</span>
+                <span class="tb primary">Next</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <span class="row"><span class="pin">2</span><span class="tag try">Try</span></span>
+            <div class="coach static">
+              <div class="c-eye"><span>Step 5 of 12 · See it work</span><span class="c-x" aria-label="Minimize tour"><svg aria-hidden="true"><use href="#i-x"/></svg></span></div>
+              <h4>One <em>@</em> for everything</h4>
+              <p>Type @ to mention a file, an agent or a tool. One picker, grouped by kind.</p>
+              <div class="c-try"><span class="kbd">@</span>Type @ in the composer to continue</div>
+              <div class="c-foot">
+                <span class="c-dots" aria-label="Step 5 of 12"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                <span class="tb quiet">Skip this</span>
+                <span class="tb primary" aria-disabled="true">Next</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <span class="row"><span class="pin">3</span><span class="tag wait">Wait</span></span>
+            <div class="coach static">
+              <div class="c-eye"><span>Step 7 of 12 · See it work</span><span class="c-x" aria-label="Minimize tour"><svg aria-hidden="true"><use href="#i-x"/></svg></span></div>
+              <h4>Work gets <em>handed off</em></h4>
+              <p>Qlik Analyst passes parts to helpers. Each hand-off shows up as one node you can open.</p>
+              <div class="c-wait"><span class="spinner" aria-hidden="true"></span>Waiting for the first hand-off</div>
+              <div class="c-foot">
+                <span class="c-dots" aria-label="Step 7 of 12"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></span>
+                <span class="tb quiet">Back</span>
+                <span class="tb primary" aria-disabled="true">Next</span>
+              </div>
+            </div>
+          </div>
+          <div class="chip-row">
+            <span class="pin">4</span>
+            <span class="tour-chip"><span class="mring" style="--p:50"></span>Resume tour · 6 of 12</span>
+            <span class="muted"><span class="kbd">Esc</span> or close puts the tour here. Click to pick up at step 6.</span>
+          </div>
+          <div class="esc">
+            <span class="pin">5</span>
+            <span class="lbl">Esc order</span>
+            <span class="st tour"><b>0</b>Minimize tour</span><span class="ar" aria-hidden="true">→</span>
+            <span class="st"><b>1</b>Close / or @ menu</span><span class="ar" aria-hidden="true">→</span>
+            <span class="st"><b>2</b>Exit goal mode</span><span class="ar" aria-hidden="true">→</span>
+            <span class="st"><b>3</b>Close popover or panel</span><span class="ar" aria-hidden="true">→</span>
+            <span class="st"><b>4</b>Stop the turn</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="board-cap">Same card, three jobs. The tag decides what Next does. The copy keeps the same shape.</p>
+  </div>
+  <ol class="notes">
+    <li><span class="pin">1</span><div><b>Look</b> <span class="tag look">Look</span> <span class="tag data">data</span><span>Read and move on. Next is always live. The approval copy lists the modes the session offers. Autopilot shows only when its flag is on, and the picker is hidden when approvals are disabled. Stops 1-4, 9, 11 and 12 are Look.</span></div></li>
+    <li><span class="pin">2</span><div><b>Try</b> <span class="tag try">Try</span> <span class="tag derive">derive</span><span>The user does the real thing through the hole. Next stays disabled, Back becomes "Skip this", and the stop advances when advanceOn fires (here: the mention picker opens). Stops 5, 6, 8 and 10.</span></div></li>
+    <li><span class="pin">3</span><div><b>Wait</b> <span class="tag wait">Wait</span> <span class="tag data">data</span><span>The tour holds until waitFor resolves on the first "Handed off" node, then the card turns into a Look. If nothing arrives in 3s the card centers and Next unlocks.</span></div></li>
+    <li><span class="pin">4</span><div><b>Resume chip</b> <span class="tag derive">derive</span><span>Esc or close minimizes. The ring fills to step / 12 (50% at step 6). Progress lives in localStorage truex-tour {v:3, done, step, parts}.</span></div></li>
+    <li><span class="pin">5</span><div><b>Tour Esc goes first</b> <span class="tag derive">derive</span> <span class="tag new">new</span><span>While a coach is open the tour catches Esc in the capture phase and only minimizes. The v3 order (menu, goal mode, popover, stop turn) runs only once the tour is minimized, so Esc never stops a turn mid-tour. mod+K, mod+B, mod+. and mod+J pause while a coach is open.</span></div></li>
+  </ol>
+</div>
+</section>

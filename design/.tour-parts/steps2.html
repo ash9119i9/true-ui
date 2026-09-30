@@ -1,0 +1,320 @@
+<style>
+#see-it-work .s2-stage{padding:18px;display:flex;flex-direction:column;gap:16px;flex:1;min-height:300px}
+#see-it-work .s2-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;color:var(--ink-3);font-size:13px;padding:24px 8px}
+#see-it-work .s2-empty .strong{font-size:17px;letter-spacing:-.02em}
+#see-it-work .s2-pop{position:absolute;z-index:4;bottom:62px;left:calc(50% - 93px);width:210px}
+#see-it-work .s2-pop .hd{padding:4px 8px 2px;font:500 10px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+#see-it-work .s2-pop .it .grow{font-weight:500;color:var(--ink)}
+#see-it-work .s2-pop .sep{height:1px;background:var(--line);margin:3px 4px}
+#see-it-work .s2-typed{color:var(--ink);min-height:40px;padding:2px 4px;line-height:1.5}
+#see-it-work .s2-stage .hcard{max-width:290px}
+#see-it-work .hcard-head + .hrow{border-top:0}
+#see-it-work .hrow .grow{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#see-it-work .s2-p360{width:360px}
+@media (max-width:720px){#see-it-work .s2-p360{width:auto}}
+#see-it-work .s2-ag{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+#see-it-work .s2-ag > div{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:13px;border-top:1px solid var(--line);min-width:0}
+#see-it-work .s2-ag > div:first-child{border-top:0}
+#see-it-work .s2-ctx{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--ink-3)}
+#see-it-work .s2-inset{display:flex;align-items:flex-start;gap:14px;margin-top:16px;flex-wrap:wrap}
+#see-it-work .s2-inset .coach{width:min(260px,100%);margin:0;box-shadow:var(--shadow-card)}
+#see-it-work .s2-inset .lbl{font:700 20px/1.1 var(--font-hand);color:var(--doodle);transform:rotate(-3deg);max-width:150px;padding-top:10px}
+#see-it-work .tl-track i[class*="tone-"]{background:var(--t)}
+#see-it-work .s2-sub{font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+</style>
+<section class="sec" id="see-it-work">
+  <div class="sec-head">
+    <span class="eyebrow">Chapter 2</span>
+    <h2>See it work</h2>
+    <p>Four stops that run one real request. The user picks an agent, sends the demo prompt, watches three helpers split the work, then finds them again in the session panel. The demo run is short: helpers appear about 0.7s after send and all three finish by about 3.7s.</p>
+  </div>
+
+  <!-- Step 5: agent popover (Try) -->
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Step 5 of the tour: the Agent popover is open above the dock, spotlit, with a coach card asking the user to pick an agent">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex · New conversation</span></div>
+          <div class="app-body">
+            <div class="app-stage">
+              <div class="wf-top">
+                <div class="crumb"><span class="t">New conversation</span></div>
+                <span class="status-pill" data-tour="status-pill"><span class="pulse idle"></span>Qlik Analyst</span>
+                <div class="row" style="justify-content:flex-end"><span class="btn ghost" aria-hidden="true">◐</span></div>
+              </div>
+              <div class="s2-stage" style="min-height:380px">
+                <div class="s2-empty">
+                  <span class="strong">Good afternoon, Nitin</span>
+                  <span>Ask Qlik Analyst about your apps, sheets and data, or pick another agent.</span>
+                </div>
+              </div>
+              <div class="bottom">
+                <div class="composer" data-tour="composer">
+                  <div class="ph">Ask, or type / for commands</div>
+                  <div class="composer-bar"><span class="chip" data-tour="goal-chip"><svg class="ic sm"><use href="#i-target"/></svg>Goal</span><span class="spacer"></span><span class="muted sm">Enter to send</span><span class="send" data-tour="send"><svg class="ic sm"><use href="#i-send"/></svg></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="position:relative">
+            <nav class="dock" data-tour="dock" aria-label="Dock">
+              <b title="Sidebar ⌘B"><svg class="ic"><use href="#i-sidebar"/></svg></b>
+              <b title="Search ⌘K"><svg class="ic"><use href="#i-search"/></svg></b>
+              <b title="New chat ⌘J"><svg class="ic"><use href="#i-plus"/></svg></b>
+              <hr>
+              <b class="on" data-tour="dock-agent" title="Agent"><svg class="ic"><use href="#i-bot"/></svg></b>
+              <hr>
+              <b title="Activity ⌘."><svg class="ic"><use href="#i-activity"/></svg></b>
+              <b title="Account"><svg class="ic"><use href="#i-user"/></svg></b>
+            </nav>
+            <div class="pop s2-pop t-anchor" data-tour="agent-menu">
+              <span class="hd">Agent for this chat</span>
+              <span class="it is-active"><span class="h-av tone-0">Q</span><span class="grow">Qlik Analyst</span><svg class="ic sm"><use href="#i-check"/></svg></span>
+              <span class="it"><span class="h-av tone-main">R</span><span class="grow">Researcher</span></span>
+              <span class="it"><span class="h-av tone-main">W</span><span class="grow">Writer</span></span>
+              <span class="it"><span class="h-av tone-main">O</span><span class="grow">Ops</span></span>
+              <span class="sep"></span>
+              <span class="it"><svg class="ic sm"><use href="#i-users"/></svg><span class="grow">All agents</span><svg class="ic sm"><use href="#i-chev"/></svg></span>
+              <span class="spot inset" aria-hidden="true"></span>
+            </div>
+          </div>
+        </div>
+        <span class="pin pin-at" style="bottom:118px;left:calc(50% + 130px)">1</span>
+        <span class="pin pin-at" style="bottom:22px;left:calc(50% + 44px)">3</span>
+        <div class="coach" data-side="above" style="bottom:296px;left:calc(50% - 132px);--caret:144px">
+          <div class="c-eye"><span>Step 5 of 11 · See it work</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Pick who does the <em>work</em></h4>
+          <p>Every chat runs on one agent. Qlik Analyst is the default, and the others are one click away.</p>
+          <div class="c-try"><svg class="ic sm"><use href="#i-bot"/></svg>Pick an agent to continue</div>
+          <div class="c-foot">
+            <div class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <span class="tb quiet">Back</span><span class="tb line">Skip this</span>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">the tour opens the menu for them, then waits. Any pick moves on.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Target agent-menu, opened by prepare()</b>prepare() clicks the dock Agent button (<code>dock-agent</code>) so the popover mounts, then the spotlight wraps <code>agent-menu</code> with placement above. If the menu is not found after 3s, the same copy shows as a centered card.<span class="tag changed">Changed</span><span class="src">AgentMenu · 602, dockItems · 2006</span></div></li>
+      <li><span class="pin">2</span><div><b>Try: advanceOn agent picked</b>Any row advances, including keeping Qlik Analyst. Next is replaced by Skip this, which closes the menu and moves to step 6 with the current agent. All agents stays inert during the tour so the user does not leave the chat.<span class="tag new">New</span><span class="src">useTour step 5</span></div></li>
+      <li><span class="pin">3</span><div><b>Tour clicks do not close the menu</b>The popover uses the app's click-outside close. <code>useClickOutside</code> ignores events from <code>[data-tour-layer]</code>, so Back, Skip this or the close button never collapse the menu before the tour handles them.<span class="tag changed">Changed</span><span class="src">app.tsx 305</span></div></li>
+      <li><span class="pin">4</span><div><b>Copy</b>Title "Pick who does the work", one sentence of body, the Try line "Pick an agent to continue" and a quiet "Skip this". The status pill updates to the chosen name, which step 3 already explained.<span class="tag new">New</span><span class="src">coach copy</span></div></li>
+    </ol>
+  </div>
+
+  <!-- Step 6: send the demo prompt (Try) -->
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Step 6 of the tour: the composer holds the demo prompt and the send button is spotlit, with a coach card above it">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex · New conversation</span></div>
+          <div class="app-body">
+            <div class="app-stage">
+              <div class="wf-top">
+                <div class="crumb"><span class="t">New conversation</span></div>
+                <span class="status-pill" data-tour="status-pill"><span class="pulse idle"></span>Qlik Analyst</span>
+                <div class="row" style="justify-content:flex-end"><span class="btn ghost" aria-hidden="true">◐</span></div>
+              </div>
+              <div class="s2-stage" style="min-height:330px">
+                <div class="s2-empty">
+                  <span class="strong">Good afternoon, Nitin</span>
+                  <span>Ask Qlik Analyst about your apps, sheets and data, or pick another agent.</span>
+                </div>
+              </div>
+              <div class="bottom">
+                <div class="composer" data-tour="composer">
+                  <div class="s2-typed">Draft a 2-week onboarding plan for new analysts from the handbook</div>
+                  <div class="composer-bar"><span class="chip" data-tour="goal-chip"><svg class="ic sm"><use href="#i-target"/></svg>Goal</span><span class="spacer"></span><span class="muted sm"><span class="kbd">Enter</span> to send</span><span class="send t-anchor" data-tour="send"><svg class="ic sm"><use href="#i-send"/></svg><span class="spot round inset" aria-hidden="true"></span></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <nav class="dock" data-tour="dock" aria-label="Dock">
+            <b><svg class="ic"><use href="#i-sidebar"/></svg></b><b><svg class="ic"><use href="#i-search"/></svg></b><b><svg class="ic"><use href="#i-plus"/></svg></b><hr>
+            <b data-tour="dock-agent"><svg class="ic"><use href="#i-bot"/></svg></b><hr>
+            <b><svg class="ic"><use href="#i-activity"/></svg></b><b><svg class="ic"><use href="#i-user"/></svg></b>
+          </nav>
+        </div>
+        <span class="pin pin-at" style="bottom:170px;left:34px">1</span>
+        <span class="pin pin-at" style="bottom:118px;right:20px">2</span>
+        <div class="coach" data-side="above" style="bottom:140px;right:14px;--caret:253px">
+          <div class="c-eye"><span>Step 6 of 11 · See it work</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Send it and <em>watch</em></h4>
+          <p>We wrote a starter request for you. Press send and watch the team split the work.</p>
+          <div class="c-try"><svg class="ic sm"><use href="#i-send"/></svg>Press send, or hit <span class="kbd">Enter</span></div>
+          <div class="c-foot">
+            <div class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div>
+            <span class="tb quiet">Back</span><span class="tb line">Skip this</span>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">the prompt is real text in the box. They can edit it before sending.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>prepare() fills the composer</b>Sets the draft to "Draft a 2-week onboarding plan for new analysts from the handbook" only if the box is empty, and focuses it. A draft the user already typed is kept.<span class="tag changed">Changed</span><span class="src">Composer · 1734</span></div></li>
+      <li><span class="pin">2</span><div><b>Target send, advanceOn send</b>Round spotlight on <code>send</code>. The step listens for the app's send event, so the button, <span class="kbd">Enter</span> and an edited prompt all count. Enter is let through here even though other app hotkeys are paused. Missing target after 3s shows the centered card.<span class="tag changed">Changed</span><span class="src">Composer · 1790</span></div></li>
+      <li><span class="pin">3</span><div><b>Skip this</b>Skipping sends nothing and jumps to step 9, since steps 7 and 8 need a live run. The dots mark 7 and 8 as skipped, not done.<span class="tag new">New</span><span class="src">useTour</span></div></li>
+      <li><span class="pin">4</span><div><b>Copy</b>"Send it and watch", body "Press send and watch the team split the work", Try line "Press send, or hit Enter".<span class="tag new">New</span><span class="src">coach copy</span></div></li>
+    </ol>
+  </div>
+
+  <!-- Step 7: helper card (Wait, then Look) -->
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Step 7 of the tour: the helper card with Atlas, Birch and Cedar is spotlit in the thread, with a coach card to its right">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex · Onboarding plan for new analysts</span></div>
+          <div class="app-body">
+            <div class="app-stage">
+              <div class="wf-top">
+                <div class="crumb"><span class="t">Onboarding plan for new analysts</span></div>
+                <span class="status-pill" data-tour="status-pill"><span class="pulse"></span>Qlik Analyst <span class="muted">· Working</span></span>
+                <div class="row" style="justify-content:flex-end"><span class="btn ghost" aria-hidden="true">◐</span></div>
+              </div>
+              <div class="s2-stage">
+                <div class="msg user"><div class="bubble-wrap"><div class="bubble">Draft a 2-week onboarding plan for new analysts from the handbook</div><span class="muted sm">Nitin · just now</span></div></div>
+                <div class="msg">
+                  <div class="av">Q</div>
+                  <div class="grow">
+                    <div class="msg-meta"><span class="strong">Qlik Analyst</span><span class="muted sm">working · 2.8s</span></div>
+                    <ul class="steps">
+                      <li class="is-done"><span class="mark done"></span>Thought for 0.6s</li>
+                      <li><span class="spinner"></span>Split the work across 3 helpers</li>
+                      <li><span class="mark"></span>Write the two-week plan</li>
+                    </ul>
+                    <div class="hcard t-anchor" data-tour="helper-card">
+                      <div class="hcard-head"><span>3 helpers · 2 running</span><span class="mono sm muted">2.1s</span></div>
+                      <div class="hrow tone-0"><span class="h-av">A</span><span class="grow"><span class="strong">Atlas</span><span class="muted"> · Docs</span></span><span class="spinner" aria-label="running"></span><span class="mono sm muted">2.1s</span></div>
+                      <div class="hrow tone-1"><span class="h-av">B</span><span class="grow"><span class="strong">Birch</span><span class="muted"> · Access</span></span><span class="pill warn"><svg class="ic sm"><use href="#i-alert"/></svg>Limited access</span><span class="spinner" aria-label="running"></span><span class="mono sm muted">2.1s</span></div>
+                      <div class="hrow tone-2"><span class="h-av">C</span><span class="grow"><span class="strong">Cedar</span><span class="muted"> · Shadowing</span></span><span class="muted sm">Finished</span><span class="mono sm muted">1.9s</span></div>
+                      <span class="spot inset" aria-hidden="true"></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom">
+                <div class="composer" data-tour="composer">
+                  <div class="ph">Steer the run, or queue a follow-up</div>
+                  <div class="composer-bar"><span class="chip" data-tour="goal-chip"><svg class="ic sm"><use href="#i-target"/></svg>Goal</span><span class="spacer"></span><span class="send stop" data-tour="send"></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <nav class="dock" data-tour="dock" aria-label="Dock">
+            <b><svg class="ic"><use href="#i-sidebar"/></svg></b><b><svg class="ic"><use href="#i-search"/></svg></b><b><svg class="ic"><use href="#i-plus"/></svg></b><hr>
+            <b data-tour="dock-agent"><svg class="ic"><use href="#i-bot"/></svg></b><hr>
+            <b><svg class="ic"><use href="#i-activity"/></svg><span class="badge">3</span></b><b><svg class="ic"><use href="#i-user"/></svg></b>
+          </nav>
+        </div>
+        <span class="pin pin-at" style="top:300px;left:40px">1</span>
+        <div class="coach" data-side="right" style="top:292px;right:14px;--caret:48px">
+          <div class="c-eye"><span>Step 7 of 11 · See it work</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Helpers take a <em>slice</em> each</h4>
+          <p>Qlik Analyst handed parts of the job to Atlas, Birch and Cedar. They run side by side, and any row opens that helper's own work.</p>
+          <div class="c-foot">
+            <div class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i></div>
+            <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+          </div>
+        </div>
+      </div>
+      <div class="s2-inset">
+        <div class="coach static">
+          <div class="c-eye"><span>Step 7 of 11 · See it work</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <div class="c-wait"><span class="spinner"></span>Starting the helpers</div>
+          <div class="c-foot">
+            <div class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i></div>
+            <span class="tb quiet">Back</span><span class="tb primary" aria-disabled="true" style="opacity:.5">Next</span>
+          </div>
+        </div>
+        <span class="lbl">the first 0.7s after send, docked by the composer</span>
+      </div>
+      <p class="board-cap">a blink of Wait, then Look. The run keeps going under the spotlight.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Wait: waitFor helper-card</b>After send the coach shows the small Wait card with Next disabled. It resolves when <code>helper-card</code> mounts, about 0.7s after send. If it has not appeared after 3s the step falls back to the centered card, same copy, Next enabled.<span class="tag changed">Changed</span><span class="src">HelperCard · 1361 (root 1368)</span></div></li>
+      <li><span class="pin">2</span><div><b>Look: spotlight follows the card</b>The ring tracks the card as rows update. Timing from the demo: Cedar 1.9s, Atlas 2.6s, Birch 3.4s, all done by about 3.7s. The mock is 2.8s after send. The header matches what HelperCard prints today: the running count while any helper works, then "3 done".<span class="tag look">Look</span><span class="src">HELPER_TEMPLATES · app.tsx 161</span></div></li>
+      <li><span class="pin">3</span><div><b>Birch's warning stays visible</b>Birch has no admin scope and lists approvers from the handbook instead. The tour does not explain it here; the row label is enough, and step 8 shows it again.<span class="tag exists">Exists</span><span class="src">warnLabel "Limited access"</span></div></li>
+      <li><span class="pin">4</span><div><b>Rows stay clickable</b>Clicking a row opens the helper as usual and the tour moves to step 8 with that helper selected. Next does the same with none selected.<span class="tag new">New</span><span class="src">useTour step 7</span></div></li>
+    </ol>
+  </div>
+
+  <!-- Step 8: session panel, Agents tab (Look) -->
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Step 8 of the tour: the session panel is open on the Agents tab, spotlit, listing the three helpers and session stats, with a coach card to its left">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex · Onboarding plan for new analysts</span></div>
+          <div class="app-body">
+            <div class="app-stage">
+              <div class="wf-top">
+                <div class="crumb"><span class="t">Onboarding plan for new analysts</span></div>
+                <span class="status-pill" data-tour="status-pill"><span class="pulse idle"></span>Qlik Analyst</span>
+                <div></div>
+              </div>
+              <div class="s2-stage">
+                <div class="msg user"><div class="bubble-wrap"><div class="bubble">Draft a 2-week onboarding plan for new analysts from the handbook</div></div></div>
+                <div class="msg">
+                  <div class="av">Q</div>
+                  <div class="grow">
+                    <div class="msg-meta"><span class="strong">Qlik Analyst</span></div>
+                    <div class="hcard" data-tour="helper-card">
+                      <div class="hcard-head"><span>3 helpers · 3 done</span><span class="mono sm muted">3.4s</span></div>
+                      <div class="hrow tone-0"><span class="h-av">A</span><span class="grow"><span class="strong">Atlas</span></span><span class="mono sm muted">2.6s</span></div>
+                      <div class="hrow tone-1"><span class="h-av">B</span><span class="grow"><span class="strong">Birch</span></span><span class="mono sm muted">3.4s</span></div>
+                      <div class="hrow tone-2"><span class="h-av">C</span><span class="grow"><span class="strong">Cedar</span></span><span class="mono sm muted">1.9s</span></div>
+                    </div>
+                    <div class="answer"><b>Week 1 · Access and context.</b> Laptop, SSO and GitHub on day one, intro calls with your manager and buddy, and the product walkthrough.</div>
+                    <div class="msg-foot">1m 12s · 41.2k tokens · Sonnet 5.5</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <aside class="app-panel s2-p360 t-anchor" aria-label="Session activity">
+              <div class="panel-head"><span class="strong">Session activity</span><span class="spacer"></span><span class="muted sm">360</span></div>
+              <div class="panel-head" style="padding-top:6px"><div class="tabs"><span class="tab">Activity</span><span class="tab is-active" data-tour="panel-agents">Agents</span><span class="tab">Goal</span><span class="tab">Plan</span><span class="tab">Insights</span></div></div>
+              <div class="panel-body">
+                <div class="row"><span class="s2-sub">In this chat</span><span class="spacer"></span><span class="pill ok">3 finished</span></div>
+                <div class="s2-ag">
+                  <div class="tone-0"><span class="h-av">A</span><span class="grow"><span class="strong">Atlas</span><span class="muted sm">Docs · Sonnet 5.5 · 18.4k</span></span><span class="muted sm">Finished</span></div>
+                  <div class="tone-1"><span class="h-av">B</span><span class="grow"><span class="strong">Birch</span><span class="muted sm">Access · Sonnet 5.5 · 12.9k</span></span><span class="pill warn">Limited access</span></div>
+                  <div class="tone-2"><span class="h-av">C</span><span class="grow"><span class="strong">Cedar</span><span class="muted sm">Shadowing · Haiku 4.5 · 9.6k</span></span><span class="muted sm">Finished</span></div>
+                </div>
+                <div class="tl" aria-label="Latest run timeline">
+                  <div class="tl-row"><span class="lbl">Atlas</span><span class="tl-track"><i class="tone-0" style="left:0;width:76%"></i></span><span class="d">2.6s</span></div>
+                  <div class="tl-row"><span class="lbl">Birch</span><span class="tl-track"><i class="tone-1" style="left:0;width:100%"></i></span><span class="d">3.4s</span></div>
+                  <div class="tl-row"><span class="lbl">Cedar</span><span class="tl-track"><i class="tone-2" style="left:0;width:56%"></i></span><span class="d">1.9s</span></div>
+                </div>
+                <div class="stats"><div><span class="v">1m 12s</span><span class="l">session</span></div><div><span class="v">41.2k</span><span class="l">tokens</span></div><div><span class="v">16%</span><span class="l">context</span></div></div>
+                <div class="s2-ctx"><div class="row"><span>Context</span><span class="spacer"></span><span class="mono">41.2k / 258k</span></div><div class="bar"><i style="width:16%"></i></div></div>
+              </div>
+              <span class="spot inset" aria-hidden="true"></span>
+            </aside>
+          </div>
+          <nav class="dock" data-tour="dock" aria-label="Dock">
+            <b><svg class="ic"><use href="#i-sidebar"/></svg></b><b><svg class="ic"><use href="#i-search"/></svg></b><b><svg class="ic"><use href="#i-plus"/></svg></b><hr>
+            <b data-tour="dock-agent"><svg class="ic"><use href="#i-bot"/></svg></b><hr>
+            <b class="on"><svg class="ic"><use href="#i-activity"/></svg></b><b><svg class="ic"><use href="#i-user"/></svg></b>
+          </nav>
+        </div>
+        <span class="pin pin-at" style="top:52px;right:24px">1</span>
+        <div class="coach" data-side="right" style="top:120px;left:12px;right:auto;width:min(270px,calc(100% - 24px));--caret:40px">
+          <div class="c-eye"><span>Step 8 of 11 · See it work</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Everyone on <em>this</em> chat</h4>
+          <p>This tab lists the helpers in this chat, with their time and tokens. The Agents link in the sidebar opens all your agents.</p>
+          <p class="sm muted">Plan shows the steps, Insights shows time, tokens and context.</p>
+          <div class="c-foot">
+            <div class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i></div>
+            <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">two places called Agents. The coach names both so nobody mixes them up.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>prepare() opens the panel</b>Opens Session activity at width 360 on the Agents tab, the same as pressing Activity <span class="kbd">⌘.</span> in the dock. A user who already set 560 keeps 560. The spotlight wraps the whole panel; the anchor is the Agents tab button <code>panel-agents</code>, and the ring grows to its panel.<span class="tag changed">Changed</span><span class="src">ActivityPanel · 431 (tabs 460)</span></div></li>
+      <li><span class="pin">2</span><div><b>Look, 3s fallback</b>Next advances. If <code>panel-agents</code> is missing after 3s (panel failed to open) the centered card shows the same copy. The panel stays open when the tour moves on.<span class="tag look">Look</span><span class="src">useTour step 8</span></div></li>
+      <li><span class="pin">3</span><div><b>Two kinds of Agents</b>This tab is scoped to helpers in this chat. The sidebar Agents link opens the roster of all your agents, which step 10 shows. The copy says both in one sentence.<span class="tag new">New</span><span class="src">coach copy</span></div></li>
+      <li><span class="pin">4</span><div><b>Plan and Insights, named not toured</b>A second line points at Plan (the run's steps) and Insights (1m 12s, 41.2k tokens, a context meter out of 258k). No extra stops, so chapter 2 stays at four.<span class="tag exists">Exists</span><span class="src">ActivityPanel tabs</span></div></li>
+    </ol>
+  </div>
+</section>

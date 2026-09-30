@@ -1,0 +1,283 @@
+<section class="sec" id="first-look">
+<style>
+#first-look .solo{grid-template-columns:minmax(0,1fr)}
+#first-look .home{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:40px 18px 20px;min-height:250px}
+#first-look .home h3{margin:0;font:600 26px/1.15 var(--font-sans);letter-spacing:-.03em;text-align:center;color:var(--ink)}
+#first-look .home h3 em{font-family:var(--font-accent);font-weight:400}
+#first-look .home .composer{width:min(520px,100%)}
+#first-look .home .sugg{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;width:min(520px,100%)}
+#first-look .home .sugg .chip{font-weight:400;color:var(--ink-2)}
+#first-look .hero-c{left:50%;top:46%;transform:translate(-50%,-50%)}
+#first-look .badges{position:absolute;inset:0;display:flex;justify-content:center;align-items:flex-start;gap:22px;padding-top:0}
+#first-look .badge{position:relative;display:flex;flex-direction:column;align-items:center;transform:rotate(var(--tilt,0deg));transform-origin:top center}
+#first-look .badge .cord{width:2px;height:30px;background:var(--line-strong)}
+#first-look .badge .bc{width:54px;height:66px;padding:6px 5px 4px;border-radius:8px;background:var(--paper);border:1px solid var(--line);box-shadow:var(--shadow-card);display:flex;flex-direction:column;align-items:center;gap:4px}
+#first-look .badge .slot{width:14px;height:3px;border-radius:2px;background:var(--line-strong)}
+#first-look .badge .face{width:40px;height:34px;border-radius:6px;background:var(--tint);display:grid;place-items:center}
+#first-look .badge .face svg{width:30px;height:26px;fill:none;stroke:color-mix(in srgb,var(--ink) 78%,var(--tint));stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#first-look .badge .nm{font:700 13px/1 var(--font-hand);color:var(--ink)}
+#first-look .keys{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px;font-size:12.5px;color:var(--ink-2)}
+#first-look .keys li{display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap}
+#first-look .keys .kbd{margin-left:auto}
+#first-look .stream{padding:18px 18px 8px;display:flex;flex-direction:column;gap:14px;font-size:13.5px;line-height:1.5}
+@media (max-width:640px){#first-look .demo .hero-c{position:absolute;inset:auto!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%);width:calc(100% - 24px);max-width:380px;margin:0}}
+@media (prefers-reduced-motion:no-preference){#first-look .badge{animation:fl-sway 3.2s var(--ease-out) infinite alternate}#first-look .badge:nth-child(2){animation-delay:-1.1s}#first-look .badge:nth-child(3){animation-delay:-2.2s}}
+@keyframes fl-sway{from{transform:rotate(calc(var(--tilt,0deg) - 2deg))}to{transform:rotate(calc(var(--tilt,0deg) + 2deg))}}
+</style>
+  <div class="sec-head"><span class="eyebrow">Chapter 1</span><h2>First look</h2><p>Four quiet steps before anything runs: a welcome, then the composer, the status pill and the dock. Nothing is sent and no setting changes, so Not now costs nothing.</p></div>
+
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Step 1 of 11: the empty home screen dimmed, with a centered welcome card showing three agent badges on lanyards and Start tour and Not now buttons">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app</span></div>
+          <div class="app-body solo">
+            <div class="app-stage">
+              <div class="wf-top">
+                <div class="crumb"><svg class="ic"><use href="#i-sidebar"/></svg><span class="t">New conversation</span></div>
+                <span class="status-pill"><span class="pulse idle"></span>Qlik Analyst · Ready</span>
+                <span></span>
+              </div>
+              <div class="home">
+                <h3>Good morning, <em>Nitin</em></h3>
+                <div class="composer">
+                  <div class="ph">Ask @qlik anything, or type / for commands</div>
+                  <div class="composer-bar">
+                    <span class="chip"><svg class="ic"><use href="#i-target"/></svg>Goal</span>
+                    <span class="chip"><svg class="ic"><use href="#i-plus"/></svg>Attach</span>
+                    <span class="spacer"></span>
+                    <span class="send"><svg class="ic"><use href="#i-send"/></svg></span>
+                  </div>
+                </div>
+                <div class="sugg"><span class="chip">Q3 churn by region</span><span class="chip">Summarize the analyst handbook</span><span class="chip">Weekly ops digest</span></div>
+              </div>
+              <div class="dock">
+                <b><svg class="ic"><use href="#i-sidebar"/></svg></b><b><svg class="ic"><use href="#i-search"/></svg></b><b><svg class="ic"><use href="#i-plus"/></svg></b><hr>
+                <b><svg class="ic"><use href="#i-bot"/></svg></b><hr>
+                <b><svg class="ic"><use href="#i-activity"/></svg></b><hr>
+                <b><svg class="ic"><use href="#i-user"/></svg></b>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tour-layer dim"></div>
+        <div class="coach hero hero-c" data-side="center">
+          <div class="c-art" aria-hidden="true">
+            <div class="badges">
+              <span class="badge" style="--tilt:-6deg"><span class="cord"></span><span class="bc"><span class="slot"></span><span class="face" style="--tint:var(--ice)"><svg viewBox="0 0 30 26"><rect x="5" y="7" width="20" height="15" rx="4"/><path d="M15 7V3"/><circle cx="15" cy="2.5" r="1.2"/><circle cx="11" cy="14" r="1.6"/><circle cx="19" cy="14" r="1.6"/><path d="M12 18.5h6"/></svg></span><span class="nm">Qlik</span></span></span>
+              <span class="badge" style="--tilt:2deg"><span class="cord" style="height:40px"></span><span class="bc"><span class="slot"></span><span class="face" style="--tint:var(--butter)"><svg viewBox="0 0 30 26"><rect x="4" y="6" width="22" height="16" rx="8"/><path d="M4 13H2M26 13h2"/><path d="M10 13.5l2-1.5 2 1.5M16 13.5l2-1.5 2 1.5"/><path d="M12 18c2 1.4 4 1.4 6 0"/></svg></span><span class="nm">Writer</span></span></span>
+              <span class="badge" style="--tilt:5deg"><span class="cord" style="height:24px"></span><span class="bc"><span class="slot"></span><span class="face" style="--tint:var(--lilac)"><svg viewBox="0 0 30 26"><path d="M6 10a9 9 0 0 1 18 0v8a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4z"/><path d="M9 3l2 3M21 3l-2 3"/><rect x="9.5" y="12" width="4" height="3" rx="1.2"/><rect x="16.5" y="12" width="4" height="3" rx="1.2"/><path d="M13 19h4"/></svg></span><span class="nm">Ops</span></span></span>
+            </div>
+            <span style="position:absolute;left:14px;bottom:10px;width:16px;height:16px;border-radius:50%;background:var(--mint);opacity:.8"></span>
+            <span style="position:absolute;right:18px;top:16px;width:10px;height:10px;border-radius:50%;background:var(--peach)"></span>
+          </div>
+          <div class="c-body">
+            <div class="c-eye"><span>Step 1 of 11 · First look</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+            <h4>Meet your <em>agent team</em></h4>
+            <p>truex agents answer, spin up helpers and show their work as they go. A short tour shows you where everything lives.</p>
+            <div class="c-foot">
+              <span class="muted" style="font-size:12px;margin-right:auto"><svg class="ic"><use href="#i-clock"/></svg> about 3 minutes</span>
+              <span class="tb quiet">Not now</span><span class="tb primary">Start tour</span>
+            </div>
+          </div>
+        </div>
+        <span class="scribble" style="right:22px;top:58px;transform:rotate(4deg)">no target,<br>just a hello
+          <svg width="60" height="40" viewBox="0 0 60 40"><path d="M52 2c-4 14-16 26-40 32"/><path d="M20 28l-9 6 9 4"/></svg>
+        </span>
+        <span class="pin pin-at" style="left:10px;top:40px">1</span>
+      </div>
+      <p class="board-cap">Auto-starts on first visit only. The dim layer blocks clicks, but the app underneath is already live.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Centered welcome</b> <span class="tag look">Look</span><span>No target. Dim layer plus hero card, centered in the viewport. Art is three agent badges on lanyards in the agent tints, swaying gently; still under reduced motion.</span></div></li>
+      <li><span class="pin">2</span><div><b>Copy</b><span>"Meet your agent team." One sentence of what agents do, then "about 3 minutes" so the cost is clear before anyone commits.</span></div></li>
+      <li><span class="pin">3</span><div><b>prepare()</b><span>Only runs when truex-tour is missing or has done false and step 0. Open a fresh home screen, close sidebar popovers, focus nothing.</span></div></li>
+      <li><span class="pin">4</span><div><b>Advance</b><span>Start tour, <span class="kbd">→</span> or <span class="kbd">Enter</span> go to step 2. Not now and <span class="kbd">Esc</span> write {done: false, step: 0} and show the resume chip. Close (x) behaves like Not now.</span> <span class="tag new">New</span><span class="src">truex-tour</span></div></li>
+    </ol>
+  </div>
+
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Step 2 of 11: the home composer is spotlighted and a coach card below explains @handles, Enter and Shift+Enter">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app</span></div>
+          <div class="app-body solo">
+            <div class="app-stage">
+              <div class="wf-top">
+                <div class="crumb"><svg class="ic"><use href="#i-sidebar"/></svg><span class="t">New conversation</span></div>
+                <span class="status-pill"><span class="pulse idle"></span>Qlik Analyst · Ready</span>
+                <span></span>
+              </div>
+              <div class="home" style="min-height:440px;justify-content:flex-start;padding-top:56px">
+                <h3>Good morning, <em>Nitin</em></h3>
+                <div class="composer t-anchor" data-tour="composer">
+                  <div class="ph">Ask @qlik anything, or type / for commands</div>
+                  <div class="composer-bar">
+                    <span class="chip"><svg class="ic"><use href="#i-target"/></svg>Goal</span>
+                    <span class="chip"><svg class="ic"><use href="#i-plus"/></svg>Attach</span>
+                    <span class="spacer"></span>
+                    <span class="send" data-tour="send"><svg class="ic"><use href="#i-send"/></svg></span>
+                  </div>
+                  <span class="spot inset" aria-hidden="true"></span>
+                </div>
+                <div class="sugg"><span class="chip">Q3 churn by region</span><span class="chip">Summarize the analyst handbook</span><span class="chip">Weekly ops digest</span></div>
+              </div>
+              <div class="dock">
+                <b><svg class="ic"><use href="#i-sidebar"/></svg></b><b><svg class="ic"><use href="#i-search"/></svg></b><b><svg class="ic"><use href="#i-plus"/></svg></b><hr>
+                <b><svg class="ic"><use href="#i-bot"/></svg></b><hr>
+                <b><svg class="ic"><use href="#i-activity"/></svg></b><hr>
+                <b><svg class="ic"><use href="#i-user"/></svg></b>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="coach" data-side="below" style="left:calc(50% - 150px);top:318px;--caret:144px">
+          <div class="c-eye"><span>Step 2 of 11 · First look</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Start <em>here</em></h4>
+          <p>Type an @handle to pick who answers, like @qlik. Everything else is plain words.</p>
+          <p><span class="kbd">Enter</span> sends, <span class="kbd">Shift</span> + <span class="kbd">Enter</span> adds a line.</p>
+          <div class="c-foot">
+            <span class="c-dots"><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+          </div>
+        </div>
+        <span class="pin pin-at" style="left:10px;top:40px">1</span>
+        <span class="pin pin-at" style="right:10px;top:318px">3</span>
+      </div>
+      <p class="board-cap">Look only. The composer keeps focus rings off so nobody thinks they are meant to type yet.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Target: composer</b> <span class="tag look">Look</span><span>Rounded spotlight follows the whole composer box, chips and send button included. Coach sits below with the caret on its center.</span><span class="src">data-tour="composer"</span></div></li>
+      <li><span class="pin">2</span><div><b>Copy</b><span>"@handle picks who answers; Enter sends, Shift+Enter adds a line." Keys render as .kbd so the rule reads at a glance.</span></div></li>
+      <li><span class="pin">3</span><div><b>prepare()</b><span>Stay on the home screen, clear any draft, blur the input. App hotkeys stay paused, so a stray Enter moves the tour, not the composer.</span></div></li>
+      <li><span class="pin">4</span><div><b>Advance and fallback</b><span>Next, <span class="kbd">→</span> or <span class="kbd">Enter</span>. If the composer is below the fold, place the coach above; missing after 3s, show a centered card.</span> <span class="tag new">New</span></div></li>
+    </ol>
+  </div>
+
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Step 3 of 11: the topbar status pill reading Qlik Analyst, Ready is spotlighted with a round ring and a coach card below it">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app</span></div>
+          <div class="app-body solo">
+            <div class="app-stage">
+              <div class="wf-top">
+                <div class="crumb"><svg class="ic"><use href="#i-sidebar"/></svg><span class="t">New conversation</span></div>
+                <span class="status-pill t-anchor" data-tour="status-pill"><span class="pulse idle"></span>Qlik Analyst · Ready<span class="spot round inset" aria-hidden="true"></span></span>
+                <span></span>
+              </div>
+              <div class="home">
+                <h3>Good morning, <em>Nitin</em></h3>
+                <div class="composer">
+                  <div class="ph">Ask @qlik anything, or type / for commands</div>
+                  <div class="composer-bar">
+                    <span class="chip"><svg class="ic"><use href="#i-target"/></svg>Goal</span>
+                    <span class="chip"><svg class="ic"><use href="#i-plus"/></svg>Attach</span>
+                    <span class="spacer"></span>
+                    <span class="send"><svg class="ic"><use href="#i-send"/></svg></span>
+                  </div>
+                </div>
+                <div class="sugg"><span class="chip">Q3 churn by region</span><span class="chip">Summarize the analyst handbook</span><span class="chip">Weekly ops digest</span></div>
+              </div>
+              <div class="dock">
+                <b><svg class="ic"><use href="#i-sidebar"/></svg></b><b><svg class="ic"><use href="#i-search"/></svg></b><b><svg class="ic"><use href="#i-plus"/></svg></b><hr>
+                <b><svg class="ic"><use href="#i-bot"/></svg></b><hr>
+                <b><svg class="ic"><use href="#i-activity"/></svg></b><hr>
+                <b><svg class="ic"><use href="#i-user"/></svg></b>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="coach" data-side="below" style="left:calc(50% - 150px);top:96px;--caret:144px">
+          <div class="c-eye"><span>Step 3 of 11 · First look</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Who is <em>on</em>, and what they are doing</h4>
+          <p>The pill shows the agent in this chat and its state: Ready, Starting or Working with a pulse. Click it later to edit the agent.</p>
+          <div class="c-foot">
+            <span class="c-dots"><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+          </div>
+        </div>
+        <span class="scribble" style="left:calc(50% + 162px);top:118px;transform:rotate(-3deg)">
+          <svg width="46" height="34" viewBox="0 0 46 34"><path d="M40 32C30 26 16 20 6 6"/><path d="M4 16l2-10 10 2"/></svg>
+          pulses once it works
+        </span>
+        <span class="pin pin-at" style="left:calc(50% - 170px);top:44px">1</span>
+      </div>
+      <p class="board-cap">The ring is round to match the pill. Clicking it during the tour does nothing, the step is read only.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Target: status-pill</b> <span class="tag look">Look</span><span>Round spotlight on the topbar pill. Coach below, caret centered on the pill.</span><span class="src">data-tour="status-pill"</span></div></li>
+      <li><span class="pin">2</span><div><b>Copy</b><span>Name the three states the user will actually see: Ready, Starting, Working. Mention click-to-edit as later, not now.</span></div></li>
+      <li><span class="pin">3</span><div><b>prepare()</b><span>Still the home screen, with the current agent Qlik Analyst in Ready. Pointer events on the pill are blocked while the spot is on it.</span></div></li>
+      <li><span class="pin">4</span><div><b>Advance and fallback</b><span>Next, <span class="kbd">→</span> or <span class="kbd">Enter</span>; <span class="kbd">←</span> back to the composer. Narrow topbar: coach stays below and clamps to the viewport. Missing after 3s, centered card.</span></div></li>
+    </ol>
+  </div>
+
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Step 4 of 11: the floating dock is spotlighted and a coach card above it lists the six buttons with their shortcuts">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app</span></div>
+          <div class="app-body solo">
+            <div class="app-stage">
+              <div class="wf-top">
+                <div class="crumb"><svg class="ic"><use href="#i-sidebar"/></svg><span class="t">New conversation</span></div>
+                <span class="status-pill"><span class="pulse idle"></span>Qlik Analyst · Ready</span>
+                <span></span>
+              </div>
+              <div class="home" style="min-height:400px;justify-content:flex-start;padding-top:28px">
+                <h3>Good morning, <em>Nitin</em></h3>
+                <div class="composer">
+                  <div class="ph">Ask @qlik anything, or type / for commands</div>
+                  <div class="composer-bar">
+                    <span class="chip"><svg class="ic"><use href="#i-target"/></svg>Goal</span>
+                    <span class="chip"><svg class="ic"><use href="#i-plus"/></svg>Attach</span>
+                    <span class="spacer"></span>
+                    <span class="send"><svg class="ic"><use href="#i-send"/></svg></span>
+                  </div>
+                </div>
+              </div>
+              <div class="t-anchor" data-tour="dock" style="width:max-content;max-width:calc(100% - 24px);margin:0 auto 12px">
+                <div class="dock" style="margin:0;max-width:100%">
+                  <b><svg class="ic"><use href="#i-sidebar"/></svg></b><b><svg class="ic"><use href="#i-search"/></svg></b><b><svg class="ic"><use href="#i-plus"/></svg></b><hr>
+                  <b data-tour="dock-agent"><svg class="ic"><use href="#i-bot"/></svg></b><hr>
+                  <b><svg class="ic"><use href="#i-activity"/></svg></b><hr>
+                  <b><svg class="ic"><use href="#i-user"/></svg></b>
+                </div>
+                <span class="spot inset" aria-hidden="true"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="coach" data-side="above" style="left:calc(50% - 150px);bottom:82px;--caret:144px">
+          <div class="c-eye"><span>Step 4 of 11 · First look</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Everything is one <em>tap</em> away</h4>
+          <p>The dock floats over every screen. Most buttons have a shortcut.</p>
+          <ul class="keys">
+            <li><svg class="ic"><use href="#i-sidebar"/></svg>Sidebar<span class="kbd">⌘B</span></li>
+            <li><svg class="ic"><use href="#i-search"/></svg>Search<span class="kbd">⌘K</span></li>
+            <li><svg class="ic"><use href="#i-plus"/></svg>New chat<span class="kbd">⌘J</span></li>
+            <li><svg class="ic"><use href="#i-activity"/></svg>Activity<span class="kbd">⌘.</span></li>
+            <li><svg class="ic"><use href="#i-bot"/></svg>Agent</li>
+            <li><svg class="ic"><use href="#i-user"/></svg>Account</li>
+          </ul>
+          <div class="c-foot">
+            <span class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+          </div>
+        </div>
+        <span class="scribble" style="left:calc(50% + 168px);bottom:26px;transform:rotate(3deg)">six buttons,<br>four shortcuts
+          <svg width="44" height="26" viewBox="0 0 44 26"><path d="M40 4C30 10 20 16 6 18"/><path d="M13 12l-7 6 8 4"/></svg>
+        </span>
+        <span class="pin pin-at" style="left:calc(50% - 160px);bottom:22px">1</span>
+      </div>
+      <p class="board-cap">The dock has backdrop-filter, so the spot lives on a plain wrapper around it.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Target: dock</b> <span class="tag look">Look</span><span>data-tour sits on a div.t-anchor wrapper, because .dock has backdrop-filter and would trap the scrim. The Agent button carries dock-agent for step 5.</span><span class="src">data-tour="dock", "dock-agent"</span> <span class="tag changed">Changed</span></div></li>
+      <li><span class="pin">2</span><div><b>Copy</b><span>Six buttons in dock order, shortcuts as .kbd: <span class="kbd">⌘B</span> <span class="kbd">⌘K</span> <span class="kbd">⌘J</span> <span class="kbd">⌘.</span>. Agent and Account have none. Hotkeys stay paused, so reading them is safe.</span></div></li>
+      <li><span class="pin">3</span><div><b>prepare()</b><span>Close any dock popover, keep the sidebar and session panel in their current state. Nothing opens on this step.</span></div></li>
+      <li><span class="pin">4</span><div><b>Advance and fallback</b><span>Next, <span class="kbd">→</span> or <span class="kbd">Enter</span> ends Chapter 1 and starts step 5. <span class="kbd">Esc</span> minimizes to the resume chip. Coach goes above; if there is no room, it centers. Missing after 3s, centered card.</span></div></li>
+    </ol>
+  </div>
+</section>

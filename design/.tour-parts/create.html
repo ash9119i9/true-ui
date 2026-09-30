@@ -1,0 +1,509 @@
+<section class="sec" id="create-agent">
+<style>
+#create-agent{--rb-graphite:#3A4750;--rb-white:#F4F7F8;--rb-navy:#2E4470;--rb-silver:#D5DDE1;--rb-sand:#D8C3A0;--rb-mint:#BFE3CF;--rb-lilac:#CFC8EC;--rb-peach:#F5C7A8;--rv-1:#1F2A30;--rv-2:#2B3F6B;--rv-3:#16213A;--ra-red:#E07B6E;--ra-blue:#3691CD;--ra-yellow:#F2C94C;--ra-pink:#F0A3B5;--rg-ice:#BCDEE8;--rg-butter:#EBCB8B;--rg-peach:#F0B999;--rg-mint:#A9D5BE;--rg-lilac:#C4BDE3;--tb-ice:#EAF5F8;--tb-mint:#E7F4ED;--tb-butter:#FFF3D9;--tb-peach:#FBE9DD;--tb-lilac:#EFEDF8;--m-github:#1F2A30;--m-notion:#5F6D73;--m-figma:#C0563F;--m-slack:#8C4A86;--on-mono:#FFFFFF}
+#create-agent .solo{grid-template-columns:minmax(0,1fr)}
+#create-agent .over{position:relative;padding:18px 16px 20px;flex:1}
+#create-agent .ghost{display:flex;flex-direction:column;gap:10px;padding:0 4px 0}
+#create-agent .ghost i{display:block;height:10px;border-radius:6px;background:var(--surface-3)}
+#create-agent .dscrim{position:absolute;inset:0;background:color-mix(in srgb,var(--ink) 22%,transparent);border-radius:0 0 15px 15px}
+#create-agent .dlg{position:relative;margin-top:-34px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow-lift)}
+#create-agent .dx{position:absolute;top:10px;right:10px;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:var(--ink-3)}
+#create-agent .form{display:flex;flex-direction:column;gap:11px;padding:18px 16px 16px 18px;min-width:0}
+#create-agent .form h3{margin:0;font:600 19px/1.2 var(--font-sans);letter-spacing:-.02em;color:var(--ink)}
+#create-agent .form .lede{margin:3px 0 0;font-size:12.5px;line-height:1.45;color:var(--ink-2)}
+#create-agent .fl{display:flex;flex-direction:column;gap:5px;min-width:0}
+#create-agent .fll{display:flex;align-items:center;justify-content:space-between;gap:8px;font:600 12px var(--font-sans);color:var(--ink)}
+#create-agent .fh{font:500 11px var(--font-mono);color:var(--ink-3);white-space:nowrap}
+#create-agent .fh.live{color:var(--accent-fg)}
+#create-agent .fh.bad{color:var(--bad)}
+#create-agent .inp{display:flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border:1px solid var(--line-strong);border-radius:10px;background:var(--bg);font-size:13px;color:var(--ink);min-width:0;white-space:nowrap;overflow:hidden}
+#create-agent .inp.ph{color:var(--ink-3)}
+#create-agent .inp.ta{align-items:flex-start;min-height:46px;padding-top:7px;white-space:normal;line-height:1.4}
+#create-agent .inp.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+#create-agent .inp.bad{border-color:var(--bad);box-shadow:0 0 0 3px var(--bad-bg)}
+#create-agent .inp .ic{margin-left:auto;color:var(--ink-3)}
+#create-agent .caret{display:inline-block;width:1.5px;height:15px;margin-left:-5px;background:var(--accent);animation:ca-blink 1s steps(1) infinite}
+@keyframes ca-blink{50%{opacity:0}}
+#create-agent .looks{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+#create-agent .lk{aspect-ratio:1;border-radius:9px;display:grid;place-items:center;background:var(--tb);border:1px solid var(--line)}
+#create-agent .lk.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+#create-agent .tints{display:flex;align-items:center;gap:7px;margin-top:3px;font:600 12px var(--font-sans)}
+#create-agent .tints b{font-weight:600;margin-right:4px}
+#create-agent .tn{width:18px;height:18px;border-radius:50%;background:var(--tb);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ink) 16%,transparent)}
+#create-agent .tn.on{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ink) 16%,transparent),0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
+#create-agent .bot{position:relative;display:block;width:78%;aspect-ratio:1}
+#create-agent .bot::before{content:"";position:absolute;left:15%;right:15%;top:28%;bottom:10%;border-radius:30%;background:var(--bc)}
+#create-agent .bot::after{content:"";position:absolute;left:25%;right:25%;top:45%;height:22%;border-radius:999px;background:radial-gradient(circle at 32% 50%,var(--glow) 0 12%,transparent 13%),radial-gradient(circle at 68% 50%,var(--glow) 0 12%,transparent 13%),var(--vis)}
+#create-agent .bot.ln::after{background:linear-gradient(var(--glow),var(--glow)) center/58% 20% no-repeat,var(--vis)}
+#create-agent .bot b{position:absolute;display:none;background:var(--acc)}
+#create-agent .bot:is(.ant,.cap,.hp,.chef,.hat,.scarf,.bow) b{display:block}
+#create-agent .ant b{left:47%;top:10%;width:6%;height:19%;border-radius:2px;background:var(--vis)}
+#create-agent .ant b::after{content:"";position:absolute;left:-110%;top:-70%;width:320%;aspect-ratio:1;border-radius:50%;background:var(--glow)}
+#create-agent .cap b{left:13%;right:27%;top:20%;height:15%;border-radius:999px 999px 2px 2px}
+#create-agent .cap b::after{content:"";position:absolute;left:70%;right:-40%;bottom:0;height:40%;border-radius:0 999px 999px 0;background:inherit}
+#create-agent .hp b{left:8%;right:8%;top:20%;bottom:36%;background:none;border:solid var(--acc);border-width:3px 3px 0;border-radius:999px 999px 0 0}
+#create-agent .chef b{left:24%;right:24%;top:4%;height:28%;border-radius:999px 999px 4px 4px;background:var(--rb-white);box-shadow:inset 0 0 0 1px var(--rb-silver)}
+#create-agent .hat b{left:12%;right:12%;top:17%;height:17%;border-radius:999px 999px 3px 3px}
+#create-agent .scarf b{left:17%;right:17%;bottom:6%;height:12%;border-radius:4px}
+#create-agent .bow b{left:60%;top:22%;width:24%;height:12%;border-radius:999px}
+#create-agent .r1{--bc:var(--rb-graphite);--vis:var(--rv-1);--glow:var(--rg-ice)}#create-agent .r2{--bc:var(--rb-white);--vis:var(--rv-2);--glow:var(--rg-ice)}#create-agent .r3{--bc:var(--rb-navy);--vis:var(--rv-3);--glow:var(--rg-ice)}
+#create-agent .r4{--bc:var(--rb-silver);--vis:var(--rv-2);--glow:var(--rg-ice);--acc:var(--ra-blue)}#create-agent .r5{--bc:var(--rb-sand);--vis:var(--rb-graphite);--glow:var(--rg-butter);--acc:var(--ra-red)}#create-agent .r6{--bc:var(--rb-white);--vis:var(--rv-2);--glow:var(--rg-ice)}
+#create-agent .r7{--bc:var(--rb-white);--vis:var(--rb-graphite);--glow:var(--rg-butter);--acc:var(--ra-yellow)}#create-agent .r8{--bc:var(--rb-graphite);--vis:var(--rv-1);--glow:var(--rg-peach);--acc:var(--ra-red)}#create-agent .r9{--bc:var(--rb-mint);--vis:var(--rv-1);--glow:var(--rg-mint)}
+#create-agent .r10{--bc:var(--rb-lilac);--vis:var(--rv-2);--glow:var(--rg-lilac);--acc:var(--ra-pink)}#create-agent .r11{--bc:var(--rb-peach);--vis:var(--rb-graphite);--glow:var(--rg-peach);--acc:var(--rb-graphite)}#create-agent .r12{--bc:var(--rb-navy);--vis:var(--rv-3);--glow:var(--rg-ice);--acc:var(--ra-blue)}
+#create-agent .mp{display:flex;flex-wrap:wrap;align-items:center;gap:5px;min-height:34px;padding:4px;border:1px solid var(--line-strong);border-radius:10px;background:var(--bg)}
+#create-agent .mpc,#create-agent .mpa{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 8px 0 4px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);font-size:12px;font-weight:500;color:var(--ink);white-space:nowrap}
+#create-agent .mpc .ic{width:11px;height:11px;color:var(--ink-3)}
+#create-agent .mpa{padding:0 9px;border-style:dashed;color:var(--ink-2);background:none}
+#create-agent .mono{width:16px;height:16px;border-radius:5px;display:grid;place-items:center;background:var(--mc);color:var(--on-mono);font:700 9.5px var(--font-sans)}
+#create-agent .mpp{margin-top:4px;border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow-md);padding:4px}
+#create-agent .mpr{display:grid;grid-template-columns:14px 18px minmax(0,1fr) auto;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;font-size:12.5px}
+#create-agent .mpr .bx{width:14px;height:14px;border-radius:4px;border:1.5px solid var(--line-strong);display:grid;place-items:center}
+#create-agent .mpr .bx.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+#create-agent .mpr .bx .ic{width:10px;height:10px;stroke-width:2.6}
+#create-agent .mpr .tx{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#create-agent .mpr .tx small{color:var(--ink-3);font-size:11.5px;margin-left:6px}
+#create-agent .mpr .mt{font:500 10.5px var(--font-mono);color:var(--ink-3)}
+#create-agent .mpr.off{color:var(--ink-3)}#create-agent .mpr.off .mono{filter:grayscale(1);opacity:.5}#create-agent .mpr.off .mt{color:var(--warn-text);background:var(--warn-bg);padding:1px 6px;border-radius:999px}
+#create-agent .acts{display:flex;align-items:center;gap:8px;justify-content:flex-end;padding-top:4px}
+#create-agent .bs,#create-agent .bp{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:10px;font:600 13px var(--font-sans);white-space:nowrap}
+#create-agent .bs{background:var(--surface-3);color:var(--ink);border:1px solid var(--line)}
+#create-agent .bp{background:var(--accent);color:var(--on-accent)}
+#create-agent .bp.dis{background:color-mix(in srgb,var(--accent) 35%,var(--surface-3));color:color-mix(in srgb,var(--on-accent) 75%,transparent)}
+#create-agent .stg{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;padding:0 12px 14px;border-left:1px solid var(--line);border-radius:0 19px 19px 0;background:radial-gradient(circle,var(--line-strong) 1px,transparent 1.5px) 0 0/14px 14px,var(--surface-3)}
+#create-agent .lny{display:flex;flex-direction:column;align-items:center;transform:rotate(var(--sw,0deg));transform-origin:top center}
+#create-agent .strap{width:18px;height:var(--sl,78px);background:var(--strap);border-radius:0 0 3px 3px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ink) 10%,transparent)}
+#create-agent .clip{width:26px;height:12px;margin-top:-2px;border-radius:3px 3px 6px 6px;background:var(--line-strong);border:1px solid var(--ink-3)}
+#create-agent .bdg{position:relative;width:150px;margin-top:-3px;padding:10px 10px 8px;border-radius:12px;background:var(--paper);border:1px solid var(--line);box-shadow:var(--shadow-card);display:flex;flex-direction:column;gap:7px}
+#create-agent .bdg .slot{align-self:center;width:24px;height:4px;border-radius:3px;background:var(--line-strong)}
+#create-agent .bdg .brand{position:absolute;top:8px;right:10px;font:600 9.5px var(--font-mono);letter-spacing:.06em;color:var(--ink-3)}
+#create-agent .bdg .bt{display:grid;place-items:center;height:96px;border-radius:8px;background:var(--tb)}
+#create-agent .bdg .bt .bot{width:88px}
+#create-agent .bdg .bn{font:600 15px/1.15 var(--font-sans);letter-spacing:-.01em;color:var(--ink)}
+#create-agent .bdg .bh{font:500 11px var(--font-mono);color:var(--ink-3);margin-top:2px}
+#create-agent .bdg .bf{display:flex;justify-content:space-between;gap:6px;padding-top:6px;border-top:1px dashed var(--line-strong);font:500 9.5px var(--font-mono);color:var(--ink-3);white-space:nowrap}
+#create-agent .snote{font:500 10.5px var(--font-mono);color:var(--ink-3);text-align:center}
+#create-agent .taken{position:absolute;z-index:6;left:14px;bottom:14px;width:236px;padding:10px 12px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-lift);transform:rotate(-1.2deg);display:flex;flex-direction:column;gap:8px}
+#create-agent .taken .hand{font:700 17px/1 var(--font-hand);color:var(--doodle)}
+#create-agent .then{display:flex;align-items:center;gap:8px;margin:14px 4px 10px;font:700 20px/1 var(--font-hand);color:var(--doodle)}
+@media (max-width:720px){#create-agent .dlg{grid-template-columns:minmax(0,1fr)}#create-agent .stg{border-left:0;border-top:1px solid var(--line);border-radius:0 0 19px 19px}}
+@media (max-width:640px){#create-agent .taken{position:relative;left:auto;bottom:auto;width:auto;margin:0 12px 12px;transform:none}}
+#create-agent .celebrate-mock{--cm-bg:#0E1417;--cm-glow:rgb(169 213 190 / 22%);--cm-ink:#F3F7F8;--cm-ink-2:#B7C3C8;--cm-code:rgb(255 255 255 / 10%);--cm-soft:rgb(255 255 255 / 12%);--cm-line:rgb(255 255 255 / 18%);--cm-paper:#FFFFFF;--cm-pink:#1F2A30;--cm-p3:#849198;--cm-pl:#E3ECEF;--cm-pls:#D8E0E4;--cm-accent:#3691CD;--cm-on:#FFFFFF}
+#create-agent .celebrate-mock{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;padding:0 16px 22px;min-height:420px;background:radial-gradient(60% 50% at 50% 30%,var(--cm-glow),transparent 70%),var(--cm-bg);color:var(--cm-ink);border-radius:0 0 19px 19px}
+#create-agent .celebrate-mock .lny{--paper:var(--cm-paper);--ink:var(--cm-pink);--ink-3:var(--cm-p3);--line:var(--cm-pl);--line-strong:var(--cm-pls);--sl:96px}
+#create-agent .celebrate-mock .cx{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:var(--cm-ink-2);background:var(--cm-soft)}
+#create-agent .cc{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:8px 10px;max-width:360px}
+#create-agent .cc h3{margin:0;font:600 22px/1.2 var(--font-sans);letter-spacing:-.02em;color:var(--cm-ink)}
+#create-agent .cc p{margin:0;font-size:13px;line-height:1.5;color:var(--cm-ink-2)}
+#create-agent .cc code{font:500 12px var(--font-mono);padding:1px 6px;border-radius:6px;background:var(--cm-code);color:var(--cm-ink)}
+#create-agent .cc .acts{justify-content:center;padding-top:6px}
+#create-agent .cc .bp{background:var(--cm-accent);color:var(--cm-on)}
+#create-agent .cc .bs{background:var(--cm-soft);border-color:var(--cm-line);color:var(--cm-ink)}
+#create-agent .confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:inherit}
+#create-agent .confetti i{position:absolute;top:var(--y);left:var(--x);width:6px;height:10px;border-radius:2px;background:var(--c);transform:rotate(var(--r))}
+#create-agent .confetti i:nth-child(3n){width:7px;height:7px;border-radius:50%}
+@media (prefers-reduced-motion:no-preference){#create-agent .celebrate-mock .lny{animation:ca-drop 1s cubic-bezier(.3,1.45,.55,1) 1 both}#create-agent .confetti i{animation:ca-fall 1.6s var(--ease-out) 1 both}}
+@keyframes ca-drop{from{transform:translateY(-110%) rotate(0deg)}to{transform:translateY(0) rotate(var(--sw,0deg))}}
+@keyframes ca-fall{from{top:-14px;opacity:0}25%{opacity:1}}
+#create-agent .spot{z-index:4}
+#create-agent .taken{left:auto;right:14px}
+#create-agent .mpe{flex:1 1 160px;padding:0 6px;font-size:12px;line-height:1.35;color:var(--ink-3)}
+#create-agent .mpa .ic{width:12px;height:12px}
+#create-agent .scribble svg{width:64px;height:40px;margin-top:2px}
+@media (max-width:640px){#create-agent .taken{right:auto}}
+#create-agent .pin-at{z-index:7}
+@media (prefers-reduced-motion:reduce){#create-agent .caret{animation:none}}
+</style>
+  <div class="sec-head"><span class="eyebrow">Agent tour 2</span><h2>Build a teammate in five stops</h2><p>The first time the New agent dialog opens, a short tour walks one example from blank to badge: Research Scout, a mint-tinted Scout that finds and summarizes sources for a brief. Every stop is a real field, and the badge on the right fills in as you go.</p></div>
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Create 1 of 5: the New agent dialog over a dimmed chat. The Name field holds Research Scout with the handle @research-scout under it, spotlighted, and an inset shows the taken state with Create agent disabled">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/agents</span></div>
+          <div class="app-body solo">
+            <div class="app-stage">
+              <div class="wf-top">
+                <div class="crumb"><svg class="ic"><use href="#i-sidebar"/></svg><span class="t">truex / agents</span></div>
+                <span class="status-pill"><span class="pulse idle"></span>Qlik Analyst · Idle</span>
+                <span></span>
+              </div>
+              <div class="over">
+                <div class="ghost" aria-hidden="true"><i style="width:40%"></i><i style="width:72%"></i><i style="width:58%"></i></div>
+                <div class="dscrim" aria-hidden="true"></div>
+                <div class="dlg">
+                  <span class="dx"><svg class="ic"><use href="#i-x"/></svg></span>
+                  <div class="form">
+                    <div><h3>New agent</h3><p class="lede">A persistent specialist with its own identity and chat. Mention it in groups by its handle.</p></div>
+                    <div class="fl t-anchor" data-tour="agent-name">
+                      <span class="fll">Name<span class="fh live">@research-scout</span></span>
+                      <span class="inp on">Research Scout<span class="caret"></span></span>
+                      <span class="spot inset" aria-hidden="true"></span>
+                    </div>
+                    <div class="fl"><span class="fll">Purpose</span><span class="inp ph">What this specialist owns</span></div>
+                    <div class="fl"><span class="fll">Instructions</span><span class="inp ta ph">Standing instructions injected into every one of its turns</span></div>
+                    <div class="fl">
+                      <span class="fll">Look</span>
+                      <div class="looks" style="--tb:var(--tb-ice)">
+                        <span class="lk"><span class="bot r1 ln"><b></b></span></span><span class="lk"><span class="bot r2 ant"><b></b></span></span><span class="lk on"><span class="bot r3 ln"><b></b></span></span><span class="lk"><span class="bot r4 hp"><b></b></span></span><span class="lk"><span class="bot r5 ln cap"><b></b></span></span><span class="lk"><span class="bot r6 chef"><b></b></span></span>
+                        <span class="lk"><span class="bot r7 hat"><b></b></span></span><span class="lk"><span class="bot r8 scarf"><b></b></span></span><span class="lk"><span class="bot r9 ant"><b></b></span></span><span class="lk"><span class="bot r10 bow"><b></b></span></span><span class="lk"><span class="bot r11 ln hp"><b></b></span></span><span class="lk"><span class="bot r12 cap"><b></b></span></span>
+                      </div>
+                    </div>
+                    <div class="fl"><span class="fll">Model</span><span class="inp">Claude Opus 5.5<svg class="ic"><use href="#i-chevd"/></svg></span></div>
+                    <div class="fl"><span class="fll">MCP servers<span class="fh">none</span></span><div class="mp"><span class="mpe">No servers. It can only use its own knowledge and skills.</span><span class="mpa"><svg class="ic"><use href="#i-plus"/></svg>Add servers</span></div></div>
+                    <div class="acts"><span class="bs">Cancel</span><span class="bp">Create agent</span></div>
+                  </div>
+                  <div class="stg">
+                    <div class="lny" style="--sw:-2deg;--strap:var(--ra-blue)">
+                      <span class="strap"></span><span class="clip"></span>
+                      <div class="bdg"><span class="slot"></span><span class="brand">truex</span>
+                        <div class="bt" style="--tb:var(--tb-ice)"><span class="bot r3 ln"><b></b></span></div>
+                        <div><div class="bn">Research Scout</div><div class="bh">@research-scout</div></div>
+                        <div class="bf"><span>opus 5.5</span><span>0 mcp · 0 skills</span></div>
+                      </div>
+                    </div>
+                    <span class="snote">live preview · drag it around</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="coach" data-side="below" style="left:30px;top:286px;--caret:44px">
+          <div class="c-eye"><span>Create · 1 of 5</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Give it a <em>name</em></h4>
+          <p>The handle is made from the name as you type. That handle is how you call it in any chat.</p>
+          <div class="c-try"><svg class="ic"><use href="#i-steer"/></svg>Type a name to continue</div>
+          <div class="c-foot">
+            <span class="c-dots"><i class="on"></i><i></i><i></i><i></i><i></i></span>
+            <span class="tb quiet">Skip this</span><span class="tb primary">Next</span>
+          </div>
+        </div>
+        <div class="taken" aria-hidden="true">
+          <span class="hand">if the handle is taken</span>
+          <div class="fl"><span class="fll">Name<span class="fh bad">@research is taken</span></span><span class="inp bad">Research</span></div>
+          <div class="acts"><span class="bs">Cancel</span><span class="bp dis">Create agent</span></div>
+        </div>
+        <span class="pin pin-at" style="left:14px;top:176px">1</span>
+        <span class="pin pin-at" style="right:246px;bottom:92px">2</span>
+      </div>
+      <p class="board-cap">Research Scout slugs to @research-scout. Plain Research would clash with the built-in, so Create waits.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Trigger</b><span>Starts the first time the New agent dialog opens, from the roster card or Find's last stop. Skipped while the main tour is running. When it ends on Say hi, parts.create is set to true.</span> <span class="tag new">New</span><span class="src">truex-tour.parts.create</span></div></li>
+      <li><span class="pin">2</span><div><b>Target: agent-name</b> <span class="tag try">Try</span><span>Wraps the Name label, the handle hint and the input. Next stays off until the handle is valid and free. Skip this fills in Research Scout.</span><span class="src">data-tour="agent-name"</span></div></li>
+      <li><span class="pin">3</span><div><b>Copy</b><span>"Give it a name." The handle is made from the name as you type. That handle is how you call it in any chat. Taken state uses the app hint as is: "@research is taken".</span><span class="src">AgentDialog field-hint</span></div></li>
+      <li><span class="pin">4</span><div><b>prepare()</b><span>Wait for .agent-dialog, focus the Name input, pause app hotkeys. Never type for the user; leave fields they already filled.</span></div></li>
+      <li><span class="pin">5</span><div><b>Fallback</b><span>If agent-name is missing after 3s, show a centered card with the same copy and a plain Next.</span></div></li>
+    </ol>
+  </div>
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Create 2 of 5: the Look and Tint group is spotlighted. Twelve robot tiles with Scout selected and five tint swatches with Mint selected; the badge on the right now shows a mint Scout">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/agents</span></div>
+          <div class="app-body solo">
+            <div class="app-stage">
+              <div class="wf-top">
+                <div class="crumb"><svg class="ic"><use href="#i-sidebar"/></svg><span class="t">truex / agents</span></div>
+                <span class="status-pill"><span class="pulse idle"></span>Qlik Analyst · Idle</span>
+                <span></span>
+              </div>
+              <div class="over">
+                <div class="ghost" aria-hidden="true"><i style="width:40%"></i><i style="width:72%"></i><i style="width:58%"></i></div>
+                <div class="dscrim" aria-hidden="true"></div>
+                <div class="dlg">
+                  <span class="dx"><svg class="ic"><use href="#i-x"/></svg></span>
+                  <div class="form">
+                    <div><h3>New agent</h3><p class="lede">A persistent specialist with its own identity and chat. Mention it in groups by its handle.</p></div>
+                    <div class="fl"><span class="fll">Name<span class="fh live">@research-scout</span></span><span class="inp">Research Scout</span></div>
+                    <div class="fl"><span class="fll">Purpose</span><span class="inp">Finds and summarizes sources for a brief</span></div>
+                    <div class="fl t-anchor" data-tour="agent-look">
+                      <span class="fll">Look</span>
+                      <div class="looks" style="--tb:var(--tb-mint)">
+                        <span class="lk"><span class="bot r1 ln"><b></b></span></span><span class="lk"><span class="bot r2 ant"><b></b></span></span><span class="lk"><span class="bot r3 ln"><b></b></span></span><span class="lk"><span class="bot r4 hp"><b></b></span></span><span class="lk on"><span class="bot r5 ln cap"><b></b></span></span><span class="lk"><span class="bot r6 chef"><b></b></span></span>
+                        <span class="lk"><span class="bot r7 hat"><b></b></span></span><span class="lk"><span class="bot r8 scarf"><b></b></span></span><span class="lk"><span class="bot r9 ant"><b></b></span></span><span class="lk"><span class="bot r10 bow"><b></b></span></span><span class="lk"><span class="bot r11 ln hp"><b></b></span></span><span class="lk"><span class="bot r12 cap"><b></b></span></span>
+                      </div>
+                      <div class="tints"><b>Tint</b><span class="tn" style="--tb:var(--ice)"></span><span class="tn on" style="--tb:var(--mint)"></span><span class="tn" style="--tb:var(--butter)"></span><span class="tn" style="--tb:var(--peach)"></span><span class="tn" style="--tb:var(--lilac)"></span></div>
+                      <span class="spot inset" aria-hidden="true"></span>
+                    </div>
+                    <div class="fl"><span class="fll">Model</span><span class="inp">Claude Opus 5.5<svg class="ic"><use href="#i-chevd"/></svg></span></div>
+                    <div class="acts"><span class="bs">Cancel</span><span class="bp">Create agent</span></div>
+                  </div>
+                  <div class="stg">
+                    <div class="lny" style="--sw:1.5deg;--strap:var(--mint)">
+                      <span class="strap"></span><span class="clip"></span>
+                      <div class="bdg"><span class="slot"></span><span class="brand">truex</span>
+                        <div class="bt" style="--tb:var(--tb-mint)"><span class="bot r5 ln cap"><b></b></span></div>
+                        <div><div class="bn">Research Scout</div><div class="bh">@research-scout</div></div>
+                        <div class="bf"><span>opus 5.5</span><span>0 mcp · 0 skills</span></div>
+                      </div>
+                    </div>
+                    <span class="snote">live preview · drag it around</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="coach" data-side="above" style="left:30px;top:172px;--caret:60px">
+          <div class="c-eye"><span>Create · 2 of 5</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Pick a <em>look</em> and a tint</h4>
+          <p>Twelve robots and five tints. The badge on the right changes as you pick.</p>
+          <div class="c-foot">
+            <span class="c-dots"><i class="done"></i><i class="on"></i><i></i><i></i><i></i></span>
+            <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+          </div>
+        </div>
+        <span class="pin pin-at" style="left:14px;top:246px">1</span>
+        <span class="pin pin-at" style="right:22px;top:92px">2</span>
+      </div>
+      <p class="board-cap">Scout in Mint. The strap, the badge photo and every tile take the tint at once.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Target: agent-look</b> <span class="tag look">Look</span><span>One wrapper around the Look grid and the Tint row, so the hole covers both. Coach sits above it, caret on the grid.</span><span class="src">data-tour="agent-look"</span></div></li>
+      <li><span class="pin">2</span><div><b>Copy</b><span>"Pick a look and a tint." Twelve robots and five tints. The badge on the right changes as you pick. No look names in the copy; the tiles have titles.</span></div></li>
+      <li><span class="pin">3</span><div><b>prepare()</b><span>Scroll the form so the whole group shows. Do not change the default look (Navy) or tint (Ice). Clicks on tiles go through to the app.</span></div></li>
+      <li><span class="pin">4</span><div><b>Advance</b><span>Next is always on: picking is optional. Missing target after 3s falls back to a centered card.</span></div></li>
+    </ol>
+  </div>
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Create 3 of 5: Model, MCP servers and Skills are spotlighted. Claude Sonnet 5.5 is selected, Notion and Slack are picked, the server list is open with Figma greyed out as Not connected, and Web research and PDF and files are picked as skills">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/agents</span></div>
+          <div class="app-body solo">
+            <div class="app-stage">
+              <div class="wf-top">
+                <div class="crumb"><svg class="ic"><use href="#i-sidebar"/></svg><span class="t">truex / agents</span></div>
+                <span class="status-pill"><span class="pulse idle"></span>Qlik Analyst · Idle</span>
+                <span></span>
+              </div>
+              <div class="over">
+                <div class="ghost" aria-hidden="true"><i style="width:40%"></i><i style="width:72%"></i><i style="width:58%"></i></div>
+                <div class="dscrim" aria-hidden="true"></div>
+                <div class="dlg">
+                  <span class="dx"><svg class="ic"><use href="#i-x"/></svg></span>
+                  <div class="form">
+                    <div><h3>New agent</h3><p class="lede">A persistent specialist with its own identity and chat. Mention it in groups by its handle.</p></div>
+                    <div class="fl"><span class="fll">Name<span class="fh live">@research-scout</span></span><span class="inp">Research Scout</span></div>
+                    <div class="t-anchor" data-tour="agent-tools" style="display:flex;flex-direction:column;gap:11px">
+                      <div class="fl"><span class="fll">Model</span><span class="inp">Claude Sonnet 5.5<svg class="ic"><use href="#i-chevd"/></svg></span></div>
+                      <div class="fl">
+                        <span class="fll">MCP servers<span class="fh">2 of 8</span></span>
+                        <div class="mp">
+                          <span class="mpc"><span class="mono" style="--mc:var(--m-notion)">N</span>Notion<svg class="ic"><use href="#i-x"/></svg></span>
+                          <span class="mpc"><span class="mono" style="--mc:var(--m-slack)">S</span>Slack<svg class="ic"><use href="#i-x"/></svg></span>
+                          <span class="mpa"><svg class="ic"><use href="#i-chevd"/></svg>Done</span>
+                        </div>
+                        <div class="mpp">
+                          <div class="mpr"><span class="bx"></span><span class="mono" style="--mc:var(--m-github)">G</span><span class="tx">GitHub<small>Repos, issues, pull requests</small></span><span class="mt">22 tools</span></div>
+                          <div class="mpr"><span class="bx on"><svg class="ic"><use href="#i-check"/></svg></span><span class="mono" style="--mc:var(--m-notion)">N</span><span class="tx">Notion<small>Pages and databases</small></span><span class="mt">9 tools</span></div>
+                          <div class="mpr"><span class="bx on"><svg class="ic"><use href="#i-check"/></svg></span><span class="mono" style="--mc:var(--m-slack)">S</span><span class="tx">Slack<small>Channels and messages</small></span><span class="mt">8 tools</span></div>
+                          <div class="mpr off"><span class="bx"></span><span class="mono" style="--mc:var(--m-figma)">F</span><span class="tx">Figma<small>Files, frames, comments</small></span><span class="mt">Not connected</span></div>
+                        </div>
+                      </div>
+                      <div class="fl">
+                        <span class="fll">Skills<span class="fh">2 of 8</span></span>
+                        <div class="mp">
+                          <span class="mpc">Web research<svg class="ic"><use href="#i-x"/></svg></span>
+                          <span class="mpc">PDF &amp; files<svg class="ic"><use href="#i-x"/></svg></span>
+                          <span class="mpa">Edit</span>
+                        </div>
+                      </div>
+                      <span class="spot inset" aria-hidden="true"></span>
+                    </div>
+                    <div class="acts"><span class="bs">Cancel</span><span class="bp">Create agent</span></div>
+                  </div>
+                  <div class="stg">
+                    <div class="lny" style="--sw:-1deg;--strap:var(--mint)">
+                      <span class="strap"></span><span class="clip"></span>
+                      <div class="bdg"><span class="slot"></span><span class="brand">truex</span>
+                        <div class="bt" style="--tb:var(--tb-mint)"><span class="bot r5 ln cap"><b></b></span></div>
+                        <div><div class="bn">Research Scout</div><div class="bh">@research-scout</div></div>
+                        <div class="bf"><span>sonnet 5.5</span><span>2 mcp · 2 skills</span></div>
+                      </div>
+                    </div>
+                    <span class="snote">live preview · drag it around</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="coach" data-side="right" style="right:14px;top:250px;width:240px;--caret:30px">
+          <div class="c-eye"><span>Create · 3 of 5</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Choose what it can <em>reach</em></h4>
+          <p>It only reaches the servers and skills you give it. Pick a model, then add what the job needs.</p>
+          <p>Greyed-out servers are not connected to this workspace yet.</p>
+          <div class="c-foot">
+            <span class="c-dots"><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i></span>
+            <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+          </div>
+        </div>
+        <span class="pin pin-at" style="left:14px;top:196px">1</span>
+        <span class="pin pin-at" style="left:14px;top:390px">2</span>
+      </div>
+      <p class="board-cap">Notion and Slack for sources, Web research and PDF &amp; files to read them. Figma cannot be ticked until it is connected.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Target: agent-tools</b> <span class="tag look">Look</span><span>One wrapper around Model, MCP servers and Skills. The hole grows while a picker is open, because the panel sits inside the wrapper. Coach sits to the side of it.</span><span class="src">data-tour="agent-tools"</span></div></li>
+      <li><span class="pin">2</span><div><b>Copy</b><span>"Choose what it can reach." It only reaches the servers and skills you give it. Empty states come from the app: "No servers. It can only use its own knowledge and skills." and "No skills yet."</span><span class="src">MultiPick empty</span></div></li>
+      <li><span class="pin">3</span><div><b>prepare()</b><span>Scroll the group into view and leave both pickers closed. Do not pick anything for the user. Counts use usable items only, so Figma is left out of "2 of 8".</span></div></li>
+      <li><span class="pin">4</span><div><b>Advance</b><span>Next is always on. An open picker is fine; Esc closes the picker first, and a second Esc minimizes the tour. Missing target after 3s falls back to a centered card.</span></div></li>
+    </ol>
+  </div>
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Create 4 of 5: the badge stage on the right of the dialog is spotlighted, showing Research Scout's mint badge swung to one side on its lanyard, with a handwritten drag me note and a coach card to its left">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/agents</span></div>
+          <div class="app-body solo">
+            <div class="app-stage">
+              <div class="wf-top">
+                <div class="crumb"><svg class="ic"><use href="#i-sidebar"/></svg><span class="t">truex / agents</span></div>
+                <span class="status-pill"><span class="pulse idle"></span>Qlik Analyst · Idle</span>
+                <span></span>
+              </div>
+              <div class="over">
+                <div class="ghost" aria-hidden="true"><i style="width:40%"></i><i style="width:72%"></i><i style="width:58%"></i></div>
+                <div class="dscrim" aria-hidden="true"></div>
+                <div class="dlg">
+                  <span class="dx"><svg class="ic"><use href="#i-x"/></svg></span>
+                  <div class="form">
+                    <div><h3>New agent</h3><p class="lede">A persistent specialist with its own identity and chat. Mention it in groups by its handle.</p></div>
+                    <div class="fl"><span class="fll">Name<span class="fh live">@research-scout</span></span><span class="inp">Research Scout</span></div>
+                    <div class="fl"><span class="fll">Purpose</span><span class="inp">Finds and summarizes sources for a brief</span></div>
+                    <div class="fl"><span class="fll">Instructions</span><span class="inp ta">Cite every source with a link. Flag anything older than 12 months.</span></div>
+                    <div class="fl"><span class="fll">Model</span><span class="inp">Claude Sonnet 5.5<svg class="ic"><use href="#i-chevd"/></svg></span></div>
+                    <div class="fl"><span class="fll">MCP servers<span class="fh">2 of 8</span></span><div class="mp"><span class="mpc"><span class="mono" style="--mc:var(--m-notion)">N</span>Notion</span><span class="mpc"><span class="mono" style="--mc:var(--m-slack)">S</span>Slack</span><span class="mpa">Edit</span></div></div>
+                    <div class="acts"><span class="bs">Cancel</span><span class="bp">Create agent</span></div>
+                  </div>
+                  <div class="stg t-anchor" data-tour="agent-badge">
+                    <div class="lny" style="--sw:9deg;--strap:var(--mint);--sl:92px">
+                      <span class="strap"></span><span class="clip"></span>
+                      <div class="bdg"><span class="slot"></span><span class="brand">truex</span>
+                        <div class="bt" style="--tb:var(--tb-mint)"><span class="bot r5 ln cap"><b></b></span></div>
+                        <div><div class="bn">Research Scout</div><div class="bh">@research-scout</div></div>
+                        <div class="bf"><span>sonnet 5.5</span><span>2 mcp · 2 skills</span></div>
+                      </div>
+                    </div>
+                    <span class="snote">live preview · drag it around</span>
+                    <span class="spot inset" aria-hidden="true"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <span class="scribble" style="right:34px;top:96px">drag me<svg viewBox="0 0 64 40" aria-hidden="true"><path d="M6 4c10 14 22 22 44 26"/><path d="M42 22l9 8-11 3"/></svg></span>
+        <div class="coach" data-side="left" style="right:236px;top:150px;width:250px;--caret:40px">
+          <div class="c-eye"><span>Create · 4 of 5</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Meet its <em>badge</em></h4>
+          <p>The badge previews every change you make. Grab it and drag; it swings back on its lanyard.</p>
+          <div class="c-foot">
+            <span class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i></span>
+            <span class="tb quiet">Back</span><span class="tb primary">Next</span>
+          </div>
+        </div>
+        <span class="pin pin-at" style="right:22px;top:62px">1</span>
+      </div>
+      <p class="board-cap">Name, look, tint, model and counts all land on the badge. The swing is the drag, caught mid-pull.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Target: agent-badge</b> <span class="tag look">Look</span><span>The whole .nad-stage, including the "live preview · drag it around" note. Coach sits on the form side so the badge stays free to drag.</span><span class="src">data-tour="agent-badge"</span></div></li>
+      <li><span class="pin">2</span><div><b>Copy</b><span>"Meet its badge." The badge previews every change you make. Grab it and drag; it swings back on its lanyard. Caveat "drag me" sits beside the strap on wide screens only.</span></div></li>
+      <li><span class="pin">3</span><div><b>prepare()</b><span>Nothing to set. Keep pointer events on the stage live under the tour layer so the drag works during the step.</span></div></li>
+      <li><span class="pin">4</span><div><b>Advance</b><span>Next is always on; a drag is not required. On narrow dialogs the stage sits under the form, so the coach goes above it. Missing target after 3s falls back to a centered card.</span></div></li>
+    </ol>
+  </div>
+  <div class="board">
+    <div>
+      <div class="demo" role="img" aria-label="Create 5 of 5, first half: the finished New agent form for Research Scout with the Create agent button spotlighted and a coach card above it">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/agents</span></div>
+          <div class="app-body solo">
+            <div class="app-stage">
+              <div class="over" style="padding-top:44px">
+                <div class="dscrim" aria-hidden="true"></div>
+                <div class="dlg">
+                  <span class="dx"><svg class="ic"><use href="#i-x"/></svg></span>
+                  <div class="form">
+                    <div><h3>New agent</h3></div>
+                    <div class="fl"><span class="fll">Name<span class="fh live">@research-scout</span></span><span class="inp">Research Scout</span></div>
+                    <div class="fl"><span class="fll">Purpose</span><span class="inp">Finds and summarizes sources for a brief</span></div>
+                    <div class="fl"><span class="fll">Skills<span class="fh">2 of 8</span></span><div class="mp"><span class="mpc">Web research</span><span class="mpc">PDF &amp; files</span><span class="mpa">Edit</span></div></div>
+                    <div class="acts"><span class="bs">Cancel</span><span class="bp t-anchor" data-tour="agent-create">Create agent<span class="spot inset" aria-hidden="true"></span></span></div>
+                  </div>
+                  <div class="stg">
+                    <div class="lny" style="--sw:-1.5deg;--strap:var(--mint);--sl:40px">
+                      <span class="strap"></span><span class="clip"></span>
+                      <div class="bdg"><span class="slot"></span><span class="brand">truex</span>
+                        <div class="bt" style="--tb:var(--tb-mint)"><span class="bot r5 ln cap"><b></b></span></div>
+                        <div><div class="bn">Research Scout</div><div class="bh">@research-scout</div></div>
+                        <div class="bf"><span>sonnet 5.5</span><span>2 mcp · 2 skills</span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="coach" data-side="above" style="left:24px;bottom:84px;--caret:250px">
+          <div class="c-eye"><span>Create · 5 of 5</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Put it on the <em>team</em></h4>
+          <p>Create agent adds Research Scout to your roster. You can change everything but the handle later.</p>
+          <div class="c-try"><svg class="ic"><use href="#i-steer"/></svg>Press Create agent</div>
+          <div class="c-foot">
+            <span class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i></span>
+            <span class="tb quiet">Back</span>
+          </div>
+        </div>
+        <span class="pin pin-at" style="left:14px;bottom:18px">1</span>
+      </div>
+      <p class="then"><svg class="ic" style="width:22px;height:22px"><use href="#i-chevd"/></svg>then the badge drops in</p>
+      <div class="demo" role="img" aria-label="Create 5 of 5, second half: the dark celebration screen. Research Scout's mint badge hangs on its lanyard with confetti around it, the copy Research Scout is on the team is spotlighted, and a coach card points at Say hi to Research Scout">
+        <div class="app">
+          <div class="app-chrome"><i></i><i></i><i></i><span>truex.app/agents</span></div>
+          <div class="celebrate-mock">
+            <span class="cx"><svg class="ic"><use href="#i-x"/></svg></span>
+            <div class="confetti" aria-hidden="true">
+              <i style="--x:12%;--y:18%;--r:20deg;--c:var(--mint)"></i><i style="--x:24%;--y:44%;--r:-30deg;--c:var(--butter)"></i><i style="--x:34%;--y:10%;--r:60deg;--c:var(--ice)"></i><i style="--x:66%;--y:14%;--r:-15deg;--c:var(--peach)"></i><i style="--x:78%;--y:38%;--r:40deg;--c:var(--lilac)"></i><i style="--x:88%;--y:12%;--r:-50deg;--c:var(--mint)"></i><i style="--x:8%;--y:62%;--r:10deg;--c:var(--peach)"></i><i style="--x:92%;--y:58%;--r:70deg;--c:var(--butter)"></i><i style="--x:56%;--y:6%;--r:-70deg;--c:var(--lilac)"></i>
+            </div>
+            <div class="lny" style="--sw:3deg;--strap:var(--mint)">
+              <span class="strap"></span><span class="clip"></span>
+              <div class="bdg"><span class="slot"></span><span class="brand">truex</span>
+                <div class="bt" style="--tb:var(--tb-mint)"><span class="bot r5 ln cap"><b></b></span></div>
+                <div><div class="bn">Research Scout</div><div class="bh">@research-scout · new specialist</div></div>
+                <div class="bf"><span>sonnet 5.5</span><span>2 mcp · 2 skills</span></div>
+              </div>
+            </div>
+            <div class="cc t-anchor" data-tour="agent-celebrate">
+              <h3>Research Scout is on the team</h3>
+              <p>Mention <code>@research-scout</code> anywhere to wake it. Drag the badge around while you're here.</p>
+              <div class="acts"><span class="bp">Say hi to Research Scout</span><span class="bs">Done</span></div>
+              <span class="spot inset" aria-hidden="true"></span>
+            </div>
+          </div>
+        </div>
+        <div class="coach" data-side="right" style="right:14px;top:110px;width:230px;--caret:28px">
+          <div class="c-eye"><span>Create · 5 of 5</span><span class="c-x"><svg><use href="#i-x"/></svg></span></div>
+          <h4>Say <em>hi</em></h4>
+          <p>Say hi opens a new chat with "@research-scout hi, " ready in the composer. Done just closes.</p>
+          <div class="c-foot">
+            <span class="c-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i></span>
+            <span class="tb primary">Finish</span>
+          </div>
+        </div>
+        <span class="pin pin-at" style="left:14px;bottom:18px">2</span>
+      </div>
+      <p class="board-cap">Stop 5 is the real button. The tour waits for the success screen, then says one last thing and gets out of the way.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Target: agent-create</b> <span class="tag try">Try</span><span>Round-cornered hole on the button only. No Next: advances when the dialog swaps to the success view. If the name is empty or taken, the c-try line reads "Fix the name first" and Back returns to stop 1.</span><span class="src">data-tour="agent-create"</span></div></li>
+      <li><span class="pin">2</span><div><b>Target: agent-celebrate</b> <span class="tag wait">Wait</span><span>Wait for .celebrate, then 900ms for the drop and confetti, then spotlight the copy block. Under reduced motion, no delay.</span><span class="src">data-tour="agent-celebrate"</span></div></li>
+      <li><span class="pin">3</span><div><b>Copy</b><span>"Put it on the team", then "Say hi". Success copy is the app's own: "{name} is on the team", "Mention @handle anywhere to wake it."</span></div></li>
+      <li><span class="pin">4</span><div><b>End and hand-off</b><span>Say hi, Done, Finish or Esc all set parts.create to true and close the tour. Say hi keeps its app behaviour: a new chat with the composer prefilled "@research-scout hi, " and the cursor after it.</span> <span class="tag new">New</span></div></li>
+      <li><span class="pin">5</span><div><b>prepare() and fallback</b><span>Nothing to set on either. If agent-celebrate is missing after 3s (dialog closed early), mark the tour done quietly with no card.</span></div></li>
+    </ol>
+  </div>
+</section>

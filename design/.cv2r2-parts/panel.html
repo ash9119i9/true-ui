@@ -1,0 +1,462 @@
+<style>
+/* Section 4: session panel, scoped to a turn or the whole session. All classes prefixed pn-. */
+#panel .pn-scope{display:flex;flex-direction:column;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+#panel .pn-scope-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+#panel .pn-ctx{font-size:12px;color:var(--ink-3);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+#panel .pn-ctx b{color:var(--ink-2);font-weight:600}
+#panel .pn-live{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;background:var(--ink);color:var(--bg);font-size:12px;font-weight:600;white-space:nowrap}
+#panel .pn-live::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.6s infinite}
+#panel .pn-seg-off span:not(.on){opacity:.45}
+#panel .pn-tabs{flex:1;margin:0;min-width:0}
+#panel .pn-tabs .tab{display:inline-flex;align-items:center;gap:5px}
+#panel .pn-prompt{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--ink-2);min-width:0}
+#panel .pn-prompt q{quotes:none;color:var(--ink);font-weight:500;overflow-wrap:anywhere}
+#panel .pn-tc{display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:6px;background:var(--surface-3);color:var(--ink-2);font:600 10px/18px var(--font-mono);white-space:nowrap;flex:none}
+#panel .pn-tc.on{background:var(--accent-soft);color:var(--accent-fg)}
+#panel .pn-tc.live{background:var(--ink);color:var(--bg)}
+#panel .pn-h{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+#panel .pn-h .spacer{flex:1}
+#panel .pn-h em{font:500 11px var(--font-mono);font-style:normal;letter-spacing:0;text-transform:none}
+#panel .pn-sub{font-size:12px;color:var(--ink-3);overflow-wrap:anywhere}
+#panel .pn-mono{font:11px var(--font-mono);color:var(--ink-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+#panel .pn-helper{display:flex;align-items:center;gap:8px;padding:6px 8px;margin-top:4px;border:1px solid var(--line);border-radius:9px;background:var(--surface);font-size:12px;min-width:0;flex-wrap:wrap}
+#panel .pn-helper .grow{flex-direction:row;gap:6px;align-items:baseline;flex-wrap:wrap}
+#panel .pn-progress{display:flex;align-items:center;gap:8px;margin-top:4px}
+#panel .pn-progress .bar{flex:1}
+#panel .pn-err{display:flex;flex-direction:column;gap:6px;padding:8px 10px;margin-top:4px;border-radius:9px;background:var(--bad-bg);border:1px solid color-mix(in srgb,var(--bad) 30%,transparent);color:var(--bad);font-size:12px}
+#panel .pn-err .btn{height:24px;padding:0 8px;font-size:12px;align-self:flex-start}
+/* stream slice */
+#panel .pn-stream{padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+#panel .pn-msg{position:relative;display:flex;flex-direction:column;gap:6px;padding:10px 12px 10px 14px;border-radius:12px;border:1px solid transparent;min-width:0}
+#panel .pn-msg.sel{border-color:var(--accent);background:var(--accent-soft)}
+#panel .pn-msg .pn-q{align-self:flex-end;max-width:92%;background:var(--ink);color:var(--bg);padding:7px 11px;border-radius:14px 14px 4px 14px;font-size:13px;line-height:1.45}
+#panel .pn-msg .pn-a{font-size:13px;color:var(--ink-2);line-height:1.5}
+#panel .pn-msg-head{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-3);flex-wrap:wrap}
+#panel .pn-msg.dim{opacity:.6}
+/* grouped per-turn timeline */
+#panel .pn-groups{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+#panel .pn-group + .pn-group{border-top:1px solid var(--line)}
+#panel .pn-group > summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 8px;align-items:center;padding:9px 10px}
+#panel .pn-group > summary::-webkit-details-marker{display:none}
+#panel .pn-group > summary .ic{color:var(--ink-3);transition:transform .15s}
+#panel .pn-group[open] > summary .ic.pn-chev{transform:rotate(90deg)}
+#panel .pn-group[open] > summary{background:var(--surface-2);border-bottom:1px solid var(--line)}
+#panel .pn-gt{display:flex;align-items:center;gap:6px;min-width:0;font-size:13px;color:var(--ink);font-weight:500}
+#panel .pn-gt span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+#panel .pn-gm{grid-column:2 / 4;display:flex;flex-wrap:wrap;gap:4px 10px;font:11px var(--font-mono);color:var(--ink-3);font-variant-numeric:tabular-nums}
+#panel .pn-gm .bad{color:var(--bad)}
+#panel .pn-gm .warn{color:var(--warn-text)}
+#panel .pn-gbody{padding:4px 10px 8px}
+/* files across session */
+#panel .pn-files{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+#panel .pn-files li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 8px;align-items:center;padding:8px 10px;font-size:12px}
+#panel .pn-files li + li{border-top:1px solid var(--line)}
+#panel .pn-files code{background:none;border:0;padding:0;color:var(--ink);font-size:12px}
+#panel .pn-files .pn-turnset{grid-column:2 / 4;display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+#panel .pn-add{color:var(--ok);font:11px var(--font-mono)} #panel .pn-del{color:var(--bad);font:11px var(--font-mono)}
+/* plan */
+#panel .pn-vers{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--ink-3)}
+#panel .pn-ver{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font-size:12px;font-weight:500;white-space:nowrap}
+#panel .pn-ver.cur{border-color:var(--accent);color:var(--accent-fg);background:var(--accent-soft)}
+#panel .pn-ver.gone{text-decoration:line-through;color:var(--ink-3)}
+#panel .pn-plan{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+#panel .pn-plan li{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 8px;border-radius:9px;font-size:13px;color:var(--ink-2)}
+#panel .pn-plan li.done{color:var(--ink-2)}
+#panel .pn-plan li.todo{color:var(--ink-3)}
+#panel .pn-plan li.run{color:var(--ink);font-weight:500}
+#panel .pn-plan li.adv{background:var(--accent-soft);color:var(--accent-fg)}
+#panel .pn-plan li.adv .pn-tc{background:var(--surface);color:var(--accent-fg)}
+#panel .pn-plan .mark .ic{width:10px;height:10px;stroke-width:2.5}
+#panel .pn-plan .mark.done::before{content:none}
+#panel .pn-hist{border:1px dashed var(--line-strong);border-radius:12px;background:var(--surface-2)}
+#panel .pn-hist > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:9px 10px;font-size:12px;color:var(--ink-3);flex-wrap:wrap}
+#panel .pn-hist > summary::-webkit-details-marker{display:none}
+#panel .pn-hist > summary b{color:var(--ink-2);font-weight:600;text-decoration:line-through;text-decoration-color:var(--ink-3)}
+#panel .pn-hist[open] > summary .pn-chev{transform:rotate(90deg)}
+#panel .pn-hist .pn-chev{transition:transform .15s}
+#panel .pn-hist-body{padding:0 10px 10px;display:flex;flex-direction:column;gap:8px}
+#panel .pn-hist .pn-plan li{opacity:.6;text-decoration:line-through;text-decoration-color:var(--ink-3);padding:3px 8px}
+#panel .pn-hist .diff div{white-space:pre-wrap}
+#panel .pn-hist .diff .keep{color:var(--ink-3)}
+/* goal budget, split by turn */
+#panel .pn-budget{display:flex;height:12px;border-radius:999px;background:var(--surface-3);overflow:hidden;gap:2px}
+#panel .pn-budget i{display:block;height:100%;background:color-mix(in srgb,var(--accent) 45%,var(--surface-3))}
+#panel .pn-budget i.on{background:var(--accent)}
+#panel .pn-budget i.live{background:repeating-linear-gradient(135deg,var(--accent) 0 4px,color-mix(in srgb,var(--accent) 45%,var(--surface-3)) 4px 8px)}
+#panel .pn-contrib{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;font-size:12px}
+#panel .pn-contrib li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;padding:5px 8px;border-radius:8px;color:var(--ink-2)}
+#panel .pn-contrib li.on{background:var(--accent-soft);color:var(--accent-fg)}
+#panel .pn-contrib li span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* roster */
+#panel .pn-roster{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+#panel .pn-roster li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:9px 10px;font-size:13px}
+#panel .pn-roster li + li{border-top:1px solid var(--line)}
+#panel .pn-roster .h-av{width:24px;height:24px;border-radius:8px;font-size:11px}
+#panel .pn-roster .who{display:flex;flex-direction:column;min-width:0}
+#panel .pn-roster .who b{font-weight:600;color:var(--ink)}
+#panel .pn-roster .who span{font-size:11px;color:var(--ink-3)}
+#panel .pn-roster .pn-turnset{grid-column:2 / 4;display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+/* tokens per turn chart */
+#panel .pn-chart{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end;height:128px;padding:8px 10px 0;border:1px solid var(--line);border-radius:12px 12px 0 0;border-bottom:0;background:linear-gradient(var(--line) 1px,transparent 1px) 0 8px/100% 50% repeat-y,var(--surface)}
+#panel .pn-col{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;height:100%;min-width:0}
+#panel .pn-col b{font:600 10px var(--font-mono);color:var(--ink-2);font-variant-numeric:tabular-nums}
+#panel .pn-col i{display:block;width:100%;max-width:34px;border-radius:5px 5px 0 0;background:color-mix(in srgb,var(--accent) 45%,var(--surface-3))}
+#panel .pn-col.on i{background:var(--accent)}
+#panel .pn-col.live i{background:repeating-linear-gradient(135deg,var(--accent) 0 4px,color-mix(in srgb,var(--accent) 40%,var(--surface-3)) 4px 8px)}
+#panel .pn-axis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:5px 10px;border:1px solid var(--line);border-top:1px solid var(--line-strong);border-radius:0 0 12px 12px;background:var(--surface-2);font:500 10px var(--font-mono);color:var(--ink-3);text-align:center}
+#panel .pn-kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;font-size:12px;color:var(--ink-2)}
+#panel .pn-kv b{font:500 12px var(--font-mono);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+/* layouts */
+#panel .pn-duo{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:14px;align-items:start}
+#panel .pn-duo .app-panel,#panel .pn-solo{width:auto}
+#panel .pn-stack{display:flex;flex-direction:column;gap:18px;min-width:0}
+#panel .pn-mini{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:12px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow-sm);min-width:0}
+#panel .pn-flat{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--ink-2)}
+#panel .pn-flat li{display:flex;gap:8px;align-items:center;min-width:0}
+#panel .pn-flat li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+#panel .pn-ghost{border:1px dashed var(--bad);border-radius:10px;padding:8px 10px;font-size:12px;color:var(--bad);display:flex;gap:6px;align-items:center}
+#panel .pn-rules td:first-child{white-space:nowrap}
+#panel .pn-rules .pill{margin-top:2px}
+#panel .pn-foot{display:flex;flex-direction:column;gap:12px}
+#panel .pn-foot h3{font:700 24px/1 var(--font-hand);color:var(--accent);letter-spacing:0}
+</style>
+
+<section class="sec" id="panel">
+  <div class="sec-head">
+    <span class="eyebrow">4 · Session panel, scoped</span>
+    <h2>Activity panel: this turn and the whole session</h2>
+    <p>Today the panel shows one flat view for the whole session, so a second plan erases the first and helpers, files and errors from different turns blur together. v2 adds one scope control to the panel. This turn shows a slice of the selected turn. Session shows a sum or a history across all turns. Nothing is overwritten; it is kept and labelled with the turn it came from.</p>
+  </div>
+
+  <!-- Board A: the model -->
+  <div class="board">
+    <div class="pn-stack">
+      <div class="ba">
+        <div>
+          <span class="ba-label">Today</span>
+          <div class="app-panel pn-solo faded" aria-label="Session panel today">
+            <div class="panel-head"><div class="tabs pn-tabs"><span class="tab">Activity</span><span class="tab">Goal</span><span class="tab">Agents</span><span class="tab is-active">Plan</span><span class="tab">Insights</span></div></div>
+            <div class="panel-body">
+              <div class="row"><span class="strong">Plan</span><span class="spacer"></span><span class="pill">2 of 4 done</span></div>
+              <ul class="pn-flat">
+                <li><span class="mark done"></span><span>Map week one access and tools</span></li>
+                <li><span class="mark done"></span><span>Add Qlik certification checkpoint in week two</span></li>
+                <li><span class="spinner"></span><span>Build the day-by-day checklist</span></li>
+                <li><span class="mark"></span><span>Check it fits one page</span></li>
+              </ul>
+              <div class="pn-ghost"><svg class="ic sm"><use href="#i-x"/></svg>Plan v1 (5 steps, T1) was replaced and is gone</div>
+              <span class="pn-sub">Agents lists Atlas once. Files, errors and tokens are one pile with no turn.</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <span class="ba-label now">v2</span>
+          <div class="app-panel pn-solo" aria-label="Session panel v2 header">
+            <div class="panel-head"><div class="tabs pn-tabs"><span class="tab is-active"><svg class="ic sm"><use href="#i-activity"/></svg>Activity</span><span class="tab">Goal</span><span class="tab">Agents</span><span class="tab">Plan</span><span class="tab">Insights</span></div></div>
+            <div class="pn-scope">
+              <div class="pn-scope-row">
+                <span class="seg" role="group" aria-label="Scope"><span class="on"><svg class="ic sm"><use href="#i-target"/></svg>This turn</span><span><svg class="ic sm"><use href="#i-sigma"/></svg>Session</span></span><span class="pin">1</span>
+              </div>
+              <div class="turns" aria-label="Turns"><span class="turn old">T1<i>10:02</i></span><span class="turn old">T2<i>10:09</i></span><span class="turn old">T3<i>10:16</i></span><span class="turn live on">T4<i>now</i></span></div>
+              <div class="row"><span class="pin">2</span><span class="pn-sub">Follows the live turn while it runs</span></div>
+            </div>
+            <div class="panel-body">
+              <div class="pn-prompt"><span class="pn-tc live">T4</span><q>Turn it into a checklist file</q></div>
+              <div class="stats"><div><span class="v">1m 01s</span><span class="l">so far</span></div><div><span class="v">26.6k</span><span class="l">tokens</span></div><div><span class="v">1</span><span class="l">file</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="app" aria-label="Selecting a turn from the stream">
+        <div class="app-chrome"><i></i><i></i><i></i><span>Qlik Analyst · Onboarding plan for new analysts</span></div>
+        <div class="app-body">
+          <div class="app-stage">
+            <div class="pn-stream">
+              <div class="pn-msg dim"><div class="pn-msg-head"><span class="pn-tc">T2</span>10:09 · steer</div><div class="pn-q">Keep it to one page</div></div>
+              <div class="pn-msg sel">
+                <div class="pn-msg-head"><span class="pn-tc on">T3</span>10:16 · selected <span class="pin">3</span></div>
+                <div class="pn-q">Add a Qlik certification checkpoint in week two</div>
+                <div class="pn-a">Added a certification checkpoint on day 8 and moved shadowing into week one. Plan v2 replaces the earlier plan.</div>
+              </div>
+              <div class="pn-msg"><div class="pn-msg-head"><span class="pn-tc live">T4</span>10:24 · running</div><div class="pn-q">Turn it into a checklist file</div><div class="pn-a"><span class="spinner" style="display:inline-block;vertical-align:-1px"></span> Writing onboarding/checklist.csv</div></div>
+            </div>
+          </div>
+          <div class="app-panel">
+            <div class="panel-head"><div class="tabs pn-tabs"><span class="tab is-active">Activity</span><span class="tab">Goal</span><span class="tab">Agents</span><span class="tab">Plan</span><span class="tab">Insights</span></div></div>
+            <div class="pn-scope">
+              <div class="pn-scope-row"><span class="seg"><span class="on">This turn</span><span>Session</span></span><span class="spacer"></span><span class="pn-live">Back to live</span><span class="pin">4</span></div>
+              <div class="turns"><span class="turn old">T1<i>10:02</i></span><span class="turn old">T2<i>10:09</i></span><span class="turn on">T3<i>10:16</i></span><span class="turn live">T4<i>now</i></span></div>
+            </div>
+            <div class="panel-body">
+              <div class="stats"><div><span class="v">2m 04s</span><span class="l">time</span></div><div><span class="v">48.0k</span><span class="l">tokens</span></div><div><span class="v">1</span><span class="l">error</span></div></div>
+              <ul class="log">
+                <li><span class="node k-agent"><svg class="ic sm"><use href="#i-list"/></svg></span><span class="what"><b>Plan v2 created</b><span>Replaces Plan v1 from T1</span></span><span class="t">10:16</span></li>
+                <li><span class="node k-err"><svg class="ic sm"><use href="#i-alert"/></svg></span><span class="what"><b>Google Drive search failed</b><span>token expired</span></span><span class="t">10:17</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">Click a message and the panel jumps to its turn. Click a turn and the stream scrolls to it. Either way, one tap gets you back to live.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Scope control</b> <span class="tag new">New</span><span>Segmented "This turn | Session" under the tabs. The choice is remembered per tab for the session, so Plan can sit on Session while Activity follows turns. Goal ignores it (see Board D).</span><span class="src">Data: <code>panel.scope[tab]</code> (client state)</span></div></li>
+      <li><span class="pin">2</span><div><b>Turn rail</b> <span class="tag new">New</span><span>One chip per turn with its start time, scrolls sideways past about six turns. The live turn pulses and is the default while it runs; when the session goes idle the last turn stays selected. Hidden when scope is Session.</span><span class="src">Data: <code>turn.id</code>, <code>turn.startedAt</code>, <code>turn.status</code></span></div></li>
+      <li><span class="pin">3</span><div><b>Stream and panel share the selection</b> <span class="tag new">New</span><span>Clicking any message in the stream selects its turn in the rail and outlines the turn's messages. Clicking a turn chip scrolls the stream to the turn's first message. Every event needs to carry the turn it belongs to.</span><span class="src">Data: <code>message.turnId</code>, <code>event.turnId</code></span></div></li>
+      <li><span class="pin">4</span><div><b>Back to live</b> <span class="tag new">New</span><span>Shows when a past turn is selected while another turn is running. Reselects the live turn and scrolls the stream to the bottom. The panel never jumps away from a turn the user picked on its own.</span><span class="src">Data: <code>session.liveTurnId</code></span></div></li>
+      <li><span class="pin">5</span><div><b>The rule</b> <span class="tag new">New</span><span>Per-turn data is a slice: only events tagged with that turn. Session data is either a sum (tokens, time, counts) or a history (plans, goal changes, file edits). Nothing replaces anything; old versions stay, labelled with the turn that retired them.</span><span class="src">Data: all panel feeds keyed by <code>turnId</code></span></div></li>
+    </ol>
+  </div>
+
+  <!-- Board B: Activity, this turn, live -->
+  <div class="board">
+    <div>
+      <div class="app-panel pn-solo" style="width:min(100%,380px)" aria-label="Activity tab, this turn, T4 live">
+        <div class="panel-head"><div class="tabs pn-tabs"><span class="tab is-active"><svg class="ic sm"><use href="#i-activity"/></svg>Activity</span><span class="tab">Goal</span><span class="tab">Agents</span><span class="tab">Plan</span><span class="tab">Insights</span></div></div>
+        <div class="pn-scope">
+          <div class="pn-scope-row"><span class="seg"><span class="on"><svg class="ic sm"><use href="#i-target"/></svg>This turn</span><span><svg class="ic sm"><use href="#i-sigma"/></svg>Session</span></span></div>
+          <div class="turns"><span class="turn old">T1<i>10:02</i></span><span class="turn old">T2<i>10:09</i></span><span class="turn old">T3<i>10:16</i></span><span class="turn live on">T4<i>now</i></span></div>
+        </div>
+        <div class="panel-body">
+          <div class="pn-prompt"><span class="pn-tc live">T4</span><q>Turn it into a checklist file</q><span class="pin">1</span></div>
+          <div class="stats" aria-label="Turn stats"><div><span class="v">1m 01s</span><span class="l">time so far</span></div><div><span class="v">26.6k</span><span class="l">tokens</span></div><div><span class="v">4</span><span class="l">tools</span></div><div><span class="v">1</span><span class="l">file</span></div></div>
+          <div class="row"><span class="pin">2</span><span class="pn-sub">Counts only T4. They tick up while the turn runs.</span></div>
+          <div class="pn-h">Work log<span class="spacer"></span><em>Plan v2 · step 3 of 4</em></div>
+          <ul class="log">
+            <li><span class="node k-think"><svg class="ic sm"><use href="#i-brain"/></svg></span><span class="what"><b>Thought for 6s</b><span>One row per day, columns for owner and done</span></span><span class="t">10:24:03</span></li>
+            <li><span class="node k-tool"><svg class="ic sm"><use href="#i-term"/></svg></span><span class="what"><b>Read plans/onboarding.md</b><span>1 page, 10 days</span></span><span class="t">0.4s</span></li>
+            <li><span class="node k-tool"><svg class="ic sm"><use href="#i-term"/></svg></span><span class="what"><b>Read plans/qlik-certification.md</b><span>Checkpoint on day 8</span></span><span class="t">0.3s</span></li>
+            <li><span class="node k-agent"><svg class="ic sm"><use href="#i-list"/></svg></span><span class="what"><b>Step 3 started</b><span>Build the day-by-day checklist</span></span><span class="t">10:24:14</span></li>
+            <li><span class="node k-file k-live"><svg class="ic sm"><use href="#i-file"/></svg></span><span class="what"><b>Writing onboarding/checklist.csv <span class="pin">3</span></b><span class="pn-progress"><span class="bar"><i style="width:60%"></i></span><span class="pn-mono">18 of 30 rows</span></span></span><span class="t">now</span></li>
+          </ul>
+          <div class="pn-helper"><svg class="ic sm" style="color:var(--ink-3)"><use href="#i-users"/></svg><span class="grow"><span>No helpers in this turn</span><span class="pn-mono">4 earlier in session</span></span><span class="pin">4</span></div>
+        </div>
+      </div>
+      <p class="board-cap">The live turn, on its own. Nothing from T1 to T3 leaks in, except a pointer to where it went.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Turn header</b> <span class="tag new">New</span><span>Turn chip plus the user's message for that turn, one line, truncated. Steers get a steer icon. Tells you which slice you are looking at without checking the rail.</span><span class="src">Data: <code>turn.id</code>, <code>turn.prompt</code>, <code>turn.kind</code></span></div></li>
+      <li><span class="pin">2</span><div><b>Turn stats strip</b> <span class="tag new">New</span><span>Time, tokens, tool calls and files for the selected turn only. Live turns show "so far" and update in place; finished turns show final values.</span><span class="src">Data: <code>turn.durationMs</code>, <code>turn.usage.total</code>, <code>turn.toolCalls</code>, <code>turn.files</code></span></div></li>
+      <li><span class="pin">3</span><div><b>Typed work log</b> <span class="tag changed">Changed</span><span>Replaces the flat file list. Nodes for thinking, tool calls, plan steps, helpers, file writes and errors, oldest first. The live node has a ring and a progress bar when the tool reports one. Helper rows nest under the step that spawned them, with their tone avatar.</span><span class="src">Data: <code>event.kind</code>, <code>event.turnId</code>, <code>file.progress</code></span></div></li>
+      <li><span class="pin">4</span><div><b>Empty slice with a pointer</b> <span class="tag new">New</span><span>When a turn has no helpers, files or errors, one quiet row says so and links to the Session scope with the count. Prevents "where did Atlas go" when switching turns.</span><span class="src">Data: <code>session.helpers.length</code></span></div></li>
+    </ol>
+  </div>
+
+  <!-- Board C: Activity, session -->
+  <div class="board">
+    <div>
+      <div class="app-panel pn-solo" style="width:min(100%,400px)" aria-label="Activity tab, session scope">
+        <div class="panel-head"><div class="tabs pn-tabs"><span class="tab is-active"><svg class="ic sm"><use href="#i-activity"/></svg>Activity</span><span class="tab">Goal</span><span class="tab">Agents</span><span class="tab">Plan</span><span class="tab">Insights</span></div></div>
+        <div class="pn-scope">
+          <div class="pn-scope-row"><span class="seg"><span><svg class="ic sm"><use href="#i-target"/></svg>This turn</span><span class="on"><svg class="ic sm"><use href="#i-sigma"/></svg>Session</span></span><span class="pn-ctx"><b>4 turns</b> · since 10:02</span></div>
+        </div>
+        <div class="panel-body">
+          <div class="stats" aria-label="Session totals"><div><span class="v">4</span><span class="l">turns</span></div><div><span class="v">142.2k</span><span class="l">tokens</span></div><div><span class="v">4m 38s</span><span class="l">working</span></div><div><span class="v">3</span><span class="l">files</span></div><div><span class="v" style="color:var(--bad)">1</span><span class="l">error</span></div></div>
+          <div class="row"><span class="pin">1</span><span class="pn-sub">4 helpers (Atlas twice) · 2 plans · 31k tokens from helpers</span></div>
+          <div class="pn-h">By turn <span class="pin">2</span><span class="spacer"></span><em>Expand all</em></div>
+          <div class="pn-groups">
+            <details class="pn-group">
+              <summary><svg class="ic sm pn-chev"><use href="#i-chev"/></svg><span class="pn-gt"><span class="pn-tc">T1</span><span>Draft a 2-week onboarding plan for new analysts from the handbook</span></span><span class="pn-mono">10:02</span><span class="pn-gm"><span>58.2k</span><span>1m 12s</span><span>Plan v1</span><span>3 helpers</span><span>1 file</span><span class="warn">1 warning</span></span></summary>
+              <div class="pn-gbody"><ul class="log">
+                <li><span class="node k-agent"><svg class="ic sm"><use href="#i-list"/></svg></span><span class="what"><b>Plan v1 created</b><span>5 steps, all done</span></span><span class="t">10:02</span></li>
+                <li><span class="node k-agent"><svg class="ic sm"><use href="#i-users"/></svg></span><span class="what"><b>3 helpers</b><span>Atlas, Birch (limited access), Cedar</span></span><span class="t">16.9k</span></li>
+                <li><span class="node k-file"><svg class="ic sm"><use href="#i-file"/></svg></span><span class="what"><b>Created plans/onboarding.md</b></span><span class="t">+64</span></li>
+              </ul></div>
+            </details>
+            <details class="pn-group">
+              <summary><svg class="ic sm pn-chev"><use href="#i-chev"/></svg><span class="pn-gt"><span class="pn-tc">T2</span><svg class="ic sm" style="color:var(--ink-3)"><use href="#i-steer"/></svg><span>Keep it to one page</span></span><span class="pn-mono">10:09</span><span class="pn-gm"><span>9.4k</span><span>21s</span><span>No plan change</span><span>1 file</span></span></summary>
+              <div class="pn-gbody"><ul class="log"><li><span class="node k-file"><svg class="ic sm"><use href="#i-file"/></svg></span><span class="what"><b>Edited plans/onboarding.md</b></span><span class="t">+8 -31</span></li></ul></div>
+            </details>
+            <details class="pn-group" open>
+              <summary><svg class="ic sm pn-chev"><use href="#i-chev"/></svg><span class="pn-gt"><span class="pn-tc">T3</span><span>Add a Qlik certification checkpoint in week two</span></span><span class="pn-mono">10:16</span><span class="pn-gm"><span>48.0k</span><span>2m 04s</span><span>Plan v2</span><span>2 helpers</span><span class="bad">1 error</span></span></summary>
+              <div class="pn-gbody"><ul class="log">
+                <li><span class="node k-agent"><svg class="ic sm"><use href="#i-list"/></svg></span><span class="what"><b>Plan v2 created</b><span>4 steps, supersedes v1</span></span><span class="t">10:16</span></li>
+                <li><span class="node k-agent"><svg class="ic sm"><use href="#i-users"/></svg></span><span class="what"><b>2 helpers</b>
+                  <span class="pn-helper tone-0"><span class="h-av">A</span><span class="grow"><b>Atlas</b><span class="muted">Docs · run 2</span></span><span class="pn-mono">6.3k</span></span>
+                  <span class="pn-helper tone-1"><span class="h-av">D</span><span class="grow"><b>Dune</b><span class="muted">Certification</span></span><span class="pn-mono">7.8k</span></span>
+                </span><span class="t">10:16</span></li>
+                <li><span class="node k-err"><svg class="ic sm"><use href="#i-alert"/></svg></span><span class="what"><b>Google Drive search failed <span class="pin">3</span></b>
+                  <span class="pn-err"><span>token expired · <code>err_7f3a21</code></span><span class="btn"><svg class="ic sm"><use href="#i-key"/></svg>Reconnect Drive</span></span>
+                </span><span class="t">10:17</span></li>
+                <li><span class="node k-file"><svg class="ic sm"><use href="#i-file"/></svg></span><span class="what"><b>Edited plans/onboarding.md</b><b>Created plans/qlik-certification.md</b></span><span class="t">2 files</span></li>
+              </ul></div>
+            </details>
+            <details class="pn-group">
+              <summary><svg class="ic sm pn-chev"><use href="#i-chev"/></svg><span class="pn-gt"><span class="pn-tc live">T4</span><span>Turn it into a checklist file</span></span><span class="pn-live" style="height:20px;font-size:11px">Live</span><span class="pn-gm"><span>26.6k so far</span><span>Plan v2 · step 3 of 4</span><span>1 file</span></span></summary>
+              <div class="pn-gbody"><ul class="log"><li><span class="node k-file k-live"><svg class="ic sm"><use href="#i-file"/></svg></span><span class="what"><b>Writing onboarding/checklist.csv</b></span><span class="t">now</span></li></ul></div>
+            </details>
+          </div>
+          <div class="pn-h">Files changed across session <span class="pin">4</span><span class="spacer"></span><em>3</em></div>
+          <ul class="pn-files">
+            <li><svg class="ic sm" style="color:var(--accent-fg)"><use href="#i-file"/></svg><code>plans/onboarding.md</code><span><span class="pn-add">+81</span> <span class="pn-del">-35</span></span><span class="pn-turnset"><span class="pn-tc">T1 created</span><span class="pn-tc">T2</span><span class="pn-tc on">T3</span></span></li>
+            <li><svg class="ic sm" style="color:var(--accent-fg)"><use href="#i-file"/></svg><code>plans/qlik-certification.md</code><span><span class="pn-add">+18</span></span><span class="pn-turnset"><span class="pn-tc on">T3 created</span></span></li>
+            <li><svg class="ic sm" style="color:var(--accent-fg)"><use href="#i-file"/></svg><code>onboarding/checklist.csv</code><span class="pill accent" style="height:18px;font-size:11px">writing</span><span class="pn-turnset"><span class="pn-tc live">T4</span></span></li>
+          </ul>
+        </div>
+      </div>
+      <p class="board-cap">Same tab, Session scope. Totals on top, then the whole session grouped by turn, then every file with the turns that touched it.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Session totals</b> <span class="tag new">New</span><span>Sums over all turns: turns, tokens (main plus helpers), working time (sum of turn durations, not wall clock), distinct files, errors. The sub line counts distinct helpers and plan versions.</span><span class="src">Data: <code>Σ turn.usage.total</code>, <code>Σ turn.durationMs</code>, <code>session.files</code>, <code>session.errors</code></span></div></li>
+      <li><span class="pin">2</span><div><b>Grouped turn timeline</b> <span class="tag new">New</span><span>One collapsible group per turn, newest selected turn open. The summary line carries the mini stats, so the list is useful folded. Errors and warnings show in red and amber in the summary. Clicking a turn chip here switches to This turn with that turn selected.</span><span class="src">Data: <code>turn.*</code>, events grouped by <code>event.turnId</code></span></div></li>
+      <li><span class="pin">3</span><div><b>Errors stay with their turn</b> <span class="tag changed">Changed</span><span>The T3 error keeps its reference id and a fix action. It does not follow you into T4 as a banner, but the session error count keeps it findable.</span><span class="src">Data: <code>error.message</code>, <code>error.ref</code> (err_7f3a21), <code>error.turnId</code></span></div></li>
+      <li><span class="pin">4</span><div><b>Files across session</b> <span class="tag new">New</span><span>Distinct files, net lines added and removed, and a chip for each turn that touched it (first one marked "created"). Tapping a turn chip opens that turn's diff for the file.</span><span class="src">Data: <code>file.path</code>, <code>file.edits[].turnId</code>, <code>file.edits[].added/removed</code></span></div></li>
+    </ol>
+  </div>
+
+  <!-- Board D: Plan versions + Goal -->
+  <div class="board">
+    <div>
+      <div class="pn-duo">
+        <div class="app-panel" aria-label="Plan tab, this turn, T3">
+          <div class="panel-head"><div class="tabs pn-tabs"><span class="tab">Activity</span><span class="tab">Goal</span><span class="tab">Agents</span><span class="tab is-active"><svg class="ic sm"><use href="#i-list"/></svg>Plan</span><span class="tab">Insights</span></div></div>
+          <div class="pn-scope">
+            <div class="pn-scope-row"><span class="seg"><span class="on">This turn</span><span>Session</span></span><span class="spacer"></span><span class="pn-live">Back to live</span></div>
+            <div class="turns"><span class="turn old">T1</span><span class="turn old">T2</span><span class="turn on">T3<i>10:16</i></span><span class="turn live">T4</span></div>
+          </div>
+          <div class="panel-body">
+            <div class="pn-vers"><span class="pn-ver gone">v1 · T1</span><svg class="ic sm"><use href="#i-chev"/></svg><span class="pn-ver cur">v2 · T3</span><span class="pin">1</span></div>
+            <div class="row"><span class="ring" style="--p:50"><span>2/4</span></span><div class="grow"><span class="strong">Plan v2</span><span class="pn-sub">Created in T3 · step 3 running in T4</span></div></div>
+            <ol class="pn-plan">
+              <li class="adv"><span class="mark done"><svg class="ic"><use href="#i-check"/></svg></span><span>Map week one access and tools</span><span class="pn-tc">done T3</span></li>
+              <li class="adv"><span class="mark done"><svg class="ic"><use href="#i-check"/></svg></span><span>Add Qlik certification checkpoint in week two</span><span class="pn-tc">done T3</span></li>
+              <li class="run"><span class="spinner"></span><span>Build the day-by-day checklist</span><span class="pn-tc live">T4</span></li>
+              <li class="todo"><span class="mark"></span><span>Check it fits one page</span><span></span></li>
+            </ol>
+            <div class="row"><span class="pin">2</span><span class="pn-sub">Highlighted: steps that advanced in T3</span></div>
+            <details class="pn-hist" open>
+              <summary><svg class="ic sm pn-chev"><use href="#i-chev"/></svg><svg class="ic sm"><use href="#i-history"/></svg><b>Plan v1</b><span>· 5 of 5 done · superseded in T3</span><span class="pin">3</span></summary>
+              <div class="pn-hist-body">
+                <ol class="pn-plan">
+                  <li><span class="mark done"><svg class="ic"><use href="#i-check"/></svg></span><span>Read the analyst handbook</span><span></span></li>
+                  <li><span class="mark done"><svg class="ic"><use href="#i-check"/></svg></span><span>Map week one access and tools</span><span></span></li>
+                  <li><span class="mark done"><svg class="ic"><use href="#i-check"/></svg></span><span>Schedule shadowing with Cedar</span><span></span></li>
+                  <li><span class="mark done"><svg class="ic"><use href="#i-check"/></svg></span><span>Draft week two practice projects</span><span></span></li>
+                  <li><span class="mark done"><svg class="ic"><use href="#i-check"/></svg></span><span>Write plans/onboarding.md</span><span></span></li>
+                </ol>
+                <div class="diff" role="group" aria-label="Changes from Plan v1 to Plan v2">
+                  <div class="hd">v1 to v2 · 1 kept, 4 removed, 3 added <span class="pin">4</span></div>
+                  <div class="keep">  Map week one access and tools</div>
+                  <div class="del">- Read the analyst handbook</div>
+                  <div class="del">- Schedule shadowing with Cedar</div>
+                  <div class="del">- Draft week two practice projects</div>
+                  <div class="del">- Write plans/onboarding.md</div>
+                  <div class="add">+ Add Qlik certification checkpoint in week two</div>
+                  <div class="add">+ Build the day-by-day checklist</div>
+                  <div class="add">+ Check it fits one page</div>
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <div class="app-panel" aria-label="Goal tab, always session">
+          <div class="panel-head"><div class="tabs pn-tabs"><span class="tab">Activity</span><span class="tab is-active"><svg class="ic sm"><use href="#i-target"/></svg>Goal</span><span class="tab">Agents</span><span class="tab">Plan</span><span class="tab">Insights</span></div></div>
+          <div class="pn-scope">
+            <div class="pn-scope-row"><span class="seg pn-seg-off"><span>This turn</span><span class="on"><svg class="ic sm"><use href="#i-lock"/></svg>Session</span></span><span class="pin">5</span><span class="pn-ctx">Goal spans all turns</span></div>
+          </div>
+          <div class="panel-body">
+            <div class="row"><span class="pill accent"><span class="pulse"></span>Active</span><span class="pn-sub">set in T1</span></div>
+            <h3>Ship a one-page onboarding plan analysts can follow on day 1</h3>
+            <div class="row"><span class="ring" style="--p:28"><span>28%</span></span><div class="grow"><span class="strong">142k of 500k tokens</span><span class="pn-sub">358k left · about 10 more turns at the current average</span></div></div>
+            <div class="pn-h">Budget by turn <span class="pin">6</span></div>
+            <div class="pn-budget" role="img" aria-label="Tokens per turn against a 500k budget: T1 58.2k, T2 9.4k, T3 48.0k selected, T4 26.6k so far"><i style="width:11.64%"></i><i style="width:1.88%"></i><i class="on" style="width:9.6%"></i><i class="live" style="width:5.32%"></i></div>
+            <ul class="pn-contrib">
+              <li><span class="pn-tc">T1</span><span>Drafted the plan, 5 steps</span><span class="pn-mono">58.2k</span></li>
+              <li><span class="pn-tc">T2</span><span>Cut to one page</span><span class="pn-mono">9.4k</span></li>
+              <li class="on"><span class="pn-tc on">T3</span><span>Certification checkpoint added</span><span class="pn-mono">48.0k</span></li>
+              <li><span class="pn-tc live">T4</span><span>Checklist file in progress</span><span class="pn-mono">26.6k</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">Plans are a history, not a slot. v1 is kept, struck through and one tap away, with what changed. Goal never slices; it shows each turn's share.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Version strip</b> <span class="tag new">New</span><span>Every plan version as a chip with the turn that created it. Shown in both scopes. In This turn, the version active during the selected turn is outlined; T2 shows v1 with "no plan change".</span><span class="src">Data: <code>plan.version</code>, <code>plan.createdTurnId</code></span></div></li>
+      <li><span class="pin">2</span><div><b>Steps advanced this turn</b> <span class="tag new">New</span><span>In This turn scope, steps whose status changed during the selected turn get a tinted row and a "done T3" chip. Other steps keep their current state but no tint. Session scope shows the same list without tints and with the turn chip on every step.</span><span class="src">Data: <code>plan.step.history[]</code> (status, <code>turnId</code>)</span></div></li>
+      <li><span class="pin">3</span><div><b>Superseded plan card</b> <span class="tag new">New</span><span>Replaces "updates replace the whole list". When a new plan arrives, the old one folds into a dashed, struck-through card: version, final progress, and the turn that superseded it. Collapsed by default; shown open here.</span><span class="src">Data: <code>plan.supersededBy</code>, <code>plan.supersededTurnId</code></span></div></li>
+      <li><span class="pin">4</span><div><b>Plan diff</b> <span class="tag new">New</span><span>Step level diff between consecutive versions: kept, removed, added, matched by step title. Tells the user why the plan got shorter without rereading both.</span><span class="src">Data: computed from <code>plan[v-1].steps</code> and <code>plan[v].steps</code></span></div></li>
+      <li><span class="pin">5</span><div><b>Goal is session only</b> <span class="tag changed">Changed</span><span>The scope control shows Session locked, with the reason. A goal spans turns, so slicing it would mislead. The selected turn still matters: it is highlighted below.</span><span class="src">Data: <code>goal.objective</code>, <code>goal.status</code>, <code>goal.setTurnId</code></span></div></li>
+      <li><span class="pin">6</span><div><b>Budget by turn</b> <span class="tag new">New</span><span>The budget bar is split into one segment per turn, widths to scale of 500k (11.6, 1.9, 9.6, 5.3 percent). The selected turn is solid, the live one striped. Rows below give each turn's contribution in one line.</span><span class="src">Data: <code>goal.budget</code>, <code>turn.usage.total</code>, <code>turn.summary</code></span></div></li>
+    </ol>
+  </div>
+
+  <!-- Board E: Agents + Insights -->
+  <div class="board">
+    <div class="pn-stack">
+      <div class="pn-duo">
+        <div class="app-panel" aria-label="Agents tab, session scope">
+          <div class="panel-head"><div class="tabs pn-tabs"><span class="tab">Activity</span><span class="tab">Goal</span><span class="tab is-active"><svg class="ic sm"><use href="#i-users"/></svg>Agents</span><span class="tab">Plan</span><span class="tab">Insights</span></div></div>
+          <div class="pn-scope"><div class="pn-scope-row"><span class="seg"><span>This turn</span><span class="on">Session</span></span><span class="pn-ctx"><b>4 helpers</b> · 5 runs</span></div></div>
+          <div class="panel-body">
+            <ul class="pn-roster">
+              <li class="tone-0"><span class="h-av">A</span><span class="who"><b>Atlas</b><span>Docs</span></span><span class="pn-mono">13.5k</span><span class="pn-turnset"><span class="pill" style="height:18px;font-size:11px">2 runs</span><span class="pn-tc">T1</span><span class="pn-tc on">T3</span><span class="pin">1</span></span></li>
+              <li class="tone-1"><span class="h-av">B</span><span class="who"><b>Birch</b><span>Access</span></span><span class="pn-mono">4.1k</span><span class="pn-turnset"><span class="pill" style="height:18px;font-size:11px">1 run</span><span class="pn-tc">T1</span><span class="pill warn" style="height:18px;font-size:11px"><svg class="ic sm"><use href="#i-lock"/></svg>Limited access</span></span></li>
+              <li class="tone-2"><span class="h-av">C</span><span class="who"><b>Cedar</b><span>Shadowing</span></span><span class="pn-mono">5.6k</span><span class="pn-turnset"><span class="pill" style="height:18px;font-size:11px">1 run</span><span class="pn-tc">T1</span></span></li>
+              <li class="tone-1"><span class="h-av">D</span><span class="who"><b>Dune</b><span>Certification</span></span><span class="pn-mono">7.8k</span><span class="pn-turnset"><span class="pill" style="height:18px;font-size:11px">1 run</span><span class="pn-tc on">T3</span></span></li>
+            </ul>
+            <div class="pn-kv"><span>Helper tokens</span><b>31.0k of 142.2k</b></div>
+          </div>
+        </div>
+
+        <div class="app-panel" aria-label="Insights tab, session scope">
+          <div class="panel-head"><div class="tabs pn-tabs"><span class="tab">Activity</span><span class="tab">Goal</span><span class="tab">Agents</span><span class="tab">Plan</span><span class="tab is-active"><svg class="ic sm"><use href="#i-chart"/></svg>Insights</span></div></div>
+          <div class="pn-scope"><div class="pn-scope-row"><span class="seg"><span>This turn</span><span class="on">Session</span></span><span class="pn-ctx"><b>4 turns</b></span></div></div>
+          <div class="panel-body">
+            <div class="stats"><div><span class="v">142.2k</span><span class="l">tokens</span></div><div><span class="v">35.6k</span><span class="l">avg per turn</span></div><div><span class="v">2m 04s</span><span class="l">p95 turn</span></div></div>
+            <div class="pn-h">Tokens per turn <span class="pin">2</span><span class="spacer"></span><em>max 58.2k</em></div>
+            <div>
+              <div class="pn-chart" role="img" aria-label="Tokens per turn: T1 58.2k, T2 9.4k, T3 48.0k, T4 26.6k so far">
+                <div class="pn-col"><b>58.2k</b><i style="height:100%"></i></div>
+                <div class="pn-col"><b>9.4k</b><i style="height:16.2%"></i></div>
+                <div class="pn-col on"><b>48.0k</b><i style="height:82.5%"></i></div>
+                <div class="pn-col live"><b>26.6k</b><i style="height:45.7%"></i></div>
+              </div>
+              <div class="pn-axis"><span>T1</span><span>T2</span><span>T3</span><span>T4 live</span></div>
+            </div>
+            <div class="pn-kv"><span>Main agent</span><b>111.2k</b><span>Helpers</span><b>31.0k</b><span>Avg turn time</span><b>1m 10s</b><span>Tool calls</span><b>23 · 1 failed</b></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <span class="ba-label now">Same two tabs, This turn · T3 <span class="pin">3</span></span>
+        <div class="pn-duo">
+          <div class="pn-mini" aria-label="Agents this turn">
+            <div class="pn-h"><svg class="ic sm"><use href="#i-users"/></svg>Agents · T3<span class="spacer"></span><em>2 helpers</em></div>
+            <div class="pn-helper tone-0" style="margin:0"><span class="h-av">A</span><span class="grow"><b>Atlas</b><span class="muted">Docs · run 2 of 2</span></span><span class="pn-mono">6.3k · 38s</span></div>
+            <div class="pn-helper tone-1" style="margin:0"><span class="h-av">D</span><span class="grow"><b>Dune</b><span class="muted">Certification · new</span></span><span class="pn-mono">7.8k · 51s</span></div>
+          </div>
+          <div class="pn-mini" aria-label="Insights this turn">
+            <div class="pn-h"><svg class="ic sm"><use href="#i-chart"/></svg>Insights · T3<span class="spacer"></span><em>trace</em></div>
+            <div class="pn-kv"><span>Tokens in / out</span><b>41.2k / 6.8k</b><span>Of session</span><b>34%</b><span>Duration</span><b>2m 04s</b><span>Tool calls</span><b>9 · 1 failed</b><span>Helpers</span><b>14.1k</b></div>
+          </div>
+        </div>
+      </div>
+      <p class="board-cap">Session is the roster and the trends. This turn is who ran and what it cost, right then.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Helper roster</b> <span class="tag changed">Changed</span><span>Session scope merges runs of the same helper into one row: run count, a chip per turn it ran in, summed tokens. Atlas shows once with "2 runs · T1, T3". Warnings like Birch's limited access stay on the row.</span><span class="src">Data: <code>helper.id</code>, <code>helper.runs[].turnId</code>, <code>helper.runs[].usage</code>, <code>helper.warnings</code></span></div></li>
+      <li><span class="pin">2</span><div><b>Tokens per turn chart</b> <span class="tag new">New</span><span>One bar per turn on a shared scale (max 58.2k). The selected turn is solid, the live one striped and growing. Tapping a bar selects that turn. Above it: total, average per turn, and p95 turn duration (nearest rank; with 4 turns it equals the slowest, T3).</span><span class="src">Data: <code>turn.usage.total</code>, <code>turn.durationMs</code></span></div></li>
+      <li><span class="pin">3</span><div><b>This turn variants</b> <span class="tag new">New</span><span>Agents lists only helpers spawned in the selected turn, with "run 2 of 2" when a helper came back. Insights shows the turn's trace numbers and its share of the session. T2 and T4 show the empty-slice row for Agents.</span><span class="src">Data: <code>helper.runs[] where turnId</code>, <code>turn.trace</code></span></div></li>
+    </ol>
+  </div>
+
+  <div class="pn-foot">
+    <h3>What each scope shows</h3>
+    <div class="tbl-wrap">
+      <table class="pn-rules">
+        <thead><tr><th>Tab</th><th>This turn (a slice)</th><th>Session (a sum or a history)</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr><td>Activity</td><td>Work log of the selected turn: thinking, tools, plan steps, helpers, file writes, errors. Stats strip for that turn.</td><td>Totals, a collapsible group per turn with mini stats, and files changed across the session with their turns.</td><td><span class="pill accent">This turn</span><br><span class="sm muted">follows live</span></td></tr>
+          <tr><td>Goal</td><td>Not sliced. The selected turn is highlighted in the budget bar and contribution list.</td><td>Objective, status, budget split by turn, goal timeline.</td><td><span class="pill">Session</span><br><span class="sm muted">locked</span></td></tr>
+          <tr><td>Agents</td><td>Helpers spawned in the turn, with run number, tokens and time.</td><td>Roster: one row per helper, run count, turn chips, summed tokens, warnings.</td><td><span class="pill accent">This turn</span></td></tr>
+          <tr><td>Plan</td><td>Plan active in the turn, steps that advanced in it, version created or superseded in it.</td><td>Current plan with turn chips per step, plus every earlier version as a superseded card with a diff.</td><td><span class="pill">Session</span></td></tr>
+          <tr><td>Insights</td><td>That turn's trace: tokens in and out, duration, tool calls, helper cost, share of session.</td><td>Sums, averages, p95 turn time, tokens per turn chart, main vs helper split.</td><td><span class="pill">Session</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

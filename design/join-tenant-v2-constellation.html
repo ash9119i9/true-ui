@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>truex Join Constellation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,6..72,400..500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: full-bleed canvas network (tenant as a constellation) with a calm left text column on top.
+   Light = blueprint chart on ice paper; dark = night sky. The empty dashed node is "you"; Join wires it in, zooms, then hands off to chat. */
+:root {
+  --bg: #F4F9FB; --bg-2: #EAF5F8; --surface: #FFFFFF;
+  --ink: #1F2A30; --ink-2: #5F6D73; --ink-3: #849198;
+  --line: #D8E6EC; --line-strong: #C5D6DE;
+  --accent: #3691CD; --accent-2: #2A7DB4; --accent-hover: #2A7DB4; --accent-fg: #2A72A3; --accent-soft: #EAF5F8; --on-accent: #FFFFFF;
+  --ok: #35624E; --ok-bg: #E7F4ED; --bad: #8D4545; --warn-bg: #FFF3D9; --warn-text: #7D5D1D;
+  /* canvas palette (read by script) */
+  --c-grid: rgb(54 145 205 / 10%); --c-edge: rgb(42 114 163 / 22%); --c-edge-hi: rgb(54 145 205 / 75%);
+  --c-member: #FFFFFF; --c-member-ring: #9DB8C6; --c-member-text: #3C4B52;
+  --c-agent: #3691CD; --c-agent-glow: rgb(54 145 205 / 22%); --c-pulse: #2A7DB4; --c-you: #2A7DB4; --c-star: rgb(42 114 163 / 0%);
+  --veil: linear-gradient(90deg, rgb(244 249 251 / 96%) 0%, rgb(244 249 251 / 84%) 38%, rgb(244 249 251 / 0%) 70%);
+  --veil-m: linear-gradient(180deg, rgb(244 249 251 / 0%) 0%, rgb(244 249 251 / 88%) 38%, rgb(244 249 251 / 98%) 100%);
+  --shadow: 0 1px 2px rgb(31 42 48 / 5%), 0 18px 40px -20px rgb(34 106 155 / 30%);
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-accent: "Newsreader", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0C1117; --bg-2: #111A23; --surface: #141C24;
+  --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F;
+  --line: #22303B; --line-strong: #2F3F4C;
+  --accent: #3691CD; --accent-2: #5AA8DC; --accent-hover: #2A7DB4; --accent-fg: #BCDEE8; --accent-soft: #14283A; --on-accent: #FFFFFF;
+  --ok: #A8D8BE; --ok-bg: #16291F; --bad: #EDB0B0; --warn-bg: #2E2512; --warn-text: #E6C27A;
+  --c-grid: rgb(188 222 232 / 0%); --c-edge: rgb(188 222 232 / 14%); --c-edge-hi: rgb(188 222 232 / 70%);
+  --c-member: #1A2530; --c-member-ring: #4A6272; --c-member-text: #B7C3C8;
+  --c-agent: #BCDEE8; --c-agent-glow: rgb(90 168 220 / 28%); --c-pulse: #BCDEE8; --c-you: #5AA8DC; --c-star: rgb(238 244 246 / 55%);
+  --veil: linear-gradient(90deg, rgb(12 17 23 / 94%) 0%, rgb(12 17 23 / 78%) 38%, rgb(12 17 23 / 0%) 70%);
+  --veil-m: linear-gradient(180deg, rgb(12 17 23 / 0%) 0%, rgb(12 17 23 / 86%) 38%, rgb(12 17 23 / 98%) 100%);
+  --shadow: 0 1px 0 rgb(255 255 255 / 4%) inset, 0 20px 50px -20px rgb(0 0 0 / 80%);
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0C1117; --bg-2: #111A23; --surface: #141C24;
+  --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F;
+  --line: #22303B; --line-strong: #2F3F4C;
+  --accent: #3691CD; --accent-2: #5AA8DC; --accent-hover: #2A7DB4; --accent-fg: #BCDEE8; --accent-soft: #14283A; --on-accent: #FFFFFF;
+  --ok: #A8D8BE; --ok-bg: #16291F; --bad: #EDB0B0; --warn-bg: #2E2512; --warn-text: #E6C27A;
+  --c-grid: rgb(188 222 232 / 0%); --c-edge: rgb(188 222 232 / 14%); --c-edge-hi: rgb(188 222 232 / 70%);
+  --c-member: #1A2530; --c-member-ring: #4A6272; --c-member-text: #B7C3C8;
+  --c-agent: #BCDEE8; --c-agent-glow: rgb(90 168 220 / 28%); --c-pulse: #BCDEE8; --c-you: #5AA8DC; --c-star: rgb(238 244 246 / 55%);
+  --veil: linear-gradient(90deg, rgb(12 17 23 / 94%) 0%, rgb(12 17 23 / 78%) 38%, rgb(12 17 23 / 0%) 70%);
+  --veil-m: linear-gradient(180deg, rgb(12 17 23 / 0%) 0%, rgb(12 17 23 / 86%) 38%, rgb(12 17 23 / 98%) 100%);
+  --shadow: 0 1px 0 rgb(255 255 255 / 4%) inset, 0 20px 50px -20px rgb(0 0 0 / 80%);
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-sans); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+button, input, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; border-radius: 4px; }
+[hidden] { display: none !important; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.mono { font-family: var(--font-mono); }
+
+#sky { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
+.veil { position: fixed; inset: 0; z-index: 1; pointer-events: none; background: var(--veil); }
+.page { position: relative; z-index: 2; min-height: 100vh; display: flex; flex-direction: column; padding: 18px 16px 22px; pointer-events: none; }
+.page > * { pointer-events: auto; }
+.top, .col, .foot { width: 100%; max-width: 1180px; margin-inline: auto; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 6px; }
+.brand-mark { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; background: var(--ink); color: var(--bg); }
+.brand-word { font-weight: 700; font-size: 17px; letter-spacing: -.03em; }
+.brand-slash { color: var(--line-strong); font-size: 16px; }
+.brand-sub { color: var(--ink-2); font-weight: 500; }
+.seg { display: inline-flex; padding: 2px; border-radius: 9px; border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 80%, transparent); backdrop-filter: blur(8px); flex-wrap: wrap; }
+.seg button { height: 26px; padding: 0 10px; border: 0; border-radius: 7px; background: none; color: var(--ink-3); font-size: 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-fg); font-weight: 600; }
+</style>
+<style>
+/* ---------- text column ---------- */
+.col { flex: 1; display: flex; flex-direction: column; justify-content: center; padding-block: 40px 24px; }
+.inner { max-width: 470px; display: grid; gap: 22px; }
+.inner > * { animation: rise .6s ease-out both; }
+.inner > *:nth-child(2) { animation-delay: .06s; }
+.inner > *:nth-child(3) { animation-delay: .12s; }
+.inner > *:nth-child(4) { animation-delay: .18s; }
+@keyframes rise { from { opacity: .001; transform: translateY(8px); } }
+
+.from { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); }
+.av { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; font-size: 11px; font-weight: 700; background: var(--accent-soft); color: var(--accent-fg); border: 1px solid var(--line-strong); flex: none; }
+.from strong { color: var(--ink); font-weight: 600; }
+.from .coord { margin-left: auto; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .12em; color: var(--ink-3); text-transform: uppercase; }
+
+h1 { margin: 0; font-size: clamp(36px, 5.4vw, 64px); line-height: .98; font-weight: 600; letter-spacing: -.045em; text-wrap: balance; }
+h1 em { display: block; font-family: var(--font-accent); font-style: italic; font-weight: 400; letter-spacing: -.02em; color: var(--accent-fg); font-size: 1.12em; margin-top: .06em; }
+.lede { margin: 0; color: var(--ink-2); font-size: 16px; max-width: 44ch; text-wrap: pretty; }
+
+/* agent legend: hovering/focusing highlights the node on the canvas */
+.legend { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
+.legend button { display: inline-flex; align-items: center; gap: 7px; padding: 4px 0; border: 0; background: none; color: var(--ink-2); cursor: default; }
+.legend button:hover, .legend button:focus-visible, .legend button.is-hi { color: var(--ink); }
+.legend svg { color: var(--accent); }
+.legend .count { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+
+/* form: hairline fields, no boxes */
+.form { display: grid; gap: 16px; padding-top: 6px; border-top: 1px solid var(--line); }
+.field { display: grid; gap: 2px; min-width: 0; }
+.field label { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--ink-3); padding-top: 12px; }
+.field label span { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .08em; }
+.input { width: 100%; height: 38px; padding: 0; border: 0; border-bottom: 1px solid var(--line-strong); background: transparent; font-size: 17px; font-weight: 500; border-radius: 0; transition: border-color .2s; }
+.input::placeholder { color: var(--ink-3); font-weight: 400; }
+.input:focus { outline: none; border-bottom-color: var(--accent); box-shadow: 0 1px 0 var(--accent); }
+.input[readonly] { color: var(--ink-2); border-bottom-style: dashed; }
+.input[aria-invalid="true"] { border-bottom-color: var(--bad); box-shadow: 0 1px 0 var(--bad); }
+.err { font-size: 12px; color: var(--bad); padding-top: 4px; }
+.role { font-size: 13px; color: var(--ink-2); }
+.role b { color: var(--ink); font-weight: 600; }
+
+.actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 20px; }
+.btn-join { position: relative; height: 48px; padding: 0 22px; border: 0; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 15px; font-weight: 600; display: inline-flex; align-items: center; gap: 10px; cursor: pointer; box-shadow: 0 8px 22px -8px rgb(54 145 205 / 70%); transition: background .15s, transform .12s; }
+.btn-join:hover:not(:disabled) { background: var(--accent-hover); }
+.btn-join:active:not(:disabled) { transform: translateY(1px); }
+.btn-join:disabled { cursor: progress; }
+.btn-join:focus-visible { border-radius: 999px; }
+.spin { width: 15px; height: 15px; border-radius: 50%; border: 2px solid rgb(255 255 255 / 35%); border-top-color: #fff; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.fine { font-size: 12.5px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.fine b { color: var(--ink-2); font-weight: 500; font-family: var(--font-mono); font-size: 12px; }
+.link { color: var(--accent-fg); background: none; border: 0; padding: 0; cursor: pointer; font-size: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 3px; }
+.link:hover { text-decoration-color: currentColor; }
+
+/* steps: an orbit trace, one line per step */
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.steps li { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 12px; align-items: center; font-size: 14px; color: var(--ink-3); transition: color .25s; }
+.steps .o { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--line-strong); justify-self: center; transition: all .25s; }
+.steps li.is-on { color: var(--ink); }
+.steps li.is-on .o { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); animation: breathe 1s ease-in-out infinite; }
+.steps li.is-done { color: var(--ink-2); }
+.steps li.is-done .o { background: var(--accent); border-color: var(--accent); box-shadow: none; animation: none; }
+@keyframes breathe { 50% { box-shadow: 0 0 0 7px var(--accent-soft); } }
+
+.banner { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; padding: 12px 14px; border-radius: 10px; font-size: 13px; }
+.banner.warn { background: var(--warn-bg); color: var(--warn-text); }
+.banner.ok { background: var(--ok-bg); color: var(--ok); }
+.banner b { font-weight: 600; }
+
+/* node caption placed over the canvas next to "you" */
+.you-tag { position: fixed; z-index: 2; pointer-events: none; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent-fg); white-space: nowrap; transform: translate(18px, -50%); transition: opacity .3s; }
+.you-tag b { display: block; font-family: var(--font-sans); font-size: 13px; letter-spacing: 0; text-transform: none; color: var(--ink); font-weight: 600; }
+
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--ink-3); }
+.foot .mono { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; }
+
+@media (max-width: 820px) {
+  .veil { background: var(--veil-m); }
+  .col { justify-content: flex-end; padding-top: 34vh; }
+  .inner { max-width: none; }
+  .from .coord { display: none; }
+}
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<div class="veil" aria-hidden="true"></div>
+<div class="you-tag" id="youTag" aria-hidden="true">Open seat<b id="youTagName">You</b></div>
+
+<div class="page" id="page">
+  <header class="top">
+    <div class="brand" aria-label="truex agents">
+      <span class="brand-mark"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg></span>
+      <span class="brand-word">truex</span><span class="brand-slash">/</span><span class="brand-sub">agents</span>
+    </div>
+    <div class="seg" role="group" aria-label="Theme" id="themeSeg">
+      <button type="button" data-t="system" aria-pressed="true">System</button>
+      <button type="button" data-t="light" aria-pressed="false">Light</button>
+      <button type="button" data-t="dark" aria-pressed="false">Dark</button>
+    </div>
+  </header>
+
+  <main class="col">
+    <div class="inner">
+      <div class="from">
+        <span class="av">MC</span>
+        <span><strong>Maya Chen</strong> invited you</span>
+        <span class="coord">12 members · 4 agents</span>
+      </div>
+
+      <div style="display:grid;gap:14px">
+        <h1 id="join-h">Take your seat at <em>Northwind Labs</em></h1>
+        <p class="lede">Your team already has agents researching, reviewing code and drafting reports here. Join to pick up the conversation where they are.</p>
+      </div>
+
+      <ul class="legend" id="legend" aria-label="Agents in Northwind Labs">
+        <li><button type="button" data-agent="0"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>Research <span class="count">5</span></button></li>
+        <li><button type="button" data-agent="1"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>Code Review <span class="count">4</span></button></li>
+        <li><button type="button" data-agent="2"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>Analyst <span class="count">4</span></button></li>
+        <li><button type="button" data-agent="3"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>Writer <span class="count">3</span></button></li>
+      </ul>
+
+      <form class="form" id="joinForm" novalidate aria-labelledby="join-h">
+        <div id="banner" hidden></div>
+        <div id="formFields" style="display:grid;gap:12px">
+          <div class="field">
+            <label for="email">Work email <span>FROM INVITE</span></label>
+            <input class="input" id="email" type="email" value="you@northwind.dev" readonly>
+          </div>
+          <div class="field">
+            <label for="name">Your name <span>SHOWN TO TEAMMATES</span></label>
+            <input class="input" id="name" type="text" value="Alex Rivera" placeholder="e.g. Alex Rivera" autocomplete="name" aria-describedby="nameErr">
+            <div class="err" id="nameErr" hidden>Add your name so teammates know who joined.</div>
+          </div>
+          <div class="role"><b>Member</b> · can chat with 4 agents and 3 shared projects</div>
+        </div>
+
+        <ol class="steps" id="steps" hidden aria-live="polite">
+          <li><span class="o"></span>Verifying your invite</li>
+          <li><span class="o"></span>Setting up your seat in Northwind Labs</li>
+          <li><span class="o"></span>Opening your first conversation</li>
+        </ol>
+
+        <div class="actions">
+          <button class="btn-join" id="joinBtn" type="submit"><span id="joinLabel">Join Northwind Labs</span><span id="joinIcon"></span></button>
+        </div>
+        <div class="fine">
+          <span>Invite expires in <b id="expTxt">6 days</b></span>
+          <span>Not you? <button type="button" class="link" id="notYou">Use a different account</button></span>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <span class="mono">Review state</span>
+      <div class="seg" id="stateSeg" role="group" aria-label="Preview state">
+        <button type="button" data-s="valid" aria-pressed="true">Valid invite</button>
+        <button type="button" data-s="expired" aria-pressed="false">Expired</button>
+        <button type="button" data-s="member" aria-pressed="false">Already a member</button>
+      </div>
+    </div>
+    <span class="mono">Q4 pricing study · Mobile v3 launch · Vendor audit</span>
+  </footer>
+</div>
+<style>
+/* ---------- arrival: chat handoff ---------- */
+.arrive { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); opacity: 0; visibility: hidden; transition: opacity .6s ease, visibility 0s .6s; overflow-y: auto; }
+.arrive.is-on { opacity: 1; visibility: visible; transition: opacity .6s ease; }
+.arrive-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: calc(14px + env(safe-area-inset-top, 0px)) 20px 14px; border-bottom: 1px solid var(--line); }
+.tenant { display: flex; align-items: center; gap: 8px; }
+.tenant-logo { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; background: var(--ink); color: var(--bg); font-weight: 800; font-size: 13px; letter-spacing: -.05em; }
+.hero { flex: 1; width: 100%; max-width: 760px; margin: 0 auto; padding: 32px 16px 48px; display: flex; flex-direction: column; justify-content: center; }
+.arrive.is-on .hero > * { animation: rise .55s ease-out both; }
+.arrive.is-on .hero > *:nth-child(2) { animation-delay: .1s; }
+.arrive.is-on .hero > *:nth-child(3) { animation-delay: .18s; }
+.arrive.is-on .hero > *:nth-child(4) { animation-delay: .26s; }
+.joined { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ok); font-weight: 500; }
+.joined i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px var(--ok-bg); }
+.hero h2 { margin: 18px 0 0; font-size: clamp(30px, 4.4vw, 48px); line-height: 1.05; font-weight: 600; letter-spacing: -.04em; text-wrap: balance; }
+.hero h2 em { font-family: var(--font-accent); font-style: italic; font-weight: 400; letter-spacing: -.015em; color: var(--accent-fg); }
+.composer { margin-top: 28px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 12px 10px 8px 12px; transition: border-color .15s, box-shadow .15s; }
+.composer:focus-within { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); box-shadow: var(--shadow), 0 0 0 4px color-mix(in srgb, var(--accent) 12%, transparent); }
+.composer textarea { width: 100%; resize: none; border: 0; outline: none; background: transparent; font-size: 15px; padding: 4px 4px 12px; min-height: 76px; line-height: 1.5; }
+.composer textarea::placeholder { color: var(--ink-3); }
+.composer-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--line); font-size: 12.5px; color: var(--ink-2); }
+.pill svg { color: var(--accent); }
+.send { margin-left: auto; width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; cursor: pointer; }
+.send:hover { background: var(--accent-hover); }
+.starters { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; }
+.starter { height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--ink-2); font-size: 13px; cursor: pointer; transition: background .15s, color .15s; }
+.starter:hover { background: var(--surface); color: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+</style>
+
+<section class="arrive" id="arrive" aria-hidden="true" aria-labelledby="hello-h">
+  <div class="arrive-top">
+    <div class="tenant"><span class="tenant-logo">N</span><span class="brand-word" style="font-size:15px">Northwind Labs</span><span class="brand-slash">/</span><span class="brand-sub">New conversation</span></div>
+    <button type="button" class="link" id="backBtn">Back to invite</button>
+  </div>
+  <div class="hero">
+    <span class="joined"><i></i>You joined Northwind Labs · 13 members</span>
+    <h2 id="hello-h">Welcome, <span id="helloName">Alex</span>. What should we <em>work on</em> today?</h2>
+    <div class="composer">
+      <label for="prompt" class="sr">Message</label>
+      <textarea id="prompt" placeholder="Ask an agent, or type @ to pick one"></textarea>
+      <div class="composer-bar">
+        <span class="pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>Research</span>
+        <span class="pill">Q4 pricing study</span>
+        <button class="send" type="button" aria-label="Send"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+      </div>
+    </div>
+    <div class="starters">
+      <button class="starter" type="button">Catch me up on the pricing study</button>
+      <button class="starter" type="button">What are the agents working on?</button>
+      <button class="starter" type="button">Review my first pull request</button>
+    </div>
+  </div>
+</section>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const root = document.documentElement;
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- theme ---------- */
+  function applyTheme(t) {
+    if (t === "light" || t === "dark") root.setAttribute("data-theme", t); else root.removeAttribute("data-theme");
+    document.querySelectorAll("#themeSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.t === t)));
+    readColors(); if (reduce) draw(0);
+  }
+  $("themeSeg").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    applyTheme(b.dataset.t);
+    try { localStorage.setItem("truex-join-theme", b.dataset.t); } catch (e) {}
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { readColors(); if (reduce) draw(0); });
+
+  /* ---------- canvas colors from CSS tokens ---------- */
+  const C = {};
+  function readColors() {
+    const cs = getComputedStyle(root);
+    ["grid", "edge", "edge-hi", "member", "member-ring", "member-text", "agent", "agent-glow", "pulse", "you", "star"]
+      .forEach(k => C[k] = cs.getPropertyValue("--c-" + k).trim());
+    C.ink = cs.getPropertyValue("--ink").trim();
+    C.bg = cs.getPropertyValue("--bg").trim();
+  }
+
+  /* ---------- the network (unit space, roughly -1..1) ---------- */
+  const agents = [
+    { name: "Research",    p: [-0.38, -0.28] },
+    { name: "Code Review", p: [ 0.48, -0.42] },
+    { name: "Analyst",     p: [ 0.52,  0.34] },
+    { name: "Writer",      p: [-0.34,  0.48] }
+  ];
+  // links per agent match the legend counts: Research 5, Code Review 4, Analyst 4, Writer 3
+  const members = [
+    { i: "MC", p: [ 0.04, -0.72], a: [0, 2] }, { i: "JO", p: [ 0.08, -0.42], a: [0, 1] },
+    { i: "PS", p: [ 0.84, -0.08], a: [1] },    { i: "LK", p: [ 0.88,  0.62], a: [2] },
+    { i: "DH", p: [-0.72,  0.72], a: [3] },    { i: "RB", p: [-0.66,  0.10], a: [0, 3] },
+    { i: "EN", p: [ 0.78, -0.78], a: [1] },    { i: "TS", p: [ 0.24,  0.66], a: [2] },
+    { i: "GV", p: [-0.74, -0.56], a: [0] },    { i: "YM", p: [-0.02,  0.88], a: [3, 1] },
+    { i: "FA", p: [-0.28, -0.80], a: [0] },    { i: "KW", p: [ 0.98,  0.18], a: [2] }
+  ];
+  const you = { p: [0.1, 0.06], fill: 0, label: "You" };
+  const edges = [];
+  members.forEach((m, mi) => m.a.forEach(ai => edges.push({ from: "m" + mi, to: "a" + ai, agent: ai, draw: 1 })));
+  const youEdges = agents.map((_, ai) => ({ from: "you", to: "a" + ai, agent: ai, draw: 0, you: true }));
+  members.forEach((m, mi) => { m.ph = mi * 1.7; });
+  agents.forEach((a, ai) => { a.ph = ai * 2.3 + .5; });
+
+  /* ---------- canvas setup ---------- */
+  const cv = $("sky"), ctx = cv.getContext("2d");
+  let W = 0, H = 0, dpr = 1, stars = [];
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = innerWidth; H = innerHeight;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    let s = 7;
+    const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+    stars = Array.from({ length: 140 }, () => ({ x: rnd() * W, y: rnd() * H, r: rnd() * 1.1 + .2, tw: rnd() * 6 }));
+    if (reduce) draw(0);
+  }
+  addEventListener("resize", resize);
+
+  // camera: center + scale; zoom animates toward "you" after joining
+  const cam = { k: 1, tx: 0, ty: 0 };
+  function frame() {
+    const mobile = W < 820;
+    return mobile
+      ? { cx: W * .5, cy: Math.max(150, H * .2), s: Math.min(W * .42, H * .16) }
+      : { cx: W * .7, cy: H * .52, s: Math.min(W * .26, H * .4) };
+  }
+  function pos(id, t) {
+    const f = frame();
+    let p, ph;
+    if (id === "you") { p = you.p; ph = 0; }
+    else if (id[0] === "a") { const a = agents[+id.slice(1)]; p = a.p; ph = a.ph; }
+    else { const m = members[+id.slice(1)]; p = m.p; ph = m.ph; }
+    const dx = reduce ? 0 : Math.sin(t / 2400 + ph) * .025, dy = reduce ? 0 : Math.cos(t / 2900 + ph) * .025;
+    const ux = (p[0] + dx - cam.tx), uy = (p[1] + dy - cam.ty);
+    return [f.cx + ux * f.s * cam.k, f.cy + uy * f.s * cam.k];
+  }
+
+  function spark(x, y, r) {
+    const q = r * 1.9 / 7;
+    ctx.beginPath();
+    ctx.moveTo(x, y - r); ctx.lineTo(x + q, y - q); ctx.lineTo(x + r, y); ctx.lineTo(x + q, y + q);
+    ctx.lineTo(x, y + r); ctx.lineTo(x - q, y + q); ctx.lineTo(x - r, y); ctx.lineTo(x - q, y - q);
+    ctx.closePath();
+  }
+
+  let hi = -1;                // highlighted agent index
+  const pulses = [];
+  let lastPulse = 0;
+
+  function draw(t) {
+    ctx.clearRect(0, 0, W, H);
+    const f = frame();
+
+    // blueprint grid (light) and stars (dark); each is transparent in the other theme
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = (f.cx % 40); x < W; x += 40) { ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, H); }
+    for (let y = (f.cy % 40); y < H; y += 40) { ctx.moveTo(0, y + .5); ctx.lineTo(W, y + .5); }
+    ctx.stroke();
+    ctx.setLineDash([2, 6]);
+    [0.55, 1.0, 1.45].forEach(rr => { ctx.beginPath(); ctx.arc(f.cx - cam.tx * f.s * cam.k, f.cy - cam.ty * f.s * cam.k, rr * f.s * cam.k, 0, Math.PI * 2); ctx.stroke(); });
+    ctx.setLineDash([]);
+    ctx.fillStyle = C.star;
+    stars.forEach(s => { ctx.globalAlpha = reduce ? .7 : .45 + .45 * Math.sin(t / 900 + s.tw); ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill(); });
+    ctx.globalAlpha = 1;
+
+    // edges
+    const all = edges.concat(youEdges);
+    all.forEach(e => {
+      if (e.draw <= 0) return;
+      const [x1, y1] = pos(e.from, t), [x2, y2] = pos(e.to, t);
+      const on = hi === e.agent || (e.you && you.fill > .5);
+      ctx.strokeStyle = on ? C["edge-hi"] : C.edge;
+      ctx.lineWidth = on ? 1.4 : 1;
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 + (x2 - x1) * e.draw, y1 + (y2 - y1) * e.draw); ctx.stroke();
+    });
+
+    // pulses: small messages travelling along edges
+    if (!reduce && t - lastPulse > 650) {
+      lastPulse = t;
+      const pool = all.filter(e => e.draw >= 1);
+      const e = pool[Math.floor(Math.random() * pool.length)];
+      if (e) pulses.push({ e, t0: t, rev: Math.random() < .5 });
+    }
+    for (let i = pulses.length - 1; i >= 0; i--) {
+      const p = pulses[i], k = (t - p.t0) / 1500;
+      if (k >= 1) { pulses.splice(i, 1); continue; }
+      const a = pos(p.rev ? p.e.to : p.e.from, t), b = pos(p.rev ? p.e.from : p.e.to, t);
+      const x = a[0] + (b[0] - a[0]) * k, y = a[1] + (b[1] - a[1]) * k;
+      ctx.fillStyle = C.pulse; ctx.globalAlpha = Math.sin(k * Math.PI);
+      ctx.beginPath(); ctx.arc(x, y, 2.2, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // members
+    ctx.font = "600 10px Figtree, system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    members.forEach((m, mi) => {
+      const [x, y] = pos("m" + mi, t);
+      const dim = hi >= 0 && !m.a.includes(hi);
+      ctx.globalAlpha = dim ? .35 : 1;
+      ctx.fillStyle = C.member; ctx.strokeStyle = C["member-ring"]; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(x, y, 13, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = C["member-text"]; ctx.fillText(m.i, x, y + .5);
+    });
+    ctx.globalAlpha = 1;
+
+    // agents: glowing sparks with labels
+    agents.forEach((a, ai) => {
+      const [x, y] = pos("a" + ai, t);
+      const on = hi === ai, br = reduce ? 0 : Math.sin(t / 1100 + a.ph) * 2;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, (on ? 46 : 34) + br);
+      g.addColorStop(0, C["agent-glow"]); g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, (on ? 46 : 34) + br, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = C.agent; spark(x, y, on ? 13 : 11); ctx.fill();
+      ctx.font = "500 11px 'JetBrains Mono', ui-monospace, monospace";
+      ctx.fillStyle = C.ink; ctx.globalAlpha = on ? 1 : .7;
+      ctx.fillText(a.name.toUpperCase(), x, y + 26);
+      ctx.globalAlpha = 1;
+    });
+
+    // you: dashed empty ring that fills on join
+    const [yx, yy] = pos("you", t);
+    const spin = reduce ? 0 : t / 60;
+    ctx.strokeStyle = C.you; ctx.lineWidth = 1.6;
+    ctx.setLineDash([4, 4]); ctx.lineDashOffset = -spin;
+    ctx.beginPath(); ctx.arc(yx, yy, 16, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    if (you.fill > 0) {
+      ctx.fillStyle = C.you; ctx.globalAlpha = you.fill;
+      ctx.beginPath(); ctx.arc(yx, yy, 16 * (.6 + .4 * you.fill), 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#FFFFFF"; ctx.font = "700 11px Figtree, system-ui, sans-serif";
+      ctx.fillText(you.label, yx, yy + .5);
+    }
+    const tag = $("youTag");
+    tag.style.left = yx + "px"; tag.style.top = yy + "px";
+  }
+
+  function loop(t) { draw(t); requestAnimationFrame(loop); }
+
+  /* ---------- legend highlight ---------- */
+  const legend = $("legend");
+  const setHi = (i) => { hi = i; legend.querySelectorAll("button").forEach(b => b.classList.toggle("is-hi", +b.dataset.agent === i)); if (reduce) draw(0); };
+  legend.addEventListener("pointerover", (e) => { const b = e.target.closest("button"); if (b) setHi(+b.dataset.agent); });
+  legend.addEventListener("pointerleave", () => setHi(-1));
+  legend.addEventListener("focusin", (e) => { const b = e.target.closest("button"); if (b) setHi(+b.dataset.agent); });
+  legend.addEventListener("focusout", () => setHi(-1));
+
+  /* ---------- tween helper ---------- */
+  function tween(ms, fn) {
+    return new Promise(res => {
+      if (reduce) { fn(1); draw(0); return res(); }
+      const t0 = performance.now();
+      const step = (now) => { const k = Math.min(1, (now - t0) / ms); fn(1 - Math.pow(1 - k, 3)); k < 1 ? requestAnimationFrame(step) : res(); };
+      requestAnimationFrame(step);
+    });
+  }
+  const sleep = (ms) => new Promise(r => setTimeout(r, reduce ? 0 : ms));
+
+  /* ---------- join flow ---------- */
+  const form = $("joinForm"), btn = $("joinBtn"), label = $("joinLabel"), icon = $("joinIcon");
+  const nameEl = $("name"), nameErr = $("nameErr"), steps = $("steps"), fields = $("formFields"), banner = $("banner");
+  const arrive = $("arrive"), page = $("page"), tagName = $("youTagName"), tag = $("youTag");
+  const ARROW = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+  const CHECK = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12l5 5 9-10"/></svg>';
+  const WARN = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>';
+  const initials = (n) => n.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase() || "YOU";
+  const bannerHTML = (kind, ico, html) => '<div class="banner ' + kind + '">' + ico + '<div>' + html + '</div></div>';
+  let state = "valid", busy = false;
+
+  nameEl.addEventListener("input", () => { nameEl.removeAttribute("aria-invalid"); nameErr.hidden = true; });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    if (state === "expired") { banner.innerHTML = bannerHTML("ok", CHECK, "<b>Request sent.</b> We let Maya Chen know you need a new invite. It will arrive at you@northwind.dev."); return; }
+    if (state === "member") return openChat();
+    const name = nameEl.value.trim();
+    if (!name) { nameEl.setAttribute("aria-invalid", "true"); nameErr.hidden = false; nameEl.focus(); return; }
+
+    busy = true; btn.disabled = true; label.textContent = "Joining"; icon.innerHTML = '<span class="spin"></span>';
+    fields.hidden = true; steps.hidden = false;
+    const items = [...steps.children];
+
+    items[0].classList.add("is-on"); await sleep(750); items[0].classList.replace("is-on", "is-done");
+
+    items[1].classList.add("is-on");
+    you.label = initials(name); tagName.textContent = name; tag.firstChild.textContent = "Joined just now";
+    await tween(500, k => { you.fill = k; });
+    for (const e2 of youEdges) { await tween(260, k => { e2.draw = k; }); }
+    items[1].classList.replace("is-on", "is-done");
+
+    items[2].classList.add("is-on");
+    await tween(1100, k => { cam.k = 1 + .45 * k; cam.tx = you.p[0] * k; cam.ty = you.p[1] * k; });
+    items[2].classList.replace("is-on", "is-done");
+    label.textContent = "You're in"; icon.innerHTML = CHECK;
+    await sleep(350);
+    openChat();
+  });
+
+  function openChat() {
+    $("helloName").textContent = nameEl.value.trim().split(/\s+/)[0] || "there";
+    arrive.classList.add("is-on"); arrive.setAttribute("aria-hidden", "false");
+    page.setAttribute("inert", "");
+    setTimeout(() => $("prompt").focus({ preventScroll: true }), reduce ? 0 : 500);
+  }
+  $("backBtn").addEventListener("click", () => {
+    arrive.classList.remove("is-on"); arrive.setAttribute("aria-hidden", "true");
+    page.removeAttribute("inert"); setState(state);
+  });
+  $("notYou").addEventListener("click", () => {
+    banner.hidden = false;
+    banner.innerHTML = bannerHTML("warn", WARN, "This invite is for <b>you@northwind.dev</b>. Sign in with that address, or ask Maya Chen to invite a different one.");
+  });
+
+  function setState(s) {
+    state = s; busy = false; btn.disabled = false; icon.innerHTML = ARROW;
+    document.querySelectorAll("#stateSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.s === s)));
+    steps.hidden = true; [...steps.children].forEach(li => li.className = "");
+    cam.k = 1; cam.tx = 0; cam.ty = 0;
+    you.fill = 0; you.label = "You"; youEdges.forEach(e => e.draw = 0);
+    tag.firstChild.textContent = "Open seat"; tagName.textContent = "You";
+    $("expTxt").textContent = "6 days";
+    banner.hidden = s === "valid"; banner.innerHTML = "";
+    fields.hidden = s !== "valid";
+    if (s === "valid") label.textContent = "Join Northwind Labs";
+    if (s === "expired") {
+      banner.innerHTML = bannerHTML("warn", WARN, "<b>This invite expired on Sep 23.</b> Invites last 7 days. Ask Maya Chen for a new one and we'll email it to you.");
+      $("expTxt").textContent = "expired";
+      tag.firstChild.textContent = "Seat released";
+      label.textContent = "Request a new invite";
+    }
+    if (s === "member") {
+      banner.innerHTML = bannerHTML("ok", CHECK, "<b>You're already in Northwind Labs.</b> Signed in as you@northwind.dev.");
+      you.fill = 1; you.label = "AR"; youEdges.forEach(e => e.draw = 1);
+      tag.firstChild.textContent = "Member since Aug"; tagName.textContent = "Alex Rivera";
+      label.textContent = "Open Northwind Labs";
+    }
+    if (reduce) draw(0);
+  }
+  $("stateSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) setState(b.dataset.s); });
+
+  /* ---------- boot ---------- */
+  let saved = "system";
+  try { saved = localStorage.getItem("truex-join-theme") || "system"; } catch (e) {}
+  readColors(); resize(); applyTheme(saved);
+  icon.innerHTML = ARROW;
+  if (reduce) draw(0); else requestAnimationFrame(loop);
+  document.fonts && document.fonts.ready.then(() => { if (reduce) draw(0); });
+})();
+</script>
+</body>
+</html>
