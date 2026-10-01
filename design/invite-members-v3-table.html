@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>truex Invite Table</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@1,6..72,400..500&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  /* Concept "The Table": the tenant is a round table seen from above. Members sit around the rim,
+     each invite sets a place card and pulls up a chair. Admin-side twin of join-tenant-v3 ("Take your seat at").
+     Tokens copied from invite-members-v2-realistic.html (Blue Brand System). */
+  :root {
+    --bg: #FFFFFF; --surface: #FFFFFF; --surface-2: #FFFFFF; --surface-3: #F6F9FA;
+    --line: #E3ECEF; --line-strong: #D8E0E4; --border-control: #D8E0E4;
+    --ink: #1F2A30; --ink-2: #5F6D73; --ink-3: #849198; --ink-disabled: #B4BEC3;
+    --accent: #3691CD; --accent-2: #2A7DB4; --accent-hover: #2A7DB4; --accent-pressed: #226A9B;
+    --accent-soft: #EAF5F8; --accent-soft-2: #BCDEE8; --accent-fg: #2A72A3; --on-accent: #FFFFFF;
+    --success-bg: #E7F4ED; --success-text: #35624E;
+    --warning-bg: #FFF3D9; --warning-text: #7D5D1D;
+    --error-bg: #FBE7E7; --error-text: #8D4545;
+    --info-bg: #EAF5F8; --info-text: #2A72A3;
+    --ice: #BCDEE8; --mint: #A9D5BE; --butter: #EBCB8B; --lilac: #C4BDE3; --peach: #F0B999;
+    --on-tint: #1F2A30;
+    --paper: #FFFDF8; --sleeve: rgb(255 255 255 / 55%);
+    --shadow-sm: 0 1px 2px rgb(31 42 48 / 5%);
+    --shadow-md: 0 1px 2px rgb(31 42 48 / 4%), 0 8px 24px -8px rgb(31 42 48 / 10%);
+    --shadow-lg: 0 2px 4px rgb(31 42 48 / 4%), 0 10px 35px rgb(31 42 48 / 8%);
+    --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+    --font-accent: "Newsreader", ui-serif, Georgia, serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    --font-hand: "Caveat", "Comic Sans MS", cursive;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #171717; --surface: #171717; --surface-2: #171717; --surface-3: #242424;
+      --line: #2A2A2A; --line-strong: #363636; --border-control: #404040;
+      --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F; --ink-disabled: #4E5C62;
+      --accent-2: #5AA8DC; --accent-soft: #14283A; --accent-soft-2: #1F4461; --accent-fg: #BCDEE8;
+      --success-bg: #16291F; --success-text: #A8D8BE; --warning-bg: #2E2512; --warning-text: #E6C27A;
+      --error-bg: #2F1A1A; --error-text: #EDB0B0; --info-bg: #14283A; --info-text: #BCDEE8;
+      --paper: #1E1E1C; --sleeve: rgb(255 255 255 / 7%);
+      --shadow-md: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -8px rgb(0 0 0 / 50%);
+      --shadow-lg: 0 2px 4px rgb(0 0 0 / 30%), 0 24px 48px -16px rgb(0 0 0 / 70%);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #171717; --surface: #171717; --surface-2: #171717; --surface-3: #242424;
+    --line: #2A2A2A; --line-strong: #363636; --border-control: #404040;
+    --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F; --ink-disabled: #4E5C62;
+    --accent-2: #5AA8DC; --accent-soft: #14283A; --accent-soft-2: #1F4461; --accent-fg: #BCDEE8;
+    --success-bg: #16291F; --success-text: #A8D8BE; --warning-bg: #2E2512; --warning-text: #E6C27A;
+    --error-bg: #2F1A1A; --error-text: #EDB0B0; --info-bg: #14283A; --info-text: #BCDEE8;
+    --paper: #1E1E1C; --sleeve: rgb(255 255 255 / 7%);
+    --shadow-md: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -8px rgb(0 0 0 / 50%);
+    --shadow-lg: 0 2px 4px rgb(0 0 0 / 30%), 0 24px 48px -16px rgb(0 0 0 / 70%);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { min-height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--font-sans); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  button, input, textarea, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; border-radius: 8px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; animation-iteration-count: 1 !important; }
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+  @keyframes setdown { 0% { opacity: 0; transform: translateY(-10px) rotate(var(--tilt, 0deg)) scale(1.04); } 100% { opacity: 1; transform: rotate(var(--tilt, 0deg)); } }
+  @keyframes pull { from { opacity: 0; scale: .4; } }
+  @keyframes breathe { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 18%, transparent); } }
+
+  .muted { color: var(--ink-3); }
+  .mono { font-family: var(--font-mono); }
+  .sm { font-size: 12px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .eyebrow { font: 500 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 8px; }
+  .grow { flex: 1; }
+
+  /* App chrome */
+  .app { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100vh; }
+  .side { border-right: 1px solid var(--line); background: var(--surface-3); padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .brand { display: flex; align-items: center; gap: 8px; padding: 4px 8px 14px; }
+  .brand-mark { width: 24px; height: 24px; border-radius: 7px; background: var(--ink); color: var(--bg); display: grid; place-items: center; font: 700 13px var(--font-sans); }
+  .brand-word { font-size: 17px; font-weight: 700; letter-spacing: -.03em; }
+  .tenant-pill { display: flex; align-items: center; gap: 8px; padding: 8px; margin-bottom: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+  .tenant-pill .mark { width: 26px; height: 26px; border-radius: 8px; background: var(--ice); color: var(--on-tint); display: grid; place-items: center; font-weight: 700; font-size: 12px; }
+  .tenant-pill b { font-weight: 600; font-size: 13px; display: block; line-height: 1.2; }
+  .nav-h { font: 500 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); padding: 12px 8px 4px; margin: 0; }
+  .nav a { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 9px; color: var(--ink-2); text-decoration: none; font-weight: 500; }
+  .nav a:hover { background: var(--surface); color: var(--ink); }
+  .nav a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+  .nav a[aria-current="page"]::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  .nav .sub { padding-left: 20px; font-size: 13px; }
+  .main { min-width: 0; }
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 12px 24px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .crumb { color: var(--ink-3); font-size: 13px; min-width: 0; }
+  .crumb b { color: var(--ink); font-weight: 500; }
+  .topbar .brand { display: none; padding: 0; }
+  .icon-btn { width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink-2); }
+  .icon-btn:hover { color: var(--ink); background: var(--surface-3); }
+  .me { width: 30px; height: 30px; border-radius: 50%; background: var(--lilac); color: var(--on-tint); display: grid; place-items: center; font-size: 12px; font-weight: 600; }
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    .side { display: none; }
+    .topbar { padding: 12px 16px; }
+    .topbar .brand { display: flex; }
+  }
+
+  .page { max-width: 1120px; margin: 0 auto; padding: 24px 24px 72px; display: flex; flex-direction: column; gap: 20px; }
+  @media (max-width: 600px) { .page { padding: 20px 16px 64px; } }
+  .head { display: flex; flex-wrap: wrap; align-items: end; gap: 12px 20px; }
+  .title { margin: 0; font-size: 32px; line-height: 1.08; font-weight: 600; letter-spacing: -.035em; text-wrap: balance; }
+  .title em { font-family: var(--font-accent); font-style: italic; font-weight: 400; font-size: 1.04em; letter-spacing: -.01em; color: var(--accent-fg); }
+  @media (max-width: 420px) { .title { font-size: 27px; } }
+  .lede { margin: 8px 0 0; color: var(--ink-2); max-width: 62ch; }
+
+  .btn { height: 38px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--border-control); background: var(--surface); color: var(--ink); font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
+  .btn:hover { background: var(--surface-3); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .btn.primary:hover { background: var(--accent-hover); }
+  .btn.primary:active { background: var(--accent-pressed); }
+  .btn[disabled], .btn[aria-disabled="true"] { background: var(--surface-3); border-color: var(--line); color: var(--ink-disabled); cursor: not-allowed; }
+  .btn.sm { height: 30px; padding: 0 10px; font-size: 12.5px; border-radius: 8px; }
+  .btn.ghost { border-color: transparent; background: none; color: var(--ink-2); }
+  .btn.ghost:hover { background: var(--surface-3); color: var(--ink); }
+  .btn.danger { color: var(--error-text); }
+  .btn.danger.is-armed { background: var(--error-bg); border-color: color-mix(in srgb, var(--error-text) 35%, transparent); }
+
+  /* Layout */
+  .room { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); gap: 20px; align-items: start; }
+  @media (max-width: 980px) { .room { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow-md); padding: 20px; min-width: 0; animation: rise .18s ease-out; }
+  @media (max-width: 420px) { .card { padding: 16px; border-radius: 16px; } }
+  .card h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+
+  /* The table */
+  .tablewrap { position: sticky; top: 16px; }
+  @media (max-width: 980px) { .tablewrap { position: static; } }
+  .floor { border-radius: 20px; border: 1px solid var(--line); padding: 18px 12px 14px;
+    background:
+      radial-gradient(circle at 50% 46%, color-mix(in srgb, var(--accent-soft) 90%, transparent) 0 38%, transparent 62%),
+      repeating-linear-gradient(90deg, transparent 0 23px, color-mix(in srgb, var(--line) 55%, transparent) 23px 24px),
+      var(--surface-3); }
+  .table { container-type: inline-size; position: relative; width: min(100%, 420px); aspect-ratio: 1; margin: 0 auto; }
+  .top-of-table { position: absolute; inset: 17%; border-radius: 50%;
+    background: radial-gradient(circle at 38% 32%, var(--surface) 0 40%, color-mix(in srgb, var(--accent-soft) 70%, var(--surface)) 100%);
+    border: 1px solid var(--line-strong);
+    box-shadow: inset 0 0 0 8px color-mix(in srgb, var(--accent-soft-2) 35%, transparent), var(--shadow-lg);
+    display: grid; place-items: center; text-align: center; padding: 12%; }
+  .center-n { font: 400 clamp(34px, 15cqi, 64px)/1 var(--font-accent); font-style: italic; color: var(--accent-fg); letter-spacing: -.02em; }
+  .center-l { font-size: clamp(11px, 3.2cqi, 13px); color: var(--ink-2); margin-top: 2px; }
+  .center-t { font: 500 clamp(9px, 2.6cqi, 11px) var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin-top: 8px; }
+  .center-btn { margin-top: 10px; border: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent); background: var(--surface); color: var(--accent-fg); border-radius: 999px; padding: 4px 12px; font-size: clamp(11px, 3cqi, 12.5px); font-weight: 500; }
+  .center-btn:hover { background: var(--accent-soft); }
+  .table.is-full .center-n { color: var(--warning-text); }
+
+  .seat { --size: min(44px, 11.5cqi); position: absolute; left: 50%; top: 50%; width: var(--size); height: var(--size); margin: calc(var(--size) / -2) 0 0 calc(var(--size) / -2);
+    transform: rotate(calc(360deg / var(--n) * var(--i))) translateY(-41.5cqi) rotate(calc(-360deg / var(--n) * var(--i)));
+    border-radius: 50%; display: grid; place-items: center; font-weight: 600; font-size: calc(var(--size) * .34); transition: transform .35s ease; }
+  .table.is-crowded .seat { --size: min(34px, 8.6cqi); }
+  .seat.member { background: var(--tint, var(--ice)); color: var(--on-tint); box-shadow: 0 0 0 3px var(--surface), var(--shadow-sm); }
+  .seat.member.admin::after { content: ""; position: absolute; right: -1px; top: -1px; width: 28%; height: 28%; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--surface); }
+  .seat.pending { background: var(--surface); color: var(--ink-2); border: 1.5px dashed var(--accent); }
+  .seat.expired { background: var(--surface); color: var(--ink-3); border: 1.5px dashed var(--warning-text); opacity: .8; }
+  .seat.draft { background: var(--accent-soft); color: var(--accent-fg); border: 1.5px solid var(--accent); animation: pull .3s ease-out, breathe 2.4s ease-in-out .3s infinite; }
+  .seat.empty { background: color-mix(in srgb, var(--surface) 60%, transparent); border: 1.5px dotted var(--line-strong); }
+  .seat.empty::before { content: ""; width: 34%; height: 34%; border-radius: 30%; border: 1.5px solid var(--line-strong); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; margin-top: 12px; font-size: 12px; color: var(--ink-2); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  .legend .l-m { background: var(--ice); }
+  .legend .l-p { border: 1.5px dashed var(--accent); }
+  .legend .l-d { background: var(--accent-soft); border: 1.5px solid var(--accent); }
+  .legend .l-e { border: 1.5px dotted var(--line-strong); }
+  .plan { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-size: 13px; }
+  .plan.is-full { background: var(--warning-bg); color: var(--warning-text); border-color: color-mix(in srgb, var(--warning-text) 25%, transparent); }
+  .meter { height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; flex-basis: 100%; }
+  .meter b { display: block; height: 100%; background: var(--accent); border-radius: inherit; transition: width .3s ease; }
+  .plan.is-full .meter b { background: var(--warning-text); }
+
+  /* Composer */
+  .field { display: flex; flex-direction: column; gap: 6px; margin-top: 18px; }
+  .field.first { margin-top: 0; }
+  .label { font-size: 13px; font-weight: 600; }
+  .label .muted { font-weight: 400; }
+  .hint { font-size: 12px; color: var(--ink-3); margin: 0; }
+  .chipbox { display: flex; flex-wrap: wrap; gap: 6px; min-height: 88px; padding: 8px; border: 1px solid var(--border-control); border-radius: 14px; background: var(--surface); cursor: text; align-content: flex-start; }
+  .chipbox:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .chipbox.is-drop { border-style: dashed; border-color: var(--accent); background: var(--accent-soft); }
+  .chipbox textarea { flex: 1 1 180px; min-width: 0; border: 0; outline: 0; background: none; resize: none; height: 30px; padding: 4px; line-height: 22px; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; height: 30px; padding: 0 4px 0 10px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface-3); font-size: 13px; animation: rise .15s ease-out; }
+  .chip .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .chip .why { font: 500 10.5px var(--font-mono); text-transform: uppercase; letter-spacing: .04em; padding: 1px 6px; border-radius: 6px; white-space: nowrap; }
+  .chip.bad { background: var(--error-bg); border-color: color-mix(in srgb, var(--error-text) 30%, transparent); color: var(--error-text); }
+  .chip.dup, .chip.member, .chip.pending { background: var(--warning-bg); border-color: color-mix(in srgb, var(--warning-text) 30%, transparent); color: var(--warning-text); }
+  .chip.noseat { background: var(--surface); border-style: dashed; color: var(--ink-3); }
+  .chip .x { width: 22px; height: 22px; border: 0; border-radius: 50%; background: none; color: inherit; display: grid; place-items: center; padding: 0; }
+  .chip .x:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
+  .tally { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 12px; color: var(--ink-2); min-height: 20px; }
+  .tally .fix { border: 0; background: none; padding: 0; color: var(--accent-fg); font-size: 12px; text-decoration: underline; text-underline-offset: 2px; }
+
+  .roles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .role-opt { position: relative; display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border-control); background: var(--surface); cursor: pointer; }
+  .role-opt input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .role-opt:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+  .role-opt:has(input:focus-visible) { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+  .role-opt b { font-weight: 600; display: block; font-size: 13.5px; }
+  .role-opt small { color: var(--ink-2); font-size: 12px; line-height: 1.4; display: block; }
+  .dot { flex: none; width: 16px; height: 16px; margin-top: 2px; border-radius: 50%; border: 1.5px solid var(--border-control); display: grid; place-items: center; }
+  .role-opt:has(input:checked) .dot { border-color: var(--accent); }
+  .role-opt:has(input:checked) .dot::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  @media (max-width: 420px) { .roles { grid-template-columns: 1fr; } }
+
+  .teams { display: flex; flex-direction: column; gap: 6px; }
+  .team { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--line); cursor: pointer; }
+  .team:has(input:checked) { border-color: var(--accent-soft-2); background: color-mix(in srgb, var(--accent-soft) 60%, var(--surface)); }
+  .team input { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; flex: none; }
+  .team .nm { font-weight: 600; font-size: 13px; }
+  .team .ag { font-size: 12px; color: var(--ink-2); display: block; }
+  .team .sw { display: flex; flex: none; }
+  .team .sw i { width: 18px; height: 18px; border-radius: 50%; box-shadow: 0 0 0 2px var(--surface); margin-left: -5px; }
+  .team .sw i:first-child { margin-left: 0; }
+  .team.locked { cursor: default; }
+  .note { width: 100%; min-height: 64px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border-control); background: var(--surface); resize: vertical; }
+  .note:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  /* Place cards */
+  .cards-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: 22px 0 10px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  .placecard { --tilt: 0deg; position: relative; padding: 14px 12px 12px; border-radius: 6px; background: var(--paper); border: 1px solid var(--line-strong); box-shadow: var(--shadow-md); transform: rotate(var(--tilt)); animation: setdown .28s ease-out; min-width: 0; }
+  .placecard::before { content: ""; position: absolute; left: 10px; right: 10px; top: 50%; border-top: 1px dashed color-mix(in srgb, var(--ink-3) 30%, transparent); }
+  .placecard .nm { position: relative; font: 700 26px/1 var(--font-hand); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-bottom: 12px; }
+  .placecard .em { position: relative; font: 400 11px var(--font-mono); color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .placecard .ft { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 8px; }
+  .placecard .acc { font-size: 11px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .stamp { flex: none; border: 1.5px solid currentColor; border-radius: 6px; padding: 1px 7px; font: 600 10.5px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; background: none; transform: rotate(-6deg); color: var(--accent-fg); }
+  .stamp.admin { color: var(--error-text); }
+  .stamp:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+  .placecard.noseat { opacity: .55; border-style: dashed; box-shadow: none; }
+  .placecard.noseat .nm { text-decoration: line-through; text-decoration-thickness: 1px; }
+  .empty-cards { border: 1.5px dashed var(--line-strong); border-radius: 14px; padding: 18px; text-align: center; color: var(--ink-3); font-size: 13px; }
+  .empty-cards .hand { font: 700 24px var(--font-hand); color: var(--ink-2); display: block; }
+
+  .sendbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+  .sendbar .msg { font-size: 12.5px; color: var(--ink-2); flex: 1 1 200px; min-width: 0; }
+  .sendbar .msg.warn { color: var(--warning-text); }
+  .banner { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; font-size: 13px; animation: rise .2s ease-out; }
+  .banner.ok { background: var(--success-bg); color: var(--success-text); }
+  .banner.warn { background: var(--warning-bg); color: var(--warning-text); }
+  .banner b { font-weight: 600; }
+  .banner .hand { font: 700 22px/1 var(--font-hand); }
+  .banner .btn { margin-left: auto; }
+
+  /* Lower row */
+  .lower { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 20px; align-items: start; }
+  @media (max-width: 980px) { .lower { grid-template-columns: 1fr; } }
+  .linkrow { display: flex; gap: 8px; flex-wrap: wrap; }
+  .linkbox { flex: 1 1 200px; min-width: 0; height: 38px; display: flex; align-items: center; padding: 0 12px; border-radius: 10px; border: 1px solid var(--border-control); background: var(--surface-3); font: 12.5px var(--font-mono); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .linkbox span { overflow: hidden; text-overflow: ellipsis; }
+  .linkmeta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; font-size: 12.5px; color: var(--ink-2); }
+  select.sel { height: 30px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--border-control); background: var(--surface); font-size: 12.5px; }
+  .confirm { margin-top: 12px; padding: 12px; border-radius: 12px; background: var(--warning-bg); color: var(--warning-text); font-size: 12.5px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .confirm[hidden] { display: none; }
+
+  .filters { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-3); }
+  .filters button { height: 28px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--ink-2); font-size: 12.5px; font-weight: 500; }
+  .filters button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+  .plist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .prow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); animation: rise .18s ease-out; }
+  .prow:first-child { border-top: 0; }
+  .av { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 600; background: var(--surface); color: var(--ink-2); border: 1.5px dashed var(--accent); }
+  .prow.expired .av { border-color: var(--warning-text); color: var(--ink-3); }
+  .prow .who { min-width: 0; }
+  .prow .who b { font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .prow .who span { font-size: 12px; color: var(--ink-3); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .prow .acts { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+  .tag { display: inline-flex; align-items: center; gap: 4px; font: 500 10.5px var(--font-mono); letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 6px; background: var(--info-bg); color: var(--info-text); }
+  .tag.exp { background: var(--warning-bg); color: var(--warning-text); }
+  .tag.adm { background: var(--error-bg); color: var(--error-text); }
+  .tag.new { background: var(--success-bg); color: var(--success-text); }
+  .prow .meta { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: var(--ink-3); }
+  @media (max-width: 480px) { .prow { grid-template-columns: auto minmax(0, 1fr); } .prow .acts { grid-column: 2; justify-content: flex-start; } }
+  .none { padding: 18px 0 6px; text-align: center; color: var(--ink-3); font-size: 13px; }
+  .foot { font-size: 12px; color: var(--ink-3); text-align: center; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side" aria-label="Workspace navigation">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">t</span><span class="brand-word">truex</span></div>
+    <div class="tenant-pill"><span class="mark" aria-hidden="true">NL</span><div><b>Northwind Labs</b><span class="sm muted">Team plan</span></div></div>
+    <nav class="nav" aria-label="Main">
+      <a href="#">Home</a>
+      <a href="#">Conversations</a>
+      <a href="#">Agents</a>
+      <a href="#">Projects</a>
+      <p class="nav-h">Settings</p>
+      <a class="sub" href="#">General</a>
+      <a class="sub" href="#" aria-current="page">Members</a>
+      <a class="sub" href="#">Agent access</a>
+      <a class="sub" href="#">Billing and seats</a>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">t</span><span class="brand-word">truex</span></div>
+      <div class="crumb">Northwind Labs / Settings / <b>Members</b></div>
+      <span class="grow"></span>
+      <button class="icon-btn" id="themeBtn" type="button" aria-label="Switch to dark theme">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <span class="me" aria-label="Signed in as Maya Chen" role="img">MC</span>
+    </header>
+
+    <main class="page">
+      <div class="head">
+        <div class="grow">
+          <p class="eyebrow">Members · Invite</p>
+          <h1 class="title">Set a place at <em>Northwind Labs</em></h1>
+          <p class="lede">Paste the people you want at the table. Each one gets a place card with their role and the agents they can use. They will see "Take your seat at Northwind Labs" when they open it.</p>
+        </div>
+      </div>
+
+      <div id="banner" aria-live="polite"></div>
+
+      <div class="room">
+        <section class="tablewrap" aria-labelledby="tableH">
+          <h2 id="tableH" class="sr-only">Seats at the table</h2>
+          <div class="floor">
+            <p class="sr-only" id="tableDesc"></p>
+            <div class="table" id="table">
+              <div class="top-of-table">
+                <div>
+                  <div class="center-n" id="centerN">3</div>
+                  <div class="center-l" id="centerL">open seats of 13</div>
+                  <div class="center-t">Northwind Labs</div>
+                  <button class="center-btn" id="centerBtn" type="button">Set a place</button>
+                </div>
+              </div>
+              <div id="seats" aria-hidden="true"></div>
+            </div>
+            <div class="legend" aria-hidden="true">
+              <span><i class="l-m"></i>Member</span>
+              <span><i class="l-p"></i>Invited</span>
+              <span><i class="l-d"></i>New place</span>
+              <span><i class="l-e"></i>Empty seat</span>
+            </div>
+          </div>
+          <div class="plan" id="plan" aria-live="polite"></div>
+        </section>
+
+        <section class="card" aria-labelledby="composeH">
+          <div class="card-head">
+            <h2 id="composeH">Place cards</h2>
+            <button class="btn ghost sm" type="button" id="sampleBtn">Paste a sample list</button>
+          </div>
+
+          <div class="field first">
+            <label class="label" for="emailIn">Email addresses</label>
+            <div class="chipbox" id="chipbox">
+              <div id="chips" role="list" aria-label="Addresses to invite" style="display:contents"></div>
+              <textarea id="emailIn" rows="1" placeholder="Paste or type emails, separated by commas or new lines" aria-describedby="emailHint tally" autocomplete="off" spellcheck="false"></textarea>
+            </div>
+            <p class="hint" id="emailHint">Press Enter or comma to add. You can paste a whole list, including "Name &lt;email&gt;" rows from a spreadsheet.</p>
+            <div class="tally" id="tally" aria-live="polite"></div>
+          </div>
+
+          <fieldset class="field" style="border:0;padding:0;margin-inline:0">
+            <legend class="label" style="padding:0;margin-bottom:6px">Role for new cards <span class="muted">(change any card by tapping its stamp)</span></legend>
+            <div class="roles">
+              <label class="role-opt"><input type="radio" name="role" value="User" checked><span class="dot" aria-hidden="true"></span><span><b>User</b><small>Chats with agents and works in shared projects.</small></span></label>
+              <label class="role-opt"><input type="radio" name="role" value="Admin"><span class="dot" aria-hidden="true"></span><span><b>Admin</b><small>Also invites people, manages seats and agent access.</small></span></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="field" style="border:0;padding:0;margin-inline:0">
+            <legend class="label" style="padding:0;margin-bottom:6px">Agents they can use</legend>
+            <div class="teams" id="teams">
+              <label class="team locked"><input type="checkbox" checked disabled><span class="grow"><span class="nm">General</span><span class="ag">truex assistant · always on for everyone</span></span><span class="sw" aria-hidden="true"><i style="background:var(--ice)"></i></span></label>
+              <label class="team"><input type="checkbox" value="Research desk" checked><span class="grow"><span class="nm">Research desk</span><span class="ag">Researcher, Scout</span></span><span class="sw" aria-hidden="true"><i style="background:var(--mint)"></i><i style="background:var(--ice)"></i></span></label>
+              <label class="team"><input type="checkbox" value="Writers room"><span class="grow"><span class="nm">Writers room</span><span class="ag">Writer, Editor</span></span><span class="sw" aria-hidden="true"><i style="background:var(--peach)"></i><i style="background:var(--butter)"></i></span></label>
+              <label class="team"><input type="checkbox" value="Ops crew"><span class="grow"><span class="nm">Ops crew</span><span class="ag">Planner, Reviewer, Data analyst</span></span><span class="sw" aria-hidden="true"><i style="background:var(--lilac)"></i><i style="background:var(--mint)"></i><i style="background:var(--butter)"></i></span></label>
+            </div>
+          </fieldset>
+
+          <div class="field">
+            <label class="label" for="note">Note on the card <span class="muted">(optional)</span></label>
+            <textarea class="note" id="note" maxlength="280" placeholder="Welcome aboard. Start with the Q4 research project."></textarea>
+          </div>
+
+          <div class="cards-h">
+            <p class="eyebrow" style="margin:0" id="cardsH">Cards on the table</p>
+            <button class="btn ghost sm" type="button" id="clearBtn" hidden>Clear all</button>
+          </div>
+          <div class="cards" id="cards" role="list" aria-labelledby="cardsH"></div>
+
+          <div class="sendbar">
+            <p class="msg" id="sendMsg">Add at least one email to set a place.</p>
+            <button class="btn primary" type="button" id="sendBtn" aria-disabled="true">Send invites</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="lower">
+        <section class="card" aria-labelledby="linkH">
+          <div class="card-head">
+            <h2 id="linkH">Invite link</h2>
+            <span class="tag" id="linkTag">Active</span>
+          </div>
+          <p class="hint" style="margin-bottom:12px">Anyone with the link can take an open seat as a User with the General agent. Share it in a channel you trust.</p>
+          <div class="linkrow">
+            <div class="linkbox" id="linkBox"><span id="linkUrl"></span></div>
+            <button class="btn" type="button" id="copyBtn">Copy link</button>
+          </div>
+          <div class="linkmeta">
+            <label for="expiry">Expires after</label>
+            <select class="sel" id="expiry">
+              <option value="1">1 day</option>
+              <option value="7" selected>7 days</option>
+              <option value="30">30 days</option>
+            </select>
+            <span id="linkExp" class="muted"></span>
+            <span class="grow"></span>
+            <button class="btn ghost sm" type="button" id="regenBtn">Regenerate</button>
+          </div>
+          <div class="confirm" id="regenConfirm" hidden role="alert">
+            <span class="grow">The current link stops working right away. People who already joined keep their seat.</span>
+            <button class="btn sm" type="button" id="regenNo">Keep it</button>
+            <button class="btn sm danger is-armed" type="button" id="regenYes">Regenerate link</button>
+          </div>
+          <p class="sr-only" id="linkLive" aria-live="polite"></p>
+        </section>
+
+        <section class="card" aria-labelledby="pendH">
+          <div class="card-head">
+            <h2 id="pendH">Invited, not seated yet</h2>
+            <div class="filters" role="group" aria-label="Filter invites" id="filters">
+              <button type="button" data-f="All" aria-pressed="true">All</button>
+              <button type="button" data-f="Pending" aria-pressed="false">Pending</button>
+              <button type="button" data-f="Expired" aria-pressed="false">Expired</button>
+            </div>
+          </div>
+          <ul class="plist" id="plist"></ul>
+          <p class="sr-only" id="pendLive" aria-live="polite"></p>
+        </section>
+      </div>
+
+      <p class="foot">Pending invites hold a seat for 7 days. Expired and revoked invites free their seat.</p>
+    </main>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var TINTS = ["var(--ice)", "var(--mint)", "var(--butter)", "var(--lilac)", "var(--peach)"];
+
+  var S = {
+    seats: 13,
+    role: "User",
+    teams: ["Research desk"],
+    filter: "All",
+    members: [
+      { name: "Maya Chen", email: "maya.chen@gmail.com", role: "Admin" },
+      { name: "Nitin Rao", email: "nitin.rao@gmail.com", role: "Admin" },
+      { name: "Priya Shah", email: "priya.shah@gmail.com", role: "User" },
+      { name: "Tom Becker", email: "tom.becker@gmail.com", role: "User" },
+      { name: "Lena Okafor", email: "lena.okafor@gmail.com", role: "User" },
+      { name: "Omar Haddad", email: "omar.haddad@gmail.com", role: "User" },
+      { name: "Dev Menon", email: "dev.menon@gmail.com", role: "User" },
+      { name: "Rin Sato", email: "rin.sato@gmail.com", role: "User" }
+    ],
+    invites: [
+      { id: "i1", name: "Alex Rivera", email: "alex.rivera@gmail.com", role: "User", teams: ["Research desk"], status: "Pending", left: 5, sent: "Sep 29" },
+      { id: "i2", name: "Sam Ortiz", email: "sam.ortiz@gmail.com", role: "Admin", teams: ["Research desk", "Ops crew"], status: "Pending", left: 1, sent: "Sep 25" },
+      { id: "i3", name: "Jonas Weber", email: "jonas.weber@gmail.com", role: "User", teams: [], status: "Expired", left: 0, sent: "Sep 16" }
+    ],
+    drafts: [],
+    link: { token: "nw-7Kq2-Xa9p", days: 7 }
+  };
+  var seq = 10;
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function initials(n) { var p = n.trim().split(/\s+/); return ((p[0] || "?")[0] + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase(); }
+  function nameFrom(email) {
+    var local = email.split("@")[0].replace(/\+.*$/, "");
+    return local.split(/[._\-]+/).filter(Boolean).map(function (w) { return w.replace(/\d+/g, ""); }).filter(Boolean)
+      .map(function (w) { return w[0].toUpperCase() + w.slice(1).toLowerCase(); }).join(" ") || local;
+  }
+  var EMAIL = /^[^\s@<>(),;]+@[^\s@<>(),;]+\.[a-z]{2,}$/i;
+  function activeInvites() { return S.invites.filter(function (v) { return v.status === "Pending"; }); }
+  function used() { return S.members.length + activeInvites().length; }
+  function left() { return Math.max(S.seats - used(), 0); }
+  function okDrafts() { return S.drafts.filter(function (d) { return d.state === "ok"; }); }
+
+  // Classify every draft against members, pending invites and earlier drafts; seats cap the ok ones.
+  function classify() {
+    var seen = {}, room = left();
+    S.drafts.forEach(function (d) {
+      var e = d.email.toLowerCase();
+      if (!EMAIL.test(d.email)) d.state = "bad";
+      else if (S.members.some(function (m) { return m.email === e; })) d.state = "member";
+      else if (activeInvites().some(function (v) { return v.email === e; })) d.state = "pending";
+      else if (seen[e]) d.state = "dup";
+      else if (room <= 0) d.state = "noseat";
+      else { d.state = "ok"; room--; }
+      if (EMAIL.test(d.email)) seen[e] = true;
+    });
+  }
+
+  function parse(text) {
+    var out = [];
+    text.split(/[,;\n\r\t]+/).forEach(function (piece) {
+      piece = piece.trim();
+      if (!piece) return;
+      var m = piece.match(/^"?([^"<]*)"?\s*<([^>]+)>$/);
+      if (m) { out.push({ email: m[2].trim(), name: m[1].trim() }); return; }
+      piece.split(/\s+/).forEach(function (t) { t = t.replace(/^mailto:/i, "").replace(/^[<(]|[>)]$/g, ""); if (t) out.push({ email: t, name: "" }); });
+    });
+    return out;
+  }
+
+  function addText(text) {
+    var items = parse(text);
+    if (!items.length) return;
+    items.forEach(function (it) {
+      var e = EMAIL.test(it.email) ? it.email.toLowerCase() : it.email;
+      S.drafts.push({ id: "d" + (seq++), email: e, name: it.name || (EMAIL.test(it.email) ? nameFrom(e) : it.email), role: S.role, teams: S.teams.slice(), state: "", tilt: (Math.random() * 3 - 1.5).toFixed(2) });
+    });
+    classify();
+    var c = { ok: 0, bad: 0, dup: 0, member: 0, pending: 0, noseat: 0 };
+    S.drafts.slice(-items.length).forEach(function (d) { c[d.state]++; });
+    var parts = [c.ok + " added"];
+    if (c.bad) parts.push(c.bad + " not valid");
+    if (c.dup) parts.push(c.dup + " duplicate");
+    if (c.member) parts.push(c.member + " already a member");
+    if (c.pending) parts.push(c.pending + " already invited");
+    if (c.noseat) parts.push(c.noseat + " without a seat");
+    $("tally").setAttribute("data-last", parts.join(", ") + ".");
+    render();
+  }
+
+  function removeDraft(id) {
+    var d = S.drafts.find(function (x) { return x.id === id; });
+    S.drafts = S.drafts.filter(function (x) { return x.id !== id; });
+    classify();
+    $("tally").setAttribute("data-last", "Removed " + (d ? d.email : "address") + ".");
+    render();
+    $("emailIn").focus();
+  }
+
+  var WHY = { bad: "Not valid", dup: "Duplicate", member: "Member", pending: "Invited", noseat: "No seat" };
+
+  function renderChips() {
+    $("chips").innerHTML = S.drafts.map(function (d) {
+      var cls = d.state === "ok" ? "" : d.state;
+      return '<span class="chip ' + cls + '" role="listitem"><span class="t">' + esc(d.email) + "</span>" +
+        (WHY[d.state] ? '<span class="why">' + WHY[d.state] + "</span>" : "") +
+        '<button class="x" type="button" data-rm="' + d.id + '" aria-label="Remove ' + esc(d.email) + '">' +
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>';
+    }).join("");
+    var c = { ok: 0, bad: 0, dup: 0, member: 0, pending: 0, noseat: 0 };
+    S.drafts.forEach(function (d) { c[d.state]++; });
+    var problems = c.bad + c.dup + c.member + c.pending;
+    var html = "";
+    if (S.drafts.length) {
+      html = "<span><b>" + c.ok + "</b> ready</span>";
+      if (c.bad) html += "<span>" + c.bad + " not valid</span>";
+      if (c.dup) html += "<span>" + c.dup + " duplicate</span>";
+      if (c.member) html += "<span>" + c.member + " already a member</span>";
+      if (c.pending) html += "<span>" + c.pending + " already invited</span>";
+      if (c.noseat) html += "<span>" + c.noseat + " over the seat limit</span>";
+      if (problems) html += '<button class="fix" type="button" id="dropBad">Remove ' + problems + " that can't be sent</button>";
+    }
+    var last = $("tally").getAttribute("data-last");
+    $("tally").innerHTML = html + (last ? '<span class="sr-only">' + esc(last) + "</span>" : "");
+    $("tally").removeAttribute("data-last");
+  }
+
+  function renderCards() {
+    var list = S.drafts.filter(function (d) { return d.state === "ok" || d.state === "noseat"; });
+    $("clearBtn").hidden = !S.drafts.length;
+    if (!list.length) {
+      $("cards").innerHTML = '<div class="empty-cards" role="listitem"><span class="hand">No cards yet</span>Cards appear here as you add emails, one per chair.</div>';
+      return;
+    }
+    $("cards").innerHTML = list.map(function (d) {
+      var acc = ["General"].concat(d.teams).join(", ");
+      return '<div class="placecard' + (d.state === "noseat" ? " noseat" : "") + '" role="listitem" style="--tilt:' + d.tilt + 'deg">' +
+        '<div class="nm">' + esc(d.name) + "</div>" +
+        '<div class="em">' + esc(d.email) + "</div>" +
+        '<div class="ft"><span class="acc" title="' + esc(acc) + '">' + esc(acc) + "</span>" +
+        (d.state === "noseat" ? '<span class="stamp" style="color:var(--ink-3)">No seat</span>'
+          : '<button class="stamp' + (d.role === "Admin" ? " admin" : "") + '" type="button" data-role="' + d.id + '" aria-label="Role for ' + esc(d.name) + ": " + d.role + '. Switch role">' + d.role + "</button>") +
+        "</div></div>";
+    }).join("");
+  }
+
+  function renderTable() {
+    var N = S.seats, seats = [], pend = activeInvites(), ok = okDrafts();
+    S.members.forEach(function (m, i) { seats.push({ cls: "member" + (m.role === "Admin" ? " admin" : ""), txt: initials(m.name), tint: TINTS[i % TINTS.length], label: m.name + ", " + m.role }); });
+    pend.forEach(function (v) { seats.push({ cls: "pending", txt: initials(v.name), label: v.name + ", invited" }); });
+    ok.forEach(function (d) { seats.push({ cls: "draft", txt: initials(d.name), label: d.name + ", new place", key: d.id }); });
+    while (seats.length < N) seats.push({ cls: "empty", txt: "", label: "Empty seat" });
+    var t = $("table");
+    t.classList.toggle("is-crowded", N > 16);
+    $("seats").innerHTML = seats.slice(0, N).map(function (s, i) {
+      return '<span class="seat ' + s.cls + '" style="--i:' + i + ";--n:" + N + (s.tint ? ";--tint:" + s.tint : "") + '" title="' + esc(s.label) + '">' + esc(s.txt) + "</span>";
+    }).join("");
+    var open = N - S.members.length - pend.length - ok.length;
+    $("centerN").textContent = Math.max(open, 0);
+    $("centerL").textContent = (open === 1 ? "open seat" : "open seats") + " of " + N;
+    t.classList.toggle("is-full", open <= 0);
+    $("centerBtn").textContent = left() <= 0 ? "Table is full" : "Set a place";
+    $("tableDesc").textContent = ("Table with " + N + " seats: " + S.members.length + " members, " + pend.length + " invited, " + ok.length + " new places, " + Math.max(open, 0) + " open.");
+
+    var u = used(), full = left() <= 0;
+    var p = $("plan");
+    p.className = "plan" + (full ? " is-full" : "");
+    p.innerHTML = "<span><b>" + u + " of " + N + "</b> seats taken on the Team plan" + (full ? ". The table is full." : ", " + left() + " open.") + "</span>" +
+      '<button class="btn sm" type="button" id="seatBtn">' + (N === 13 ? "Add 12 seats" : "Back to 13 seats") + "</button>" +
+      '<span class="meter" aria-hidden="true"><b style="width:' + Math.min(100, (u / N) * 100) + '%"></b></span>';
+  }
+
+  function renderSend() {
+    var ok = okDrafts().length, noseat = S.drafts.filter(function (d) { return d.state === "noseat"; }).length;
+    var btn = $("sendBtn"), msg = $("sendMsg");
+    btn.setAttribute("aria-disabled", ok ? "false" : "true");
+    btn.textContent = ok ? "Send " + ok + " invite" + (ok === 1 ? "" : "s") : "Send invites";
+    msg.className = "msg";
+    if (left() <= 0 && !ok) { msg.className = "msg warn"; msg.textContent = "Every seat is taken. Revoke an invite, remove a member or add seats to invite more people."; }
+    else if (noseat) { msg.className = "msg warn"; msg.textContent = noseat + " card" + (noseat === 1 ? " has" : "s have") + " no seat. Only " + ok + " can be sent now. Add seats or remove some cards."; }
+    else if (ok) msg.textContent = "Each invite holds a seat for 7 days. Emails go out from Maya Chen at Northwind Labs.";
+    else msg.textContent = "Add at least one email to set a place.";
+  }
+
+  function renderPending() {
+    var list = S.invites.filter(function (v) { return v.status !== "Revoked" && (S.filter === "All" || v.status === S.filter); });
+    if (!list.length) { $("plist").innerHTML = '<li class="none">' + (S.filter === "All" ? "Nobody is waiting. Everyone invited has a seat." : "No " + S.filter.toLowerCase() + " invites.") + "</li>"; return; }
+    $("plist").innerHTML = list.map(function (v) {
+      var exp = v.status === "Expired";
+      var status = exp ? '<span class="tag exp">Expired</span>' : '<span class="tag' + (v.fresh ? " new" : "") + '">' + (v.fresh ? "Just sent" : v.left + (v.left === 1 ? " day left" : " days left")) + "</span>";
+      return '<li class="prow' + (exp ? " expired" : "") + '">' +
+        '<span class="av" aria-hidden="true">' + esc(initials(v.name)) + "</span>" +
+        '<span class="who"><b>' + esc(v.name) + "</b><span>" + esc(v.email) + "</span></span>" +
+        '<span class="acts">' +
+          '<button class="btn sm" type="button" data-resend="' + v.id + '">' + (exp ? "Send again" : "Resend") + "</button>" +
+          '<button class="btn sm danger" type="button" data-revoke="' + v.id + '" aria-label="Revoke invite for ' + esc(v.name) + '">Revoke</button>' +
+        "</span>" +
+        '<span class="meta">' + status + (v.role === "Admin" ? '<span class="tag adm">Admin</span>' : '<span class="tag">User</span>') +
+          "<span>" + esc(["General"].concat(v.teams).join(", ")) + "</span><span>· sent " + esc(v.sent) + "</span></span>" +
+      "</li>";
+    }).join("");
+  }
+
+  function renderLink() {
+    $("linkUrl").textContent = "https://truex.app/join/" + S.link.token;
+    $("linkExp").textContent = "until " + fmtDate(S.link.days);
+  }
+  function fmtDate(days) {
+    var d = new Date(2026, 9, 1); d.setDate(d.getDate() + Number(days));
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  }
+
+  function render() { renderChips(); renderCards(); renderTable(); renderSend(); renderPending(); }
+
+  // Input handling
+  var input = $("emailIn");
+  input.addEventListener("keydown", function (e) {
+    if ((e.key === "Enter" || e.key === "," || e.key === ";") && input.value.trim()) { e.preventDefault(); addText(input.value); input.value = ""; }
+    else if (e.key === "Enter") e.preventDefault();
+    else if (e.key === "Backspace" && !input.value && S.drafts.length) removeDraft(S.drafts[S.drafts.length - 1].id);
+  });
+  input.addEventListener("paste", function (e) {
+    var t = (e.clipboardData || window.clipboardData).getData("text");
+    if (t && /[,;\n\s]/.test(t.trim())) { e.preventDefault(); addText(input.value + "\n" + t); input.value = ""; }
+  });
+  input.addEventListener("blur", function () { if (input.value.trim()) { addText(input.value); input.value = ""; } });
+  var box = $("chipbox");
+  box.addEventListener("click", function (e) {
+    var rm = e.target.closest("[data-rm]");
+    if (rm) { removeDraft(rm.getAttribute("data-rm")); return; }
+    if (e.target === box) input.focus();
+  });
+  ["dragover", "dragenter"].forEach(function (ev) { box.addEventListener(ev, function (e) { e.preventDefault(); box.classList.add("is-drop"); }); });
+  ["dragleave", "drop"].forEach(function (ev) { box.addEventListener(ev, function () { box.classList.remove("is-drop"); }); });
+  box.addEventListener("drop", function (e) { e.preventDefault(); var t = e.dataTransfer.getData("text"); if (t) addText(t); });
+
+  $("tally").addEventListener("click", function (e) {
+    if (e.target.id !== "dropBad") return;
+    var n = S.drafts.length;
+    S.drafts = S.drafts.filter(function (d) { return d.state === "ok" || d.state === "noseat"; });
+    classify();
+    $("tally").setAttribute("data-last", "Removed " + (n - S.drafts.length) + " addresses that can't be sent.");
+    render(); input.focus();
+  });
+
+  $("sampleBtn").addEventListener("click", function () {
+    addText('Hana Kim <hana.kim@gmail.com>, lucas.moreau@gmail.com\nzoe.adeyemi@gmail.com; priya.shah@gmail.com\nben.carter@gmail\nlucas.moreau@gmail.com, alex.rivera@gmail.com, ines.duarte@gmail.com');
+    input.focus();
+  });
+  $("clearBtn").addEventListener("click", function () { S.drafts = []; $("tally").setAttribute("data-last", "Cleared all addresses."); render(); input.focus(); });
+  $("centerBtn").addEventListener("click", function () { input.focus(); });
+
+  document.querySelectorAll('input[name="role"]').forEach(function (r) {
+    r.addEventListener("change", function () {
+      S.role = r.value;
+      S.drafts.forEach(function (d) { d.role = S.role; });
+      renderCards();
+    });
+  });
+  $("teams").addEventListener("change", function () {
+    S.teams = Array.prototype.map.call($("teams").querySelectorAll("input:not([disabled]):checked"), function (c) { return c.value; });
+    S.drafts.forEach(function (d) { d.teams = S.teams.slice(); });
+    renderCards();
+  });
+  $("cards").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-role]");
+    if (!b) return;
+    var d = S.drafts.find(function (x) { return x.id === b.getAttribute("data-role"); });
+    d.role = d.role === "Admin" ? "User" : "Admin";
+    renderCards();
+    var nb = $("cards").querySelector('[data-role="' + d.id + '"]');
+    if (nb) nb.focus();
+    $("pendLive").textContent = d.name + " is now " + d.role + ".";
+  });
+
+  $("sendBtn").addEventListener("click", function () {
+    var ok = okDrafts();
+    if (!ok.length) { input.focus(); return; }
+    ok.forEach(function (d) {
+      S.invites.unshift({ id: "i" + (seq++), name: d.name, email: d.email, role: d.role, teams: d.teams, status: "Pending", left: 7, sent: "Oct 1", fresh: true });
+    });
+    S.drafts = S.drafts.filter(function (d) { return d.state !== "ok"; });
+    classify();
+    var names = ok.slice(0, 3).map(function (d) { return d.name.split(" ")[0]; }).join(", ") + (ok.length > 3 ? " and " + (ok.length - 3) + " more" : "");
+    $("banner").innerHTML = '<div class="banner ok"><span class="hand" aria-hidden="true">set.</span><span><b>' + ok.length + " place card" + (ok.length === 1 ? "" : "s") + " sent.</b> " + esc(names) + " will get an email to take their seat at Northwind Labs. Invites expire on " + fmtDate(7) + ".</span>" +
+      '<button class="btn sm" type="button" id="bannerX">Done</button></div>';
+    $("note").value = "";
+    render();
+    $("bannerX").focus();
+  });
+  $("banner").addEventListener("click", function (e) { if (e.target.id === "bannerX") { $("banner").innerHTML = ""; input.focus(); } });
+
+  // Seats toggle (simulates upgrading from 13 to 25 seats)
+  $("plan").addEventListener("click", function (e) {
+    if (e.target.id !== "seatBtn") return;
+    S.seats = S.seats === 13 ? 25 : 13;
+    classify(); render();
+    $("seatBtn").focus();
+  });
+
+  // Pending actions
+  var armed = null;
+  $("plist").addEventListener("click", function (e) {
+    var rs = e.target.closest("[data-resend]"), rv = e.target.closest("[data-revoke]");
+    if (rs) {
+      var v = S.invites.find(function (x) { return x.id === rs.getAttribute("data-resend"); });
+      if (v.status === "Expired" && left() <= 0) { $("pendLive").textContent = "No open seat for " + v.name + ". Free a seat first."; return; }
+      v.status = "Pending"; v.left = 7; v.sent = "Oct 1"; v.fresh = true;
+      classify(); render();
+      $("pendLive").textContent = "Sent a fresh invite to " + v.email + ". It expires " + fmtDate(7) + ".";
+      var nb = $("plist").querySelector('[data-resend="' + v.id + '"]'); if (nb) nb.focus();
+    } else if (rv) {
+      var id = rv.getAttribute("data-revoke");
+      var iv = S.invites.find(function (x) { return x.id === id; });
+      if (armed !== id) {
+        armed = id;
+        $("plist").querySelectorAll("[data-revoke]").forEach(function (b) { b.classList.remove("is-armed"); b.textContent = "Revoke"; });
+        rv.classList.add("is-armed"); rv.textContent = "Confirm revoke";
+        $("pendLive").textContent = "Press again to revoke the invite for " + iv.name + ". Their link will stop working.";
+        return;
+      }
+      armed = null;
+      iv.status = "Revoked";
+      classify(); render();
+      $("pendLive").textContent = "Revoked the invite for " + iv.name + ". Their seat is open again.";
+      $("pendH").setAttribute("tabindex", "-1"); $("pendH").focus();
+    }
+  });
+  $("filters").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-f]"); if (!b) return;
+    S.filter = b.getAttribute("data-f");
+    $("filters").querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+    renderPending();
+  });
+
+  // Link
+  $("copyBtn").addEventListener("click", function () {
+    var url = $("linkUrl").textContent, btn = $("copyBtn");
+    var done = function () { btn.textContent = "Copied"; $("linkLive").textContent = "Link copied. It works until " + fmtDate(S.link.days) + "."; setTimeout(function () { btn.textContent = "Copy link"; }, 1800); };
+    try { navigator.clipboard.writeText(url).then(done, done); } catch (err) { done(); }
+  });
+  $("expiry").addEventListener("change", function () { S.link.days = Number($("expiry").value); renderLink(); $("linkLive").textContent = "Link now expires " + fmtDate(S.link.days) + "."; });
+  $("regenBtn").addEventListener("click", function () { $("regenConfirm").hidden = false; $("regenNo").focus(); });
+  $("regenNo").addEventListener("click", function () { $("regenConfirm").hidden = true; $("regenBtn").focus(); });
+  $("regenYes").addEventListener("click", function () {
+    var c = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789", r = function () { var s = ""; for (var i = 0; i < 4; i++) s += c[Math.floor(Math.random() * c.length)]; return s; };
+    S.link.token = "nw-" + r() + "-" + r();
+    $("regenConfirm").hidden = true;
+    renderLink();
+    $("linkTag").textContent = "New"; $("linkTag").className = "tag new";
+    $("linkLive").textContent = "New link ready. The old one no longer works.";
+    $("copyBtn").focus();
+  });
+
+  // Theme
+  var themeBtn = $("themeBtn");
+  function isDark() { var t = document.documentElement.getAttribute("data-theme"); return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; }
+  function syncTheme() { themeBtn.setAttribute("aria-label", isDark() ? "Switch to light theme" : "Switch to dark theme"); }
+  themeBtn.addEventListener("click", function () { document.documentElement.setAttribute("data-theme", isDark() ? "light" : "dark"); syncTheme(); });
+  syncTheme();
+
+  renderLink();
+  render();
+})();
+</script>
+</body>
+</html>

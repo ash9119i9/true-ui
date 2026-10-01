@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>truex Agent Badge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* Concept "The Flip Badge": agents get the same badge as human members.
+     Front = identity, back = access strip (MCP) + certifications (Skills).
+     See agent-badge-metaphors.md. Tokens from invite-members-v3-table.html. */
+  :root {
+    --bg: #FFFFFF; --surface: #FFFFFF; --surface-3: #F6F9FA;
+    --line: #E3ECEF; --line-strong: #D8E0E4;
+    --ink: #1F2A30; --ink-2: #5F6D73; --ink-3: #849198;
+    --accent: #3691CD; --accent-2: #2A7DB4; --accent-soft: #EAF5F8; --accent-fg: #2A72A3; --on-accent: #FFFFFF;
+    --success-bg: #E7F4ED; --success-text: #35624E;
+    --warning-bg: #FFF3D9; --warning-text: #7D5D1D;
+    --ice: #BCDEE8; --mint: #A9D5BE; --butter: #EBCB8B; --lilac: #C4BDE3; --peach: #F0B999;
+    --on-tint: #1F2A30; --paper: #FFFDF8;
+    --shadow-md: 0 1px 2px rgb(31 42 48 / 4%), 0 8px 24px -8px rgb(31 42 48 / 10%);
+    --shadow-lg: 0 2px 4px rgb(31 42 48 / 4%), 0 18px 40px -12px rgb(31 42 48 / 18%);
+    --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #171717; --surface: #1D1D1D; --surface-3: #242424;
+      --line: #2A2A2A; --line-strong: #363636;
+      --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F;
+      --accent-2: #5AA8DC; --accent-soft: #14283A; --accent-fg: #8CC4EA;
+      --success-bg: #173024; --success-text: #9BD3B5;
+      --warning-bg: #33280F; --warning-text: #EBCB8B;
+      --paper: #202020;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #171717; --surface: #1D1D1D; --surface-3: #242424;
+    --line: #2A2A2A; --line-strong: #363636;
+    --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F;
+    --accent-2: #5AA8DC; --accent-soft: #14283A; --accent-fg: #8CC4EA;
+    --success-bg: #173024; --success-text: #9BD3B5;
+    --warning-bg: #33280F; --warning-text: #EBCB8B;
+    --paper: #202020;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font-sans); }
+  button, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .app { max-width: 1080px; margin: 0 auto; padding: 32px 16px 64px; display: grid; gap: 32px;
+         grid-template-columns: minmax(0, 1fr) minmax(0, 420px); align-items: start; }
+  @media (max-width: 820px) { .app { grid-template-columns: 1fr; } .stage { order: -1; position: static !important; } }
+
+  header h1 { margin: 0 0 4px; font-size: 22px; font-weight: 700; }
+  header p { margin: 0; color: var(--ink-2); }
+
+  /* Stepper */
+  .steps { display: flex; gap: 6px; margin: 24px 0; padding: 0; list-style: none; flex-wrap: wrap; }
+  .steps button { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px;
+                  padding: 6px 12px; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+  .steps button[aria-current="step"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .steps button.done { color: var(--success-text); background: var(--success-bg); border-color: transparent; }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; box-shadow: var(--shadow-md); }
+  .panel h2 { margin: 0 0 4px; font-size: 18px; }
+  .panel .sub { margin: 0 0 20px; color: var(--ink-2); font-size: 14px; }
+
+  label.field { display: block; margin-bottom: 16px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+  label.field input { display: block; width: 100%; margin-top: 6px; padding: 10px 12px; border: 1px solid var(--line-strong);
+                      border-radius: 10px; background: var(--surface); font-weight: 400; color: var(--ink); }
+  .swatches { display: flex; gap: 8px; margin-top: 6px; }
+  .swatch { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+  .swatch[aria-pressed="true"] { border-color: var(--ink); }
+
+  /* Option rows (MCP keys / Skills) */
+  .opts { display: grid; gap: 8px; }
+  .opt { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px 14px;
+         border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface); cursor: pointer; }
+  .opt:hover { background: var(--surface-3); }
+  .opt[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+  .opt .ico { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; font-weight: 700;
+              font-size: 13px; color: var(--on-tint); flex: none; }
+  .opt .meta { flex: 1; min-width: 0; }
+  .opt .meta b { display: block; font-weight: 600; }
+  .opt .meta small { color: var(--ink-3); font-size: 12px; }
+  .opt .state { font-size: 12px; font-weight: 600; color: var(--ink-3); white-space: nowrap; }
+  .opt[aria-pressed="true"] .state { color: var(--accent-fg); }
+  .opt.blocked .state { color: var(--warning-text); background: var(--warning-bg); padding: 2px 8px; border-radius: 999px; }
+  .opt.add { border-style: dashed; color: var(--accent-fg); justify-content: center; font-weight: 600; }
+
+  .nav { display: flex; justify-content: space-between; margin-top: 24px; gap: 8px; }
+  .btn { border: 1px solid var(--line-strong); background: var(--surface); padding: 10px 18px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .btn.primary:hover { background: var(--accent-2); }
+  .btn[hidden] { display: none; }
+
+  .note { margin-top: 12px; font-size: 13px; color: var(--warning-text); background: var(--warning-bg); padding: 8px 12px; border-radius: 8px; }
+  .note:empty { display: none; }
+
+  /* Badge stage */
+  .stage { position: sticky; top: 24px; display: grid; justify-items: center; gap: 12px; }
+  .printer { width: 300px; height: 14px; border-radius: 8px 8px 0 0; background: var(--line-strong); position: relative; z-index: 2; }
+  .printer.on::after { content: ""; position: absolute; left: 20px; right: 20px; top: 5px; height: 3px; border-radius: 2px; background: var(--accent); animation: blink .4s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: .2; } }
+  .clip { width: 56px; height: 18px; border: 3px solid var(--ink-3); border-bottom: none; border-radius: 10px 10px 0 0; margin-bottom: -6px; }
+
+  .badge-wrap { perspective: 1200px; width: 280px; height: 400px; }
+  .badge-wrap.printing { animation: print 1.4s cubic-bezier(.2,.7,.2,1) both; }
+  @keyframes print { from { clip-path: inset(0 0 100% 0); transform: translateY(-40px); } to { clip-path: inset(0 0 0 0); transform: none; } }
+  .badge { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.3,.7,.2,1); }
+  .badge.flipped { transform: rotateY(180deg); }
+  .face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 18px; background: var(--paper);
+          border: 1px solid var(--line-strong); box-shadow: var(--shadow-lg); padding: 20px; display: flex; flex-direction: column; overflow: hidden; }
+  .back { transform: rotateY(180deg); padding: 0; }
+
+  .brand { display: flex; justify-content: space-between; font: 500 11px var(--font-mono); letter-spacing: .1em; color: var(--ink-3); }
+  .avatar { width: 112px; height: 112px; border-radius: 28px; margin: 28px auto 16px; display: grid; place-items: center;
+            font-size: 40px; font-weight: 700; color: var(--on-tint); transition: background .3s; }
+  .b-name { text-align: center; font-size: 24px; font-weight: 700; margin: 0; word-break: break-word; }
+  .b-role { text-align: center; color: var(--ink-2); margin: 2px 0 12px; }
+  .chip { align-self: center; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-fg); }
+  .barcode { margin-top: auto; height: 28px; background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 5px, var(--ink) 5px 6px, transparent 6px 9px); opacity: .7; border-radius: 2px; }
+
+  .strip { height: 44px; background: #2A3338; display: flex; gap: 3px; padding: 0 16px; align-items: stretch; }
+  .strip i { flex: 1; max-width: 22px; animation: stripe .5s ease both; }
+  @keyframes stripe { from { transform: scaleY(0); } }
+  .back-body { padding: 16px 20px 20px; display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  .sec { font: 500 10px var(--font-mono); letter-spacing: .12em; color: var(--ink-3); margin: 0 0 8px; }
+  .keys { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; min-height: 26px; }
+  .keys span { font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 6px; color: var(--on-tint); }
+  .certs { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+  .certs li { display: flex; align-items: center; gap: 8px; font-size: 14px; animation: stamp .35s ease both; }
+  .certs li::before { content: "✦"; color: var(--accent); }
+  @keyframes stamp { from { transform: scale(1.4); opacity: 0; } }
+  .empty { font-size: 13px; color: var(--ink-3); font-style: italic; }
+  .issued { margin-top: auto; padding-top: 12px; border-top: 1px dashed var(--line-strong); font: 12px var(--font-mono); color: var(--ink-3); }
+
+  .flip-btn { background: none; border: none; color: var(--accent-fg); font-weight: 600; cursor: pointer; padding: 6px 10px; }
+
+  /* Welcome post */
+  .post { width: 100%; max-width: 420px; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; background: var(--surface);
+          box-shadow: var(--shadow-md); animation: rise .5s ease both; font-size: 14px; }
+  .post .ch { font: 500 12px var(--font-mono); color: var(--ink-3); margin-bottom: 6px; }
+  .post p { margin: 2px 0; }
+  .post .muted { color: var(--ink-2); }
+  @keyframes rise { from { transform: translateY(12px); opacity: 0; } }
+
+  /* Inline sheet */
+  dialog { border: 1px solid var(--line); border-radius: 16px; padding: 24px; width: min(420px, calc(100vw - 32px));
+           background: var(--surface); color: var(--ink); box-shadow: var(--shadow-lg); }
+  dialog::backdrop { background: rgb(0 0 0 / 35%); }
+  dialog h3 { margin: 0 0 16px; }
+  .checks { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 16px; }
+  .checks label { display: flex; gap: 6px; align-items: center; font-size: 13px; padding: 6px 10px; border: 1px solid var(--line-strong); border-radius: 8px; cursor: pointer; }
+
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <main>
+    <header>
+      <h1>Hire an AI teammate</h1>
+      <p>Same badge as your team. Different superpowers on the back.</p>
+    </header>
+
+    <ol class="steps" id="steps" aria-label="Steps"></ol>
+
+    <section class="panel" id="panel" aria-live="polite"></section>
+  </main>
+
+  <aside class="stage" id="stage" aria-label="Badge preview">
+    <div class="printer" id="printer" aria-hidden="true"></div>
+    <div class="clip" aria-hidden="true"></div>
+    <div class="badge-wrap" id="badgeWrap">
+      <div class="badge" id="badge">
+        <div class="face front">
+          <div class="brand"><span>◉ TRUEX</span><span>AGENT</span></div>
+          <div class="avatar" id="bAvatar"></div>
+          <p class="b-name" id="bName"></p>
+          <p class="b-role" id="bRole"></p>
+          <span class="chip">● AI teammate</span>
+          <div class="barcode" aria-hidden="true"></div>
+        </div>
+        <div class="face back">
+          <div class="strip" id="bStrip" aria-hidden="true"></div>
+          <div class="back-body">
+            <p class="sec">ACCESS · MCP</p>
+            <div class="keys" id="bKeys"></div>
+            <p class="sec">CERTIFIED IN · SKILLS</p>
+            <ul class="certs" id="bCerts"></ul>
+            <div class="issued">Issued by @ashok · <span id="bDate"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="flip-btn" id="flipBtn" type="button">⟲ Flip badge</button>
+    <div id="postSlot" style="width:100%;display:grid;justify-items:center"></div>
+  </aside>
+</div>
+
+<dialog id="mcpSheet">
+  <form method="dialog" id="mcpForm">
+    <h3>Connect a new MCP</h3>
+    <label class="field">Service name<input id="mcpName" required placeholder="e.g. Linear" maxlength="24"></label>
+    <div class="nav"><button class="btn" value="cancel" formnovalidate>Cancel</button><button class="btn primary" value="ok">Encode key</button></div>
+  </form>
+</dialog>
+
+<dialog id="skillSheet">
+  <form method="dialog" id="skillForm">
+    <h3>Write a new skill</h3>
+    <label class="field">Skill name<input id="skillName" required placeholder="e.g. Sprint recap" maxlength="28"></label>
+    <div class="field" style="font-size:13px;font-weight:600;color:var(--ink-2)">Needs access to
+      <div class="checks" id="skillNeeds"></div>
+    </div>
+    <div class="nav"><button class="btn" value="cancel" formnovalidate>Cancel</button><button class="btn primary" value="ok">Certify</button></div>
+  </form>
+</dialog>
+
+<script>
+  const TINTS = ["ice", "mint", "butter", "lilac", "peach"];
+  const MCP = [
+    { id: "github", name: "GitHub", tint: "lilac", desc: "Repos, PRs, issues" },
+    { id: "jira", name: "Jira", tint: "ice", desc: "Tickets and sprints" },
+    { id: "slack", name: "Slack", tint: "butter", desc: "Channels and DMs" },
+    { id: "postgres", name: "Postgres", tint: "mint", desc: "Read-only analytics DB" },
+  ];
+  const SKILLS = [
+    { id: "triage", name: "Bug triage", needs: ["jira"] },
+    { id: "recap", name: "PR recap", needs: ["github"] },
+    { id: "notes", name: "Release notes", needs: ["github", "slack"] },
+    { id: "metrics", name: "Weekly metrics", needs: ["postgres", "slack"] },
+  ];
+  const STEPS = ["Face & name", "Access", "Skills", "Print"];
+
+  const state = { step: 0, name: "Nova", role: "Release Analyst", tint: "ice",
+                  mcp: new Set(["github"]), skills: new Set(), printed: false };
+
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, props = {}, ...kids) => {
+    const n = Object.assign(document.createElement(tag), props);
+    kids.forEach((k) => n.append(k));
+    return n;
+  };
+  const mcpById = (id) => MCP.find((m) => m.id === id);
+  const missing = (s) => s.needs.filter((n) => !state.mcp.has(n));
+  let note = "";
+
+  /* ---------- Badge ---------- */
+  function renderBadge() {
+    const initials = state.name.trim().split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?";
+    $("bAvatar").textContent = initials;
+    $("bAvatar").style.background = `var(--${state.tint})`;
+    $("bName").textContent = state.name || "Unnamed";
+    $("bRole").textContent = state.role || "No role yet";
+
+    const strip = $("bStrip"), keys = $("bKeys"), certs = $("bCerts");
+    strip.replaceChildren(); keys.replaceChildren(); certs.replaceChildren();
+    [...state.mcp].forEach((id) => {
+      const m = mcpById(id);
+      strip.append(el("i", { style: `background:var(--${m.tint})` }));
+      keys.append(el("span", { textContent: m.name, style: `background:var(--${m.tint})` }));
+    });
+    if (!state.mcp.size) keys.append(el("span", { className: "empty", textContent: "No access yet" }));
+    [...state.skills].forEach((id) => certs.append(el("li", { textContent: SKILLS.find((s) => s.id === id).name })));
+    if (!state.skills.size) certs.append(el("li", { className: "empty", textContent: "No certifications yet", style: "animation:none" }));
+    $("bDate").textContent = new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  }
+  const setFlip = (back) => $("badge").classList.toggle("flipped", back);
+  $("flipBtn").onclick = () => $("badge").classList.toggle("flipped");
+
+  /* ---------- Stepper ---------- */
+  function renderSteps() {
+    $("steps").replaceChildren(...STEPS.map((label, i) => {
+      const b = el("button", { type: "button", textContent: `${i + 1}. ${label}` });
+      if (i === state.step) b.setAttribute("aria-current", "step");
+      else if (i < state.step) b.className = "done";
+      b.onclick = () => go(i);
+      return el("li", {}, b);
+    }));
+  }
+
+  function go(i) {
+    state.step = i; note = "";
+    renderSteps(); renderPanel();
+    setFlip(i === 1 || i === 2);
+  }
+
+  function navRow(nextLabel = "Next") {
+    const back = el("button", { className: "btn", type: "button", textContent: "Back", hidden: state.step === 0 });
+    back.onclick = () => go(state.step - 1);
+    const next = el("button", { className: "btn primary", type: "button", textContent: nextLabel });
+    next.onclick = () => go(state.step + 1);
+    return el("div", { className: "nav" }, back, next);
+  }
+
+  /* ---------- Panels ---------- */
+  function renderPanel() {
+    const p = $("panel");
+    p.replaceChildren();
+    [panelIdentity, panelAccess, panelSkills, panelPrint][state.step](p);
+  }
+
+  function panelIdentity(p) {
+    p.append(el("h2", { textContent: "Who's joining?" }),
+             el("p", { className: "sub", textContent: "This is the front of the badge. It looks just like a human teammate's." }));
+    const field = (label, key) => {
+      const input = el("input", { value: state[key], maxLength: 28 });
+      input.oninput = () => { state[key] = input.value; renderBadge(); };
+      return el("label", { className: "field" }, label, input);
+    };
+    const sw = el("div", { className: "swatches", role: "group" });
+    TINTS.forEach((t) => {
+      const b = el("button", { type: "button", className: "swatch", style: `background:var(--${t})`, ariaLabel: `${t} color` });
+      b.setAttribute("aria-pressed", t === state.tint);
+      b.onclick = () => { state.tint = t; renderBadge(); renderPanel(); };
+      sw.append(b);
+    });
+    p.append(field("Name", "name"), field("Role", "role"), el("div", { className: "field" }, "Badge color", sw), navRow("Hand over keys"));
+  }
+
+  function panelAccess(p) {
+    p.append(el("h2", { textContent: "Hand over the keys" }),
+             el("p", { className: "sub", textContent: "Each MCP connection encodes a stripe on the access strip." }));
+    const opts = el("div", { className: "opts" });
+    MCP.forEach((m) => {
+      const on = state.mcp.has(m.id);
+      const b = el("button", { type: "button", className: "opt" },
+        el("span", { className: "ico", textContent: m.name[0], style: `background:var(--${m.tint})` }),
+        el("span", { className: "meta" }, el("b", { textContent: m.name }), el("small", { textContent: m.desc })),
+        el("span", { className: "state", textContent: on ? "✓ Granted" : "Grant" }));
+      b.setAttribute("aria-pressed", on);
+      b.onclick = () => toggleMcp(m.id);
+      opts.append(b);
+    });
+    const add = el("button", { type: "button", className: "opt add", textContent: "+ Connect new MCP" });
+    add.onclick = () => { $("mcpName").value = ""; $("mcpSheet").returnValue = ""; $("mcpSheet").showModal(); };
+    opts.append(add);
+    p.append(opts, el("div", { className: "note", textContent: note }), navRow("Assign skills"));
+  }
+
+  function toggleMcp(id) {
+    if (state.mcp.has(id)) {
+      state.mcp.delete(id);
+      // Revoking a key drops any skill that depended on it.
+      const dropped = SKILLS.filter((s) => state.skills.has(s.id) && s.needs.includes(id));
+      dropped.forEach((s) => state.skills.delete(s.id));
+      note = dropped.length ? `Removed ${dropped.map((s) => s.name).join(", ")}: needs ${mcpById(id).name}.` : "";
+    } else { state.mcp.add(id); note = ""; }
+    renderBadge(); renderPanel();
+  }
+
+  function panelSkills(p) {
+    p.append(el("h2", { textContent: "Certify skills" }),
+             el("p", { className: "sub", textContent: "Skills need the right keys. Missing ones get connected in the same click." }));
+    const opts = el("div", { className: "opts" });
+    SKILLS.forEach((s) => {
+      const on = state.skills.has(s.id), miss = missing(s);
+      const label = on ? "✓ Certified" : miss.length ? `Needs ${miss.map((n) => mcpById(n).name).join(" + ")}` : "Certify";
+      const b = el("button", { type: "button", className: "opt" + (!on && miss.length ? " blocked" : "") },
+        el("span", { className: "ico", textContent: "✦", style: "background:var(--accent-soft);color:var(--accent-fg)" }),
+        el("span", { className: "meta" }, el("b", { textContent: s.name }),
+          el("small", { textContent: "Uses " + s.needs.map((n) => mcpById(n).name).join(", ") })),
+        el("span", { className: "state", textContent: label }));
+      b.setAttribute("aria-pressed", on);
+      if (!on && miss.length) b.title = "Click to connect missing access and certify";
+      b.onclick = () => {
+        if (on) state.skills.delete(s.id);
+        else { miss.forEach((n) => state.mcp.add(n)); state.skills.add(s.id); }
+        note = !on && miss.length ? `Also granted ${miss.map((n) => mcpById(n).name).join(", ")}.` : "";
+        renderBadge(); renderPanel();
+      };
+      opts.append(b);
+    });
+    const add = el("button", { type: "button", className: "opt add", textContent: "+ Write new skill" });
+    add.onclick = openSkillSheet;
+    opts.append(add);
+    const n = el("div", { className: "note", textContent: note });
+    n.style.cssText = note ? "color:var(--success-text);background:var(--success-bg)" : "";
+    p.append(opts, n, navRow("Review badge"));
+  }
+
+  function panelPrint(p) {
+    const ready = state.name.trim() && state.mcp.size && state.skills.size;
+    p.append(el("h2", { textContent: state.printed ? `${state.name} is on the team` : "Print the badge" }),
+             el("p", { className: "sub", textContent: ready
+               ? `${state.mcp.size} key${state.mcp.size > 1 ? "s" : ""}, ${state.skills.size} skill${state.skills.size > 1 ? "s" : ""}. Printing posts a welcome to #general.`
+               : "Add a name, at least one key and one skill before printing." }));
+    const back = el("button", { className: "btn", type: "button", textContent: "Back" });
+    back.onclick = () => go(2);
+    const printBtn = el("button", { className: "btn primary", type: "button", textContent: state.printed ? "Print another" : "🖨 Print badge", disabled: !ready });
+    if (!ready) printBtn.style.opacity = ".5";
+    printBtn.onclick = state.printed ? reset : printBadge;
+    p.append(el("div", { className: "nav" }, back, printBtn));
+  }
+
+  /* ---------- Print ---------- */
+  function printBadge() {
+    setFlip(false);
+    const wrap = $("badgeWrap");
+    $("printer").classList.add("on");
+    wrap.classList.remove("printing"); void wrap.offsetWidth; wrap.classList.add("printing");
+    setTimeout(() => {
+      $("printer").classList.remove("on");
+      state.printed = true;
+      const names = (set, list) => [...set].map((id) => list.find((x) => x.id === id).name).join(", ");
+      $("postSlot").replaceChildren(el("div", { className: "post", role: "status" },
+        el("div", { className: "ch", textContent: "# general" }),
+        el("p", { textContent: `🎉 Meet ${state.name}, our new ${state.role}.` }),
+        el("p", { className: "muted", textContent: `Has keys to ${names(state.mcp, MCP)}` }),
+        el("p", { className: "muted", textContent: `Trained in ${names(state.skills, SKILLS)}` })));
+      renderPanel();
+    }, window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1400);
+  }
+
+  function reset() {
+    Object.assign(state, { name: "", role: "", tint: "peach", mcp: new Set(), skills: new Set(), printed: false });
+    $("postSlot").replaceChildren();
+    renderBadge(); go(0);
+  }
+
+  /* ---------- Inline sheets ---------- */
+  $("mcpSheet").addEventListener("close", () => {
+    const name = $("mcpName").value.trim();
+    if ($("mcpSheet").returnValue !== "ok" || !name) return;
+    const id = "custom-" + name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    if (!mcpById(id)) MCP.push({ id, name, tint: TINTS[MCP.length % TINTS.length], desc: "Custom connection" });
+    state.mcp.add(id); note = "";
+    renderBadge(); renderPanel();
+  });
+
+  function openSkillSheet() {
+    $("skillName").value = "";
+    $("skillSheet").returnValue = "";
+    $("skillNeeds").replaceChildren(...MCP.map((m) =>
+      el("label", {}, el("input", { type: "checkbox", value: m.id, checked: state.mcp.has(m.id) }), m.name)));
+    $("skillSheet").showModal();
+  }
+  $("skillSheet").addEventListener("close", () => {
+    const name = $("skillName").value.trim();
+    if ($("skillSheet").returnValue !== "ok" || !name) return;
+    const needs = [...$("skillNeeds").querySelectorAll("input:checked")].map((i) => i.value);
+    const id = "skill-" + Date.now();
+    SKILLS.push({ id, name, needs });
+    needs.forEach((n) => state.mcp.add(n));
+    state.skills.add(id); note = "";
+    renderBadge(); renderPanel();
+  });
+
+  renderBadge(); go(0);
+</script>
+</body>
+</html>

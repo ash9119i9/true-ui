@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>truex onboarding chat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,6..72,400..500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #FFFFFF; --surface: #FFFFFF; --surface-3: #F6F9FA;
+      --line: #E3ECEF; --line-strong: #D8E0E4; --border-control: #D8E0E4;
+      --ink: #1F2A30; --ink-2: #5F6D73; --ink-3: #849198; --ink-disabled: #B4BEC3;
+      --accent: #3691CD; --accent-2: #2A7DB4; --accent-hover: #2A7DB4;
+      --accent-soft: #EAF5F8; --accent-soft-2: #BCDEE8; --accent-fg: #2A72A3; --on-accent: #FFFFFF;
+      --success-bg: #E7F4ED; --success-text: #35624E;
+      --warning-bg: #FFF3D9; --warning-text: #7D5D1D;
+      --error-bg: #FBE7E7;   --error-text: #8D4545;
+      --info-bg: #EAF5F8;    --info-text: #2A72A3;
+      --led-live: #3FA36B;
+      --shadow-sm: 0 1px 2px rgb(31 42 48 / 5%);
+      --shadow-md: 0 1px 2px rgb(31 42 48 / 4%), 0 8px 24px -8px rgb(31 42 48 / 10%);
+      --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+      --font-display: "Figtree", ui-sans-serif, system-ui, sans-serif;
+      --font-accent: "Newsreader", ui-serif, Georgia, serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #171717; --surface: #171717; --surface-3: #242424;
+        --line: #2A2A2A; --line-strong: #363636; --border-control: #404040;
+        --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F; --ink-disabled: #4E5C62;
+        --accent: #3691CD; --accent-2: #5AA8DC; --accent-hover: #2A7DB4;
+        --accent-soft: #14283A; --accent-soft-2: #1F4461; --accent-fg: #BCDEE8; --on-accent: #FFFFFF;
+        --success-bg: #16291F; --success-text: #A8D8BE; --warning-bg: #2E2512; --warning-text: #E6C27A;
+        --error-bg: #2F1A1A; --error-text: #EDB0B0; --info-bg: #14283A; --info-text: #BCDEE8;
+        --led-live: #5CC88A;
+        --shadow-md: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -8px rgb(0 0 0 / 50%);
+        color-scheme: dark;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #171717; --surface: #171717; --surface-3: #242424;
+      --line: #2A2A2A; --line-strong: #363636; --border-control: #404040;
+      --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F; --ink-disabled: #4E5C62;
+      --accent: #3691CD; --accent-2: #5AA8DC; --accent-hover: #2A7DB4;
+      --accent-soft: #14283A; --accent-soft-2: #1F4461; --accent-fg: #BCDEE8; --on-accent: #FFFFFF;
+      --success-bg: #16291F; --success-text: #A8D8BE; --warning-bg: #2E2512; --warning-text: #E6C27A;
+      --error-bg: #2F1A1A; --error-text: #EDB0B0; --info-bg: #14283A; --info-text: #BCDEE8;
+      --led-live: #5CC88A;
+      --shadow-md: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -8px rgb(0 0 0 / 50%);
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--font-sans); -webkit-font-smoothing: antialiased; }
+    button { font: inherit; color: inherit; }
+    :focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; border-radius: 8px; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; }
+    }
+    @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+    @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+    @keyframes shine { from { transform: translateX(-120%); } to { transform: translateX(120%); } }
+    @keyframes clip { 0% { transform: translateY(-10px) rotate(-6deg); opacity: 0; } 60% { transform: translateY(2px) rotate(2deg); opacity: 1; } }
+    @keyframes stamp { 0% { transform: scale(1.6); opacity: 0; } 60% { transform: scale(.92); opacity: 1; } }
+
+    /* ---- page chrome ---- */
+    .app { display: flex; flex-direction: column; min-height: 100dvh; max-width: 760px; margin: 0 auto; padding: 0 16px; }
+    .top { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 10px; padding: 14px 0 10px; background: var(--bg); border-bottom: 1px solid var(--line); }
+    .brand { font: 800 16px var(--font-display); letter-spacing: -.03em; }
+    .crumb { color: var(--ink-3); font-size: 13px; }
+    .grow { flex: 1; min-width: 0; }
+    .btn-solid, .btn-soft, .btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 9px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+    .btn-solid { border: 0; background: var(--accent); color: var(--on-accent); }
+    .btn-solid:hover:not(:disabled) { background: var(--accent-hover); }
+    .btn-solid:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-soft { border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+    .btn-soft:hover { background: var(--surface-3); }
+    .btn-ghost { border: 0; background: none; color: var(--ink-2); }
+    .btn-ghost:hover { color: var(--ink); background: var(--surface-3); }
+    .btn-sm { height: 28px; padding: 0 10px; font-size: 12.5px; }
+
+    /* ---- edge-state preview row ---- */
+    .edges { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 0; border-bottom: 1px dashed var(--line); font-size: 12.5px; color: var(--ink-3); }
+    .edges .lbl { font: 500 11px var(--font-mono); text-transform: uppercase; letter-spacing: .06em; margin-right: 4px; }
+    .chip { height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink-2); font-size: 12.5px; cursor: pointer; }
+    .chip[aria-pressed="true"] { border-color: var(--accent-2); background: var(--accent-soft); color: var(--accent-fg); }
+    .chip:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* ---- stream ---- */
+    .stream { flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 20px 0 24px; }
+    .empty { margin: auto 0; text-align: center; color: var(--ink-3); padding: 48px 0; }
+    .empty h1 { margin: 0 0 6px; font: 600 26px/1.2 var(--font-display); letter-spacing: -.035em; color: var(--ink); }
+    .empty em { font-family: var(--font-accent); font-weight: 400; }
+    .msg-user { align-self: flex-end; max-width: 80%; padding: 10px 14px; border-radius: 16px 16px 4px 16px; background: var(--accent-soft); color: var(--ink); animation: rise .2s ease-out; overflow-wrap: anywhere; }
+    .msg-bot { display: flex; gap: 10px; animation: rise .2s ease-out; }
+    .bot-av { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--ink); color: var(--bg); font: 800 11px var(--font-display); }
+    .bot-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+    .bot-body p { margin: 3px 0 0; color: var(--ink); }
+    .typing { display: inline-flex; gap: 4px; padding: 10px 0; }
+    .typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-3); animation: blink 1.2s infinite; }
+    .typing i:nth-child(2) { animation-delay: .15s; } .typing i:nth-child(3) { animation-delay: .3s; }
+
+    /* system lines: what happened to the teammate */
+    .sys { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 10px; font-size: 13px; color: var(--ink-2); animation: rise .25s ease-out; }
+    .sys .ic { flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: var(--surface-3); color: var(--ink-2); }
+    .sys b { color: var(--ink); font-weight: 600; }
+    .sys .txt { flex: 1; min-width: 180px; }
+    .sys .acts { display: flex; gap: 6px; }
+    .sys.ok .ic { background: var(--success-bg); color: var(--success-text); }
+    .sys.warn { background: var(--warning-bg); color: var(--warning-text); } .sys.warn .ic { background: transparent; color: var(--warning-text); } .sys.warn b { color: var(--warning-text); }
+    .sys.bad { background: var(--error-bg); color: var(--error-text); } .sys.bad .ic { background: transparent; color: var(--error-text); } .sys.bad b { color: var(--error-text); }
+    .sys.info { background: var(--info-bg); color: var(--info-text); } .sys.info .ic { background: transparent; color: var(--info-text); } .sys.info b { color: var(--info-text); }
+
+    /* ---- onboarding card ---- */
+    .ob { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-md); overflow: hidden; animation: rise .25s ease-out; }
+    .ob-head { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; border: 0; background: none; text-align: left; cursor: pointer; }
+    .ob-head:hover { background: var(--surface-3); }
+    .ob-av { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; }
+    .ob-title { font: 600 15px/1.2 var(--font-display); letter-spacing: -.02em; }
+    .ob-sub { font: 11.5px var(--font-mono); color: var(--ink-3); }
+    .ob-chev { color: var(--ink-3); transition: transform .2s; }
+    .ob-head[aria-expanded="true"] .ob-chev { transform: rotate(180deg); }
+    .pill { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 999px; font: 600 11px var(--font-sans); white-space: nowrap; }
+    .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .pill.draft { background: var(--surface-3); color: var(--ink-2); }
+    .pill.await { background: var(--warning-bg); color: var(--warning-text); }
+    .pill.ready { background: var(--info-bg); color: var(--info-text); }
+    .pill.active { background: var(--success-bg); color: var(--success-text); }
+    .pill.attn { background: var(--error-bg); color: var(--error-text); }
+
+    .ob-body { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 18px; padding: 4px 14px 14px; border-top: 1px solid var(--line); }
+    .ob-section h4 { margin: 14px 0 8px; font: 500 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+    .ob-section h4:first-child { margin-top: 12px; }
+
+    /* mini lanyard: pins ride the strap, keycards hang from the ring */
+    .mini { position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 12px; }
+    .mini-strap { position: relative; width: 16px; height: 86px; border-radius: 0 0 3px 3px; background: linear-gradient(90deg, color-mix(in srgb, var(--strap) 70%, #1F2A30), var(--strap) 25%, color-mix(in srgb, var(--strap) 60%, #fff) 50%, var(--strap) 75%, color-mix(in srgb, var(--strap) 70%, #1F2A30)); }
+    .mini-strap .pin { position: absolute; left: 50%; margin-left: -9px; }
+    .mini-ring { width: 18px; height: 18px; margin-top: -3px; border-radius: 50%; border: 3px solid #A7B2B8; }
+    .mini-card { position: relative; width: 132px; margin-top: -4px; border-radius: 12px; background: #FFFFFF; color: #1F2A30; overflow: hidden; box-shadow: 0 1px 1px rgb(31 42 48 / 8%), 0 10px 22px -8px rgb(31 42 48 / 35%); }
+    .mini-top { display: grid; place-items: center; height: 84px; }
+    .mini-name { padding: 6px 10px 0; font: 700 15px/1.1 var(--font-display); letter-spacing: -.03em; }
+    .mini-handle { padding: 0 10px; font: 500 9.5px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: #2A72A3; }
+    .mini-foot { margin-top: 6px; padding: 5px 10px 7px; border-top: 1px dashed #E3ECEF; font: 9.5px var(--font-mono); color: #5F6D73; white-space: nowrap; }
+    .mini-foot.is-bad { color: #8D4545; }
+    .mini-shine { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 85%) 50%, transparent 65%); animation: shine .9s ease-out forwards; }
+    .mini-keys { position: absolute; top: 110px; right: -2px; display: flex; flex-direction: column; gap: 4px; }
+    .mini-key { width: 30px; height: 20px; border-radius: 4px; border: 1px solid rgb(31 42 48 / 16%); background: #FFFFFF; box-shadow: 0 2px 4px rgb(31 42 48 / 18%); position: relative; overflow: hidden; animation: clip .5s cubic-bezier(.34, 1.56, .64, 1); }
+    .mini-key::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--mono); }
+    .mini-key.is-off { opacity: .45; border-style: dashed; box-shadow: none; animation: none; }
+
+    /* pin: training badge on the strap */
+    .pin { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); color: var(--on-accent); box-shadow: 0 1px 2px rgb(31 42 48 / 30%), inset 0 1px 0 rgb(255 255 255 / 40%); flex: none; }
+    .pin.is-locked { background: var(--ink-disabled); color: var(--surface); }
+    .pin.is-new { animation: stamp .45s cubic-bezier(.34, 1.56, .64, 1); }
+    .pin-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+    .pin-row:last-child { border-bottom: 0; }
+    .row-title { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-weight: 600; }
+    .row-desc { font-size: 12.5px; color: var(--ink-2); }
+    .row-lock { margin-top: 2px; font-size: 12px; color: var(--warning-text); }
+    .tag { font: 500 10.5px var(--font-mono); color: var(--ink-3); }
+    .ver { font: 600 10px/16px var(--font-mono); padding: 0 5px; border-radius: 5px; background: var(--accent-soft); color: var(--accent-fg); }
+
+    /* keycard: access to one system */
+    .keys { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+    .key { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 10px 12px 10px 18px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface); overflow: hidden; animation: rise .25s ease-out; }
+    .key::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--mono); }
+    .key.needs { border-style: dashed; background: var(--surface-3); }
+    .key.expired, .key.revoked { background: var(--surface-3); }
+    .key.expired::before, .key.revoked::before { background: var(--ink-disabled); }
+    .key-top { display: flex; align-items: center; gap: 8px; }
+    .key-name { font-weight: 600; }
+    .led { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-disabled); }
+    .led.live { background: var(--led-live); box-shadow: 0 0 0 3px color-mix(in srgb, var(--led-live) 22%, transparent); }
+    .led.connecting { background: var(--accent); animation: pulse 1s infinite; }
+    .led.expired { background: var(--warning-text); }
+    .led.revoked { background: var(--error-text); }
+    .key-state { margin-left: auto; font: 500 10.5px var(--font-mono); color: var(--ink-3); }
+    .key-meta { font: 11.5px var(--font-mono); color: var(--ink-2); }
+    .scope { display: flex; flex-wrap: wrap; gap: 4px; }
+    .scope button { height: 24px; padding: 0 8px; border-radius: 7px; border: 1px solid var(--line-strong); background: var(--surface); font-size: 12px; color: var(--ink-2); cursor: pointer; }
+    .scope button[aria-pressed="true"] { border-color: var(--accent-2); background: var(--accent-soft); color: var(--accent-fg); font-weight: 500; }
+    .scope button:disabled { cursor: default; }
+    .wide-warn { padding: 8px 10px; border-radius: 9px; background: var(--warning-bg); color: var(--warning-text); font-size: 12.5px; }
+    .wide-warn .acts { display: flex; gap: 6px; margin-top: 6px; }
+
+    .ob-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 14px; border-top: 1px solid var(--line); background: var(--surface-3); }
+    .ob-note { flex: 1; min-width: 200px; font-size: 12.5px; color: var(--ink-2); }
+
+    /* ---- composer ---- */
+    .composer { position: sticky; bottom: 0; padding: 10px 0 16px; background: linear-gradient(transparent, var(--bg) 18px); }
+    .comp-box { display: flex; align-items: flex-end; gap: 8px; padding: 8px 8px 8px 14px; border: 1px solid var(--border-control); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-sm); }
+    .comp-box:focus-within { border-color: var(--accent-2); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .comp-box textarea { flex: 1; min-width: 0; min-height: 40px; max-height: 140px; padding: 9px 0; border: 0; outline: none; resize: none; background: none; color: var(--ink); font: inherit; font-size: 14.5px; }
+    .send { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 10px; background: var(--accent); color: var(--on-accent); cursor: pointer; }
+    .send:disabled { opacity: .4; cursor: not-allowed; }
+    .comp-hint { margin-top: 6px; font-size: 11.5px; color: var(--ink-3); text-align: center; }
+
+    @media (max-width: 600px) {
+      .ob-body { grid-template-columns: minmax(0, 1fr); }
+      .mini { padding-bottom: 4px; }
+      .crumb { display: none; }
+    }
+    #boot-error { position: fixed; inset: 16px; padding: 16px; border-radius: 12px; background: #2a0f0f; color: #ffd7d7; font: 12px/1.5 var(--font-mono); white-space: pre-wrap; overflow: auto; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js" crossorigin></script>
+
+  <script type="text/plain" id="app-src">
+const { useState, useEffect, useRef } = React;
+
+// Keycards: what the agent can reach. Mono colours and tool counts come from MCP_SERVERS in app.tsx.
+// The first scope is always the least-privilege default; `wide` scopes need an explicit confirm.
+const SERVICES: Record<string, any> = {
+  sentry: { label: "Sentry", mono: "#6B4FA0", tools: 7, scopes: [
+    { id: "read", label: "Read", detail: "errors, releases" },
+    { id: "write", label: "Read and write", detail: "resolve, assign, comment", wide: true }] },
+  slack: { label: "Slack", mono: "#8C4A86", tools: 8, scopes: [
+    { id: "post", label: "Post only", detail: "#incidents" },
+    { id: "full", label: "Read and post", detail: "all public channels", wide: true }] },
+  github: { label: "GitHub", mono: "#1F2A30", tools: 22, scopes: [
+    { id: "read", label: "Read", detail: "repos, PRs" },
+    { id: "write", label: "Read and write", detail: "issues, comments", wide: true }] },
+};
+// Pins: what the agent knows. `requires` lists the keycards a skill needs before it can run.
+const PINS: any[] = [
+  { id: "runbook", label: "Runbooks", desc: "Step-by-step incident playbooks", meta: "workspace", requires: ["sentry", "slack"], usedBy: 3 },
+  { id: "research", label: "Web research", desc: "Search, read and cite sources", meta: "built-in", requires: [] },
+];
+const RELEASE_PIN = { id: "release", label: "Release notes", desc: "Changelog from merged work", meta: "workspace", requires: ["github"] };
+const DRAFT = { name: "Aria", handle: "aria", tintBg: "#EAF5F8", strap: "#3691CD" };
+const INTENT = "Make an agent that triages Sentry errors and posts to Slack";
+
+const PATHS: Record<string, string> = {
+  check: "M20 6 9 17l-5-5",
+  chevron: "m6 9 6 6 6-6",
+  lock: "M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4",
+  key: "M15 7a4 4 0 1 1-3.9 4.9L3 20v-3h3v-3h3l1.1-1.1A4 4 0 0 1 15 7zM16 9h.01",
+  pin: "M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z",
+  send: "M12 19V5M5 12l7-7 7 7",
+  alert: "M12 9v4M12 17h.01M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z",
+  user: "M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10z",
+  up: "M12 19V5M5 12l7-7 7 7",
+  sun: "M12 3v2M12 19v2M5 5l1.4 1.4M17.6 17.6 19 19M3 12h2M19 12h2M5 19l1.4-1.4M17.6 6.4 19 5M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z",
+  replay: "M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5",
+};
+function Icon({ name, size = 16, stroke = 1.9 }: any) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={stroke}
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={PATHS[name]} /></svg>
+  );
+}
+
+// A trimmed "Antenna Navy" robot from the badge's Robot(): shell, visor, eyes, antenna.
+function MiniRobot({ size = 64 }: any) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 120 120" aria-hidden="true">
+      <ellipse cx="60" cy="109" rx="34" ry="6" fill="#101820" opacity=".14" />
+      <rect x="13" y="50" width="20" height="38" rx="9" fill="#24365A" stroke="#16213A" strokeWidth="1.5" />
+      <rect x="37" y="82" width="19" height="25" rx="8.5" fill="#24365A" stroke="#16213A" strokeWidth="1.5" />
+      <rect x="64" y="82" width="19" height="25" rx="8.5" fill="#24365A" stroke="#16213A" strokeWidth="1.5" />
+      <rect x="24" y="22" width="72" height="72" rx="31" fill="#2E4470" stroke="#16213A" strokeWidth="1.5" />
+      <path d="M90 46c3.6 10 3.4 24-2 34" fill="none" stroke="#fff" strokeOpacity=".24" strokeWidth="3" strokeLinecap="round" />
+      <rect x="35" y="36" width="54" height="33" rx="15" fill="#0B1220" />
+      <rect x="37.5" y="38.5" width="49" height="28" rx="12.5" fill="#16213A" />
+      <circle cx="52" cy="53" r="4.1" fill="#BCDEE8" /><circle cx="72" cy="53" r="4.1" fill="#BCDEE8" />
+      <circle cx="53.4" cy="51.6" r="1.2" fill="#fff" /><circle cx="73.4" cy="51.6" r="1.2" fill="#fff" />
+      <path d="M43.5 45c3-2.8 8-3.8 13-3.6" fill="none" stroke="#fff" strokeOpacity=".55" strokeWidth="2.6" strokeLinecap="round" />
+      <path d="M60 23V10" stroke="#16213A" strokeWidth="3" strokeLinecap="round" />
+      <circle cx="60" cy="8.5" r="5.2" fill="#BCDEE8" stroke="#7FA9B6" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+const STATE_COPY: Record<string, string> = {
+  needs: "Needs sign-in", connecting: "Signing in", live: "Live", expired: "Expired", revoked: "Removed",
+};
+const PILL: Record<string, [string, string]> = {
+  draft: ["draft", "Drafting"], await: ["await", "Awaiting access"], ready: ["ready", "Ready"],
+  active: ["active", "Active"], attn: ["attn", "Needs attention"],
+};
+
+function App() {
+  const [text, setText] = useState(INTENT);
+  const [sent, setSent] = useState(false);
+  const [replied, setReplied] = useState(false);
+  const [open, setOpen] = useState(true);
+  const [conn, setConn] = useState<Record<string, string>>({ sentry: "needs", slack: "needs", github: "needs" });
+  const [scope, setScope] = useState<Record<string, string>>({ sentry: "read", slack: "post", github: "read" });
+  const [confirmWide, setConfirmWide] = useState<any>(null);
+  const [approved, setApproved] = useState(false);
+  const [shine, setShine] = useState(0);
+  const [log, setLog] = useState<any[]>([]);
+  const [edges, setEdges] = useState({ expired: false, v2: false, removed: false, locked: false });
+  const [ver, setVer] = useState(1);
+  const [hasRelease, setHasRelease] = useState(false);
+  const timers = useRef<any[]>([]);
+  const endRef = useRef<HTMLDivElement>(null);
+
+  const later = (ms: number, fn: () => void) => { timers.current.push(setTimeout(fn, ms)); };
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [log.length, replied, sent]);
+
+  const push = (line: any) => setLog(l => [...l.filter(x => x.id !== line.id), { ...line, at: Date.now() + Math.random() }]);
+  const drop = (id: string) => setLog(l => l.filter(x => x.id !== id));
+
+  // Live state of each keycard, with the edge-state previews layered on top once Aria is active.
+  const keyState = (id: string) => {
+    if (approved && edges.removed && id === "sentry") return "revoked";
+    if (approved && edges.expired && id === "slack") return "expired";
+    return conn[id];
+  };
+  const pins = [...PINS, ...(edges.locked || hasRelease ? [RELEASE_PIN] : [])];
+  const keyIds = ["sentry", "slack", ...(edges.locked || hasRelease ? ["github"] : [])];
+  const pinLocked = (p: any) => p.requires.some((k: string) => keyState(k) !== "live");
+  const missingFor = (p: any) => p.requires.filter((k: string) => keyState(k) !== "live").map((k: string) => SERVICES[k].label);
+  const pending = ["sentry", "slack"].filter(k => conn[k] !== "live");
+  const issues = approved && (keyIds.some(k => keyState(k) !== "live") || pins.some(pinLocked));
+  const status = approved ? (issues ? "attn" : "active") : pending.length === 2 ? "draft" : pending.length ? "await" : "ready";
+  const scopeOf = (k: string) => SERVICES[k].scopes.find((s: any) => s.id === scope[k]);
+
+  const send = () => {
+    if (!text.trim() || sent) return;
+    setSent(true); setText("");
+    later(900, () => setReplied(true));
+  };
+
+  const signIn = (k: string) => {
+    setConn(c => ({ ...c, [k]: "connecting" }));
+    later(1100, () => setConn(c => ({ ...c, [k]: "live" })));
+  };
+
+  const pickScope = (k: string, s: any) => {
+    if (s.wide && scope[k] !== s.id) { setConfirmWide({ k, s }); return; }
+    setScope(x => ({ ...x, [k]: s.id })); setConfirmWide(null);
+  };
+
+  const approve = () => {
+    setApproved(true); setShine(n => n + 1); setOpen(false);
+    const lines = [
+      { id: "join", kind: "ok", icon: "user", text: <><b>Aria</b> joined the team as <b>@aria</b>.</> },
+      ...PINS.map(p => ({ id: "learn-" + p.id, kind: "ok", icon: "pin", text: <><b>Aria</b> learned <b>{p.label}</b>.</> })),
+      ...["sentry", "slack"].map(k => ({ id: "key-" + k, kind: "ok", icon: "key", text: <><b>Aria</b> was given <b>{SERVICES[k].label}</b> ({scopeOf(k).label.toLowerCase()}).</> })),
+    ];
+    lines.forEach((l, i) => later(250 + i * 280, () => push(l)));
+  };
+
+  // Edge-state previews. Each one adds a stream line with the single fix it needs.
+  const toggle = (key: string) => {
+    const on = !(edges as any)[key];
+    setEdges(e => ({ ...e, [key]: on }));
+    if (!on) { drop("edge-" + key); return; }
+    if (key === "expired") push({ id: "edge-expired", kind: "warn", icon: "alert",
+      text: <><b>Aria's Slack key expired.</b> Sign in again to keep posting. Runbooks is paused.</>,
+      acts: [{ label: "Sign in again", solid: true, run: () => {
+        setEdges(e => ({ ...e, expired: false })); drop("edge-expired");
+        push({ id: "renew-slack", kind: "ok", icon: "key", text: <>Slack key renewed. <b>Runbooks</b> is unlocked again.</> });
+      } }] });
+    if (key === "v2") push({ id: "edge-v2", kind: "info", icon: "pin",
+      text: <><b>Runbooks v2</b> is out: adds a severity step. Used by 3 teammates.</>,
+      acts: [
+        { label: "Update Aria", solid: true, run: () => { setVer(2); setEdges(e => ({ ...e, v2: false })); drop("edge-v2");
+          push({ id: "learn-v2", kind: "ok", icon: "pin", text: <><b>Aria</b> learned <b>Runbooks v2</b>.</> }); } },
+        { label: "Keep v1", run: () => { setEdges(e => ({ ...e, v2: false })); drop("edge-v2");
+          push({ id: "keep-v1", kind: "", icon: "pin", text: <>Aria stays on <b>Runbooks v1</b>. You can update from the pin board later.</> }); } },
+      ] });
+    if (key === "removed") push({ id: "edge-removed", kind: "bad", icon: "alert",
+      text: <><b>An admin removed Sentry</b> from the workspace. Aria lost the key, so Runbooks is locked.</>,
+      acts: [{ label: "Ask an admin", run: () => push({ id: "ask-admin", kind: "", icon: "user", text: <>Request sent to workspace admins to restore <b>Sentry</b>.</> }) }] });
+    if (key === "locked") push({ id: "edge-locked", kind: "info", icon: "lock",
+      text: <><b>Aria</b> was asked to learn <b>Release notes</b>. It needs GitHub (read) first.</>,
+      acts: [{ label: "Grant GitHub (read)", solid: true, run: () => {
+        setConn(c => ({ ...c, github: "connecting" }));
+        later(900, () => {
+          setConn(c => ({ ...c, github: "live" })); setHasRelease(true); setEdges(e => ({ ...e, locked: false })); drop("edge-locked");
+          push({ id: "key-github", kind: "ok", icon: "key", text: <><b>Aria</b> was given <b>GitHub</b> (read).</> });
+          later(280, () => push({ id: "learn-release", kind: "ok", icon: "pin", text: <><b>Aria</b> learned <b>Release notes</b>.</> }));
+        });
+      } }] });
+  };
+
+  const reset = () => {
+    timers.current.forEach(clearTimeout); timers.current = [];
+    setText(INTENT); setSent(false); setReplied(false); setOpen(true); setApproved(false); setShine(0); setLog([]);
+    setConn({ sentry: "needs", slack: "needs", github: "needs" }); setScope({ sentry: "read", slack: "post", github: "read" });
+    setConfirmWide(null); setEdges({ expired: false, v2: false, removed: false, locked: false }); setVer(1); setHasRelease(false);
+  };
+  const flipTheme = () => {
+    const el = document.documentElement;
+    const dark = el.dataset.theme ? el.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    el.dataset.theme = dark ? "light" : "dark";
+  };
+
+  const liveKeys = keyIds.filter(k => keyState(k) === "live").length;
+  const [pillCls, pillText] = PILL[status];
+
+  return (
+    <div className="app">
+      <header className="top">
+        <span className="brand">truex</span>
+        <span className="crumb">New chat · onboarding from a prompt</span>
+        <span className="grow" />
+        <button className="btn-ghost btn-sm" onClick={reset}><Icon name="replay" size={14} /> Replay</button>
+        <button className="btn-ghost btn-sm" onClick={flipTheme} aria-label="Switch light or dark theme"><Icon name="sun" size={14} /></button>
+      </header>
+
+      <div className="edges" role="group" aria-label="Preview later states">
+        <span className="lbl">Preview later</span>
+        {[["expired", "Key expired"], ["v2", "Skill v2"], ["removed", "MCP removed"], ["locked", "Locked pin"]].map(([k, l]) => (
+          <button key={k} className="chip" aria-pressed={(edges as any)[k]} disabled={!approved} onClick={() => toggle(k)}>{l}</button>
+        ))}
+        {!approved && <span>Approve Aria first to preview these.</span>}
+      </div>
+
+      <main className="stream" aria-live="polite">
+        {!sent && (
+          <div className="empty">
+            <h1>Describe the teammate <em>you need</em></h1>
+            <div>truex drafts the badge, the skills it should learn and the access it needs. You approve.</div>
+          </div>
+        )}
+        {sent && <div className="msg-user">{INTENT}</div>}
+        {sent && (
+          <div className="msg-bot">
+            <span className="bot-av">tx</span>
+            <div className="bot-body">
+              {!replied ? <span className="typing" aria-label="Drafting"><i /><i /><i /></span> : <>
+                <p>Here's a draft teammate. It knows how to run incident playbooks, and it needs two keys before it can use them. I picked the smallest access that works.</p>
+                <section className="ob" aria-label="Onboarding draft for Aria">
+                  <button className="ob-head" aria-expanded={open} onClick={() => setOpen(o => !o)}>
+                    <span className="ob-av" style={{ background: DRAFT.tintBg }}><MiniRobot size={36} /></span>
+                    <span className="grow">
+                      <span className="ob-title">{DRAFT.name}</span>
+                      <span className="ob-sub" style={{ display: "block" }}>@{DRAFT.handle} · {liveKeys} {liveKeys === 1 ? "key" : "keys"} · {pins.length} pins</span>
+                    </span>
+                    <span className={"pill " + pillCls}>{pillText}</span>
+                    <span className="ob-chev"><Icon name="chevron" /></span>
+                  </button>
+
+                  {open && <>
+                    <div className="ob-body">
+                      <div className="mini" aria-hidden="true">
+                        <span className="mini-strap" style={{ "--strap": DRAFT.strap } as any}>
+                          {pins.map((p, i) => (
+                            <span key={p.id} className={"pin" + (pinLocked(p) ? " is-locked" : " is-new")} style={{ top: 10 + i * 24 }}>
+                              <Icon name={pinLocked(p) ? "lock" : "pin"} size={10} stroke={2.4} />
+                            </span>
+                          ))}
+                        </span>
+                        <span className="mini-ring" />
+                        <div className="mini-card">
+                          {shine > 0 && <span key={shine} className="mini-shine" />}
+                          <div className="mini-top" style={{ background: DRAFT.tintBg }}><MiniRobot size={70} /></div>
+                          <div className="mini-name">{DRAFT.name}</div>
+                          <div className="mini-handle">@{DRAFT.handle}</div>
+                          <div className={"mini-foot" + (issues ? " is-bad" : "")}>{liveKeys} keys · {pins.length} pins</div>
+                        </div>
+                        <div className="mini-keys">
+                          {keyIds.map(k => <span key={k + keyState(k)} className={"mini-key" + (keyState(k) === "live" ? "" : " is-off")} style={{ "--mono": SERVICES[k].mono } as any} />)}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="ob-section">
+                          <h4>Pins · what Aria knows</h4>
+                          {pins.map(p => (
+                            <div key={p.id} className="pin-row">
+                              <span className={"pin" + (pinLocked(p) ? " is-locked" : "")}><Icon name={pinLocked(p) ? "lock" : "pin"} size={10} stroke={2.4} /></span>
+                              <div className="grow">
+                                <div className="row-title">{p.label}{p.id === "runbook" && <span className="ver">v{ver}</span>}<span className="tag">{p.meta}</span></div>
+                                <div className="row-desc">{p.desc}</div>
+                                {pinLocked(p) && <div className="row-lock">Grant {missingFor(p).join(" and ")} access to unlock {p.label}.</div>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="ob-section">
+                          <h4>Keys · what Aria can reach</h4>
+                          <div className="keys">
+                            {keyIds.map(k => {
+                              const svc = SERVICES[k], st = keyState(k), sc = scopeOf(k);
+                              return (
+                                <div key={k} className={"key " + st} style={{ "--mono": svc.mono } as any}>
+                                  <div className="key-top">
+                                    <span className={"led " + st} />
+                                    <span className="key-name">{svc.label}</span>
+                                    <span className="key-state">{STATE_COPY[st]}</span>
+                                  </div>
+                                  <div className="key-meta">{sc.label.toLowerCase()} · {sc.detail} · {svc.tools} tools</div>
+                                  {!approved && (
+                                    <div className="scope" role="group" aria-label={`${svc.label} access`}>
+                                      {svc.scopes.map((s: any) => (
+                                        <button key={s.id} aria-pressed={scope[k] === s.id} onClick={() => pickScope(k, s)}>{s.label}</button>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {confirmWide && confirmWide.k === k && (
+                                    <div className="wide-warn" role="alert">
+                                      {confirmWide.s.label} lets Aria {confirmWide.s.detail} in {svc.label}. Runbooks only needs {svc.scopes[0].label.toLowerCase()}.
+                                      <div className="acts">
+                                        <button className="btn-soft btn-sm" onClick={() => { setScope(x => ({ ...x, [k]: confirmWide.s.id })); setConfirmWide(null); }}>Grant {confirmWide.s.label.toLowerCase()}</button>
+                                        <button className="btn-ghost btn-sm" onClick={() => setConfirmWide(null)}>Keep {svc.scopes[0].label.toLowerCase()}</button>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {!approved && st === "needs" && <button className="btn-solid btn-sm" onClick={() => signIn(k)}>Sign in to {svc.label}</button>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {!approved && (
+                      <div className="ob-foot">
+                        <span className="ob-note">
+                          {pending.length ? `Sign in to ${pending.map(k => SERVICES[k].label).join(" and ")} to unlock Runbooks.` : "All keys are live. Aria gets only the access shown here."}
+                        </span>
+                        <button className="btn-solid" disabled={pending.length > 0} onClick={approve}><Icon name="check" size={14} stroke={2.2} /> Approve Aria</button>
+                      </div>
+                    )}
+                  </>}
+                </section>
+              </>}
+            </div>
+          </div>
+        )}
+
+        {log.map(l => (
+          <div key={l.id} className={"sys " + (l.kind || "")}>
+            <span className="ic"><Icon name={l.icon} size={13} /></span>
+            <span className="txt">{l.text}</span>
+            {l.acts && <span className="acts">{l.acts.map((a: any) => (
+              <button key={a.label} className={(a.solid ? "btn-solid" : "btn-soft") + " btn-sm"} onClick={a.run}>{a.label}</button>
+            ))}</span>}
+          </div>
+        ))}
+        <div ref={endRef} />
+      </main>
+
+      <footer className="composer">
+        <form className="comp-box" onSubmit={e => { e.preventDefault(); send(); }}>
+          <textarea value={text} rows={1} aria-label="Message" placeholder={sent ? "Ask Aria something, or @mention it" : "Describe a teammate"}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
+          <button className="send" type="submit" disabled={!text.trim() || sent} aria-label="Send"><Icon name="send" size={16} stroke={2.2} /></button>
+        </form>
+        <div className="comp-hint">Prototype. Sign-in, scopes and stream lines are simulated.</div>
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")!).render(<App />);
+  </script>
+  <script>
+    (() => {
+      try {
+        const { code } = Babel.transform(document.getElementById("app-src").textContent, {
+          filename: "app.tsx",
+          presets: [["typescript", { isTSX: true, allExtensions: true }], ["react", { runtime: "classic" }]],
+        });
+        new Function("React", "ReactDOM", code)(React, ReactDOM);
+      } catch (err) {
+        const el = document.createElement("pre");
+        el.id = "boot-error";
+        el.textContent = String(err && err.stack || err);
+        document.body.appendChild(el);
+      }
+    })();
+  </script>
+</body>
+</html>
