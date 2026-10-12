@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>truex · 04-signals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,6..72,400..500&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../deck.css">
+</head>
+<body class="flat">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <clipPath id="clover" clipPathUnits="objectBoundingBox"><path d="M.5,.1 C.82,-.1 1.1,.18 .9,.5 C1.1,.82 .82,1.1 .5,.9 C.18,1.1 -.1,.82 .1,.5 C-.1,.18 .18,-.1 .5,.1Z"/></clipPath>
+  <symbol id="spark" viewBox="0 0 40 40"><path d="m20 8 3.2 8.5 8.5 3.2-8.5 3.2L20 31.4l-3.2-8.5-8.5-3.2 8.5-3.2Z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/></symbol>
+  <symbol id="sq" viewBox="0 0 200 14" preserveAspectRatio="none"><path d="M3 9C32 2 52 13 84 7S146 2 197 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></symbol>
+  <symbol id="srch" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></g></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="arrow-r" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+<main class="deck">
+<div class="slot" id="s04"><section class="slide sl-04" data-top="04 · investor and market signals">
+  <style>
+    .sl-04 .head{position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*160);width:calc(var(--k)*1120)}
+    .sl-04 .hl{margin-top:calc(var(--k)*28)}
+    .sl-04 .lbl{position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*494);font:500 calc(var(--k)*16)/1.4 var(--font-mono);letter-spacing:.06em;color:var(--ink-2)}
+
+    /* small multiples: one bar chart card per metric, each on its own scale. Rows align with a shared logo column. */
+    .sl-04 .logos{position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*600);width:calc(var(--k)*200)}
+    .sl-04 .logos div{height:calc(var(--k)*68);display:flex;align-items:center}
+    .sl-04 .logos img{display:block;width:auto}
+    .sl-04 .charts{position:absolute;left:calc(var(--k)*340);top:calc(var(--k)*532);width:calc(var(--k)*1460);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:calc(var(--k)*24)}
+    .sl-04 .ecard{padding:calc(var(--k)*28) calc(var(--k)*30) calc(var(--k)*14)}
+    .sl-04 .th{height:calc(var(--k)*40);font:500 calc(var(--k)*16)/1.3 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent-fg)}
+    .sl-04 .cell{height:calc(var(--k)*68);display:flex;flex-direction:column;justify-content:center;gap:calc(var(--k)*9)}
+    .sl-04 .v{font:700 calc(var(--k)*22)/1 var(--font-sans);letter-spacing:-.01em;color:var(--ink);white-space:nowrap}
+    .sl-04 .v small{font:400 calc(var(--k)*17)/1 var(--font-sans);letter-spacing:0;color:var(--ink-2);margin-left:calc(var(--k)*6)}
+    .sl-04 .v.nd{font-weight:400;color:var(--ink-2)}
+    /* track = the metric's scale; bar width = value / card max. Square at the baseline, 4px rounded data-end. */
+    .sl-04 .trk{position:relative;height:calc(var(--k)*18);border-radius:0 calc(var(--k)*4) calc(var(--k)*4) 0;background:var(--surface-3)}
+    .sl-04 .bar{position:absolute;left:0;top:0;bottom:0;width:calc(var(--v) * (100% - var(--k)*30));background:var(--accent);border-radius:0 calc(var(--k)*4) calc(var(--k)*4) 0}
+    /* "Over …" values: bar stops at the reported minimum and fades on, rather than claiming an end */
+    .sl-04 .bar.over{border-radius:0}
+    .sl-04 .bar.over::after{content:"";position:absolute;left:100%;top:0;bottom:0;width:calc(var(--k)*28);border-radius:0 calc(var(--k)*4) calc(var(--k)*4) 0;background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 50%,transparent),transparent)}
+    .sl-04 .trk.nd{background:none;border:1px dashed var(--line-strong);border-radius:calc(var(--k)*4)}
+    .sl-04 .fine{position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*922);font-size:calc(var(--k)*18)}
+    .sl-04 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  </style>
+
+  <div class="head">
+    <span class="eyebrow">04 · Market signals</span>
+    <h1 class="hl sm">Enterprise AI agents are attracting significant capital&nbsp;— and <em>generating revenue.</em></h1>
+  </div>
+
+  <div class="tint" style="left:calc(var(--k)*1310);top:calc(var(--k)*160);width:calc(var(--k)*490);font-size:calc(var(--k)*22)">
+    <span class="k">Market takeaway</span>
+    Investors are backing enterprise AI companies across specialized industries and horizontal automation. <b>Reported recurring revenue also demonstrates real customer spending in parts of this category.</b>
+  </div>
+
+  <div class="inset" style="left:calc(var(--k)*80);right:calc(var(--k)*80);top:calc(var(--k)*470);height:calc(var(--k)*492)"></div>
+
+  <p class="lbl">Selected publicly reported company metrics, as of October 2026.</p>
+
+  <div class="logos" aria-hidden="true">
+    <div><img src="../assets/logos/harvey.svg" alt="Harvey" style="height:calc(var(--k)*28)"></div>
+    <div><img src="../assets/logos/sierra.svg" alt="Sierra" style="height:calc(var(--k)*32)"></div>
+    <div><img src="../assets/logos/gumloop.svg" alt="Gumloop" style="height:calc(var(--k)*34)"></div>
+    <div><img src="../assets/logos/nova.png" alt="Nova Intelligence" style="height:calc(var(--k)*24)"></div>
+  </div>
+
+  <div class="charts" aria-hidden="true">
+    <div class="ecard">
+      <p class="th">Latest reported valuation</p>
+      <div class="cell" title="Harvey · Latest reported valuation · $15.5B"><span class="v">$15.5B</span><div class="trk"><i class="bar" style="--v:1"></i></div></div>
+      <div class="cell" title="Sierra · Latest reported valuation · Over $15B"><span class="v">Over $15B</span><div class="trk"><i class="bar over" style="--v:0.9677"></i></div></div>
+      <div class="cell"><span class="v nd">Not disclosed</span><div class="trk nd"></div></div>
+      <div class="cell"><span class="v nd">Not disclosed</span><div class="trk nd"></div></div>
+    </div>
+    <div class="ecard">
+      <p class="th">Selected 2026 funding round</p>
+      <div class="cell" title="Harvey · Selected 2026 funding round · $550M"><span class="v">$550M</span><div class="trk"><i class="bar" style="--v:0.5789"></i></div></div>
+      <div class="cell" title="Sierra · Selected 2026 funding round · $950M"><span class="v">$950M</span><div class="trk"><i class="bar" style="--v:1"></i></div></div>
+      <div class="cell" title="Gumloop · Selected 2026 funding round · $50M"><span class="v">$50M</span><div class="trk"><i class="bar" style="--v:0.0526"></i></div></div>
+      <div class="cell" title="Nova Intelligence · Selected 2026 funding round · $31.5M"><span class="v">$31.5M</span><div class="trk"><i class="bar" style="--v:0.0332"></i></div></div>
+    </div>
+    <div class="ecard">
+      <p class="th">Published ARR</p>
+      <div class="cell" title="Harvey · Published ARR · Over $100M (Aug 2025)"><span class="v">Over $100M<small>(Aug 2025)</small></span><div class="trk"><i class="bar over" style="--v:0.6667"></i></div></div>
+      <div class="cell" title="Sierra · Published ARR · Over $150M (Feb 2026)"><span class="v">Over $150M<small>(Feb 2026)</small></span><div class="trk"><i class="bar over" style="--v:1"></i></div></div>
+      <div class="cell"><span class="v nd">Not disclosed</span><div class="trk nd"></div></div>
+      <div class="cell"><span class="v nd">Not disclosed</span><div class="trk nd"></div></div>
+    </div>
+  </div>
+
+  <!-- the same data as a table, for screen readers -->
+  <table class="sr">
+    <caption>Selected publicly reported company metrics, as of October 2026.</caption>
+    <thead><tr><th>Company</th><th>Latest reported valuation</th><th>Selected 2026 funding round</th><th>Published ARR</th></tr></thead>
+    <tbody>
+      <tr><td>Harvey</td><td>$15.5B</td><td>$550M</td><td>Over $100M (Aug 2025)</td></tr>
+      <tr><td>Sierra</td><td>Over $15B</td><td>$950M</td><td>Over $150M (Feb 2026)</td></tr>
+      <tr><td>Gumloop</td><td>Not disclosed</td><td>$50M</td><td>Not disclosed</td></tr>
+      <tr><td>Nova Intelligence</td><td>Not disclosed</td><td>$31.5M</td><td>Not disclosed</td></tr>
+    </tbody>
+  </table>
+
+  <p class="fine">The figures are company-specific, disclosed at different dates, and do not establish Truex's potential valuation or market share.</p>
+<div class="s-top"><span>04 · investor and market signals</span><span>truex · introduction · october 2026</span></div><div class="s-foot"><span class="pg">04 / 08</span></div></section></div>
+</main>
+</body>
+</html>

@@ -1,0 +1,208 @@
+<section class="slide sl-00" data-top="truex · introduction deck" data-top-right="">
+  <div style="position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*270);width:calc(var(--k)*880)">
+    <span class="eyebrow">Introduction deck</span>
+    <h1 class="hl" style="font-size:calc(var(--k)*200);line-height:1;margin-top:calc(var(--k)*36);letter-spacing:-.06em">truex</h1>
+    <p class="hl sm" style="margin-top:calc(var(--k)*32);font-weight:700;color:var(--ink)">An AI agent platform for enterprise <em>execution</em></p>
+    <div style="display:flex;gap:calc(var(--k)*12);margin-top:calc(var(--k)*56)">
+      <span class="chip"><span class="d"></span>October 2026</span>
+      <span class="chip">Early-stage venture</span>
+    </div>
+  </div>
+
+  <style>
+    /* right side = the capabilities panel of design/login-google-v1.html, scaled to the slide */
+    .lg-right{position:absolute;top:calc(var(--k)*40);right:calc(var(--k)*40);bottom:calc(var(--k)*40);width:calc(var(--k)*800);
+      --obj-drop:drop-shadow(0 12px 16px rgb(31 42 48 / 14%));
+      --noise:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .7 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      border-radius:calc(var(--k)*32);background-color:var(--board-bg);background-image:radial-gradient(var(--board-dot) 1px,transparent 1.2px);background-size:calc(var(--k)*19) calc(var(--k)*19);
+      border:1px solid var(--line);display:flex;flex-direction:column;padding:calc(var(--k)*30) calc(var(--k)*32) calc(var(--k)*27);min-width:0;overflow:hidden}
+    .lg-right-head{display:flex;justify-content:space-between;align-items:flex-start;gap:calc(var(--k)*16)}
+    .lg-right-head h2{margin:0;font:600 calc(var(--k)*27)/1.2 var(--font-sans);letter-spacing:-.02em;color:var(--ink)}
+    .lg-right-head h2 em{font-family:var(--font-accent);font-style:italic;font-weight:400;color:var(--accent-fg)}
+    .lg-right-head p{margin:calc(var(--k)*5) 0 0;font-size:calc(var(--k)*17.5);line-height:1.5;color:var(--ink-2);max-width:40ch}
+    .lg-right-head .mono{font-size:calc(var(--k)*15);color:var(--ink-2);letter-spacing:.04em;white-space:nowrap;line-height:1.5}
+    /* board: sized by its wrapper; everything inside is in cqw of the board, exactly as the source */
+    .lg-board-wrap{flex:1;min-height:0;margin-top:calc(var(--k)*11);container-type:size;display:grid;place-items:center}
+    .lg-board{position:relative;width:min(100cqw,100cqh * 5 / 5.4);aspect-ratio:5 / 5.4;container-type:inline-size}
+    @keyframes lg-spin{to{transform:rotate(360deg)}}
+
+.lg-sp { position: absolute; --d: 1; transform: translate3d(calc(var(--px, 0) * var(--d) * 1px), calc(var(--py, 0) * var(--d) * 1px), 0); transition: transform .8s cubic-bezier(.2,.8,.2,1), scale .35s cubic-bezier(.2,.8,.2,1), opacity .3s; animation: lg-float var(--fd, 9s) ease-in-out var(--fdl, 0s) infinite alternate; }
+@keyframes lg-float { to { translate: 0 -4px; } }
+.lg-sp .lg-idx { position: absolute; font: 400 max(10px, 1.9cqw) var(--font-mono); color: var(--ink-2); top: -.4cqw; right: -4.6cqw; }
+.lg-board.lg-has-hot .lg-sp:not(.lg-is-hot) { opacity: .3; }
+.lg-sp.lg-is-hot { scale: 1.04; }
+.lg-clover { clip-path: url(#clover); position: relative; overflow: hidden; }
+.lg-drop { filter: var(--obj-drop); }
+
+/* film grain: makes flat fills read as material */
+.lg-grain::after { content: ""; position: absolute; inset: 0; background: var(--noise); mix-blend-mode: overlay; opacity: .55; pointer-events: none; border-radius: inherit; z-index: 3; }
+/* soft top-left light on any lit object */
+.lg-lit::before { content: ""; position: absolute; inset: 0; background: radial-gradient(120% 90% at 22% 12%, rgb(255 255 255 / 55%), transparent 45%); mix-blend-mode: soft-light; pointer-events: none; z-index: 2; }
+
+/* frosted glass */
+.lg-glass { position: relative; overflow: hidden; background: linear-gradient(150deg, var(--glass-hi), var(--glass) 70%); border: 1px solid var(--glass-line); -webkit-backdrop-filter: blur(18px) saturate(150%); backdrop-filter: blur(18px) saturate(150%); box-shadow: inset 0 1px 0 var(--sheen), inset 0 -12px 22px -14px rgb(0 0 0 / 22%), var(--obj-shadow); }
+.lg-glass::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(112deg, transparent 38%, rgb(255 255 255 / 28%) 50%, transparent 62%); translate: -130% 0; animation: lg-sweep 11s ease-in-out var(--sw, 0s) infinite; pointer-events: none; }
+@keyframes lg-sweep { 0%, 72% { translate: -130% 0; } 100% { translate: 130% 0; } }
+
+/* bars: lit, grained columns */
+.lg-bar-a, .lg-bar-b { border-radius: 2.6cqw; overflow: hidden; box-shadow: inset 1.5px 0 0 rgb(255 255 255 / 38%), inset -8px 0 14px -8px rgb(0 0 0 / 22%), var(--obj-shadow); }
+.lg-bar-a { left: 47%; top: 24%; width: 10.5cqw; height: 44%; background: linear-gradient(180deg, color-mix(in srgb, var(--mint-dot) 75%, #fff), var(--mint-dot) 32%, color-mix(in srgb, var(--mint-dot) 62%, #2E4A3A) 100%); }
+.lg-bar-b { left: 37.5%; top: 40%; width: 10.5cqw; height: 20%; background: linear-gradient(180deg, color-mix(in srgb, var(--peach) 70%, #fff), var(--peach-dot) 70%, color-mix(in srgb, var(--peach-dot) 80%, #9C5A3C) 100%); }
+
+/* 01 agent: a living aurora */
+.lg-s1 { left: 36%; top: 6%; width: 19cqw; height: 19cqw; }
+.lg-s1 .lg-clover { width: 100%; height: 100%; background: var(--ice); }
+.lg-aurora { position: absolute; inset: -30%; background:
+  radial-gradient(circle at 30% 30%, var(--peach-dot), transparent 42%),
+  radial-gradient(circle at 72% 32%, var(--ice-dot), transparent 44%),
+  radial-gradient(circle at 55% 78%, var(--lilac-dot), transparent 46%),
+  radial-gradient(circle at 24% 72%, var(--mint-dot), transparent 42%), var(--lilac);
+  filter: blur(12px) saturate(115%); animation: lg-spin 24s linear infinite; }
+.lg-s1 .lg-core { position: absolute; left: 50%; top: 50%; width: 34%; height: 34%; translate: -50% -50%; border-radius: 50%; z-index: 1;
+  background: radial-gradient(circle at 38% 32%, rgb(255 255 255 / 95%), rgb(255 255 255 / 35%) 42%, transparent 72%); filter: blur(1.5px); animation: lg-breathe 5s ease-in-out infinite; }
+@keyframes lg-breathe { 50% { scale: .8; opacity: .75; } }
+
+/* 02 live timer */
+.lg-s2 { left: 63%; top: 18%; }
+.lg-s2 .lg-pill { height: max(30px, 6.6cqw); padding: 0 2.6cqw 0 1.3cqw; border-radius: 999px; display: inline-flex; align-items: center; gap: 1.6cqw; font: 500 max(12px, 2.8cqw) var(--font-mono); color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lg-s2 .lg-live { position: relative; z-index: 1; width: max(12px, 2.8cqw); height: max(12px, 2.8cqw); border-radius: 50%;
+  background: radial-gradient(circle at 36% 30%, #fff 0 10%, color-mix(in srgb, var(--mint-dot) 70%, #fff) 28%, var(--mint-dot) 55%, color-mix(in srgb, var(--mint-dot) 55%, #2E4A3A) 100%);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mint-dot) 22%, transparent), 0 0 12px color-mix(in srgb, var(--mint-dot) 60%, transparent); animation: lg-glow 2.6s ease-in-out infinite; }
+@keyframes lg-glow { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--mint-dot) 6%, transparent), 0 0 20px color-mix(in srgb, var(--mint-dot) 80%, transparent); } }
+.lg-s2 .lg-pill > span:last-child { position: relative; z-index: 1; }
+
+/* 03 goals: layered lotus in a glass tile */
+.lg-s3 { left: 12%; top: 26%; width: 17cqw; height: 17cqw; }
+.lg-s3 .lg-tile { width: 100%; height: 100%; border-radius: 4.6cqw; display: grid; place-items: center; }
+.lg-lotus { position: relative; z-index: 1; width: 76%; height: 76%; }
+.lg-lotus i { position: absolute; clip-path: url(#clover);
+  background: radial-gradient(circle, color-mix(in srgb, var(--lilac-dot) 55%, #3B3160) 18%, var(--lilac-dot) 58%, color-mix(in srgb, var(--lilac) 60%, #fff) 100%); }
+.lg-lotus i:nth-child(1) { inset: 0; }
+.lg-lotus i:nth-child(2) { inset: 14%; animation: lg-bloom 6s ease-in-out infinite; }
+.lg-lotus i:nth-child(3) { inset: 28%; animation: lg-bloom 6s ease-in-out -1s infinite; }
+.lg-lotus i:nth-child(4) { inset: 40%; background: radial-gradient(circle at 40% 35%, #fff, color-mix(in srgb, var(--lilac) 70%, #fff) 60%); animation: lg-bloom 6s ease-in-out -2s infinite; }
+@keyframes lg-bloom { 50% { scale: .93; } }
+
+/* 04 search: a glass lens resting on the bar */
+.lg-s4 { left: 53%; top: 27%; width: 12.6cqw; height: 12.6cqw; --sw: 3s; }
+.lg-s4 .lg-orb { width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center; color: var(--ink); background: radial-gradient(circle at 30% 24%, var(--glass-hi), var(--glass) 62%); -webkit-backdrop-filter: blur(5px) saturate(170%) brightness(1.06); backdrop-filter: blur(5px) saturate(170%) brightness(1.06); }
+.lg-s4 .lg-orb svg { position: relative; z-index: 1; width: 40%; height: 40%; }
+.lg-s4 kbd { position: absolute; left: 50%; bottom: -4.4cqw; transform: translateX(-50%); font: 500 max(10px, 1.8cqw) var(--font-mono); color: var(--ink-2); padding: 1px 6px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface-3); white-space: nowrap; }
+
+/* 05 start session: hairline pill with a travelling edge light */
+.lg-s5 { left: 3%; top: 47%; }
+.lg-s5 .lg-ghost-pill { height: max(34px, 8.2cqw); padding: 0 4.4cqw; border-radius: 999px; border: 1px solid transparent; display: inline-flex; align-items: center; font: 400 max(12px, 2.6cqw) var(--font-mono); color: var(--ink); white-space: nowrap;
+  background: linear-gradient(color-mix(in srgb, var(--board-bg) 88%, transparent), color-mix(in srgb, var(--board-bg) 88%, transparent)) padding-box,
+              linear-gradient(100deg, var(--line-strong) 40%, var(--accent-2) 50%, var(--line-strong) 60%) border-box;
+  background-size: 100% 100%, 320% 100%; animation: lg-edge 7s linear infinite; }
+@keyframes lg-edge { from { background-position: 0 0, 100% 0; } to { background-position: 0 0, -120% 0; } }
+
+/* 06 teammate: an out-of-focus portrait */
+.lg-s6 { left: 57%; top: 42%; width: 25cqw; }
+.lg-s6 .lg-frame { position: relative; width: 25cqw; height: 25cqw; }
+.lg-s6 .lg-clover { width: 100%; height: 100%; background: #C9CCBF; }
+.lg-photo { position: absolute; inset: -10%; filter: blur(4px) saturate(108%); background:
+  radial-gradient(ellipse 11% 13% at 55% 40%, #B98468 0 55%, transparent 72%),
+  radial-gradient(ellipse 12% 6% at 55% 29%, #2F2622 0 50%, transparent 75%),
+  radial-gradient(ellipse 30% 26% at 55% 88%, #B4552F 0 55%, transparent 74%),
+  radial-gradient(ellipse 8% 18% at 55% 90%, #2E2A28 0 50%, transparent 72%),
+  radial-gradient(ellipse 30% 60% at 10% 35%, rgb(255 246 228 / 90%), transparent 70%),
+  radial-gradient(ellipse 34% 70% at 92% 30%, #5E7C58, transparent 72%),
+  radial-gradient(ellipse 40% 40% at 80% 80%, #7E9A6E, transparent 70%),
+  linear-gradient(180deg, #D8CEBF, #A3A596); }
+.lg-s6 .lg-vign { position: absolute; inset: 0; z-index: 1; background: radial-gradient(circle at 50% 45%, transparent 55%, rgb(20 24 26 / 28%)); }
+.lg-s6 .lg-plus { position: absolute; right: 9%; bottom: 17%; z-index: 4; width: 7.6cqw; height: 7.6cqw; border-radius: 50%; display: grid; place-items: center; color: #fff;
+  background: rgb(96 40 22 / 50%); border: 1px solid rgb(255 255 255 / 28%); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: inset 0 1px 0 rgb(255 255 255 / 30%), 0 6px 14px -6px rgb(0 0 0 / 45%); }
+.lg-s6 .lg-plus svg { width: 42%; height: 42%; }
+.lg-s6 .lg-who, .lg-s7 .lg-who { margin-top: 1.4cqw; font: 500 max(12px, 2.3cqw) var(--font-mono); color: var(--ink); display: flex; justify-content: center; align-items: center; gap: 5px; white-space: nowrap; }
+.lg-s6 .lg-who svg, .lg-s7 .lg-who svg { color: var(--accent-fg); flex: none; }
+.lg-s6 .lg-sub, .lg-s7 .lg-sub { text-align: center; font: 400 max(10.5px, 2cqw) var(--font-mono); color: var(--ink-2); white-space: nowrap; }
+
+/* 07 you: frosted seat that blooms into your aura */
+.lg-s7 { left: 17%; top: 62%; width: 16cqw; text-align: center; }
+.lg-s7 .lg-clover { width: 16cqw; height: 16cqw; display: grid; place-items: center; background: linear-gradient(150deg, var(--glass-hi), color-mix(in srgb, var(--ink) 6%, transparent)); }
+.lg-s7 .lg-aura { position: absolute; inset: -25%; opacity: 1; transition: opacity .7s ease;
+  background: radial-gradient(circle at 30% 28%, var(--a1, var(--butter-dot)), transparent 50%), radial-gradient(circle at 74% 72%, var(--a2, var(--peach-dot)), transparent 52%), var(--a3, var(--butter));
+  filter: blur(10px) saturate(115%); animation: lg-spin 30s linear infinite reverse; }
+.lg-s7 .lg-clover.lg-is-empty .lg-aura { opacity: 0; }
+.lg-s7 .lg-clover.lg-is-empty::before { content: ""; position: absolute; inset: 0; background: linear-gradient(112deg, transparent 35%, rgb(255 255 255 / 35%) 50%, transparent 65%); translate: -130% 0; animation: lg-sweep 5s ease-in-out infinite; }
+.lg-s7 .lg-me { position: relative; z-index: 4; font: 600 4.2cqw var(--font-sans); letter-spacing: -.02em; color: #fff; text-shadow: 0 1px 8px rgb(31 42 48 / 35%); transition: color .4s; }
+.lg-s7 .lg-clover.lg-is-empty .lg-me { color: var(--ink-2); text-shadow: none; font: 500 max(10px, 2cqw) var(--font-mono); letter-spacing: .08em; }
+
+/* 08 agents: glossy pearls in a glass tray */
+.lg-s8 { left: 56%; top: 77%; width: 12.6cqw; height: 12.6cqw; --sw: 6s; }
+.lg-s8 .lg-tile { width: 100%; height: 100%; border-radius: 3.8cqw; display: grid; grid-template-columns: 1fr 1fr; gap: 1.1cqw; padding: 1.9cqw; }
+.lg-pearl { position: relative; z-index: 1; border-radius: 50%; display: grid; place-items: center; color: #fff;
+  background: radial-gradient(circle at 34% 28%, #fff 0 7%, color-mix(in srgb, var(--c) 55%, #fff) 24%, var(--c) 58%, color-mix(in srgb, var(--c) 62%, #1F2A30) 100%);
+  box-shadow: 0 3px 6px -2px rgb(0 0 0 / 30%), inset 0 -2px 4px rgb(0 0 0 / 12%); }
+.lg-pearl svg { width: 48%; height: 48%; }
+.lg-pearl.lg-add { background: radial-gradient(circle at 34% 26%, #5A6770, #2B353B 70%); box-shadow: inset 0 1px 0 rgb(255 255 255 / 22%), 0 3px 6px -2px rgb(0 0 0 / 35%); }
+.lg-pearl.lg-add svg { width: 52%; height: 52%; }
+.lg-board-foot { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.lg-board-foot .mono { font-size: max(9.5px, 1.7cqw); line-height: 1.6; color: var(--ink-2); text-transform: uppercase; letter-spacing: .04em; }
+.lg-board-foot .lg-sig { font-family: var(--font-accent); font-style: italic; font-size: max(15px, 3.4cqw); color: var(--ink); }
+
+
+    .lg-legend{flex:none;list-style:none;margin:calc(var(--k)*19) 0 0;padding:calc(var(--k)*13) 0 0;border-top:1px dashed var(--line-strong);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:calc(var(--k)*3) calc(var(--k)*11)}
+    .lg-legend li{display:grid;align-content:start;grid-template-columns:calc(var(--k)*24) minmax(0,1fr);gap:calc(var(--k)*1) calc(var(--k)*5);padding:calc(var(--k)*6) calc(var(--k)*4);border-radius:calc(var(--k)*12)}
+    .lg-legend .n{font:400 calc(var(--k)*14)/calc(var(--k)*24) var(--font-mono);color:var(--ink-2)}
+    .lg-legend b{font-size:calc(var(--k)*16);line-height:calc(var(--k)*24);font-weight:600;letter-spacing:-.005em;color:var(--ink)}
+    .lg-legend .d{grid-column:2;font-size:calc(var(--k)*14.5);line-height:1.4;color:var(--ink-2)}
+    @media (prefers-reduced-motion:reduce){.lg-right *,.lg-right *::before,.lg-right *::after{animation:none!important}}
+  </style>
+
+  <aside class="lg-right" aria-labelledby="cap-h">
+    <div class="lg-right-head">
+      <div>
+        <h2 id="cap-h">What you can do in <em>truex</em></h2>
+        <p>Eight things you can do once you sign in.</p>
+      </div>
+      <span class="mono">TRUEX · 08 CAPABILITIES</span>
+    </div>
+
+    <div class="lg-board-wrap"><div class="lg-board" aria-hidden="true">
+      <div class="lg-sp lg-bar-a lg-grain" style="--d:.4;--fd:12s"></div>
+      <div class="lg-sp lg-bar-b lg-grain" style="--d:.6;--fd:10s;--fdl:-3s"></div>
+
+      <div class="lg-sp lg-s1 lg-drop" style="--d:.9;--fd:9s;--fdl:-1s"><div class="lg-clover lg-grain lg-lit"><span class="lg-aurora"></span><span class="lg-core"></span></div><span class="lg-idx">01</span></div>
+
+      <div class="lg-sp lg-s2" style="--d:1.3;--fd:8s;--fdl:-4s"><div class="lg-pill lg-glass"><span class="lg-live"></span><span>00:31:23</span></div><span class="lg-idx" style="right:-5cqw;top:0">02</span></div>
+
+      <div class="lg-sp lg-s3" style="--d:1.1;--fd:11s;--fdl:-2s"><div class="lg-tile lg-glass lg-grain"><div class="lg-lotus"><i></i><i></i><i></i><i></i></div></div><span class="lg-idx">03</span></div>
+
+      <div class="lg-sp lg-s4" style="--d:1.6;--fd:7s;--fdl:-5s"><div class="lg-orb lg-glass"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></svg></div><kbd>⌘ K</kbd><span class="lg-idx">04</span></div>
+
+      <div class="lg-sp lg-s5" style="--d:.7;--fd:10s;--fdl:-6s"><div class="lg-ghost-pill">Start session</div><span class="lg-idx" style="right:-4.6cqw">05</span></div>
+
+      <div class="lg-sp lg-s6" style="--d:1.2;--fd:12s;--fdl:-3s">
+        <div class="lg-frame lg-drop"><div class="lg-clover lg-grain"><span class="lg-photo"></span><span class="lg-vign"></span></div>
+          <span class="lg-plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></div>
+        <div class="lg-who">Shared threads<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/><path d="M7.5 12.2l3 3 6-6" fill="none" stroke="var(--board-bg)" stroke-width="2.4" stroke-linecap="round"/></svg></div>
+        <div class="lg-sub">invite your team</div>
+        <span class="lg-idx" style="top:0">06</span></div>
+
+      <div class="lg-sp lg-s7" style="--d:.9;--fd:10s;--fdl:-2s"><div class="lg-drop"><div class="lg-clover lg-grain lg-is-empty"><span class="lg-aura"></span><span class="lg-me">YOU</span></div></div>
+        <div class="lg-who"><span>Your profile</span><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="display:none"><circle cx="12" cy="12" r="10"/><path d="M7.5 12.2l3 3 6-6" fill="none" stroke="var(--board-bg)" stroke-width="2.4" stroke-linecap="round"/></svg></div>
+        <div class="lg-sub">set up in a minute</div>
+        <span class="lg-idx" style="right:-2.6cqw">07</span></div>
+
+      <div class="lg-sp lg-s8" style="--d:1.4;--fd:9s;--fdl:-7s"><div class="lg-tile lg-glass"><span class="lg-pearl" style="--c:var(--mint-dot)"></span><span class="lg-pearl lg-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><span class="lg-pearl" style="--c:var(--butter-dot)"></span><span class="lg-pearl" style="--c:var(--lilac-dot)"></span></div><span class="lg-idx">08</span></div>
+
+      <div class="lg-board-foot">
+        <div class="mono">truex-signin-v1<br>agents · sessions<br>goals · search</div>
+        <div class="lg-sig">Capabilities</div>
+      </div>
+    </div></div>
+
+    <ol class="lg-legend">
+      <li><span class="n">01</span><b>Named agents</b><span class="d">@mention an agent and it picks up work.</span></li>
+      <li><span class="n">02</span><b>Live sessions</b><span class="d">Agents keep working in the background.</span></li>
+      <li><span class="n">03</span><b>Goals and plans</b><span class="d">Turn a goal into a plan you can edit.</span></li>
+      <li><span class="n">04</span><b>Search everything</b><span class="d">⌘K finds chats, files and agents.</span></li>
+      <li><span class="n">05</span><b>One-click sessions</b><span class="d">Start a chat from any project or thread.</span></li>
+      <li><span class="n">06</span><b>Team in the loop</b><span class="d">Share threads and files with your team.</span></li>
+      <li><span class="n">07</span><b>Your profile</b><span class="d">Your name, photo and how agents address you.</span></li>
+      <li><span class="n">08</span><b>Custom agents</b><span class="d">Pick a look, skills and tone.</span></li>
+    </ol>
+  </aside>
+</section>

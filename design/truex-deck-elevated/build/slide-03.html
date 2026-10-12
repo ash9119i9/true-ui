@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>truex · 03-market-shift</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,6..72,400..500&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../deck.css">
+</head>
+<body class="flat">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <clipPath id="clover" clipPathUnits="objectBoundingBox"><path d="M.5,.1 C.82,-.1 1.1,.18 .9,.5 C1.1,.82 .82,1.1 .5,.9 C.18,1.1 -.1,.82 .1,.5 C-.1,.18 .18,-.1 .5,.1Z"/></clipPath>
+  <symbol id="spark" viewBox="0 0 40 40"><path d="m20 8 3.2 8.5 8.5 3.2-8.5 3.2L20 31.4l-3.2-8.5-8.5-3.2 8.5-3.2Z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/></symbol>
+  <symbol id="sq" viewBox="0 0 200 14" preserveAspectRatio="none"><path d="M3 9C32 2 52 13 84 7S146 2 197 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></symbol>
+  <symbol id="srch" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></g></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="arrow-r" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+<main class="deck">
+<div class="slot" id="s03"><section class="slide sl-03" data-top="03 · the market shift">
+  <style>
+    /* five starting points (logo cards) converge into one direction (takeaway) */
+    .sl-03 .row{position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*452);width:calc(var(--k)*1680);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:calc(var(--k)*24);z-index:1}
+    .sl-03 .co{height:calc(var(--k)*300);padding:calc(var(--k)*28) calc(var(--k)*28) calc(var(--k)*26);display:flex;flex-direction:column}
+    .sl-03 .logo{height:calc(var(--k)*60);display:flex;align-items:center}
+    .sl-03 .logo img{display:block;width:auto}
+    .sl-03 .logo .nm{font:700 calc(var(--k)*27)/1.1 var(--font-sans);letter-spacing:-.02em;color:var(--ink)}
+    .sl-03 .mf{margin-top:calc(var(--k)*20);min-height:calc(var(--k)*44);font:500 calc(var(--k)*16)/1.4 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+    .sl-03 .plats{margin-top:calc(var(--k)*14);display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:calc(var(--k)*38);gap:calc(var(--k)*8) calc(var(--k)*14);align-items:center;justify-items:start}
+    .sl-03 .plats img{display:block;width:auto;max-width:100%}
+    .sl-03 .dir{margin-top:auto;padding-top:calc(var(--k)*16);border-top:1px solid var(--line);display:flex;gap:calc(var(--k)*10);font:600 calc(var(--k)*21)/1.38 var(--font-sans);color:var(--ink)}
+    .sl-03 .dir svg{flex:none;width:calc(var(--k)*20);height:calc(var(--k)*20);margin-top:calc(var(--k)*4);color:var(--accent-fg)}
+    .sl-03 .merge{position:absolute;left:0;top:0;width:calc(var(--k)*1920);height:calc(var(--k)*1080);overflow:visible;color:var(--doodle);pointer-events:none}
+    .sl-03 .tint{left:calc(var(--k)*230);top:calc(var(--k)*816);width:calc(var(--k)*1460);display:flex;align-items:center;gap:calc(var(--k)*30);padding:calc(var(--k)*26) calc(var(--k)*40);z-index:1}
+    .sl-03 .tint .well{background-color:#fff}
+  </style>
+
+  <div style="position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*160);width:calc(var(--k)*1500)">
+    <span class="eyebrow">03 · The market shift</span>
+    <h1 class="hl sm" style="margin-top:calc(var(--k)*28)">AI is moving from answering questions to <em>completing work.</em></h1>
+  </div>
+
+  <div class="inset" style="left:calc(var(--k)*80);right:calc(var(--k)*80);top:calc(var(--k)*412);height:calc(var(--k)*554)"></div>
+
+  <svg class="merge" viewBox="0 0 1920 1080" aria-hidden="true">
+    <g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="2 10" opacity=".8">
+      <path d="M278 752 C278 790 960 780 960 816"/>
+      <path d="M619 752 C619 790 960 780 960 816"/>
+      <path d="M960 752 L960 816"/>
+      <path d="M1301 752 C1301 790 960 780 960 816"/>
+      <path d="M1642 752 C1642 790 960 780 960 816"/>
+    </g>
+  </svg>
+
+  <div class="row">
+    <div class="ecard co">
+      <div class="logo"><img src="../assets/logos/harvey.svg" alt="Harvey" style="height:calc(var(--k)*36)"></div>
+      <span class="mf">Legal</span>
+      <p class="dir"><svg aria-hidden="true"><use href="#arrow-r"/></svg>Research, drafting, review</p>
+    </div>
+    <div class="ecard co">
+      <div class="logo"><img src="../assets/logos/sierra.svg" alt="Sierra" style="height:calc(var(--k)*40)"></div>
+      <span class="mf">Customer operations</span>
+      <p class="dir"><svg aria-hidden="true"><use href="#arrow-r"/></svg>Conversations, decisions, actions</p>
+    </div>
+    <div class="ecard co">
+      <div class="logo"><img src="../assets/logos/gumloop.svg" alt="Gumloop" style="height:calc(var(--k)*44)"></div>
+      <span class="mf">Workflow automation</span>
+      <p class="dir"><svg aria-hidden="true"><use href="#arrow-r"/></svg>Connected agents and automated tasks</p>
+    </div>
+    <div class="ecard co">
+      <div class="logo"><img src="../assets/logos/nova.png" alt="Nova Intelligence" style="height:calc(var(--k)*30)"></div>
+      <span class="mf">Enterprise systems / SAP</span>
+      <p class="dir"><svg aria-hidden="true"><use href="#arrow-r"/></svg>Analysis, modernization, development</p>
+    </div>
+    <div class="ecard co">
+      <div class="logo"><span class="nm">Enterprise platforms</span></div>
+      <div class="plats" aria-label="SAP, Microsoft, Salesforce, ServiceNow">
+        <img src="../assets/logos/sap.svg" alt="SAP" style="height:calc(var(--k)*28)">
+        <img src="../assets/logos/microsoft.svg" alt="Microsoft" style="height:calc(var(--k)*21)">
+        <img src="../assets/logos/salesforce.svg" alt="Salesforce" style="height:calc(var(--k)*34)">
+        <img src="../assets/logos/servicenow.svg" alt="ServiceNow" style="height:calc(var(--k)*16)">
+      </div>
+      <p class="dir"><svg aria-hidden="true"><use href="#arrow-r"/></svg>Agents embedded into business workflows</p>
+    </div>
+  </div>
+
+  <div class="tint">
+    <div class="well sm"><div class="m-clover"><div class="clover"><span class="aurora"></span></div></div></div>
+    <div>
+      <span class="k">Different starting points. One direction.</span>
+      From software that helps people work to <b>software that can perform work under human oversight.</b>
+    </div>
+  </div>
+<div class="s-top"><span>03 · the market shift</span><span>truex · introduction · october 2026</span></div><div class="s-foot"><span class="pg">03 / 08</span></div></section></div>
+</main>
+</body>
+</html>

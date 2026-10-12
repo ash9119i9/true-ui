@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>truex · 05-introducing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,6..72,400..500&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../deck.css">
+</head>
+<body class="flat">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <clipPath id="clover" clipPathUnits="objectBoundingBox"><path d="M.5,.1 C.82,-.1 1.1,.18 .9,.5 C1.1,.82 .82,1.1 .5,.9 C.18,1.1 -.1,.82 .1,.5 C-.1,.18 .18,-.1 .5,.1Z"/></clipPath>
+  <symbol id="spark" viewBox="0 0 40 40"><path d="m20 8 3.2 8.5 8.5 3.2-8.5 3.2L20 31.4l-3.2-8.5-8.5-3.2 8.5-3.2Z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/></symbol>
+  <symbol id="sq" viewBox="0 0 200 14" preserveAspectRatio="none"><path d="M3 9C32 2 52 13 84 7S146 2 197 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></symbol>
+  <symbol id="srch" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></g></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="arrow-r" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+<main class="deck">
+<div class="slot" id="s05"><section class="slide sl-05" data-top="05 · introducing truex">
+  <style>
+    .sl-05 .head{position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*150);width:calc(var(--k)*1200)}
+    .sl-05 .hl{margin-top:calc(var(--k)*20)}
+    .sl-05 .lead{margin-top:calc(var(--k)*26);font-size:calc(var(--k)*26);line-height:1.45;max-width:calc(var(--k)*1160)}
+    .sl-05 .sticky{position:absolute;left:calc(var(--k)*1400);top:calc(var(--k)*160);width:calc(var(--k)*400);padding:calc(var(--k)*38) calc(var(--k)*34) calc(var(--k)*28)}
+    .sl-05 .sticky .hand{font-size:calc(var(--k)*40);margin-bottom:calc(var(--k)*8)}
+    .sl-05 .sticky .big{display:block;font:700 calc(var(--k)*30)/1.15 var(--font-sans);letter-spacing:-.015em;margin-bottom:calc(var(--k)*12)}
+    .sl-05 .sticky p{font-size:calc(var(--k)*22);line-height:1.4}
+
+    .sl-05 .wf{left:calc(var(--k)*120);top:calc(var(--k)*445);width:calc(var(--k)*940)}
+    .sl-05 .wf-bar .il{margin-left:auto;font-size:calc(var(--k)*16);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);border:1px dashed var(--line-strong);border-radius:calc(var(--k)*6);padding:calc(var(--k)*3) calc(var(--k)*10)}
+    .sl-05 .grid{display:grid;grid-template-columns:1.05fr 1fr;gap:calc(var(--k)*22);padding:calc(var(--k)*20) calc(var(--k)*24) calc(var(--k)*14)}
+    .sl-05 .col{display:flex;flex-direction:column;gap:calc(var(--k)*12);min-width:0}
+    .sl-05 .bubble{font-size:calc(var(--k)*19);max-width:100%;padding:calc(var(--k)*16) calc(var(--k)*20)}
+    .sl-05 .who{font-size:calc(var(--k)*20)}
+    .sl-05 .av{background:var(--accent);color:#fff}
+    .sl-05 .av svg{width:70%;height:70%}
+    .sl-05 .stepsbox{font-size:calc(var(--k)*19);gap:calc(var(--k)*7)}
+    .sl-05 .stepsbox b{color:var(--ink);font-weight:600}
+    .sl-05 .ans{font-size:calc(var(--k)*19);line-height:1.45;color:var(--ink-2)}
+    .sl-05 .request{margin:0;font-size:calc(var(--k)*19);line-height:1.35}
+    .sl-05 .request .rq{display:flex;gap:calc(var(--k)*10);margin-top:calc(var(--k)*12)}
+    .sl-05 .request .rq span{height:calc(var(--k)*34);padding:0 calc(var(--k)*14);border-radius:999px;display:inline-flex;align-items:center;font-size:calc(var(--k)*17);font-weight:600;background:#fff;color:var(--warn-text)}
+    .sl-05 .request .rq span.ok{background:var(--warn-text);color:#fff}
+    .sl-05 .ev{border:1px solid var(--line);border-radius:calc(var(--k)*16);padding:calc(var(--k)*12) calc(var(--k)*16);display:grid;gap:calc(var(--k)*6)}
+    .sl-05 .ev .mono{font-size:calc(var(--k)*15);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+    .sl-05 .receipt{font-size:calc(var(--k)*16);line-height:1.5}
+    .sl-05 .composer{margin:0 calc(var(--k)*24) calc(var(--k)*20);padding:calc(var(--k)*12) calc(var(--k)*12) calc(var(--k)*12) calc(var(--k)*22);font-size:calc(var(--k)*19)}
+    .sl-05 .composer .send{width:calc(var(--k)*38);height:calc(var(--k)*38)}
+
+    .sl-05 .card{position:absolute;left:calc(var(--k)*1120);top:calc(var(--k)*455);width:calc(var(--k)*680);padding:calc(var(--k)*60) calc(var(--k)*34) calc(var(--k)*22)}
+    .sl-05 .card .lbl{font:500 calc(var(--k)*16)/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin-bottom:calc(var(--k)*14)}
+    .sl-05 .notes{gap:calc(var(--k)*7)}
+    .sl-05 .notes li{padding-top:calc(var(--k)*8);align-items:center}
+    .sl-05 .notes b{font-size:calc(var(--k)*25)}
+    .sl-05 .notes p{font-size:calc(var(--k)*20);margin-top:calc(var(--k)*2)}
+    .sl-05 .card .foot{margin-top:calc(var(--k)*14);padding-top:calc(var(--k)*12);border-top:1px solid var(--line);font-size:calc(var(--k)*19);line-height:1.4}
+  </style>
+
+  <div class="head">
+    <span class="eyebrow">5 · Introducing truex</span>
+    <h1 class="hl sm">From enterprise intent to intelligent <span class="script">execution.<svg class="squiggle" aria-hidden="true"><use href="#sq"/></svg></span></h1>
+    <p class="lead">Truex is an AI agent platform we're building to execute complex enterprise workflows with business context, connected tools, and human oversight.</p>
+  </div>
+
+  <div class="sticky" style="--r:1.1deg">
+    <span class="hand">Our first focus:</span>
+    <span class="big">SAP transformation.</span>
+    <p>Connecting analysis, coding, and testing in one reviewable workflow.</p>
+  </div>
+
+  <div class="wf" aria-label="Illustrative truex session">
+    <div class="wf-bar"><i></i><i></i><i></i>&nbsp;truex · sap transformation session<span class="il">illustrative</span></div>
+    <div class="grid">
+      <div class="col">
+        <div class="bubble">Analyse this custom SAP object and plan the changes needed for the upgrade.</div>
+        <div class="who"><span class="av"><svg><use href="#spark"/></svg></span>truex</div>
+        <div class="stepsbox">
+          <span><b>Understand</b> · object, usages, context</span>
+          <span><b>Plan</b> · changes and tests</span>
+          <span class="run"><b>Execute</b> · coding update</span>
+          <span><b>Verify</b> · test run and review</span>
+        </div>
+      </div>
+      <div class="col">
+        <div class="request">Approval needed: apply the code change to the development system?
+          <div class="rq"><span class="ok">Approve</span><span>Review first</span></div>
+        </div>
+        <div class="ev">
+          <span class="mono">Execution evidence</span>
+          <span class="receipt">analysis · plan · diff · test results</span>
+          <span class="receipt">approved by reviewer · logged</span>
+        </div>
+      </div>
+    </div>
+    <div class="composer">Ask truex about this workflow…<span class="send"></span></div>
+  </div>
+  <span class="pin at" style="left:calc(var(--k)*100);top:calc(var(--k)*672)">1</span>
+  <span class="pin at" style="left:calc(var(--k)*568);top:calc(var(--k)*709)">2</span>
+  <span class="pin at" style="left:calc(var(--k)*1040);top:calc(var(--k)*560)">3</span>
+  <span class="pin at" style="left:calc(var(--k)*1040);top:calc(var(--k)*692)">4</span>
+
+  <div class="card" style="--r:-.6deg">
+    <p class="lbl">The proposed execution loop</p>
+    <ol class="notes">
+      <li><span class="pin">1</span><div><b>Understand</b><p>Enterprise integrations and contextual knowledge.</p></div></li>
+      <li><span class="pin">2</span><div><b>Plan</b><p>Complex workflows, shaped by business context.</p></div></li>
+      <li><span class="pin">3</span><div><b>Execute</b><p>Connected tools, authorized access, approvals.</p></div></li>
+      <li><span class="pin">4</span><div><b>Verify</b><p>Human oversight and reviewable execution evidence.</p></div></li>
+    </ol>
+    <p class="foot">Powered by enterprise integrations, contextual knowledge, authorized access, approvals, and reviewable execution evidence.</p>
+  </div>
+<div class="s-top"><span>05 · introducing truex</span><span>truex · introduction · october 2026</span></div><div class="s-foot"><span class="bm"><svg><use href="#spark"/></svg></span>truex<span class="pg">05 / 08</span></div></section></div>
+</main>
+</body>
+</html>

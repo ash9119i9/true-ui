@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>truex · Hero slide (16:9)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;1,400&display=swap">
+<style>
+  /* truex Blue Brand System accents, warm paper backdrop like the reference */
+  :root {
+    --bg: #191B1F;
+    --brand-400: #BCDEE8;
+    --brand-500: #3691CD;
+    --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+    --font-serif: "Playfair Display", ui-serif, Georgia, serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #0e0e0e; }
+  body { overflow: hidden; position: relative; }
+
+  /* Fixed 1920x1080 stage, scaled to fit the window (PPT 16:9) */
+  .stage {
+    width: 1920px; height: 1080px;
+    position: absolute; top: 50%; left: 50%;
+    transform-origin: center;
+    background: radial-gradient(110% 90% at 50% 45%, #F1EEE8 0%, #E9E5DD 60%, #DFDAD1 100%);
+    display: grid; place-items: center;
+  }
+
+  .card {
+    position: relative;
+    width: 1720px; height: 920px;
+    border-radius: 30px;
+    overflow: hidden;
+    background: var(--bg);
+    box-shadow:
+      0 50px 90px -40px rgba(40, 32, 20, .55),
+      0 14px 30px -14px rgba(40, 32, 20, .35);
+    color: #fff;
+    font-family: var(--font-sans);
+  }
+
+  .scene { position: absolute; top: 0; left: 0; width: 1720px; height: 600px; display: block; }
+
+  /* Illustration melts into the dark base, like the reference */
+  .fade {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg,
+      rgba(25,27,31,0) 0%, rgba(25,27,31,0) 47%,
+      rgba(25,27,31,.55) 55%, rgba(25,27,31,.9) 61%, var(--bg) 66%);
+    pointer-events: none;
+  }
+
+  .eyebrow {
+    position: absolute; top: 46px; left: 72px;
+    font-family: var(--font-serif);
+    font-size: 30px; letter-spacing: -.01em;
+    color: #fff;
+    text-shadow: 0 1px 14px rgba(0,0,0,.35);
+  }
+
+  .copy { position: absolute; left: 72px; top: 604px; max-width: 1500px; }
+  h1 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: 78px; line-height: 1.05;
+    letter-spacing: -.02em;
+  }
+  h1 em { font-style: italic; color: var(--brand-400); }
+  .sub {
+    margin-top: 14px;
+    font-size: 26px; line-height: 1.4;
+    color: rgba(255,255,255,.66);
+  }
+  .cta {
+    margin-top: 26px;
+    display: inline-flex; align-items: center; gap: 12px;
+    padding: 12px 26px;
+    border: 1px solid rgba(255,255,255,.38);
+    border-radius: 999px;
+    color: #fff; text-decoration: none;
+    font-size: 21px; font-weight: 500;
+    background: rgba(255,255,255,.05);
+    transition: background .2s, border-color .2s;
+  }
+  .cta:hover, .cta:focus-visible { background: rgba(54,145,205,.22); border-color: var(--brand-400); outline: none; }
+  .cta .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brand-500); box-shadow: 0 0 12px var(--brand-500); }
+
+  .footer {
+    position: absolute; left: 72px; right: 72px; bottom: 44px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 23px; color: rgba(255,255,255,.82);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; font-weight: 500; letter-spacing: -.01em; }
+  .brand .mark { width: 24px; height: 24px; }
+  .tags { display: flex; align-items: center; gap: 18px; list-style: none; }
+  .tags li + li::before { content: "✦"; margin-right: 18px; font-size: 15px; color: var(--brand-400); vertical-align: 2px; }
+
+  @media print {
+    @page { size: 1920px 1080px; margin: 0; }
+    html, body { background: none; }
+    .stage { transform: none !important; top: 0; left: 0; }
+  }
+</style>
+</head>
+<body>
+<main class="stage" id="stage">
+  <article class="card" aria-label="truex hero slide">
+
+    <!-- Hand-built illustration. Static layers here, dense details (clouds, city, grass, flowers, leaves) generated below with a seeded random so it renders identically every time. -->
+    <svg class="scene" id="scene" viewBox="0 0 1720 600" role="img"
+         aria-label="A person rests in a flower meadow on a sunny hill, looking out at a tall white city under huge summer clouds">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#2C68A8"/>
+          <stop offset=".28" stop-color="#4C8DC8"/>
+          <stop offset=".55" stop-color="#8FBEDF"/>
+          <stop offset=".78" stop-color="#D7E6EE"/>
+          <stop offset="1" stop-color="#EEF1EA"/>
+        </linearGradient>
+        <radialGradient id="glow" cx=".5" cy=".5" r=".5">
+          <stop offset="0" stop-color="#FFFDF4" stop-opacity=".85"/>
+          <stop offset="1" stop-color="#FFFDF4" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#E9EEF0" stop-opacity="0"/>
+          <stop offset=".7" stop-color="#E6ECEE" stop-opacity=".75"/>
+          <stop offset="1" stop-color="#E3E9EA" stop-opacity=".95"/>
+        </linearGradient>
+        <linearGradient id="lit" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#FBFCFC"/>
+          <stop offset="1" stop-color="#DCE5EA"/>
+        </linearGradient>
+        <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#C3D0DA"/>
+          <stop offset="1" stop-color="#A8B8C5"/>
+        </linearGradient>
+        <pattern id="win" width="5" height="7" patternUnits="userSpaceOnUse">
+          <rect y="0" width="5" height="1.4" fill="#7E95A8"/>
+        </pattern>
+        <linearGradient id="hillR" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#C9DC8C"/>
+          <stop offset=".45" stop-color="#97B865"/>
+          <stop offset="1" stop-color="#577F3F"/>
+        </linearGradient>
+        <linearGradient id="field" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#A9C47C"/>
+          <stop offset="1" stop-color="#7EA05A"/>
+        </linearGradient>
+        <linearGradient id="meadow" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#B2CC6E"/>
+          <stop offset=".35" stop-color="#7FA24C"/>
+          <stop offset=".75" stop-color="#4E7135"/>
+          <stop offset="1" stop-color="#2C4224"/>
+        </linearGradient>
+        <radialGradient id="vignette" cx=".5" cy=".42" r=".75">
+          <stop offset=".6" stop-color="#000" stop-opacity="0"/>
+          <stop offset="1" stop-color="#000" stop-opacity=".28"/>
+        </radialGradient>
+        <!-- Fluffy cloud edges -->
+        <filter id="cloudFx" x="-20%" y="-30%" width="140%" height="160%">
+          <feTurbulence type="fractalNoise" baseFrequency=".018" numOctaves="3" seed="3" result="n"/>
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="46" xChannelSelector="R" yChannelSelector="G" result="d"/>
+          <feGaussianBlur in="d" stdDeviation="1.4"/>
+        </filter>
+        <!-- Leafy edges for trees -->
+        <filter id="leafFx" x="-20%" y="-20%" width="140%" height="140%">
+          <feTurbulence type="fractalNoise" baseFrequency=".07" numOctaves="2" seed="5" result="n"/>
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="22" xChannelSelector="R" yChannelSelector="G"/>
+        </filter>
+        <filter id="soft"><feGaussianBlur stdDeviation="8"/></filter>
+        <filter id="tiny"><feGaussianBlur stdDeviation=".35"/></filter>
+      </defs>
+
+      <rect width="1720" height="600" fill="url(#sky)"/>
+      <circle cx="900" cy="230" r="420" fill="url(#glow)"/>
+
+      <g id="clouds"></g>
+      <rect x="0" y="380" width="1720" height="110" fill="url(#haze)"/>
+      <g id="farCity"></g>
+      <g id="towers"></g>
+      <rect x="0" y="300" width="1720" height="190" fill="url(#haze)" opacity=".8"/>
+      <ellipse cx="860" cy="482" rx="760" ry="26" fill="#EEF2EF" opacity=".7" filter="url(#soft)"/>
+      <g id="nearCity"></g>
+
+      <path d="M0 470 C 300 466, 600 486, 980 500 L980 600 L0 600 Z" fill="url(#field)"/>
+      <path d="M600 500 C 900 486, 1250 432, 1720 322 L1720 600 L600 600 Z" fill="url(#hillR)"/>
+      <path d="M600 500 C 900 486, 1250 432, 1720 322 L1720 360 C 1300 470, 1000 520, 760 540 Z" fill="#E9F0B8" opacity=".25"/>
+      <g id="hillGrass"></g>
+
+      <path id="meadow" fill="url(#meadow)"/>
+      <g id="meadowGrass"></g>
+      <g id="flowers" filter="url(#tiny)"></g>
+
+      <!-- Person resting in the meadow, facing the city -->
+      <g transform="translate(548 487) scale(1.25)">
+        <ellipse cx="6" cy="10" rx="26" ry="4.5" fill="#2E4424" opacity=".45"/>
+        <path d="M2 7 C 10 5, 20 4, 26 -2 L 29 1 C 23 8, 12 11, 2 11 Z" fill="#E8DDCB"/>
+        <path d="M20 -1 L 27 9 L 30 8 L 24 -2 Z" fill="#E1D4BF"/>
+        <path d="M-6 9 C -8 -4, -4 -16, 4 -18 C 10 -18, 12 -10, 10 9 Z" fill="#C9683A"/>
+        <path d="M8 -12 C 13 -6, 15 0, 14 6" stroke="#B85A30" stroke-width="4" stroke-linecap="round" fill="none"/>
+        <path d="M-4 -12 C -9 -6, -10 2, -9 7" stroke="#B85A30" stroke-width="4" stroke-linecap="round" fill="none"/>
+        <circle cx="3" cy="-24" r="6.5" fill="#3B2619"/>
+        <path d="M-1 -20 C 2 -16, 6 -16, 8 -19" stroke="#C88B62" stroke-width="2" fill="none"/>
+      </g>
+
+      <g id="trees"></g>
+      <rect width="1720" height="600" fill="url(#vignette)"/>
+    </svg>
+
+    <div class="fade" aria-hidden="true"></div>
+
+    <p class="eyebrow">Work less. Live more.</p>
+
+    <section class="copy">
+      <h1>Your to-do list, <em>done before lunch.</em></h1>
+      <p class="sub">Just ask in plain words. truex writes the emails, builds the reports and chases the follow-ups for you.</p>
+      <a class="cta" href="#" aria-label="Join the truex waitlist"><span class="dot" aria-hidden="true"></span>Join the waitlist</a>
+    </section>
+
+    <footer class="footer">
+      <div class="brand">
+        <svg class="mark" viewBox="0 0 26 26" aria-hidden="true">
+          <rect width="26" height="26" rx="7" fill="#3691CD"/>
+          <path d="M8 8 L18 18 M18 8 L8 18" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+        </svg>
+        truex.ai
+      </div>
+      <ul class="tags" aria-label="What truex handles">
+        <li>emails</li><li>reports</li><li>follow-ups</li>
+      </ul>
+    </footer>
+  </article>
+</main>
+
+<script>
+(() => {
+  const NS = 'http://www.w3.org/2000/svg';
+  const $ = id => document.getElementById(id);
+  const el = (tag, attrs, parent) => {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    parent && parent.appendChild(n);
+    return n;
+  };
+  // Seeded random so the scene is identical on every render and in print
+  let seed = 20261005;
+  const rnd = () => {
+    seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const pick = arr => arr[Math.floor(rnd() * arr.length)];
+
+  /* ---------- Clouds: shadowed base, mid tone, sunlit tops ---------- */
+  function cloud(cx, cy, w, h, n) {
+    const g = el('g', { filter: 'url(#cloudFx)' }, $('clouds'));
+    const puffs = [];
+    for (let i = 0; i < n; i++) {
+      const px = cx + (rnd() - .5) * w;
+      const edge = 1 - Math.abs(px - cx) / (w / 2);
+      const py = cy - rnd() * h * .75 * Math.max(edge, .15);
+      const r = h * (.18 + rnd() * .3) * (.45 + edge * .6);
+      puffs.push([px, py, r]);
+    }
+    const layers = [
+      { col: '#9FB0C4', dx: 0, dy: 0, s: 1, all: true },
+      { col: '#CBD8E3', dx: -5, dy: -9, s: .93, all: true },
+      { col: '#F4F7F8', dx: -10, dy: -18, s: .8, all: false },
+      { col: '#FFFFFF', dx: -14, dy: -25, s: .6, all: false },
+    ];
+    layers.forEach(L => {
+      el('ellipse', { cx: cx + L.dx, cy: cy + L.dy * .4, rx: w * .5 * L.s, ry: h * .14, fill: L.col }, g);
+      puffs.forEach(([x, y, r]) => {
+        if (!L.all && y > cy - h * .12) return;
+        el('circle', { cx: x + L.dx, cy: y + L.dy, r: r * L.s, fill: L.col }, g);
+      });
+    });
+  }
+  cloud(330, 360, 620, 150, 18);
+  cloud(1600, 330, 420, 230, 16);
+  cloud(1230, 300, 640, 330, 30);
+  cloud(1010, 250, 380, 260, 18);
+  cloud(640, 200, 300, 120, 10);
+  cloud(140, 250, 260, 90, 8);
+
+  /* ---------- Far city: pale blocks along the horizon ---------- */
+  for (let i = 0; i < 190; i++) {
+    const x = 300 + rnd() * 1150;
+    const fall = Math.max(0, 1 - Math.abs(x - 860) / 620);
+    const h = 6 + rnd() * 26 + fall * 60 * rnd();
+    const w = 6 + rnd() * 16;
+    el('rect', { x, y: 482 - h, width: w, height: h, fill: pick(['#CBD7DF', '#D9E2E8', '#C0CED8', '#E3EAEE']) }, $('farCity'));
+  }
+
+  /* ---------- Main towers: lit face, shaded face, window bands ---------- */
+  const towers = [
+    [640, 22, 120], [1090, 24, 135], [690, 26, 170], [1045, 28, 190],
+    [735, 30, 215], [1000, 30, 245], [775, 32, 270], [955, 34, 300],
+    [815, 36, 330, 1], [910, 38, 345, 1], [862, 42, 405, 1], [885, 18, 290],
+  ];
+  towers.sort((a, b) => a[2] - b[2]).forEach(([cx, w, h0, spire]) => {
+    const h = h0 * .8;
+    const g = $('towers');
+    const base = 484, top = base - h, x = cx - w / 2, lw = w * .6;
+    el('rect', { x, y: top, width: lw, height: h, fill: 'url(#lit)' }, g);
+    el('rect', { x: x + lw, y: top, width: w - lw, height: h, fill: 'url(#shade)' }, g);
+    el('rect', { x, y: top + 10, width: w, height: h - 10, fill: 'url(#win)', opacity: .22 }, g);
+    // Setback crown
+    const cw = w * .62, ch = Math.max(10, h * .07);
+    el('rect', { x: cx - cw / 2, y: top - ch, width: cw * .6, height: ch, fill: '#F7F9FA' }, g);
+    el('rect', { x: cx - cw / 2 + cw * .6, y: top - ch, width: cw * .4, height: ch, fill: '#B7C6D2' }, g);
+    if (spire) {
+      el('path', { d: `M${cx - cw / 2} ${top - ch} L${cx} ${top - ch - h * .16} L${cx} ${top - ch} Z`, fill: '#F2F5F7' }, g);
+      el('path', { d: `M${cx} ${top - ch - h * .16} L${cx + cw / 2} ${top - ch} L${cx} ${top - ch} Z`, fill: '#AFC0CD' }, g);
+      el('line', { x1: cx, y1: top - ch - h * .16, x2: cx, y2: top - ch - h * .16 - 26, stroke: '#E6EDF1', 'stroke-width': 1.6 }, g);
+    }
+    el('line', { x1: x + lw, y1: top, x2: x + lw, y2: base, stroke: '#FFFFFF', 'stroke-width': .8, opacity: .7 }, g);
+  });
+
+  /* ---------- Near city: low white buildings with tree specks ---------- */
+  for (let i = 0; i < 230; i++) {
+    const x = 220 + rnd() * 1300;
+    const h = 4 + rnd() * 14;
+    const w = 6 + rnd() * 18;
+    const y = 488 + rnd() * 8;
+    el('rect', { x, y: y - h, width: w * .65, height: h, fill: pick(['#F1F4F4', '#E6ECEE', '#DDE5E8']) }, $('nearCity'));
+    el('rect', { x: x + w * .65, y: y - h, width: w * .35, height: h, fill: '#B9C7CF' }, $('nearCity'));
+  }
+  for (let i = 0; i < 140; i++) {
+    el('circle', { cx: 220 + rnd() * 1300, cy: 492 + rnd() * 8, r: 2 + rnd() * 4, fill: pick(['#8FAE73', '#7E9F66', '#A3BE84']), opacity: .85 }, $('nearCity'));
+  }
+
+  /* ---------- Right hill grass ---------- */
+  const hillTop = x => 500 - Math.pow((x - 600) / 1120, 1.25) * 178;
+  for (let i = 0; i < 520; i++) {
+    const x = 620 + rnd() * 1100, t = hillTop(x);
+    const y = t + 4 + rnd() * (600 - t);
+    const len = 3 + rnd() * 6;
+    el('line', { x1: x, y1: y, x2: x + 1.5, y2: y - len, stroke: pick(['#D8E79E', '#A8C672', '#7FA455', '#6A9248']), 'stroke-width': 1.1, opacity: .7 }, $('hillGrass'));
+  }
+
+  /* ---------- Foreground meadow, grass and flowers ---------- */
+  const edge = x => 452 + 150 * Math.pow(Math.min(x, 1300) / 1300, 1.9);
+  let d = 'M0 600 L0 ' + edge(0);
+  for (let x = 0; x <= 1300; x += 20) d += ` L${x} ${edge(x).toFixed(1)}`;
+  d += ' L1300 600 Z';
+  $('meadow').setAttribute('d', d);
+
+  for (let i = 0; i < 900; i++) {
+    const x = rnd() * 1250, t = edge(x);
+    const y = t + 3 + rnd() * (600 - t);
+    const k = (y - 452) / 148;
+    el('line', { x1: x, y1: y, x2: x + (rnd() - .5) * 4, y2: y - (4 + k * 12), stroke: pick(['#C3D982', '#94B45C', '#678C40', '#4C6E33']), 'stroke-width': .8 + k, opacity: .75 }, $('meadowGrass'));
+  }
+  const petals = ['#EE9A55', '#EE9A55', '#F4BE86', '#FBF5E6', '#FBF5E6', '#FFFFFF', '#E58E86', '#BCDEE8'];
+  for (let i = 0; i < 1400; i++) {
+    const x = rnd() * 1230, t = edge(x);
+    const y = t + 2 + Math.pow(rnd(), 1.7) * (600 - t);
+    const k = (y - 452) / 148;
+    el('circle', { cx: x, cy: y, r: (1 + k * 3.2) * (.7 + rnd() * .5), fill: pick(petals), opacity: .95 - k * .3 }, $('flowers'));
+  }
+
+  /* ---------- Framing trees ---------- */
+  const trees = $('trees');
+  el('path', { d: 'M-10 330 C 30 250, 40 170, 70 60 C 80 20, 90 0, 96 -10 L112 -10 C 100 40, 70 170, 22 330 Z', fill: '#26281C' }, trees);
+  el('path', { d: 'M60 120 C 100 100, 150 90, 200 96 L198 104 C 150 102, 100 112, 64 132 Z', fill: '#26281C' }, trees);
+  el('path', { d: 'M1730 260 C 1700 190, 1690 110, 1665 -10 L1650 -10 C 1670 100, 1680 190, 1712 270 Z', fill: '#26281C' }, trees);
+
+  function foliage(cx, cy, rx, ry, n, light) {
+    const g = el('g', { filter: 'url(#leafFx)' }, trees);
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      const a = rnd() * Math.PI * 2, m = Math.sqrt(rnd());
+      pts.push([cx + Math.cos(a) * rx * m, cy + Math.sin(a) * ry * m, 10 + rnd() * 22]);
+    }
+    pts.forEach(([x, y, r]) => el('circle', { cx: x, cy: y, r, fill: '#1C3020' }, g));
+    pts.forEach(([x, y, r]) => el('circle', { cx: x + light * 5, cy: y - 6, r: r * .78, fill: '#2C4A2C' }, g));
+    pts.forEach(([x, y, r]) => {
+      // Sunlit leaves on the side facing the light
+      if ((x - cx) * light > -rx * .1 && y < cy + ry * .2) el('circle', { cx: x + light * 9, cy: y - 11, r: r * .5, fill: pick(['#4E7A3C', '#5E8A44', '#72984C']) }, g);
+    });
+  }
+  foliage(30, 40, 170, 120, 70, 1);
+  foliage(170, 10, 120, 70, 40, 1);
+  foliage(40, 210, 130, 90, 50, 1);
+  foliage(220, 115, 70, 45, 18, 1);
+  foliage(1690, 30, 150, 120, 60, -1);
+  foliage(1620, -10, 90, 55, 24, -1);
+  foliage(1700, 190, 80, 80, 26, -1);
+})();
+
+// Scale the fixed 1920x1080 stage to fit any window
+const stage = document.getElementById('stage');
+function fit() {
+  const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+  stage.style.transform = `translate(-50%, -50%) scale(${s})`;
+}
+addEventListener('resize', fit); fit();
+</script>
+</body>
+</html>

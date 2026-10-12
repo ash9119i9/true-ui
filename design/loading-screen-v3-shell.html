@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>truex Loading · v3 Shell</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,6..72,400..500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Loading v3 · Shell: skeleton of the real app frame (sidebar, thread list, conversation, composer)
+   with a shimmer, so the transition into the loaded app has no layout jump.
+   A small floating pill in the composer slot carries the brand and the status line.
+   Tokens copied from login-google-v1.html (truex design spec). */
+:root {
+  --bg: #FFFFFF; --surface: #FFFFFF; --surface-3: #F6F9FA;
+  --line: #E3ECEF; --line-strong: #D8E0E4;
+  --ink: #1F2A30; --ink-2: #5F6D73; --ink-3: #849198;
+  --accent: #3691CD; --accent-soft: #EAF5F8; --accent-fg: #2A72A3;
+  --sk: #E4ECEF; --sk-hi: rgb(255 255 255 / 75%);
+  --shadow-md: 0 1px 2px rgb(31 42 48 / 4%), 0 8px 24px -8px rgb(31 42 48 / 10%);
+  --shadow-lg: 0 2px 4px rgb(31 42 48 / 4%), 0 10px 35px rgb(31 42 48 / 8%);
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #171717; --surface: #171717; --surface-3: #242424;
+  --line: #2A2A2A; --line-strong: #363636;
+  --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F;
+  --accent-soft: #14283A; --accent-fg: #BCDEE8;
+  --sk: #303030; --sk-hi: rgb(255 255 255 / 6%);
+  --shadow-md: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -8px rgb(0 0 0 / 50%);
+  --shadow-lg: 0 2px 4px rgb(0 0 0 / 30%), 0 24px 48px -16px rgb(0 0 0 / 70%);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; height: 100vh; height: 100dvh; background: var(--surface-3); color: var(--ink); font: 14px/1.5 var(--font-sans); -webkit-font-smoothing: antialiased; overflow: hidden; }
+
+.app { height: 100%; display: grid; grid-template-columns: 56px 260px minmax(0, 1fr); }
+@media (max-width: 860px) { .app { grid-template-columns: 56px minmax(0, 1fr); } .list { display: none; } }
+
+/* skeleton primitive */
+.sk { display: block; border-radius: 6px; background: var(--sk); position: relative; overflow: hidden; }
+.sk::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--sk-hi), transparent); animation: shimmer 1.6s ease-in-out infinite; animation-delay: var(--dl, 0s); }
+@keyframes shimmer { to { transform: translateX(100%); } }
+.circle { border-radius: 50%; }
+
+/* rail */
+.rail { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px 0; }
+.brand-mark { width: 30px; height: 30px; border-radius: 9px; background: var(--ink); color: var(--bg); display: grid; place-items: center; margin-bottom: 8px; }
+.rail .sk { width: 30px; height: 30px; border-radius: 9px; }
+
+/* thread list */
+.list { padding: 14px 12px; display: flex; flex-direction: column; gap: 6px; }
+.list .head { display: flex; justify-content: space-between; align-items: center; height: 32px; margin-bottom: 8px; }
+.row { display: flex; gap: 10px; align-items: center; padding: 8px; border-radius: 10px; }
+.row .t { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+
+/* main */
+.main { margin: 8px 8px 8px 0; background: var(--bg); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-md); display: flex; flex-direction: column; min-width: 0; }
+@media (max-width: 860px) { .main { margin-left: 0; } }
+.bar { height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 18px; border-bottom: 1px solid var(--line); }
+.convo { flex: 1; padding: 28px 18px; display: flex; flex-direction: column; gap: 22px; max-width: 760px; width: 100%; margin: 0 auto; overflow: hidden; }
+.msg { display: flex; gap: 12px; }
+.msg .t { flex: 1; display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
+.msg.me { justify-content: flex-end; }
+.msg.me .sk { border-radius: 14px; }
+
+/* composer slot with status pill */
+.composer { max-width: 760px; width: 100%; margin: 0 auto; padding: 0 18px 18px; position: relative; }
+.composer .box { height: 96px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface-3); }
+.pill { position: absolute; left: 50%; top: 0; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 10px; height: 40px; padding: 0 16px 0 6px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-lg); white-space: nowrap; animation: rise .4s ease-out both; }
+.pill .m { width: 28px; height: 28px; border-radius: 50%; background: var(--ink); color: var(--bg); display: grid; place-items: center; }
+.pill .m svg { animation: spin 2.4s cubic-bezier(.6,0,.4,1) infinite; }
+.pill .label { font-size: 13px; font-weight: 500; }
+.pill .label span { display: inline-block; animation: swap .3s ease-out; }
+.pill .pct { font: 500 11px var(--font-mono); color: var(--ink-3); font-variant-numeric: tabular-nums; min-width: 32px; text-align: right; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes rise { from { opacity: 0; transform: translate(-50%, -30%); } }
+@keyframes swap { from { opacity: 0; transform: translateY(3px); } }
+
+.demo { position: fixed; z-index: 2; bottom: 14px; right: 14px; display: inline-flex; padding: 2px; border-radius: 9px; background: var(--surface-3); border: 1px solid var(--line); }
+.demo button { height: 26px; padding: 0 10px; border: 0; border-radius: 7px; background: none; color: var(--ink-2); font: 12px var(--font-sans); cursor: pointer; }
+.demo button:hover { color: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sk::after, .pill, .pill .m svg, .pill .label span { animation: none; }
+}
+</style>
+</head>
+<body>
+<div class="app" aria-hidden="true">
+  <nav class="rail">
+    <span class="brand-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg></span>
+    <span class="sk" style="--dl:.05s"></span><span class="sk" style="--dl:.1s"></span><span class="sk" style="--dl:.15s"></span><span class="sk" style="--dl:.2s"></span>
+  </nav>
+
+  <aside class="list">
+    <div class="head"><span class="sk" style="width:96px;height:14px"></span><span class="sk" style="width:24px;height:24px;border-radius:7px"></span></div>
+    <span class="sk" style="height:34px;border-radius:10px;margin-bottom:10px"></span>
+    <div class="row"><span class="sk circle" style="width:28px;height:28px"></span><div class="t"><span class="sk" style="width:70%;height:10px"></span><span class="sk" style="width:90%;height:8px"></span></div></div>
+    <div class="row"><span class="sk circle" style="width:28px;height:28px;--dl:.1s"></span><div class="t"><span class="sk" style="width:55%;height:10px;--dl:.1s"></span><span class="sk" style="width:80%;height:8px;--dl:.1s"></span></div></div>
+    <div class="row"><span class="sk circle" style="width:28px;height:28px;--dl:.2s"></span><div class="t"><span class="sk" style="width:62%;height:10px;--dl:.2s"></span><span class="sk" style="width:72%;height:8px;--dl:.2s"></span></div></div>
+    <div class="row"><span class="sk circle" style="width:28px;height:28px;--dl:.3s"></span><div class="t"><span class="sk" style="width:48%;height:10px;--dl:.3s"></span><span class="sk" style="width:86%;height:8px;--dl:.3s"></span></div></div>
+    <div class="row"><span class="sk circle" style="width:28px;height:28px;--dl:.4s"></span><div class="t"><span class="sk" style="width:66%;height:10px;--dl:.4s"></span><span class="sk" style="width:60%;height:8px;--dl:.4s"></span></div></div>
+  </aside>
+
+  <section class="main">
+    <div class="bar"><span class="sk circle" style="width:24px;height:24px"></span><span class="sk" style="width:140px;height:12px"></span><span style="flex:1"></span><span class="sk" style="width:72px;height:26px;border-radius:999px"></span></div>
+    <div class="convo">
+      <div class="msg"><span class="sk circle" style="width:32px;height:32px;flex:none"></span><div class="t"><span class="sk" style="width:30%;height:10px"></span><span class="sk" style="width:92%;height:10px"></span><span class="sk" style="width:84%;height:10px"></span><span class="sk" style="width:60%;height:10px"></span></div></div>
+      <div class="msg me"><span class="sk" style="width:46%;height:44px;--dl:.15s"></span></div>
+      <div class="msg"><span class="sk circle" style="width:32px;height:32px;flex:none;--dl:.3s"></span><div class="t"><span class="sk" style="width:24%;height:10px;--dl:.3s"></span><span class="sk" style="width:88%;height:10px;--dl:.3s"></span><span class="sk" style="width:70%;height:10px;--dl:.3s"></span><span class="sk" style="width:100%;height:92px;border-radius:12px;--dl:.3s"></span></div></div>
+    </div>
+    <div class="composer">
+      <div class="box"></div>
+    </div>
+  </section>
+</div>
+
+<!-- status pill is outside the aria-hidden shell so screen readers hear it -->
+<div class="pill" id="pill" role="status" aria-live="polite" aria-busy="true">
+  <span class="m" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg></span>
+  <span class="label"><span id="label">Loading your workspace</span></span>
+  <span class="pct" id="pct" aria-hidden="true">0%</span>
+</div>
+
+<div class="demo">
+  <button type="button" id="replay">Replay</button>
+  <button type="button" id="theme">Toggle theme</button>
+</div>
+
+<script>
+  // Pin the pill to the centre of the composer slot so it reads as part of the frame.
+  const pill = document.getElementById('pill'), box = document.querySelector('.composer .box');
+  function place() { const r = box.getBoundingClientRect(); pill.style.position = 'fixed'; pill.style.left = (r.left + r.width / 2) + 'px'; pill.style.top = (r.top + r.height / 2) + 'px'; }
+  addEventListener('resize', place); place();
+
+  const STEPS = [[0, 'Loading your workspace'], [35, 'Syncing threads'], [65, 'Waking your agents'], [90, 'Almost there'], [100, 'Ready']];
+  const label = document.getElementById('label'), pct = document.getElementById('pct');
+  let raf, start;
+  function tick(t) {
+    if (!start) start = t;
+    const p = Math.min(100, Math.round((t - start) / 45));
+    pct.textContent = p + '%';
+    const text = STEPS.filter(s => p >= s[0]).pop()[1];
+    if (label.textContent !== text) { label.textContent = text; label.style.animation = 'none'; label.offsetHeight; label.style.animation = ''; }
+    if (p < 100) raf = requestAnimationFrame(tick);
+  }
+  function run() { cancelAnimationFrame(raf); start = 0; raf = requestAnimationFrame(tick); }
+  document.getElementById('replay').onclick = run;
+  document.getElementById('theme').onclick = () => {
+    const r = document.documentElement; r.dataset.theme = r.dataset.theme === 'dark' ? 'light' : 'dark';
+  };
+  if (matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.dataset.theme = 'dark';
+  run();
+</script>
+</body>
+</html>

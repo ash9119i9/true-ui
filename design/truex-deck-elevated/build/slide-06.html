@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>truex · 06-roadmap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,6..72,400..500&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../deck.css">
+</head>
+<body class="flat">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <clipPath id="clover" clipPathUnits="objectBoundingBox"><path d="M.5,.1 C.82,-.1 1.1,.18 .9,.5 C1.1,.82 .82,1.1 .5,.9 C.18,1.1 -.1,.82 .1,.5 C-.1,.18 .18,-.1 .5,.1Z"/></clipPath>
+  <symbol id="spark" viewBox="0 0 40 40"><path d="m20 8 3.2 8.5 8.5 3.2-8.5 3.2L20 31.4l-3.2-8.5-8.5-3.2 8.5-3.2Z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/></symbol>
+  <symbol id="sq" viewBox="0 0 200 14" preserveAspectRatio="none"><path d="M3 9C32 2 52 13 84 7S146 2 197 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></symbol>
+  <symbol id="srch" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></g></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="arrow-r" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+<main class="deck">
+<div class="slot" id="s06"><section class="slide sl-06" data-top="06 · the truex roadmap">
+  <style>
+    .sl-06 .head{position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*160);width:calc(var(--k)*1500)}
+    .sl-06 .hl{margin-top:calc(var(--k)*28)}
+
+    .sl-06 .ecard{position:absolute;top:calc(var(--k)*448);width:calc(var(--k)*500);height:calc(var(--k)*390);padding:calc(var(--k)*34)}
+    .sl-06 .c1{left:calc(var(--k)*120)} .sl-06 .c2{left:calc(var(--k)*710)} .sl-06 .c3{left:calc(var(--k)*1300)}
+    /* Now: subtly highlighted */
+    .sl-06 .c1{border-color:color-mix(in srgb,var(--accent) 34%,var(--line));background:linear-gradient(180deg,var(--accent-soft),#fff 46%);box-shadow:0 0 0 calc(var(--k)*5) color-mix(in srgb,var(--accent) 9%,transparent),var(--shadow-card)}
+    .sl-06 .top{display:flex;justify-content:space-between;align-items:flex-start}
+    .sl-06 .meta{display:flex;flex-direction:column;align-items:flex-end;gap:calc(var(--k)*16)}
+    .sl-06 .ecard .n{font-size:calc(var(--k)*20)}
+    .sl-06 .ecard h3{margin-top:calc(var(--k)*26);min-height:2.4em}
+    .sl-06 .ecard p{margin-top:calc(var(--k)*12)}
+    .sl-06 .c1 .well{background-color:#fff}
+
+    /* the clover grows across the stages */
+    .sl-06 .m-clover.g1{width:calc(var(--m)*34);height:calc(var(--m)*34)}
+    .sl-06 .m-clover.g2{width:calc(var(--m)*54);height:calc(var(--m)*54)}
+    .sl-06 .m-clover.g3{width:calc(var(--m)*80);height:calc(var(--m)*80)}
+
+    /* thin connector between the cards */
+    .sl-06 .conn{position:absolute;top:calc(var(--k)*504);width:calc(var(--k)*90);height:calc(var(--k)*24);color:color-mix(in srgb,var(--accent) 55%,var(--line-strong))}
+    .sl-06 .k1{left:calc(var(--k)*620)} .sl-06 .k2{left:calc(var(--k)*1210)}
+
+    .sl-06 .close{position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*912);font:italic 400 calc(var(--k)*36)/1.2 var(--font-accent);letter-spacing:-.01em;color:var(--ink)}
+  </style>
+
+  <div class="head">
+    <span class="eyebrow">06 · Roadmap</span>
+    <h1 class="hl sm">Start with SAP. Expand across industries. <em>Unify enterprise operations.</em></h1>
+  </div>
+
+  <div class="inset" style="left:calc(var(--k)*80);right:calc(var(--k)*80);top:calc(var(--k)*408);height:calc(var(--k)*470)"></div>
+
+  <svg class="conn k1" viewBox="0 0 90 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 12H74"/><path d="M68 7l6 5-6 5"/></g></svg>
+  <svg class="conn k2" viewBox="0 0 90 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 12H74"/><path d="M68 7l6 5-6 5"/></g></svg>
+
+  <div class="ecard c1">
+    <div class="top">
+      <div class="well"><div class="m-clover g1"><div class="clover lit"><span class="aurora"></span><span class="core"></span></div></div></div>
+      <div class="meta"><span class="n">1</span><span class="tag status">Now</span></div>
+    </div>
+    <h3>Solve complex SAP transformation challenges</h3>
+    <p>Build and validate AI-driven analysis, coding, and testing workflows that help enterprise teams modernize critical systems.</p>
+  </div>
+  <div class="ecard c2">
+    <div class="top">
+      <div class="well"><div class="m-clover g2"><div class="clover lit"><span class="aurora"></span><span class="core"></span></div></div></div>
+      <div class="meta"><span class="n">2</span><span class="tag exists">Next</span></div>
+    </div>
+    <h3>Expand into specialized industries</h3>
+    <p>Extend into high-value workflows across legal, healthcare, financial services, and other complex industries, guided by customer demand and domain expertise.</p>
+  </div>
+  <div class="ecard c3">
+    <div class="top">
+      <div class="well"><div class="m-clover g3"><div class="clover lit"><span class="aurora"></span><span class="core"></span></div></div></div>
+      <div class="meta"><span class="n">3</span><span class="tag exists">Long term</span></div>
+    </div>
+    <h3>Become a unified enterprise operational layer</h3>
+    <p>Our long-term ambition is one platform through which organizations can coordinate agents, enterprise context, systems, and governed execution across their business.</p>
+  </div>
+
+  <p class="close">Start with focused execution. Build toward enterprise-wide operations.</p>
+<div class="s-top"><span>06 · the truex roadmap</span><span>truex · introduction · october 2026</span></div><div class="s-foot"><span class="pg">06 / 08</span></div></section></div>
+</main>
+</body>
+</html>

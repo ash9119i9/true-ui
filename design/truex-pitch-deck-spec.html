@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>truex pitch deck · Design system spec v0.2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,6..72,400..500&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* Pitch deck spec. Language: the truex pinboard (convo-v2-wireframe-r2.html) + the capabilities
+   specimen board (join-tenant-v3-capabilities.html, right side). Light mode only: there is no dark block. */
+:root{
+  --page:#F6F9FA; --bg:#FFFFFF; --surface:#FFFFFF; --surface-2:#F8FCFD; --surface-3:#F6F9FA;
+  --line:#E3ECEF; --line-strong:#D8E0E4;
+  --ink:#1F2A30; --ink-2:#5F6D73; --ink-3:#849198;
+  --accent:#3691CD; --accent-2:#2A7DB4; --accent-fg:#2A72A3; --accent-soft:#EAF5F8; --on-accent:#FFFFFF;
+  --warn:#C58A1E; --warn-bg:#FFF3D9; --warn-text:#7D5D1D;
+  --bad:#C2452D; --bad-bg:#FCECE7; --ok:#0f7a55; --ok-bg:#E6F5EE;
+  --t0:#2872b8; --ts0:#eef5fc; --t1:#0f7a55; --ts1:#e6f5ee; --t2:#b84a1b; --ts2:#fcece4;
+  --board:#FFFFFF; --grid:rgb(54 145 205 / 9%); --grid-major:rgb(54 145 205 / 16%);
+  --paper:#FFFFFF; --tape:rgb(188 222 232 / 70%); --sticky:#FFF3D9; --sticky-ink:#5E4716; --doodle:#3691CD;
+  --ice:#EAF5F8; --ice-dot:#3691CD; --mint:#E7F4ED; --mint-dot:#A9D5BE; --butter:#FFF3D9; --butter-dot:#EBCB8B;
+  --peach:#FBE9DD; --peach-dot:#F0B999; --lilac:#EFEDF8; --lilac-dot:#C4BDE3;
+  --board-bg:#F6F9FA; --board-dot:rgb(31 42 48 / 11%);
+  --glass:rgb(255 255 255 / 38%); --glass-hi:rgb(255 255 255 / 78%); --glass-line:rgb(31 42 48 / 9%); --sheen:rgb(255 255 255 / 85%);
+  --obj-shadow:0 1px 1px rgb(31 42 48 / 5%),0 14px 30px -12px rgb(31 42 48 / 24%);
+  --shadow-card:0 1px 2px rgb(31 42 48 / 6%),0 14px 28px -12px rgb(31 42 48 / 28%);
+  --shadow-lift:0 2px 4px rgb(31 42 48 / 6%),0 26px 44px -16px rgb(31 42 48 / 34%);
+  --font-sans:"Figtree",ui-sans-serif,system-ui,sans-serif;
+  --font-accent:"Newsreader",ui-serif,Georgia,serif;
+  --font-hand:"Caveat","Segoe Print","Bradley Hand",cursive;
+  --font-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 18'%3E%3Cpath d='M2 15C8 4 17 2 25 5M20 1l5 4-6 3' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);font:15px/1.55 var(--font-sans);-webkit-font-smoothing:antialiased}
+h1,h2,h3,p{margin:0;text-wrap:balance}
+code{font:.86em var(--font-mono);background:var(--surface-3);border:1px solid var(--line);border-radius:5px;padding:0 4px;color:var(--ink-2)}
+.script{font-family:var(--font-hand);font-weight:700;color:var(--accent);letter-spacing:0}
+
+/* ───────── spec page chrome (same as convo-v2-wireframe-r2) ───────── */
+.page{max-width:1280px;margin:0 auto;padding:28px 16px 96px;display:flex;flex-direction:column;gap:40px}
+.topline{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font:12px var(--font-mono);color:var(--ink-3)}
+.hero{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:32px 48px;align-items:end;padding-top:24px}
+.hero h1{font-size:clamp(38px,6vw,72px);line-height:.98;font-weight:800;letter-spacing:-.045em}
+.hero h1 .script,.slide .hl .script{position:relative;display:inline-block;font-size:1.22em;transform:rotate(-4deg) translateY(4px);margin-left:.06em}
+.squiggle{position:absolute;left:4%;bottom:-.08em;width:98%;height:.26em;color:var(--doodle);overflow:visible}
+.hero p{color:var(--ink-2);font-size:17px;margin-top:16px;max-width:62ch}
+.counts{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:16px;font:500 13px var(--font-mono);color:var(--ink-2)}
+.counts b{color:var(--ink);font-weight:500}
+.sticky{position:relative;background:var(--sticky);color:var(--sticky-ink);border-radius:4px 4px 14px 4px;padding:22px 20px 18px;box-shadow:var(--shadow-card);transform:rotate(1.4deg);display:flex;flex-direction:column;gap:10px;font-size:14px}
+.sticky::before,.card-taped::before{content:"";position:absolute;top:-10px;left:50%;width:84px;height:22px;transform:translateX(-50%) rotate(-3deg);background:var(--tape);border-radius:2px}
+.sticky .hand{font:700 24px/1 var(--font-hand)}
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;vertical-align:2px}
+.tag.exists{background:var(--surface-3);color:var(--ink-2);box-shadow:inset 0 0 0 1px var(--line)}
+.tag.new{background:var(--warn-bg);color:var(--warn-text);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--warn) 40%,transparent)}
+.tag.content{background:var(--ts1);color:var(--t1)} .tag.status{background:var(--ts0);color:var(--t0)} .tag.diag{background:var(--ts2);color:var(--t2)}
+.sec{position:relative;display:flex;flex-direction:column;gap:28px;border:1px solid var(--line);border-radius:24px;padding:clamp(20px,3.4vw,44px);background-color:var(--board);
+  background-image:linear-gradient(var(--grid-major) 1px,transparent 1px),linear-gradient(90deg,var(--grid-major) 1px,transparent 1px),linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:96px 96px,96px 96px,24px 24px,24px 24px;background-position:-1px -1px}
+.sec-head{display:flex;flex-direction:column;gap:10px;max-width:780px}
+.sec-head .eyebrow{font:700 26px/1 var(--font-hand);color:var(--accent);transform:rotate(-2deg);transform-origin:left center;align-self:flex-start}
+.sec-head h2{font-size:clamp(24px,3.2vw,32px);font-weight:800;line-height:1.1;letter-spacing:-.035em}
+.sec-head p{color:var(--ink-2);font-size:16px}
+.board-cap{font:600 21px/1.2 var(--font-hand);color:var(--ink-2);margin-top:14px;display:flex;gap:8px;max-width:64ch}
+.board-cap::before{content:"";flex:none;width:28px;height:18px;margin-top:2px;background:var(--doodle);-webkit-mask:var(--arrow) no-repeat center/contain;mask:var(--arrow) no-repeat center/contain}
+.pin{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;flex:none;
+  background:radial-gradient(circle at 34% 30%,color-mix(in srgb,var(--accent) 45%,white) 0 18%,var(--accent) 60%,var(--accent-2));
+  color:var(--on-accent);font:700 11px/1 var(--font-mono);box-shadow:0 2px 3px rgb(31 42 48 / 25%),0 0 0 2px var(--bg)}
+.notes{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+.notes li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:12px;padding-top:12px;border-top:1px dashed var(--line-strong)}
+.notes li:first-child{border-top:0;padding-top:8px}
+.notes li>div{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--ink-2)}
+.notes b{color:var(--ink);font-size:15px}
+.card-taped{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:6px 6px 18px 6px;padding:30px 22px 22px;box-shadow:var(--shadow-card);transform:rotate(.5deg);
+  background-image:linear-gradient(transparent 0 30px,color-mix(in srgb,var(--bad) 22%,transparent) 30px 31px,transparent 31px)}
+.two{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:28px 40px;align-items:start}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.tbl{border:1px solid var(--line);border-radius:16px;overflow:auto;background:var(--surface);box-shadow:var(--shadow-card)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:11px 16px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);background:var(--surface-3)}
+tr:last-child td{border-bottom:0}
+.sw{display:inline-block;width:16px;height:16px;border-radius:5px;vertical-align:-3px;margin-right:8px;background:var(--c);box-shadow:inset 0 0 0 1px rgb(0 0 0 / 10%)}
+.ok{color:var(--ok)}.warn{color:var(--warn-text)}.no{color:var(--bad)}
+.steps-list{list-style:none;counter-reset:s;margin:0;padding:0;display:grid;gap:14px}
+.steps-list li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:10px;color:var(--ink-2)}
+.steps-list li::before{content:counter(s);font:700 30px/.9 var(--font-hand);color:var(--accent)}
+.steps-list b{color:var(--ink)}
+.figs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:36px 28px}
+figure{margin:0} figcaption{margin-top:12px;font-size:14px;color:var(--ink-2)} figcaption b{color:var(--ink)}
+@media(max-width:900px){.hero,.two,.figs,.grid3{grid-template-columns:minmax(0,1fr)}}
+
+/* ───────── slide primitive: 1920×1080 artboard; every slide size is px@1920 × --k ───────── */
+.slide{position:relative;width:100%;aspect-ratio:16/9;container-type:inline-size;overflow:hidden;isolation:isolate;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-lift);
+  --k:calc(100cqw / 1920);background-color:var(--board);
+  background-image:linear-gradient(var(--grid-major) 1px,transparent 1px),linear-gradient(90deg,var(--grid-major) 1px,transparent 1px),linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:calc(var(--k)*192) calc(var(--k)*192),calc(var(--k)*192) calc(var(--k)*192),calc(var(--k)*48) calc(var(--k)*48),calc(var(--k)*48) calc(var(--k)*48);background-position:-1px -1px}
+.inset{position:absolute;border:1px solid var(--line);background-color:var(--board-bg);background-image:radial-gradient(var(--board-dot) 1px,transparent 1.2px);background-size:calc(var(--k)*28) calc(var(--k)*28)}
+.slide.dots{background-color:var(--board-bg);background-image:radial-gradient(var(--board-dot) 1px,transparent 1.2px);background-size:calc(var(--k)*28) calc(var(--k)*28)}
+.s-top{position:absolute;top:calc(var(--k)*64);left:calc(var(--k)*120);right:calc(var(--k)*120);display:flex;justify-content:space-between;font:400 calc(var(--k)*20)/1 var(--font-mono);color:var(--ink-2)}
+.s-eyebrow{font:700 calc(var(--k)*52)/1 var(--font-hand);color:var(--accent);transform:rotate(-2deg);transform-origin:left center;display:inline-block}
+.slide .hl{font:800 calc(var(--k)*96)/1 var(--font-sans);letter-spacing:-.045em;color:var(--ink);text-wrap:balance}
+.slide .hl.md{font-size:calc(var(--k)*68);line-height:1.05;letter-spacing:-.035em}
+.slide .lead{font:400 calc(var(--k)*30)/1.45 var(--font-sans);color:var(--ink-2);max-width:calc(var(--k)*980)}
+.slide .cap{font:600 calc(var(--k)*36)/1.2 var(--font-hand);color:var(--ink-2);display:flex;gap:calc(var(--k)*14)}
+.slide .cap::before{content:"";flex:none;width:calc(var(--k)*48);height:calc(var(--k)*30);margin-top:calc(var(--k)*4);background:var(--doodle);-webkit-mask:var(--arrow) no-repeat center/contain;mask:var(--arrow) no-repeat center/contain}
+.slide .sig{font:italic 400 calc(var(--k)*44)/1 var(--font-accent);color:var(--ink)}
+.s-foot{position:absolute;left:calc(var(--k)*120);right:calc(var(--k)*120);bottom:calc(var(--k)*52);display:flex;align-items:center;gap:calc(var(--k)*12);font:700 calc(var(--k)*24)/1 var(--font-sans);letter-spacing:-.03em}
+.s-foot .bm{width:calc(var(--k)*34);height:calc(var(--k)*34);border-radius:calc(var(--k)*10);background:var(--ink);display:grid;place-items:center}
+.s-foot .bm svg{width:62%;height:62%}
+.s-foot .pg{margin-left:auto;font:400 calc(var(--k)*20)/1 var(--font-mono);letter-spacing:.04em;color:var(--ink-2);font-weight:400}
+.s-pin{display:inline-grid;place-items:center;width:calc(var(--k)*40);height:calc(var(--k)*40);border-radius:50%;flex:none;
+  background:radial-gradient(circle at 34% 30%,color-mix(in srgb,var(--accent) 45%,white) 0 18%,var(--accent) 60%,var(--accent-2));
+  color:#fff;font:700 calc(var(--k)*19)/1 var(--font-mono);box-shadow:0 2px 3px rgb(31 42 48 / 25%),0 0 0 calc(var(--k)*3) #fff}
+.s-card{position:absolute;background:#fff;border:1px solid var(--line);border-radius:calc(var(--k)*8) calc(var(--k)*8) calc(var(--k)*30) calc(var(--k)*8);
+  padding:calc(var(--k)*56) calc(var(--k)*40) calc(var(--k)*36);box-shadow:var(--shadow-card);transform:rotate(.6deg);
+  background-image:linear-gradient(transparent 0 calc(var(--k)*50),color-mix(in srgb,var(--bad) 22%,transparent) calc(var(--k)*50) calc(var(--k)*52),transparent calc(var(--k)*52))}
+.s-card::before,.s-sticky::before{content:"";position:absolute;top:calc(var(--k)*-18);left:50%;width:calc(var(--k)*150);height:calc(var(--k)*40);transform:translateX(-50%) rotate(2deg);background:var(--tape);border-radius:2px}
+.s-card ol{list-style:none;margin:0;padding:0;display:grid;gap:calc(var(--k)*26)}
+.s-card li{display:grid;grid-template-columns:calc(var(--k)*40) 1fr;gap:calc(var(--k)*20);padding-top:calc(var(--k)*22);border-top:1px dashed var(--line-strong)}
+.s-card li:first-child{border-top:0;padding-top:0}
+.s-card b{display:block;font:700 calc(var(--k)*28)/1.2 var(--font-sans);letter-spacing:-.01em;color:var(--ink)}
+.s-card p{font:400 calc(var(--k)*22)/1.45 var(--font-sans);color:var(--ink-2);margin-top:calc(var(--k)*6)}
+.s-sticky{position:absolute;background:var(--sticky);color:var(--sticky-ink);border-radius:calc(var(--k)*6) calc(var(--k)*6) calc(var(--k)*26) calc(var(--k)*6);padding:calc(var(--k)*44) calc(var(--k)*40) calc(var(--k)*36);box-shadow:var(--shadow-card);transform:rotate(1.6deg);font:400 calc(var(--k)*24)/1.45 var(--font-sans)}
+.s-sticky .hand{font:700 calc(var(--k)*44)/1 var(--font-hand);display:block;margin-bottom:calc(var(--k)*12)}
+.s-tag{display:inline-flex;align-items:center;height:calc(var(--k)*36);padding:0 calc(var(--k)*16);border-radius:999px;font:600 calc(var(--k)*19)/1 var(--font-sans);white-space:nowrap}
+.s-tag.content{background:var(--ts1);color:var(--t1)} .s-tag.status{background:var(--ts0);color:var(--t0)} .s-tag.diag{background:var(--ts2);color:var(--t2)} .s-tag.new{background:var(--warn-bg);color:var(--warn-text)}
+
+/* wireframe window (the "mock pinned on the left") */
+.wf{position:absolute;background:#fff;border:1px solid var(--line);border-radius:calc(var(--k)*28);box-shadow:var(--shadow-lift);overflow:hidden;font-size:calc(var(--k)*22)}
+.wf-bar{height:calc(var(--k)*50);display:flex;align-items:center;gap:calc(var(--k)*10);padding:0 calc(var(--k)*22);background:var(--surface-3);border-bottom:1px solid var(--line);font:400 calc(var(--k)*17) var(--font-mono);color:var(--ink-2)}
+.wf-bar i{width:calc(var(--k)*13);height:calc(var(--k)*13);border-radius:50%;background:var(--line-strong)} .wf-bar span{margin-left:auto}
+.wf-head{display:flex;align-items:center;gap:calc(var(--k)*14);padding:calc(var(--k)*20) calc(var(--k)*28);border-bottom:1px solid var(--line);font-weight:600;color:var(--ink)}
+.chip{display:inline-flex;align-items:center;gap:calc(var(--k)*8);height:calc(var(--k)*36);padding:0 calc(var(--k)*14);border-radius:999px;background:var(--surface-3);border:1px solid var(--line);font:500 calc(var(--k)*18)/1 var(--font-sans);color:var(--ink-2);white-space:nowrap}
+.chip .d{width:calc(var(--k)*10);height:calc(var(--k)*10);border-radius:50%;background:var(--accent)}
+.wf-body{padding:calc(var(--k)*28);display:flex;flex-direction:column;gap:calc(var(--k)*20)}
+.bubble{align-self:flex-end;max-width:76%;background:var(--ink);color:#fff;padding:calc(var(--k)*18) calc(var(--k)*24);border-radius:calc(var(--k)*24) calc(var(--k)*24) calc(var(--k)*6) calc(var(--k)*24);line-height:1.4}
+.who{display:flex;align-items:center;gap:calc(var(--k)*12);font-weight:600}
+.av{width:calc(var(--k)*38);height:calc(var(--k)*38);border-radius:calc(var(--k)*11);display:grid;place-items:center;font:700 calc(var(--k)*17)/1 var(--font-sans);background:var(--ice);color:var(--ink)}
+.stepsbox{border:1px solid var(--line);border-radius:calc(var(--k)*18);padding:calc(var(--k)*14) calc(var(--k)*20);display:grid;gap:calc(var(--k)*10);color:var(--ink-2);font-size:calc(var(--k)*20)}
+.stepsbox span::before{content:"✓";display:inline-grid;place-items:center;width:calc(var(--k)*24);height:calc(var(--k)*24);margin-right:calc(var(--k)*12);border-radius:50%;background:var(--accent-soft);color:var(--accent-fg);font-size:calc(var(--k)*14)}
+.stepsbox span.run::before{content:"";border:2px solid var(--accent-2);border-top-color:transparent;background:none}
+.receipt{font:400 calc(var(--k)*17) var(--font-mono);color:var(--ink-2)}
+.composer{margin:0 calc(var(--k)*24) calc(var(--k)*24);border:1px solid var(--line-strong);border-radius:calc(var(--k)*28);padding:calc(var(--k)*18) calc(var(--k)*22);color:var(--ink-2);display:flex;align-items:center;gap:calc(var(--k)*10)}
+.composer .send{margin-left:auto;width:calc(var(--k)*44);height:calc(var(--k)*44);border-radius:50%;background:var(--ink)}
+.request{margin:0 calc(var(--k)*24) calc(var(--k)*14);border-radius:calc(var(--k)*18);background:var(--warn-bg);color:var(--warn-text);padding:calc(var(--k)*16) calc(var(--k)*20);font-weight:500}
+.ptab{display:flex;gap:calc(var(--k)*26);padding:0 calc(var(--k)*28);border-bottom:1px solid var(--line);color:var(--ink-2);font-size:calc(var(--k)*20)}
+.ptab span{padding:calc(var(--k)*16) 0}.ptab span.on{color:var(--ink);font-weight:600;box-shadow:inset 0 calc(var(--k)*-3) 0 var(--accent)}
+.bar{height:calc(var(--k)*8);border-radius:4px;background:var(--surface-3);overflow:hidden}.bar i{display:block;height:100%;width:var(--w,60%);background:var(--accent);border-radius:4px}
+.wfall{display:grid;gap:calc(var(--k)*10)}.wfall div{height:calc(var(--k)*18);border-radius:4px;background:var(--c,var(--accent-soft));margin-left:var(--l,0);width:var(--w,40%)}
+.at{position:absolute;z-index:4}
+
+/* capability specimen board (join-tenant-v3 right side, rescaled: --u = 1% of board width) */
+.capb{position:absolute;width:calc(var(--k)*var(--W));aspect-ratio:5/5.4;--u:calc(var(--k)*var(--W)/100)}
+.sp{position:absolute}
+.sp .idx{position:absolute;top:calc(var(--u)*-.4);right:calc(var(--u)*-5);font:400 calc(var(--k)*18) var(--font-mono);color:var(--ink-2)}
+.clover{clip-path:url(#clover);position:relative;overflow:hidden}
+.drop{filter:drop-shadow(0 12px 16px rgb(31 42 48 / 14%))}
+.lit::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 22% 12%,rgb(255 255 255 / 55%),transparent 45%);mix-blend-mode:soft-light;z-index:2}
+.gl{position:relative;overflow:hidden;background:linear-gradient(150deg,var(--glass-hi),var(--glass) 70%);border:1px solid var(--glass-line);backdrop-filter:blur(18px) saturate(150%);
+  box-shadow:inset 0 1px 0 var(--sheen),inset 0 -12px 22px -14px rgb(0 0 0 / 22%),var(--obj-shadow)}
+.bar-a,.bar-b{position:absolute;border-radius:calc(var(--u)*2.6);box-shadow:inset 1.5px 0 0 rgb(255 255 255 / 38%),inset -8px 0 14px -8px rgb(0 0 0 / 22%),var(--obj-shadow)}
+.bar-a{left:47%;top:24%;width:calc(var(--u)*10.5);height:44%;background:linear-gradient(180deg,color-mix(in srgb,var(--mint-dot) 75%,#fff),var(--mint-dot) 32%,color-mix(in srgb,var(--mint-dot) 62%,#2E4A3A))}
+.bar-b{left:37.5%;top:40%;width:calc(var(--u)*10.5);height:20%;background:linear-gradient(180deg,color-mix(in srgb,var(--peach) 70%,#fff),var(--peach-dot) 70%,color-mix(in srgb,var(--peach-dot) 80%,#9C5A3C))}
+.s1{left:36%;top:6%;width:calc(var(--u)*19);height:calc(var(--u)*19)} .s1 .clover{width:100%;height:100%}
+.aurora{position:absolute;inset:-30%;background:radial-gradient(circle at 30% 30%,var(--peach-dot),transparent 42%),radial-gradient(circle at 72% 32%,var(--ice-dot),transparent 44%),radial-gradient(circle at 55% 78%,var(--lilac-dot),transparent 46%),radial-gradient(circle at 24% 72%,var(--mint-dot),transparent 42%),var(--lilac);filter:blur(12px) saturate(115%)}
+.core{position:absolute;left:33%;top:33%;width:34%;height:34%;border-radius:50%;z-index:1;background:radial-gradient(circle at 38% 32%,rgb(255 255 255 / 95%),rgb(255 255 255 / 35%) 42%,transparent 72%)}
+.s2{left:63%;top:18%} .s2 .pill{height:calc(var(--u)*6.6);padding:0 calc(var(--u)*2.6) 0 calc(var(--u)*1.3);border-radius:999px;display:inline-flex;align-items:center;gap:calc(var(--u)*1.6);font:500 calc(var(--u)*2.8) var(--font-mono);color:var(--ink);white-space:nowrap}
+.live{width:calc(var(--u)*2.8);height:calc(var(--u)*2.8);border-radius:50%;background:radial-gradient(circle at 36% 30%,#fff 0 10%,color-mix(in srgb,var(--mint-dot) 70%,#fff) 28%,var(--mint-dot) 55%,color-mix(in srgb,var(--mint-dot) 55%,#2E4A3A));box-shadow:0 0 0 3px color-mix(in srgb,var(--mint-dot) 22%,transparent),0 0 12px color-mix(in srgb,var(--mint-dot) 60%,transparent)}
+.s3{left:12%;top:26%;width:calc(var(--u)*17);height:calc(var(--u)*17)} .s3 .tile{width:100%;height:100%;border-radius:calc(var(--u)*4.6);display:grid;place-items:center}
+.lotus{position:relative;z-index:1;width:76%;height:76%} .lotus i{position:absolute;clip-path:url(#clover);background:radial-gradient(circle,color-mix(in srgb,var(--lilac-dot) 55%,#3B3160) 18%,var(--lilac-dot) 58%,color-mix(in srgb,var(--lilac) 60%,#fff))}
+.lotus i:nth-child(1){inset:0}.lotus i:nth-child(2){inset:14%}.lotus i:nth-child(3){inset:28%}.lotus i:nth-child(4){inset:40%;background:radial-gradient(circle at 40% 35%,#fff,color-mix(in srgb,var(--lilac) 70%,#fff) 60%)}
+.s4{left:53%;top:27%;width:calc(var(--u)*12.6);height:calc(var(--u)*12.6)} .s4 .orb{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;color:var(--ink);background:radial-gradient(circle at 30% 24%,var(--glass-hi),var(--glass) 62%)}
+.s4 .orb svg{width:40%;height:40%;position:relative;z-index:1}
+.s4 kbd{position:absolute;left:50%;bottom:calc(var(--u)*-4.4);transform:translateX(-50%);font:500 calc(var(--k)*16) var(--font-mono);color:var(--ink-2);padding:1px 6px;border:1px solid var(--line);border-radius:5px;background:var(--surface-3);white-space:nowrap}
+.s5{left:3%;top:47%} .s5 .ghost{height:calc(var(--u)*8.2);padding:0 calc(var(--u)*4.4);border-radius:999px;display:inline-flex;align-items:center;font:400 calc(var(--u)*2.6) var(--font-mono);color:var(--ink);white-space:nowrap;
+  border:1px solid transparent;background:linear-gradient(color-mix(in srgb,var(--board-bg) 88%,transparent),color-mix(in srgb,var(--board-bg) 88%,transparent)) padding-box,linear-gradient(100deg,var(--line-strong) 40%,var(--accent-2) 50%,var(--line-strong) 60%) border-box}
+.s6{left:57%;top:42%;width:calc(var(--u)*25)} .s6 .frame{position:relative;width:calc(var(--u)*25);height:calc(var(--u)*25)} .s6 .clover{width:100%;height:100%;background:#C9CCBF}
+.photo{position:absolute;inset:-10%;filter:blur(4px) saturate(108%);background:radial-gradient(ellipse 11% 13% at 55% 40%,#B98468 0 55%,transparent 72%),radial-gradient(ellipse 12% 6% at 55% 29%,#2F2622 0 50%,transparent 75%),radial-gradient(ellipse 30% 26% at 55% 88%,#B4552F 0 55%,transparent 74%),radial-gradient(ellipse 8% 18% at 55% 90%,#2E2A28 0 50%,transparent 72%),radial-gradient(ellipse 30% 60% at 10% 35%,rgb(255 246 228 / 90%),transparent 70%),radial-gradient(ellipse 34% 70% at 92% 30%,#5E7C58,transparent 72%),radial-gradient(ellipse 40% 40% at 80% 80%,#7E9A6E,transparent 70%),linear-gradient(180deg,#D8CEBF,#A3A596)}
+.plus{position:absolute;right:9%;bottom:17%;z-index:4;width:calc(var(--u)*7.6);height:calc(var(--u)*7.6);border-radius:50%;display:grid;place-items:center;color:#fff;background:rgb(96 40 22 / 50%);border:1px solid rgb(255 255 255 / 28%);backdrop-filter:blur(10px)}
+.plus svg{width:42%;height:42%}
+.s6 .nm,.s7 .nm{margin-top:calc(var(--u)*1.4);font:500 calc(var(--k)*18) var(--font-mono);color:var(--ink);text-align:center;white-space:nowrap}
+.s6 .sub,.s7 .sub{text-align:center;font:400 calc(var(--k)*16) var(--font-mono);color:var(--ink-2);white-space:nowrap}
+.s7{left:17%;top:62%;width:calc(var(--u)*16)} .s7 .clover{width:calc(var(--u)*16);height:calc(var(--u)*16);display:grid;place-items:center;background:linear-gradient(150deg,var(--glass-hi),color-mix(in srgb,var(--ink) 6%,transparent))}
+.s7 .me{font:500 calc(var(--k)*16) var(--font-mono);letter-spacing:.08em;color:var(--ink-2)}
+.s8{left:56%;top:77%;width:calc(var(--u)*12.6);height:calc(var(--u)*12.6)} .s8 .tile{width:100%;height:100%;border-radius:calc(var(--u)*3.8);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:calc(var(--u)*1.1);padding:calc(var(--u)*1.9)}
+.pearl{position:relative;z-index:1;border-radius:50%;display:grid;place-items:center;color:#fff;background:radial-gradient(circle at 34% 28%,#fff 0 7%,color-mix(in srgb,var(--c) 55%,#fff) 24%,var(--c) 58%,color-mix(in srgb,var(--c) 62%,#1F2A30));box-shadow:0 3px 6px -2px rgb(0 0 0 / 30%)}
+.pearl.add{background:radial-gradient(circle at 34% 26%,#5A6770,#2B353B 70%)} .pearl svg{width:50%;height:50%}
+.capb-foot{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:flex-end}
+.capb-foot .mono{font:400 calc(var(--k)*16)/1.6 var(--font-mono);color:var(--ink-2);text-transform:uppercase;letter-spacing:.04em}
+.legend{list-style:none;margin:0;padding:0;display:grid;gap:calc(var(--k)*6) calc(var(--k)*24);grid-template-columns:repeat(2,minmax(0,1fr))}
+.legend li{display:grid;grid-template-columns:calc(var(--k)*44) 1fr;padding:calc(var(--k)*14) 0;border-top:1px dashed var(--line-strong)}
+.legend .n{font:400 calc(var(--k)*19)/calc(var(--k)*34) var(--font-mono);color:var(--accent-fg)}
+.legend b{font:600 calc(var(--k)*27)/calc(var(--k)*34) var(--font-sans);letter-spacing:-.01em}
+.legend .d{grid-column:2;font:400 calc(var(--k)*21)/1.4 var(--font-sans);color:var(--ink-2)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <clipPath id="clover" clipPathUnits="objectBoundingBox"><path d="M.5,.1 C.82,-.1 1.1,.18 .9,.5 C1.1,.82 .82,1.1 .5,.9 C.18,1.1 -.1,.82 .1,.5 C-.1,.18 .18,-.1 .5,.1Z"/></clipPath>
+  <symbol id="spark" viewBox="0 0 40 40"><path d="m20 8 3.2 8.5 8.5 3.2-8.5 3.2L20 31.4l-3.2-8.5-8.5-3.2 8.5-3.2Z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/></symbol>
+  <symbol id="sq" viewBox="0 0 200 14" preserveAspectRatio="none"><path d="M3 9C32 2 52 13 84 7S146 2 197 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></symbol>
+  <symbol id="srch" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></g></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+</svg>
+
+<main class="page">
+  <div class="topline"><span>truex · pitch deck · design system</span><span>v0.2 · light only · draft for review</span></div>
+
+  <header class="hero">
+    <div>
+      <h1>The truex deck, <span class="script">pinned up<svg class="squiggle" aria-hidden="true"><use href="#sq"/></svg></span></h1>
+      <p>A deck for people who might refer us, invest, or pass truex on to someone who should see it. It's built in the same pinboard language as <code>convo-v2-wireframe-r2.html</code>. The capabilities come from the specimen board in <code>join-tenant-v3-capabilities.html</code>, and the platform slides come from the convo surfaces. Tokens match <code>truex-design-spec.html</code>, light theme only.</p>
+      <div class="counts"><span><b>14</b> slides</span><span><b>6</b> layouts</span><span><b>8</b> capabilities</span><span><b>5</b> platform surfaces</span><span><b>6</b> open questions</span></div>
+    </div>
+    <aside class="sticky">
+      <span class="hand">How to read this</span>
+      <span>Each section is one rule. The live 1920×1080 slide mockups show the rule in use. Anything in <b>[ brackets ]</b> is placeholder copy or numbers.</span>
+      <span><span class="tag content">Content</span> <span class="tag status">Status</span> <span class="tag diag">Diagnostics</span> are the same buckets used in convo-r2.</span>
+    </aside>
+  </header>
+
+  <!-- 1 · Language -->
+  <section class="sec">
+    <div class="sec-head">
+      <span class="eyebrow">1 · The language</span>
+      <h2>A working board, not a template</h2>
+      <p>Each slide reads like a board pinned up in the studio. It has grid paper, a mock pinned on the left and a taped index card that explains it. Handwritten captions point at what matters. That's the convo-r2 system, scaled up to a 16:9 frame.</p>
+    </div>
+    <div class="two">
+      <div>
+        <div class="grid3">
+          <div class="card-taped" style="transform:rotate(-.6deg)"><b style="font-size:15px">Grid paper</b><p style="color:var(--ink-2);font-size:14px;margin-top:6px">White board with a 48 px minor grid and a 192 px major grid in accent at 9% and 16%. This is the default slide surface.</p></div>
+          <div class="card-taped"><b style="font-size:15px">Dotted specimen sheet</b><p style="color:var(--ink-2);font-size:14px;margin-top:6px">A <code>#F6F9FA</code> board with 11% ink dots on a 28 px pitch. It's used only where capability objects appear.</p></div>
+          <div class="card-taped" style="transform:rotate(.9deg)"><b style="font-size:15px">Pins and tape</b><p style="color:var(--ink-2);font-size:14px;margin-top:6px">Blue numbered thumbtacks on the mock tie it to the notes. The tape is ice at 70%.</p></div>
+        </div>
+        <p class="board-cap">The slides never get a title bar, a bullet list or a logo in the corner. The board does that work.</p>
+      </div>
+      <div class="card-taped">
+        <ol class="notes">
+          <li><span class="pin">1</span><div><b>Handwritten eyebrow</b>Caveat 700 in accent, rotated −2°. It numbers the chapter, as in <code>2 · Platform</code>.</div></li>
+          <li><span class="pin">2</span><div><b>Headline with one script word</b>Figtree 800. One word or short phrase is set in Caveat with the blue squiggle underneath.</div></li>
+          <li><span class="pin">3</span><div><b>Mock + index card</b>The product is a wireframe recreation, not a screenshot. Every pin on the mock has a matching line on the card.</div></li>
+          <li><span class="pin">4</span><div><b>Arrow caption</b>A handwritten line with the doodle arrow says the one thing to remember from the slide.</div></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · Tokens -->
+  <section class="sec">
+    <div class="sec-head">
+      <span class="eyebrow">2 · Color, light only</span>
+      <h2>The convo-r2 light tokens, unchanged</h2>
+      <p>These are copied from convo-r2 and join-tenant-v3. The dark blocks are removed, so the deck has no dark slides and no dark theme. Contrast is measured on the background each token is used on.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Token</th><th>Hex</th><th>Contrast</th><th>Use in deck</th></tr></thead>
+      <tbody>
+        <tr><td><span class="sw" style="--c:#FFFFFF"></span>board / paper</td><td><code>#FFFFFF</code></td><td>n/a</td><td>Grid-paper slides, index cards, mocks</td></tr>
+        <tr><td><span class="sw" style="--c:#F6F9FA"></span>page / board-bg</td><td><code>#F6F9FA</code></td><td>n/a</td><td>Dotted specimen slides, mock title bars</td></tr>
+        <tr><td><span class="sw" style="--c:#E3ECEF"></span>line / line-strong</td><td><code>#E3ECEF</code> <code>#D8E0E4</code></td><td>n/a</td><td>Card borders and dashed note separators</td></tr>
+        <tr><td><span class="sw" style="--c:#1F2A30"></span>ink</td><td><code>#1F2A30</code></td><td class="ok">14.7 on white</td><td>Headlines, user bubble, brand mark</td></tr>
+        <tr><td><span class="sw" style="--c:#5F6D73"></span>ink-2</td><td><code>#5F6D73</code></td><td class="ok">5.4 on white</td><td>Lead, notes, labels, captions</td></tr>
+        <tr><td><span class="sw" style="--c:#849198"></span>ink-3</td><td><code>#849198</code></td><td class="no">3.2 on white</td><td>Not used for text in the deck. The mocks use ink-2 for every label.</td></tr>
+        <tr><td><span class="sw" style="--c:#3691CD"></span>accent / doodle</td><td><code>#3691CD</code></td><td class="warn">3.5 on white</td><td>Caveat eyebrows and script words (≥ 44 px@1920, large text), squiggle, arrows, pins, bars</td></tr>
+        <tr><td><span class="sw" style="--c:#2A72A3"></span>accent-fg</td><td><code>#2A72A3</code></td><td class="ok">5.2 on white</td><td>Small blue text such as legend numbers and links</td></tr>
+        <tr><td><span class="sw" style="--c:#FFF3D9"></span>sticky / sticky-ink</td><td><code>#FFF3D9</code> <code>#5E4716</code></td><td class="ok">8.0</td><td>Sticky notes for the one key fact or ask</td></tr>
+        <tr><td><span class="sw" style="--c:#BCDEE8"></span>tape</td><td><code>rgb(188 222 232 / 70%)</code></td><td>n/a</td><td>Tape on cards and stickies</td></tr>
+        <tr><td><span class="sw" style="--c:#e6f5ee"></span>content · <span class="sw" style="--c:#eef5fc"></span>status · <span class="sw" style="--c:#fcece4"></span>diag</td><td><code>t1/ts1</code> <code>t0/ts0</code> <code>t2/ts2</code></td><td class="ok">4.5–4.7</td><td>Bucket tags on platform slides</td></tr>
+        <tr><td><span class="sw" style="--c:#A9D5BE"></span>agent tints</td><td>ice · mint · butter · peach · lilac</td><td>n/a</td><td>Specimen objects only: aurora, bars, lotus, pearls. Never used as text color.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- 3 · Type -->
+  <section class="sec">
+    <div class="sec-head">
+      <span class="eyebrow">3 · Type</span>
+      <h2>Four faces, each with one job</h2>
+      <p>These are the faces convo-r2 loads. Sizes are px on the 1920 artboard, and nothing goes below 18 px so a phone screenshot stays readable.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Role</th><th>Spec @1920</th><th>Sample</th></tr></thead>
+      <tbody>
+        <tr><td>Headline</td><td><code>Figtree 800 · 96/1.0 · −0.045em</code></td><td style="font:800 34px/1 var(--font-sans);letter-spacing:-.045em">Good work takes a <span class="script" style="font-size:1.2em">great team</span></td></tr>
+        <tr><td>Headline, platform</td><td><code>Figtree 800 · 68/1.05 · −0.035em</code></td><td style="font:800 24px/1.1 var(--font-sans);letter-spacing:-.035em">Conversation stream</td></tr>
+        <tr><td>Eyebrow</td><td><code>Caveat 700 · 52 · accent · −2°</code></td><td><span class="script" style="font-size:26px;display:inline-block;transform:rotate(-2deg)">2 · Content, inline</span></td></tr>
+        <tr><td>Lead</td><td><code>Figtree 400 · 30/1.45 · ink-2</code></td><td style="color:var(--ink-2);font-size:16px">Everything a turn produces stays where it happened.</td></tr>
+        <tr><td>Card title / body</td><td><code>Figtree 700 · 28</code> / <code>400 · 22/1.45</code></td><td><b>Live requests</b> <span style="color:var(--ink-2)">sit above the composer.</span></td></tr>
+        <tr><td>Arrow caption</td><td><code>Caveat 600 · 36 · ink-2</code></td><td style="font:600 21px var(--font-hand);color:var(--ink-2)">The answer reads first, the work folds away.</td></tr>
+        <tr><td>Signature</td><td><code>Newsreader italic 400 · 44</code></td><td style="font:italic 400 22px var(--font-accent)">Capabilities</td></tr>
+        <tr><td>Mono label</td><td><code>JetBrains Mono 400 · 18–20 · ink-2</code></td><td style="font:13px var(--font-mono);color:var(--ink-2)">truex · chat &nbsp; 04 / 14 &nbsp; ⌘ K</td></tr>
+      </tbody>
+    </table></div>
+    <p class="board-cap">Each slide gets one script word. Newsreader only appears as a signature, like "Capabilities" on the specimen board.</p>
+  </section>
+
+  <!-- 4 · Layouts -->
+  <section class="sec">
+    <div class="sec-head">
+      <span class="eyebrow">4 · Layouts</span>
+      <h2>Six boards cover the whole deck</h2>
+      <p>The safe area is 120 px at the sides, 64 px at the top and 52 px at the bottom. A mono strip runs along the top of every slide. The footer holds the brand mark and the page number, and every slide except the cover has one.</p>
+    </div>
+
+    <div class="figs">
+
+      <!-- A Cover -->
+      <figure>
+        <div class="slide">
+          <div class="s-top"><span>truex · people + agents, one workspace</span><span>2026</span></div>
+          <div style="position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*300);width:calc(var(--k)*900)">
+            <span class="s-eyebrow">Hello, meet truex</span>
+            <h1 class="hl" style="margin-top:calc(var(--k)*30)">Good work takes a <span class="script">great team<svg class="squiggle"><use href="#sq"/></svg></span></h1>
+            <p class="lead" style="margin-top:calc(var(--k)*36)">AI teammates and people, working in one shared workspace.</p>
+          </div>
+          <div class="inset" style="position:absolute;inset:calc(var(--k)*40) calc(var(--k)*40) calc(var(--k)*40) auto;width:calc(var(--k)*800);border-radius:calc(var(--k)*44)">
+            <div class="capb" style="--W:600;left:calc(var(--k)*100);top:calc(var(--k)*170)">
+              <span class="bar-a"></span><span class="bar-b"></span>
+              <div class="sp s1 drop"><div class="clover lit"><span class="aurora"></span><span class="core"></span></div></div>
+              <div class="sp s2"><div class="pill gl"><span class="live"></span><span>00:31:29</span></div></div>
+              <div class="sp s3"><div class="tile gl"><div class="lotus"><i></i><i></i><i></i><i></i></div></div></div>
+              <div class="sp s4"><div class="orb gl"><svg><use href="#srch"/></svg></div></div>
+              <div class="sp s6"><div class="frame drop"><div class="clover"><span class="photo"></span></div><span class="plus"><svg><use href="#plus"/></svg></span></div></div>
+              <div class="sp s8"><div class="tile gl"><span class="pearl" style="--c:var(--mint-dot)"></span><span class="pearl add"><svg><use href="#plus"/></svg></span><span class="pearl" style="--c:var(--butter-dot)"></span><span class="pearl" style="--c:var(--lilac-dot)"></span></div></div>
+            </div>
+          </div>
+          <div class="s-foot" style="right:auto"><span class="bm"><svg><use href="#spark"/></svg></span>truex</div>
+        </div>
+        <figcaption><b>A · Cover.</b> Grid paper on the left and an inset dotted sheet on the right with the capability cluster. The specimens carry no numbers yet, because the cover is a tease.</figcaption>
+      </figure>
+
+      <!-- B Statement + sticky -->
+      <figure>
+        <div class="slide">
+          <div class="s-top"><span>01 · the problem</span><span>truex · deck</span></div>
+          <div style="position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*250);width:calc(var(--k)*1080)">
+            <span class="s-eyebrow">1 · Why this matters</span>
+            <h2 class="hl" style="margin-top:calc(var(--k)*30)">Work is scattered. Nobody sees the <span class="script">whole picture<svg class="squiggle"><use href="#sq"/></svg></span></h2>
+            <p class="cap" style="margin-top:calc(var(--k)*60)">Chats in one place, files in another, the plan in someone's head.</p>
+          </div>
+          <div class="s-sticky" style="right:calc(var(--k)*150);top:calc(var(--k)*300);width:calc(var(--k)*460)">
+            <span class="hand">[ 00 ] hours</span>a week the average team spends on work about work. <br><span style="font-size:calc(var(--k)*19)">Source: [ publication, year ]</span>
+          </div>
+          <div class="s-foot"><span class="bm"><svg><use href="#spark"/></svg></span>truex<span class="pg">02 / 14</span></div>
+        </div>
+        <figcaption><b>B · Statement.</b> A headline, an arrow caption and one sticky note for the number. Used for the problem, why now, what we believe and market slides. Every number on a sticky has to cite a source.</figcaption>
+      </figure>
+
+      <!-- C Capability board -->
+      <figure>
+        <div class="slide">
+          <div class="s-top"><span>02 · meet truex</span><span>truex · deck</span></div>
+          <div style="position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*150);width:calc(var(--k)*820)">
+            <span class="s-eyebrow">2 · What you can do</span>
+            <h2 class="hl md" style="margin-top:calc(var(--k)*24)">Eight things your team gets on <span class="script">day one</span></h2>
+            <ol class="legend" style="margin-top:calc(var(--k)*44)">
+              <li><span class="n">01</span><b>Named agents</b><span class="d">@mention an agent and it picks up work.</span></li>
+              <li><span class="n">02</span><b>Live sessions</b><span class="d">Agents keep working in the background.</span></li>
+              <li><span class="n">03</span><b>Goals and plans</b><span class="d">Turn a goal into a plan you can edit.</span></li>
+              <li><span class="n">04</span><b>Search everything</b><span class="d">⌘K finds chats, files and agents.</span></li>
+              <li><span class="n">05</span><b>One-click sessions</b><span class="d">Start from any project or thread.</span></li>
+              <li><span class="n">06</span><b>Team in the loop</b><span class="d">Teammates share threads and files.</span></li>
+              <li><span class="n">07</span><b>Your profile</b><span class="d">How teammates see you.</span></li>
+              <li><span class="n">08</span><b>Custom agents</b><span class="d">Pick a look, skills and tone.</span></li>
+            </ol>
+          </div>
+          <div class="inset" style="position:absolute;top:calc(var(--k)*40);right:calc(var(--k)*40);bottom:calc(var(--k)*40);width:calc(var(--k)*860);border-radius:calc(var(--k)*44)">
+            <div class="capb" style="--W:640;left:calc(var(--k)*90);top:calc(var(--k)*90)">
+              <span class="bar-a"></span><span class="bar-b"></span>
+              <div class="sp s1 drop"><div class="clover lit"><span class="aurora"></span><span class="core"></span></div><span class="idx">01</span></div>
+              <div class="sp s2"><div class="pill gl"><span class="live"></span><span>00:31:29</span></div><span class="idx" style="right:calc(var(--u)*-5);top:0">02</span></div>
+              <div class="sp s3"><div class="tile gl"><div class="lotus"><i></i><i></i><i></i><i></i></div></div><span class="idx">03</span></div>
+              <div class="sp s4"><div class="orb gl"><svg><use href="#srch"/></svg></div><kbd>⌘ K</kbd><span class="idx">04</span></div>
+              <div class="sp s5"><div class="ghost">Start session</div><span class="idx">05</span></div>
+              <div class="sp s6"><div class="frame drop"><div class="clover"><span class="photo"></span></div><span class="plus"><svg><use href="#plus"/></svg></span></div><div class="nm">Jon Okafor</div><div class="sub">+11 teammates</div><span class="idx" style="top:0">06</span></div>
+              <div class="sp s7"><div class="drop"><div class="clover"><span class="me">YOU</span></div></div><div class="nm">Your name</div><div class="sub">seat open</div><span class="idx" style="right:calc(var(--u)*-2.6)">07</span></div>
+              <div class="sp s8"><div class="tile gl"><span class="pearl" style="--c:var(--mint-dot)"></span><span class="pearl add"><svg><use href="#plus"/></svg></span><span class="pearl" style="--c:var(--butter-dot)"></span><span class="pearl" style="--c:var(--lilac-dot)"></span></div><span class="idx">08</span></div>
+              <div class="capb-foot"><div class="mono">truex<br>agents · sessions<br>goals · search</div><div class="sig">Capabilities</div></div>
+            </div>
+          </div>
+          <div class="s-foot" style="right:auto"><span class="bm"><svg><use href="#spark"/></svg></span>truex</div>
+          <span class="pg" style="position:absolute;right:calc(var(--k)*80);bottom:calc(var(--k)*52);font:400 calc(var(--k)*20) var(--font-mono);color:var(--ink-2)">04 / 14</span>
+        </div>
+        <figcaption><b>C · Capability board.</b> This is the join-tenant-v3 right-side board, used whole. The legend on the left is the readable version, numbered 01 to 08 to match the specimens. It's the only slide that shows all the capabilities together.</figcaption>
+      </figure>
+
+      <!-- D Platform board -->
+      <figure>
+        <div class="slide">
+          <div class="s-top"><span>03 · platform · conversation stream</span><span>truex · deck</span></div>
+          <div style="position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*130)">
+            <span class="s-eyebrow">3 · Content, inline</span>
+            <h2 class="hl md" style="margin-top:calc(var(--k)*18)">The answer reads <span class="script">first</span></h2>
+          </div>
+          <div class="wf" style="left:calc(var(--k)*120);top:calc(var(--k)*360);width:calc(var(--k)*960)">
+            <div class="wf-bar"><i></i><i></i><i></i><span>truex · chat</span></div>
+            <div class="wf-head">Onboarding plan for new analysts <span class="chip" style="margin-left:auto"><span class="d"></span>Qlik Analyst · Working</span></div>
+            <div class="wf-body">
+              <div class="bubble">Draft a 2-week onboarding plan for new analysts from the handbook</div>
+              <div class="who"><span class="av">Q</span>Qlik Analyst</div>
+              <div class="stepsbox"><span>Thought for 4s</span><span>Read 3 workspace documents</span><span class="run">Drafting the answer</span></div>
+              <div class="receipt">2.6s · 26.6k tokens · Sonnet 5.5 · Details</div>
+            </div>
+          </div>
+          <span class="s-pin at" style="left:calc(var(--k)*1050);top:calc(var(--k)*470)">1</span>
+          <span class="s-pin at" style="left:calc(var(--k)*100);top:calc(var(--k)*640)">2</span>
+          <span class="s-pin at" style="left:calc(var(--k)*100);top:calc(var(--k)*826)">3</span>
+          <div class="s-card" style="left:calc(var(--k)*1160);top:calc(var(--k)*180);width:calc(var(--k)*640)">
+            <ol>
+              <li><span class="s-pin">1</span><div><b>Your ask, as sent</b><p>A plain request in your own words. No prompts to engineer.</p></div></li>
+              <li><span class="s-pin">2</span><div><b>The work, folded</b><p>Thinking, reads and tool steps live in one log per turn.</p></div></li>
+              <li><span class="s-pin">3</span><div><b>A receipt per turn</b><p>Time, tokens and model in one quiet line. Details opens the trace.</p></div></li>
+            </ol>
+            <div style="display:flex;gap:calc(var(--k)*10);margin-top:calc(var(--k)*28)"><span class="s-tag content">Content</span><span class="s-tag diag">Diagnostics</span></div>
+          </div>
+          <div class="s-foot"><span class="bm"><svg><use href="#spark"/></svg></span>truex<span class="pg">06 / 14</span></div>
+        </div>
+        <figcaption><b>D · Platform board.</b> This is the convo-r2 board pattern: a wireframe pinned on the left and a taped index card on the right. The card holds up to three notes, and each pin on the mock matches one note. There is one for each platform surface, six in total.</figcaption>
+      </figure>
+
+      <!-- E Roadmap -->
+      <figure>
+        <div class="slide">
+          <div class="s-top"><span>05 · what's next</span><span>truex · deck</span></div>
+          <div style="position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*150);width:calc(var(--k)*1680)">
+            <span class="s-eyebrow">5 · Build order</span>
+            <h2 class="hl md" style="margin-top:calc(var(--k)*18)">Where we are, and <span class="script">what's next</span></h2>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:calc(var(--k)*44);margin-top:calc(var(--k)*90)">
+              <div class="s-card" style="position:relative;transform:rotate(-.8deg)"><span class="s-eyebrow" style="font-size:calc(var(--k)*64)">1</span><b style="display:block;font:700 calc(var(--k)*30)/1.2 var(--font-sans);margin-top:calc(var(--k)*10)">Shipped</b><p style="font:400 calc(var(--k)*22)/1.45 var(--font-sans);color:var(--ink-2);margin-top:calc(var(--k)*8)">Named agents, sessions, goals, search.</p></div>
+              <div class="s-card" style="position:relative"><span class="s-eyebrow" style="font-size:calc(var(--k)*64)">2</span><b style="display:block;font:700 calc(var(--k)*30)/1.2 var(--font-sans);margin-top:calc(var(--k)*10)">Building now</b><p style="font:400 calc(var(--k)*22)/1.45 var(--font-sans);color:var(--ink-2);margin-top:calc(var(--k)*8)">Conversation v2, live requests, observability.</p></div>
+              <div class="s-card" style="position:relative;transform:rotate(1deg)"><span class="s-eyebrow" style="font-size:calc(var(--k)*64)">3</span><b style="display:block;font:700 calc(var(--k)*30)/1.2 var(--font-sans);margin-top:calc(var(--k)*10)">Next</b><p style="font:400 calc(var(--k)*22)/1.45 var(--font-sans);color:var(--ink-2);margin-top:calc(var(--k)*8)">[ milestone ], [ milestone ].</p></div>
+            </div>
+          </div>
+          <div class="s-foot"><span class="bm"><svg><use href="#spark"/></svg></span>truex<span class="pg">12 / 14</span></div>
+        </div>
+        <figcaption><b>E · Three cards.</b> Three taped index cards side by side with handwritten numerals, taken from convo-r2's build-order list. Used for how it works, the roadmap and the business model. It's always exactly three cards.</figcaption>
+      </figure>
+
+      <!-- F Ask -->
+      <figure>
+        <div class="slide dots">
+          <div class="s-top"><span>06 · make room for what's next</span><span>truex · deck</span></div>
+          <div style="position:absolute;left:0;right:0;top:calc(var(--k)*220);text-align:center;display:flex;flex-direction:column;align-items:center">
+            <div class="drop" style="width:calc(var(--k)*200);height:calc(var(--k)*200)"><div class="clover lit" style="width:100%;height:100%"><span class="aurora"></span><span class="core"></span></div></div>
+            <h2 class="hl" style="margin-top:calc(var(--k)*50)">A little more <span class="script">possible<svg class="squiggle"><use href="#sq"/></svg></span></h2>
+            <p class="lead" style="margin-top:calc(var(--k)*30)">Invest, refer, or pass this on to someone who should see it.</p>
+          </div>
+          <div class="s-sticky" style="left:calc(var(--k)*1380);top:calc(var(--k)*700);width:calc(var(--k)*400);transform:rotate(-2deg)"><span class="hand">Say hello</span>[ founder ]@truex.ai<br>truex.ai</div>
+          <div class="s-foot"><span class="bm"><svg><use href="#spark"/></svg></span>truex<span class="pg">14 / 14</span></div>
+        </div>
+        <figcaption><b>F · Ask &amp; share.</b> A dotted sheet with the agent aurora at the center. The three asks sit in the lead, and contact details go on a sticky note so they survive being forwarded. The team slide uses the same layout with clover portraits (specimen 06) in a row.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 5 · Platform mapping -->
+  <section class="sec">
+    <div class="sec-head">
+      <span class="eyebrow">5 · Platform slides</span>
+      <h2>One board per convo-r2 surface</h2>
+      <p>The platform chapter follows convo-r2's placement rule. Content is always inline, status is pinned, and diagnostics stay collapsed until someone asks. Each surface becomes one layout D board, in this order.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Slide</th><th>convo-r2 surface</th><th>What the mock shows</th><th>The one line for investors</th><th>Bucket</th></tr></thead>
+      <tbody>
+        <tr><td>05</td><td>Overview · where everything lives</td><td>Topbar, stream, session panel, receipt, live request</td><td>Everything has one place, so nothing gets lost.</td><td><span class="tag content">Content</span> <span class="tag status">Status</span> <span class="tag diag">Diag</span></td></tr>
+        <tr><td>06</td><td>1 · Conversation stream</td><td>Bubble, folded steps, answer, receipt</td><td>The answer reads first and the work folds away.</td><td><span class="tag content">Content</span></td></tr>
+        <tr><td>07</td><td>2 · Live requests and composer</td><td>Request docked above the composer, /goal and Steer</td><td>When an agent needs you, it can't scroll out of view.</td><td><span class="tag content">Content</span></td></tr>
+        <tr><td>08</td><td>3 · Session chrome</td><td>Title, working pill, goal and budget, dock</td><td>One glance tells you whether the work is healthy.</td><td><span class="tag status">Status</span></td></tr>
+        <tr><td>09</td><td>4 · Activity panel</td><td>Activity, Goal, Agents, Plan and Insights tabs, with This turn / Session scope</td><td>Nothing is overwritten. Every plan and helper is kept.</td><td><span class="tag status">Status</span></td></tr>
+        <tr><td>10</td><td>5 · Observability per turn</td><td>Trace waterfall, tokens, context fill, rate limits</td><td>Every turn is accountable: cost, time and privacy.</td><td><span class="tag diag">Diagnostics</span></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- 6 · Running order + rules -->
+  <section class="sec">
+    <div class="sec-head">
+      <span class="eyebrow">6 · Running order</span>
+      <h2>Fourteen slides in four chapters</h2>
+    </div>
+    <div class="two">
+      <div class="tbl"><table>
+        <thead><tr><th>#</th><th>Slide</th><th>Layout</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr><td>01</td><td>Cover</td><td>A</td><td>join-tenant board, unnumbered</td></tr>
+          <tr><td>02</td><td>The problem</td><td>B</td><td>[ data ]</td></tr>
+          <tr><td>03</td><td>Why now</td><td>B</td><td>[ data ]</td></tr>
+          <tr><td>04</td><td>Meet truex · 8 capabilities</td><td>C</td><td>join-tenant-v3 legend 01–08</td></tr>
+          <tr><td>05–10</td><td>Platform · six boards</td><td>D</td><td>convo-v2-wireframe-r2</td></tr>
+          <tr><td>11</td><td>Market and model</td><td>B / E</td><td>[ data ]</td></tr>
+          <tr><td>12</td><td>Build order</td><td>E</td><td>convo-r2 "Gaps and build order"</td></tr>
+          <tr><td>13</td><td>Team</td><td>F</td><td>Clover portraits (specimen 06)</td></tr>
+          <tr><td>14</td><td>Ask &amp; share</td><td>F</td><td>website closing line</td></tr>
+        </tbody>
+      </table></div>
+      <div class="card-taped">
+        <ol class="notes">
+          <li><span class="pin">✓</span><div><b>Do</b>Write each headline as a sentence that makes the point. Keep each slide to 40 words or fewer. Pins on the mock must match the card. Every number cites a source or is marked [ ].</div></li>
+          <li><span class="pin" style="background:var(--bad)">×</span><div><b>Don't</b>Use dark slides or dark mock bubbles on a dark surface. Use raw screenshots, bullet lists, or more than one script word. Don't use ink-3 or tint colors for text.</div></li>
+          <li><span class="pin">↗</span><div><b>Export</b>Turn animations off. The specimens render as static objects in the PDF.</div></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · Open questions -->
+  <section class="sec">
+    <div class="sec-head">
+      <span class="eyebrow">7 · Needs your call</span>
+      <h2>Six questions before I build</h2>
+      <p>My recommendation is listed first for each. You can reply with row numbers, like “1 ok, 3 PPTX”.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>#</th><th>Question</th><th>Recommended</th><th>Alternative</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Cover line</td><td>“Good work takes a great team”</td><td>“Your to-do list, done before lunch”</td></tr>
+        <tr><td>2</td><td>Platform depth</td><td>All six convo-r2 boards (slides 05–10)</td><td>Merge them into three boards for a shorter deck</td></tr>
+        <tr><td>3</td><td>Format</td><td>HTML source → PDF export</td><td>PPTX or Google Slides, where Caveat and the specimen effects get flattened to images</td></tr>
+        <tr><td>4</td><td>Fonts</td><td>Self-host Caveat next to Figtree and Newsreader in <code>website/fonts/</code> so the PDF renders offline</td><td>Keep loading from Google Fonts, as the references do</td></tr>
+        <tr><td>5</td><td>Capability names</td><td>Use the join-tenant-v3 eight as written</td><td>Rename for an investor audience</td></tr>
+        <tr><td>6</td><td>Real data</td><td>Ship with <code>[ placeholders ]</code> first</td><td>Send me market, traction and team details now</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>truex Loading · v2 Agents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,6..72,400..500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Loading v2 · Agents: the five agent tints (spec §3) orbit the mark as glass pearls,
+   then settle into a row as each one "wakes". Headline uses the Newsreader italic accent.
+   Tokens copied from login-google-v1.html (truex design spec). */
+:root {
+  --bg: #FFFFFF; --surface: #FFFFFF; --surface-3: #F6F9FA;
+  --line: #E3ECEF; --line-strong: #D8E0E4;
+  --ink: #1F2A30; --ink-2: #5F6D73; --ink-3: #849198;
+  --accent: #3691CD; --accent-soft: #EAF5F8; --accent-soft-2: #BCDEE8; --accent-fg: #2A72A3;
+  --success-text: #35624E;
+  --glow-1: rgb(188 222 232 / 60%);
+  --board-bg: #F6F9FA; --board-dot: rgb(31 42 48 / 11%);
+  --glass-hi: rgb(255 255 255 / 78%); --glass-line: rgb(31 42 48 / 9%);
+  --obj-shadow: 0 1px 1px rgb(31 42 48 / 5%), 0 14px 30px -12px rgb(31 42 48 / 24%);
+  --shadow-md: 0 1px 2px rgb(31 42 48 / 4%), 0 8px 24px -8px rgb(31 42 48 / 10%);
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-accent: "Newsreader", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #171717; --surface: #171717; --surface-3: #242424;
+  --line: #2A2A2A; --line-strong: #363636;
+  --ink: #EEF4F6; --ink-2: #B7C3C8; --ink-3: #8B999F;
+  --accent-soft: #14283A; --accent-soft-2: #1F4461; --accent-fg: #BCDEE8;
+  --success-text: #A8D8BE;
+  --glow-1: rgb(54 145 205 / 16%);
+  --board-bg: #1C1C1C; --board-dot: rgb(238 244 246 / 9%);
+  --glass-hi: rgb(255 255 255 / 13%); --glass-line: rgb(255 255 255 / 11%);
+  --obj-shadow: 0 1px 1px rgb(0 0 0 / 40%), 0 18px 36px -12px rgb(0 0 0 / 75%);
+  --shadow-md: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -8px rgb(0 0 0 / 50%);
+  color-scheme: dark;
+}
+/* Agent tints: fixed hex, no dark variant */
+:root { --ice: #EAF5F8; --ice-dot: #3691CD; --mint: #E7F4ED; --mint-dot: #A9D5BE; --butter: #FFF3D9; --butter-dot: #EBCB8B; --peach: #FBE9DD; --peach-dot: #F0B999; --lilac: #EFEDF8; --lilac-dot: #C4BDE3; --tint-ink: #1F2A30; }
+
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; min-height: 100dvh; background: var(--board-bg); color: var(--ink); font: 14px/1.5 var(--font-sans); -webkit-font-smoothing: antialiased; display: grid; place-items: center; overflow: hidden; }
+body::before { content: ""; position: fixed; inset: 0; pointer-events: none;
+  background: radial-gradient(circle, var(--board-dot) 1px, transparent 1.2px) 0 0 / 22px 22px; }
+body::after { content: ""; position: fixed; inset: 0; pointer-events: none; background: radial-gradient(480px 380px at 50% 42%, var(--glow-1), transparent 70%); }
+
+.stage { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 28px; text-align: center; animation: rise .5s ease-out both; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+
+/* orbit */
+.orbit { position: relative; width: 220px; height: 220px; }
+.ring { position: absolute; inset: 0; border-radius: 50%; border: 1px dashed var(--line-strong); }
+.ring.in { inset: 42px; border-style: solid; border-color: var(--line); }
+.mark { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px; border-radius: 16px; background: var(--ink); color: var(--bg); display: grid; place-items: center; box-shadow: var(--shadow-md); }
+.mark svg { width: 28px; height: 28px; animation: spin 6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.spin { position: absolute; inset: 0; animation: spin 9s linear infinite; }
+.pearl { position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px;
+  transform: rotate(var(--a)) translateY(-110px) rotate(calc(-1 * var(--a)));
+  border-radius: 50%; background: var(--c); border: 1px solid var(--glass-line); box-shadow: var(--obj-shadow);
+  display: grid; place-items: center; color: var(--tint-ink); font: 700 12px var(--font-sans);
+  transition: opacity .4s; }
+.pearl::before { content: ""; position: absolute; inset: 4px 8px auto; height: 9px; border-radius: 50%; background: var(--glass-hi); filter: blur(1px); }
+.pearl i { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--d); }
+.spin .pearl > * { animation: spin 9s linear infinite reverse; }
+
+/* headline + roster */
+h1 { margin: 0; font-size: 28px; line-height: 1.1; font-weight: 600; letter-spacing: -.035em; }
+h1 em { font-family: var(--font-accent); font-style: italic; font-weight: 400; font-size: 1.04em; letter-spacing: -.01em; color: var(--accent-fg); }
+.sub { margin: 8px 0 0; color: var(--ink-2); font-size: 14px; }
+
+.roster { display: flex; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px 0 6px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--ink-3); font-size: 12px; font-weight: 500; opacity: .55; transition: opacity .3s, color .3s, border-color .3s; }
+.chip .dot { width: 16px; height: 16px; border-radius: 50%; background: var(--c); display: grid; place-items: center; }
+.chip .dot i { width: 6px; height: 6px; border-radius: 50%; background: var(--d); }
+.chip.on { opacity: 1; color: var(--ink); border-color: var(--line-strong); }
+.chip.on .dot i { animation: ping 1.2s ease-out 1; }
+@keyframes ping { 0% { box-shadow: 0 0 0 0 var(--d); } 100% { box-shadow: 0 0 0 6px transparent; } }
+@media (max-width: 560px) { .roster { flex-wrap: wrap; justify-content: center; max-width: 320px; } }
+
+.status { font: 500 11px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.status b { color: var(--accent-fg); font-weight: 500; }
+
+.demo { position: fixed; z-index: 2; top: 14px; right: 14px; display: inline-flex; padding: 2px; border-radius: 9px; background: var(--surface-3); border: 1px solid var(--line); }
+.demo button { height: 26px; padding: 0 10px; border: 0; border-radius: 7px; background: none; color: var(--ink-2); font: 12px var(--font-sans); cursor: pointer; }
+.demo button:hover { color: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  .spin, .spin .pearl > *, .mark svg, .stage, .chip.on .dot i { animation: none; }
+}
+</style>
+</head>
+<body>
+<main class="stage" role="status" aria-live="polite" aria-busy="true">
+  <div class="orbit" aria-hidden="true">
+    <div class="ring"></div>
+    <div class="ring in"></div>
+    <div class="spin">
+      <span class="pearl" style="--a:0deg;  --c:var(--ice);    --d:var(--ice-dot)"><i></i></span>
+      <span class="pearl" style="--a:72deg; --c:var(--mint);   --d:var(--mint-dot)"><i></i></span>
+      <span class="pearl" style="--a:144deg;--c:var(--butter); --d:var(--butter-dot)"><i></i></span>
+      <span class="pearl" style="--a:216deg;--c:var(--peach);  --d:var(--peach-dot)"><i></i></span>
+      <span class="pearl" style="--a:288deg;--c:var(--lilac);  --d:var(--lilac-dot)"><i></i></span>
+    </div>
+    <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg></div>
+  </div>
+
+  <div>
+    <h1>Gathering your <em>team</em></h1>
+    <p class="sub">Setting up the workspace and waking your agents.</p>
+  </div>
+
+  <div class="roster" aria-hidden="true">
+    <span class="chip" style="--c:var(--ice);   --d:var(--ice-dot)"><span class="dot"><i></i></span>Research</span>
+    <span class="chip" style="--c:var(--mint);  --d:var(--mint-dot)"><span class="dot"><i></i></span>Writer</span>
+    <span class="chip" style="--c:var(--butter);--d:var(--butter-dot)"><span class="dot"><i></i></span>Analyst</span>
+    <span class="chip" style="--c:var(--peach); --d:var(--peach-dot)"><span class="dot"><i></i></span>Ops</span>
+    <span class="chip" style="--c:var(--lilac); --d:var(--lilac-dot)"><span class="dot"><i></i></span>Reviewer</span>
+  </div>
+
+  <div class="status" id="status"><b>0</b> / 5 agents ready</div>
+</main>
+
+<div class="demo">
+  <button type="button" id="replay">Replay</button>
+  <button type="button" id="theme">Toggle theme</button>
+</div>
+
+<script>
+  const chips = [...document.querySelectorAll('.chip')], status = document.getElementById('status');
+  let timers = [];
+  function run() {
+    timers.forEach(clearTimeout); timers = [];
+    chips.forEach(c => c.classList.remove('on'));
+    status.innerHTML = '<b>0</b> / 5 agents ready';
+    chips.forEach((c, i) => timers.push(setTimeout(() => {
+      c.classList.add('on');
+      status.innerHTML = i === chips.length - 1 ? '<b>Ready</b> · opening workspace' : `<b>${i + 1}</b> / 5 agents ready`;
+    }, 700 + i * 650)));
+  }
+  document.getElementById('replay').onclick = run;
+  document.getElementById('theme').onclick = () => {
+    const r = document.documentElement; r.dataset.theme = r.dataset.theme === 'dark' ? 'light' : 'dark';
+  };
+  if (matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.dataset.theme = 'dark';
+  run();
+</script>
+</body>
+</html>
