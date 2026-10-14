@@ -1,0 +1,87 @@
+<section class="slide sl-06" data-top="06 · why now">
+  <style>
+    .sl-06 .head{position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*160);width:calc(var(--k)*1120)}
+    .sl-06 .hl{margin-top:calc(var(--k)*28)}
+    .sl-06 .lead{margin-top:calc(var(--k)*24);font-size:calc(var(--k)*26);line-height:1.45}
+    .sl-06 .lbl{font:500 calc(var(--k)*16)/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+
+    /* left: the support deadline as a vertical timeline */
+    .sl-06 .clock{position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*512);width:calc(var(--k)*600);height:calc(var(--k)*418);padding:calc(var(--k)*26) calc(var(--k)*32) calc(var(--k)*24);display:flex;flex-direction:column}
+    .sl-06 .tl{position:relative;margin-top:calc(var(--k)*20);display:grid;gap:calc(var(--k)*16)}
+    /* rail through the dots' centre line */
+    .sl-06 .tl li:not(:last-child)::before{content:"";position:absolute;left:calc(var(--k)*9);top:calc(var(--k)*14);bottom:calc(var(--k)*-22);border-left:calc(var(--k)*2) dashed var(--line-strong)}
+    .sl-06 .tl li{position:relative;display:grid;grid-template-columns:calc(var(--k)*20) calc(var(--k)*150) 1fr;gap:calc(var(--k)*18);align-items:baseline}
+    .sl-06 .dot{position:relative;top:calc(var(--k)*2);width:calc(var(--k)*20);height:calc(var(--k)*20);border-radius:50%;background:#fff;border:calc(var(--k)*2) solid var(--line-strong)}
+    .sl-06 .yr{font:500 calc(var(--k)*17)/1.3 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+    .sl-06 .ev{font:400 calc(var(--k)*21)/1.35 var(--font-sans);color:var(--ink)}
+    .sl-06 .ev small{display:block;margin-top:calc(var(--k)*4);font-size:calc(var(--k)*17);color:var(--ink-2)}
+    /* the 2027 deadline is the one that matters */
+    .sl-06 .tl li.hot .dot{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 calc(var(--k)*6) color-mix(in srgb,var(--accent) 18%,transparent)}
+    .sl-06 .tl li.hot .yr{color:var(--accent-fg)}
+    .sl-06 .tl li.hot .ev{font-weight:700}
+    .sl-06 .clock .foot{margin-top:auto;padding-top:calc(var(--k)*16);border-top:1px solid var(--line);font:400 calc(var(--k)*20)/1.4 var(--font-sans);color:var(--ink)}
+
+    /* right: what makes the move painful, 2 × 2 */
+    .sl-06 .pains{position:absolute;left:calc(var(--k)*744);top:calc(var(--k)*512);width:calc(var(--k)*1056);height:calc(var(--k)*418);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,1fr);gap:calc(var(--k)*22)}
+    .sl-06 .pains .ecard{padding:calc(var(--k)*22) calc(var(--k)*26);display:grid;grid-template-columns:auto 1fr;gap:calc(var(--k)*20);align-items:start}
+    .sl-06 .pains .n{position:absolute;top:calc(var(--k)*22);right:calc(var(--k)*24)}
+    .sl-06 .pains .well{width:calc(var(--k)*64);height:calc(var(--k)*64);border-radius:calc(var(--k)*18);--m:calc(var(--k)*.64);background-size:calc(var(--k)*10) calc(var(--k)*10)}
+    .sl-06 .pains h3{font-size:calc(var(--k)*23);line-height:1.2;padding-right:calc(var(--k)*34)}
+    .sl-06 .pains p{margin-top:calc(var(--k)*8);font-size:calc(var(--k)*18);line-height:1.42}
+
+    .sl-06 .fine{position:absolute;left:calc(var(--k)*120);right:calc(var(--k)*120);top:calc(var(--k)*976);font-size:calc(var(--k)*17)}
+  </style>
+
+  <div class="head">
+    <span class="eyebrow">06 · Why now</span>
+    <h1 class="hl sm">SAP transformation can no longer <em>wait.</em></h1>
+    <p class="lead">SAP ECC customers face a fixed support deadline, and the move to SAP S/4HANA is complex, costly, and short on skilled people.</p>
+  </div>
+
+  <div class="tint" style="left:calc(var(--k)*1330);top:calc(var(--k)*176);width:calc(var(--k)*470);font-size:calc(var(--k)*22)">
+    <span class="k">Where truex fits</span>
+    The slow, manual analysis, coding and testing at the heart of every migration. <b>With approvals and execution evidence built in.</b>
+  </div>
+
+  <div class="inset" style="left:calc(var(--k)*80);right:calc(var(--k)*80);top:calc(var(--k)*486);height:calc(var(--k)*470)"></div>
+
+  <div class="ecard clock">
+    <p class="lbl">The deadline driving demand</p>
+    <ol class="tl">
+      <li><span class="dot"></span><span class="yr">Today</span><span class="ev">Migration programs underway or still being planned<small>Every ECC landscape must move, or pay to stay</small></span></li>
+      <li class="hot"><span class="dot"></span><span class="yr">End of 2027</span><span class="ev">SAP ECC 6.0 mainstream maintenance ends</span></li>
+      <li><span class="dot"></span><span class="yr">End of 2030</span><span class="ev">Optional extended maintenance ends<small>Available at additional cost</small></span></li>
+    </ol>
+    <p class="foot">The destination is fixed. <b>The capacity to get there is not.</b></p>
+  </div>
+
+  <div class="pains">
+    <div class="ecard">
+      <span class="n">01</span>
+      <div class="well"><div class="m-pearls">
+        <span class="pearl" style="--c:var(--mint-dot);left:0;top:4%;width:44%;height:44%"></span>
+        <span class="pearl" style="--c:var(--butter-dot);right:2%;top:20%;width:32%;height:32%"></span>
+        <span class="pearl" style="--c:var(--lilac-dot);left:18%;bottom:0;width:38%;height:38%"></span>
+        <span class="pearl" style="--c:var(--peach-dot);right:10%;bottom:8%;width:22%;height:22%"></span>
+      </div></div>
+      <div><h3>Scarce SAP expertise</h3><p>Experienced S/4HANA consultants and ABAP developers are in short supply, so programs slow down or stall.</p></div>
+    </div>
+    <div class="ecard">
+      <span class="n">02</span>
+      <div class="well"><div class="m-bars"><i></i><i></i></div></div>
+      <div><h3>Costly failed transformations</h3><p>Overruns and troubled go-lives can cost millions and disrupt core business operations.</p></div>
+    </div>
+    <div class="ecard">
+      <span class="n">03</span>
+      <div class="well"><div class="m-lens"><div class="lens gl"><svg><use href="#srch"/></svg></div></div></div>
+      <div><h3>Compliance risk</h3><p>Every code and configuration change must stay tested, approved, and auditable.</p></div>
+    </div>
+    <div class="ecard">
+      <span class="n">04</span>
+      <div class="well"><div class="m-tile"><div class="tile gl"><div class="lotus"><i></i><i></i><i></i><i></i></div></div></div></div>
+      <div><h3>Manual, error-prone work</h3><p>Custom-code analysis, remediation, and testing are still largely done by hand: slow, and easy to get wrong.</p></div>
+    </div>
+  </div>
+
+  <p class="fine">Maintenance dates refer to SAP's published commitments for SAP ECC 6.0 (EHP 6–8). Individual customer contracts and transition options may differ.</p>
+</section>

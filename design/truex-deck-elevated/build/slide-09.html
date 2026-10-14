@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>truex · 09-get-involved</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,6..72,400..500&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../deck.css">
+</head>
+<body class="flat">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <clipPath id="clover" clipPathUnits="objectBoundingBox"><path d="M.5,.1 C.82,-.1 1.1,.18 .9,.5 C1.1,.82 .82,1.1 .5,.9 C.18,1.1 -.1,.82 .1,.5 C-.1,.18 .18,-.1 .5,.1Z"/></clipPath>
+  <symbol id="spark" viewBox="0 0 40 40"><path d="m20 8 3.2 8.5 8.5 3.2-8.5 3.2L20 31.4l-3.2-8.5-8.5-3.2 8.5-3.2Z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/></symbol>
+  <symbol id="sq" viewBox="0 0 200 14" preserveAspectRatio="none"><path d="M3 9C32 2 52 13 84 7S146 2 197 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></symbol>
+  <symbol id="srch" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></g></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="arrow-r" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+<main class="deck">
+<div class="slot" id="s09"><section class="slide sl-09" data-top="09 · get involved">
+  <style>
+    .sl-09 .head{position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*160);width:calc(var(--k)*1100)}
+    .sl-09 .hl{margin-top:calc(var(--k)*26)}
+    .sl-09 .lead{margin-top:calc(var(--k)*22);font-size:calc(var(--k)*26)}
+    .sl-09 .sig{position:absolute;left:calc(var(--k)*1330);top:calc(var(--k)*196);width:calc(var(--k)*470);font-size:calc(var(--k)*34);line-height:1.28;color:var(--ink);padding-left:calc(var(--k)*28);border-left:calc(var(--k)*3) solid var(--accent)}
+
+    /* hero: four ways in, plus the contact strip, on one dotted stage */
+    .sl-09 .asks{position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*476);width:calc(var(--k)*1680);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:calc(var(--k)*24)}
+    .sl-09 .asks .ecard{padding:calc(var(--k)*22) calc(var(--k)*26) calc(var(--k)*24)}
+    .sl-09 .asks .top{display:flex;align-items:center;gap:calc(var(--k)*16)}
+    .sl-09 .asks .n{position:absolute;top:calc(var(--k)*22);right:calc(var(--k)*24)}
+    .sl-09 .asks .well{width:calc(var(--k)*58);height:calc(var(--k)*58);border-radius:calc(var(--k)*16);--m:calc(var(--k)*.58);background-size:calc(var(--k)*10) calc(var(--k)*10)}
+    .sl-09 .asks h3{font-size:calc(var(--k)*23);line-height:1.2;padding-right:calc(var(--k)*30)}
+    .sl-09 .asks p{margin-top:calc(var(--k)*14);font-size:calc(var(--k)*19);line-height:1.4}
+
+    .sl-09 .contact{position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*722);width:calc(var(--k)*1680);padding:calc(var(--k)*24) calc(var(--k)*36);display:grid;grid-template-columns:auto 1px 1fr;gap:calc(var(--k)*40);align-items:center}
+    .sl-09 .contact .rule{align-self:stretch;background:var(--line)}
+    .sl-09 .lbl{display:block;font:500 calc(var(--k)*16)/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent-fg);margin-bottom:calc(var(--k)*14)}
+    .sl-09 .demo .act{display:flex;align-items:center;gap:calc(var(--k)*16)}
+    .sl-09 .demo .link{font-size:calc(var(--k)*20);height:calc(var(--k)*54)}
+    .sl-09 .ph{font-size:calc(var(--k)*19)}
+    .sl-09 .cx .cols{display:grid;grid-template-columns:auto auto;justify-content:start;column-gap:calc(var(--k)*56);align-items:start;font-size:calc(var(--k)*21);color:var(--ink)}
+    .sl-09 .cx .rows{display:grid;grid-template-columns:calc(var(--k)*120) auto;row-gap:calc(var(--k)*12);align-items:baseline}
+    .sl-09 .cx .rk{font:500 calc(var(--k)*14)/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+    .sl-09 .cx .line{display:flex;gap:calc(var(--k)*10);align-items:baseline;white-space:nowrap;color:var(--ink-2)}
+    .sl-09 .fine{position:absolute;left:calc(var(--k)*120);right:calc(var(--k)*120);top:calc(var(--k)*916)}
+  </style>
+
+  <div class="head">
+    <span class="eyebrow">09 · Get involved</span>
+    <h1 class="hl sm">Know someone who could help shape the future of <em>enterprise AI?</em></h1>
+    <p class="lead">We are looking for a few meaningful connections and early partners.</p>
+  </div>
+
+  <p class="sig">One introduction, one real enterprise problem, or one early conversation could make a meaningful difference.</p>
+
+  <div class="inset" style="left:calc(var(--k)*80);right:calc(var(--k)*80);top:calc(var(--k)*450);height:calc(var(--k)*442)"></div>
+
+  <div class="asks">
+    <div class="ecard">
+      <span class="n">01</span>
+      <div class="top"><div class="well"><div class="m-pearls">
+        <span class="pearl" style="--c:var(--mint-dot);left:0;top:4%;width:44%;height:44%"></span>
+        <span class="pearl" style="--c:var(--butter-dot);right:2%;top:20%;width:32%;height:32%"></span>
+        <span class="pearl" style="--c:var(--lilac-dot);left:18%;bottom:0;width:38%;height:38%"></span>
+        <span class="pearl" style="--c:var(--peach-dot);right:10%;bottom:8%;width:22%;height:22%"></span>
+      </div></div><h3>Enterprise Connections</h3></div>
+      <p>Introduce us to SAP transformation leaders, enterprise technology decision-makers, or organizations facing complex operational challenges.</p>
+    </div>
+    <div class="ecard">
+      <span class="n">02</span>
+      <div class="top"><div class="well"><div class="m-tile"><div class="tile gl"><div class="lotus"><i></i><i></i><i></i><i></i></div></div></div></div><h3>Early Design Partners</h3></div>
+      <p>Work directly with the founder to explore real workflows, shape priorities, and evaluate an early pilot.</p>
+    </div>
+    <div class="ecard">
+      <span class="n">03</span>
+      <div class="top"><div class="well"><div class="m-bars"><i></i><i></i></div></div><h3>Investors &amp; Strategic Backers</h3></div>
+      <p>Connect with us if you invest in early-stage enterprise software or can introduce us to someone who does.</p>
+    </div>
+    <div class="ecard">
+      <span class="n">04</span>
+      <div class="top"><div class="well"><div class="m-clover"><div class="clover"><span class="aurora"></span></div></div></div><h3>Development &amp; Research Support</h3></div>
+      <p>Help accelerate product development through AI tooling, Claude Max access or equivalent research and infrastructure sponsorship.</p>
+    </div>
+  </div>
+
+  <div class="ecard contact">
+    <div class="demo">
+      <span class="lbl">Experience Truex</span>
+      <div class="act">
+        <a href="https://trytruex.com" class="link">trytruex.com<svg aria-hidden="true"><use href="#ext"/></svg></a>
+      </div>
+    </div>
+    <span class="rule" aria-hidden="true"></span>
+    <div class="cx">
+      <span class="lbl">Connect with the Founder</span>
+      <div class="cols">
+        <div><span class="ph">Ashok</span><div style="margin-top:calc(var(--k)*10)">Solo Founder, Truex</div></div>
+        <div class="rows">
+          <span class="rk">Primary</span><div class="line"><a class="ph" href="mailto:ashokjoe2001@gmail.com">ashokjoe2001@gmail.com</a></div>
+          <span class="rk">Alternate</span><div class="line"><a class="ph" href="mailto:ashokmokok@gmail.com">ashokmokok@gmail.com</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="fine">If someone in your network works in enterprise transformation, AI adoption, or early-stage investing, we'd appreciate you sharing Truex with them.</p>
+<div class="s-top"><span>09 · get involved</span><span>truex · introduction · october 2026</span></div><div class="s-foot"><span class="pg">09 / 09</span></div></section></div>
+</main>
+</body>
+</html>

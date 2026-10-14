@@ -19,7 +19,7 @@ import tempfile
 ROOT = pathlib.Path(__file__).resolve().parent
 BUILD = ROOT / "build"
 TOP_RIGHT = "truex · introduction · october 2026"
-LAST_PAGE = 8  # page numbers come from the NN- file prefix, so sample slides keep their final numbers
+LAST_PAGE = 9  # page numbers come from the NN- file prefix, so sample slides keep their final numbers
 
 FONTS = (
     '<link rel="preconnect" href="https://fonts.googleapis.com">'

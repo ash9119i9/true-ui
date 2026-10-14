@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>truex · 08-get-involved</title>
+<title>truex · 08-founder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,6..72,400..500&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../deck.css">
 </head>
@@ -19,95 +19,76 @@
   <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </svg>
 <main class="deck">
-<div class="slot" id="s08"><section class="slide sl-08" data-top="08 · get involved">
+<div class="slot" id="s08"><section class="slide sl-08" data-top="08 · founder and product preview">
   <style>
-    .sl-08 .head{position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*160);width:calc(var(--k)*1100)}
-    .sl-08 .hl{margin-top:calc(var(--k)*26)}
-    .sl-08 .lead{margin-top:calc(var(--k)*22);font-size:calc(var(--k)*26)}
-    .sl-08 .sig{position:absolute;left:calc(var(--k)*1330);top:calc(var(--k)*196);width:calc(var(--k)*470);font-size:calc(var(--k)*34);line-height:1.28;color:var(--ink);padding-left:calc(var(--k)*28);border-left:calc(var(--k)*3) solid var(--accent)}
+    .sl-08 .head{position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*150);width:calc(var(--k)*800)}
+    .sl-08 .hl{margin-top:calc(var(--k)*24)}
+    .sl-08 .body{font-size:calc(var(--k)*23);line-height:1.5}
+    .sl-08 .lbl{font:500 calc(var(--k)*16)/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
 
-    /* hero: four ways in, plus the contact strip, on one dotted stage */
-    .sl-08 .asks{position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*476);width:calc(var(--k)*1680);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:calc(var(--k)*24)}
-    .sl-08 .asks .ecard{padding:calc(var(--k)*22) calc(var(--k)*26) calc(var(--k)*24)}
-    .sl-08 .asks .top{display:flex;align-items:center;gap:calc(var(--k)*16)}
-    .sl-08 .asks .n{position:absolute;top:calc(var(--k)*22);right:calc(var(--k)*24)}
-    .sl-08 .asks .well{width:calc(var(--k)*58);height:calc(var(--k)*58);border-radius:calc(var(--k)*16);--m:calc(var(--k)*.58);background-size:calc(var(--k)*10) calc(var(--k)*10)}
-    .sl-08 .asks h3{font-size:calc(var(--k)*23);line-height:1.2;padding-right:calc(var(--k)*30)}
-    .sl-08 .asks p{margin-top:calc(var(--k)*14);font-size:calc(var(--k)*19);line-height:1.4}
+    /* left: founder profile, then the milestone */
+    .sl-08 .lcol{position:absolute;left:calc(var(--k)*120);bottom:calc(var(--k)*130);width:calc(var(--k)*800);display:flex;flex-direction:column;gap:calc(var(--k)*22)}
+    .sl-08 .founder{padding:calc(var(--k)*20) calc(var(--k)*30);display:flex;gap:calc(var(--k)*36);align-items:center}
+    .sl-08 .me{display:block;width:100%;height:100%;object-fit:cover}
+    .sl-08 .pcap{margin-top:calc(var(--k)*10);text-align:center}
+    .sl-08 .pcap .ph{font-size:calc(var(--k)*14)}
+    .sl-08 .val{margin-top:calc(var(--k)*10);font:400 calc(var(--k)*23)/1.4 var(--font-sans);color:var(--ink)}
+    .sl-08 .field+.field{margin-top:calc(var(--k)*14);padding-top:calc(var(--k)*14);border-top:1px solid var(--line)}
+    .sl-08 .tint{position:relative;padding:calc(var(--k)*20) calc(var(--k)*30) calc(var(--k)*22);font-size:calc(var(--k)*22)}
+    .sl-08 .tint .k{margin-bottom:calc(var(--k)*10)}
 
-    .sl-08 .contact{position:absolute;left:calc(var(--k)*120);top:calc(var(--k)*722);width:calc(var(--k)*1680);padding:calc(var(--k)*24) calc(var(--k)*36);display:grid;grid-template-columns:auto 1px 1fr;gap:calc(var(--k)*40);align-items:center}
-    .sl-08 .contact .rule{align-self:stretch;background:var(--line)}
-    .sl-08 .lbl{display:block;font:500 calc(var(--k)*16)/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent-fg);margin-bottom:calc(var(--k)*14)}
-    .sl-08 .demo .act{display:flex;align-items:center;gap:calc(var(--k)*16)}
-    .sl-08 .demo .link{font-size:calc(var(--k)*20);height:calc(var(--k)*54)}
-    .sl-08 .ph{font-size:calc(var(--k)*19)}
-    .sl-08 .cx .cols{display:grid;grid-template-columns:auto auto;justify-content:start;column-gap:calc(var(--k)*56);align-items:start;font-size:calc(var(--k)*21);color:var(--ink)}
-    .sl-08 .cx .rows{display:grid;grid-template-columns:calc(var(--k)*120) auto;row-gap:calc(var(--k)*12);align-items:baseline}
-    .sl-08 .cx .rk{font:500 calc(var(--k)*14)/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
-    .sl-08 .cx .line{display:flex;gap:calc(var(--k)*10);align-items:baseline;white-space:nowrap;color:var(--ink-2)}
-    .sl-08 .fine{position:absolute;left:calc(var(--k)*120);right:calc(var(--k)*120);top:calc(var(--k)*916)}
+    /* right hero: the real truex app home screen in a browser window on the dotted stage */
+    .sl-08 .wf{left:calc(var(--k)*1030);top:calc(var(--k)*178);width:calc(var(--k)*740)}
+    .sl-08 .wf-bar{height:calc(var(--k)*44)}
+    .sl-08 .wf-bar .url{flex:1;margin-left:calc(var(--k)*14);height:calc(var(--k)*28);display:flex;align-items:center;padding:0 calc(var(--k)*12);border-radius:999px;background:#fff;border:1px solid var(--line)}
+    .sl-08 .wf-bar .url .ph{margin-left:0;font-size:calc(var(--k)*14)}
+    .sl-08 .shot{display:block;width:100%;height:auto}
+    .sl-08 .exp{position:absolute;left:calc(var(--k)*1000);top:calc(var(--k)*742);width:calc(var(--k)*800)}
+    .sl-08 .exp .row{display:flex;align-items:center;justify-content:space-between;gap:calc(var(--k)*20)}
+    .sl-08 .exp h3{font:700 calc(var(--k)*30)/1.1 var(--font-sans);letter-spacing:-.02em;color:var(--ink);white-space:nowrap}
+    .sl-08 .exp .link{height:calc(var(--k)*56);font-size:calc(var(--k)*20);white-space:nowrap}
+    .sl-08 .exp .fine{margin-top:calc(var(--k)*16);font-size:calc(var(--k)*19)}
   </style>
 
   <div class="head">
-    <span class="eyebrow">08 · Get involved</span>
-    <h1 class="hl sm">Know someone who could help shape the future of <em>enterprise AI?</em></h1>
-    <p class="lead">We are looking for a few meaningful connections and early partners.</p>
+    <span class="eyebrow">08 · Who is building it</span>
+    <h1 class="hl sm">An ambitious vision. An <em>early-stage builder.</em></h1>
+    <p class="body" style="margin-top:calc(var(--k)*26);color:var(--ink)">Truex is being built by a solo founder with the ambition to make enterprise AI agents useful for real operational work.</p>
+    <p class="body" style="margin-top:calc(var(--k)*10)">We are early in the journey, and our immediate priority is validating the product with real enterprise challenges.</p>
   </div>
 
-  <p class="sig">One introduction, one real enterprise problem, or one early conversation could make a meaningful difference.</p>
-
-  <div class="inset" style="left:calc(var(--k)*80);right:calc(var(--k)*80);top:calc(var(--k)*450);height:calc(var(--k)*442)"></div>
-
-  <div class="asks">
-    <div class="ecard">
-      <span class="n">01</span>
-      <div class="top"><div class="well"><div class="m-pearls">
-        <span class="pearl" style="--c:var(--mint-dot);left:0;top:4%;width:44%;height:44%"></span>
-        <span class="pearl" style="--c:var(--butter-dot);right:2%;top:20%;width:32%;height:32%"></span>
-        <span class="pearl" style="--c:var(--lilac-dot);left:18%;bottom:0;width:38%;height:38%"></span>
-        <span class="pearl" style="--c:var(--peach-dot);right:10%;bottom:8%;width:22%;height:22%"></span>
-      </div></div><h3>Enterprise Connections</h3></div>
-      <p>Introduce us to SAP transformation leaders, enterprise technology decision-makers, or organizations facing complex operational challenges.</p>
+  <div class="lcol">
+  <div class="ecard founder">
+    <div style="flex:none">
+      <div class="frame drop" style="--u:calc(var(--k)*5.2)"><div class="clover"><img class="me" src="../assets/product/founder.jpg" alt="Ashok, founder of Truex"></div></div>
     </div>
-    <div class="ecard">
-      <span class="n">02</span>
-      <div class="top"><div class="well"><div class="m-tile"><div class="tile gl"><div class="lotus"><i></i><i></i><i></i><i></i></div></div></div></div><h3>Early Design Partners</h3></div>
-      <p>Work directly with the founder to explore real workflows, shape priorities, and evaluate an early pilot.</p>
-    </div>
-    <div class="ecard">
-      <span class="n">03</span>
-      <div class="top"><div class="well"><div class="m-bars"><i></i><i></i></div></div><h3>Investors &amp; Strategic Backers</h3></div>
-      <p>Connect with us if you invest in early-stage enterprise software or can introduce us to someone who does.</p>
-    </div>
-    <div class="ecard">
-      <span class="n">04</span>
-      <div class="top"><div class="well"><div class="m-clover"><div class="clover"><span class="aurora"></span></div></div></div><h3>Development &amp; Research Support</h3></div>
-      <p>Help accelerate product development through AI tooling, Claude Max access or equivalent research and infrastructure sponsorship.</p>
+    <div style="flex:1;min-width:0">
+      <div class="field"><div class="lbl">Founder</div><div class="val"><span class="ph">Ashok</span></div></div>
+      <div class="field"><div class="lbl">Current focus</div><div class="val"><span class="ph">Designed and built Truex end to end</span></div></div>
     </div>
   </div>
 
-  <div class="ecard contact">
-    <div class="demo">
-      <span class="lbl">Experience Truex</span>
-      <div class="act">
-        <a href="https://trytruex.com" class="link">trytruex.com<svg aria-hidden="true"><use href="#ext"/></svg></a>
-      </div>
-    </div>
-    <span class="rule" aria-hidden="true"></span>
-    <div class="cx">
-      <span class="lbl">Connect with the Founder</span>
-      <div class="cols">
-        <div><span class="ph">Ashok</span><div style="margin-top:calc(var(--k)*10)">Solo Founder, Truex</div></div>
-        <div class="rows">
-          <span class="rk">Primary</span><div class="line"><a class="ph" href="tel:+916374687624">+91 6374687624</a>·<a class="ph" href="mailto:ashokjoe2001@gmail.com">ashokjoe2001@gmail.com</a></div>
-          <span class="rk">Alternate</span><div class="line"><a class="ph" href="tel:+916382370175">+91 6382370175</a>·<a class="ph" href="mailto:ashokmokok@gmail.com">ashokmokok@gmail.com</a></div>
-        </div>
-      </div>
-    </div>
+  <div class="tint">
+    <span class="k">Our next milestone</span>
+    Collaborate with enterprise teams to validate one scoped SAP transformation workflow against real engineering and quality requirements.
+  </div>
   </div>
 
-  <p class="fine">If someone in your network works in enterprise transformation, AI adoption, or early-stage investing, we'd appreciate you sharing Truex with them.</p>
-<div class="s-top"><span>08 · get involved</span><span>truex · introduction · october 2026</span></div><div class="s-foot"><span class="pg">08 / 08</span></div></section></div>
+  <div class="inset" style="left:calc(var(--k)*1000);top:calc(var(--k)*150);width:calc(var(--k)*800);height:calc(var(--k)*560)"></div>
+  <div class="wf">
+    <div class="wf-bar"><i></i><i></i><i></i><div class="url"><a class="ph" href="https://trytruex.com">trytruex.com</a></div></div>
+    <img class="shot" src="../assets/product/truex-home.png" alt="The truex app home screen: “What should we work on today?” with an Ask anything composer">
+  </div>
+
+  <div class="exp">
+    <div class="row">
+      <h3>Experience Truex</h3>
+      <a href="https://trytruex.com" class="link">Open the Truex early product preview<svg aria-hidden="true"><use href="#ext"/></svg></a>
+    </div>
+    <p class="fine">An early-stage demonstration of the product under development. Capabilities and production suitability are still being validated.</p>
+  </div>
+
+<div class="s-top"><span>08 · founder and product preview</span><span>truex · introduction · october 2026</span></div><div class="s-foot"><span class="pg">08 / 09</span></div></section></div>
 </main>
 </body>
 </html>
